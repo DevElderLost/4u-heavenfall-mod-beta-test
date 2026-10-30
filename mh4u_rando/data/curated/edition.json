@@ -1,0 +1,15 @@
+{
+  "description": "Which product this checkout builds (mh4u_rando/edition.py): Heavenfall Beta, the single-screen module of Heavenfall. Its names in the program and the Windows build, its pages and platforms, the developer tools' language, the preferences folder and the mod folder's marker.",
+  "name": "Heavenfall Beta",
+  "window_title": "Heavenfall Beta: Monster Hunter 4 Ultimate on one screen",
+  "app_name": "HeavenfallBeta",
+  "cli_name": "heavenfall-beta-cli",
+  "zip_name": "HeavenfallBeta-windows.zip",
+  "app_user_model_id": "HeavenfallBeta.MH4U.GUI",
+  "pages": ["install", "options"],
+  "platforms": ["emulator"],
+  "needs_mhgen": false,
+  "tools_language": "en",
+  "user_folder": ".heavenfall_beta",
+  "marker": "heavenfall_beta_mod.json"
+}

@@ -1,0 +1,54 @@
+# Builds Heavenfall Beta for Windows and attaches HeavenfallBeta-windows.zip to the GitHub release of the tag.
+# Push a tag to release (docs/development.md, "Publishing a release"):  git tag v0.1.0 && git push origin v0.1.0
+# Run by hand (Actions > Release > Run workflow) to only build: the zip is then an artifact of the run.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write     # to create the release and upload the zip
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"      # the version the pinned packages were tested on
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-build.txt
+
+      - name: Install the packages
+        run: python -m pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Build HeavenfallBeta-windows.zip
+        run: python tools/build_exe.py --work work/exe
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: HeavenfallBeta-windows
+          path: work/exe/dist/HeavenfallBeta-windows.zip
+          if-no-files-found: error
+
+      - name: Attach HeavenfallBeta-windows.zip to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --verify-tag --title "Heavenfall Beta $GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" work/exe/dist/HeavenfallBeta-windows.zip --clobber

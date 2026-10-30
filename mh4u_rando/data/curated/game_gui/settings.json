@@ -1,0 +1,6 @@
+{
+  "description": "Limits of the game GUI arrangement: scale is the smallest and largest scale a block may take; move is how many pixels a block's corner may lie outside its screen; photo is the photo mode's buttons: toggle turns it on, any of dismiss turns it off (the press is the mode's, not the game's); the screens that have the mode say so with `photo`, and a screen's `photo_toggle` turns it on there instead of toggle.",
+  "scale": [0.25, 2.0],
+  "move": 120,
+  "photo": {"toggle": "Y", "dismiss": ["A", "B", "X", "Y", "L", "R", "START", "UP", "DOWN", "LEFT", "RIGHT"]}
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Quests, the quest board and the Arena: screens of the game GUI arrangement. Each layout of the theme keeps one place on every screen it shows on (today's single-screen look), so the places are their blocks' defaults; these screens list them ({}: the default) for their numbers. The Arena's quest list (65) is the quest list's (ui409, ui408: the facilities theme) over the counter's wood.",
+  "screens": [
+    {"id": "arena_counter", "number": "61", "name": "Arena: mostrador", "mode": "single_screen", "when": {"all": ["ui495_boad_haikei"], "any": ["ui495_tougijyo", "ui495_tougijyo_1", "ui495_ranking", "ui495_member"]}, "blocks": {
+      "ui495.fondo": {},
+      "ui495.menu": {},
+      "ui495.menu_2": {},
+      "ui495.clasificacion": {},
+      "ui495.miembros": {},
+      "ui496.fondo": {},
+      "ui496.informacion": {}
+    }},
+    {"id": "arena_choice", "number": "62", "name": "Arena: equipo y arma", "mode": "single_screen", "when": {"all": ["ui497_ui497"]}, "blocks": {
+      "ui497.eleccion": {},
+      "ui498.fondo": {},
+      "ui498.objetos": {},
+      "ui498.tiempo": {},
+      "ui498.cortina": {}
+    }},
+    {"id": "arena_quest_list", "number": "65", "name": "Arena: lista de misiones", "mode": "single_screen", "when": {"all": ["ui495_boad_haikei"], "none": ["ui495_tougijyo", "ui495_tougijyo_1", "ui495_ranking", "ui495_member"]}, "blocks": {
+      "ui495.fondo": {}
+    }},
+    {"id": "quest_board", "number": "66", "name": "Tablón de misiones", "mode": "single_screen", "when": {"all": ["ui413_questboad"]}, "blocks": {
+      "ui413.fondo": {},
+      "ui413.misiones": {}
+    }}
+  ]
+}

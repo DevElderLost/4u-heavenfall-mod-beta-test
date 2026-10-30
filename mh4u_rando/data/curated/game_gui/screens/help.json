@@ -1,0 +1,27 @@
+{
+  "description": "Help and first-time tutorials: screens of the game GUI arrangement. The topics menu and the help window open over other themes' screens (a facility, the town), so their places are their blocks' defaults; these screens list them ({}: the default) for their numbers.",
+  "screens": [
+    {"id": "help_topics", "number": "70", "name": "Ayuda: temas", "mode": "single_screen", "when": {"all": ["ui560_l_bg"], "none": ["ui011_l_bg"]}, "blocks": {
+      "ui560.temas": {},
+      "ui560.fondo": {}
+    }},
+    {"id": "help_topic_open", "number": "71", "name": "Ayuda: un tema abierto", "mode": "single_screen", "when": {"all": ["ui560_l_bg", "ui011_l_bg"]}, "blocks": {
+      "ui011.fondo": {},
+      "ui011.marco": {},
+      "ui011.texto": {},
+      "ui011.flechas": {},
+      "ui011.imagen": {},
+      "ui011.titulo": {},
+      "ui560.temas": {},
+      "ui560.fondo": {}
+    }},
+    {"id": "help_tutorial", "number": "72", "name": "Tutorial de la primera visita", "mode": "single_screen", "when": {"all": ["ui011_l_bg"], "none": ["ui560_l_bg"]}, "blocks": {
+      "ui011.fondo": {},
+      "ui011.marco": {},
+      "ui011.texto": {},
+      "ui011.flechas": {},
+      "ui011.imagen": {},
+      "ui011.titulo": {}
+    }}
+  ]
+}

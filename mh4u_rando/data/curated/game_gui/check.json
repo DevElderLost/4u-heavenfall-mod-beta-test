@@ -1,0 +1,9 @@
+{
+  "description": "The arrangement checker's rules and limits: required_modes are the modes where every recorded screen must match exactly one screen (in the others at most one); unarranged lists, per mode, the recorded screens that match none on purpose (signature: the recorded screen's, as tools/ui.py show prints it; why: the reason, Spanish); a pixel is a block's when its alpha reaches coverage_alpha (0-1); two blocks overlap when they share more than overlap_pixels pixels; a block leaves its screen when its pictures pass the edge by more than outside_pixels; pool_reserve is what the mod's other layouts take from each GUI pool (the frames, hints, players' box: 296 nulls at the worst scene measured).",
+  "required_modes": ["single_screen"],
+  "unarranged": {"single_screen": [], "normal": []},
+  "coverage_alpha": 0.5,
+  "overlap_pixels": 0,
+  "outside_pixels": 0,
+  "pool_reserve": {"groups": 0, "nulls": 296, "sprites": 0, "texts": 0, "boundaries": 0}
+}

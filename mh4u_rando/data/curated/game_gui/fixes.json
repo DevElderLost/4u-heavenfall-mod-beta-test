@@ -1,0 +1,14 @@
+{
+  "description": "Per-layout fixes that are no placement, made on the layout files before the game GUI engine wraps and measures them: layouts maps a layout of the arrangement to its fixes. hide: panes made clear (alpha 0; a whole root group is hidden by its block instead); backdrop: a root group stretched over the whole top screen (the touch screen's 320 x 240 ground made 400 wide); nudge: panes inside a root group moved by [right, down] pixels at the layout's own size (the file's units; the block's scale then scales them with the rest); fill: a copy of a sprite ('otherlayout:sprite' for another layout of the ARC) inserted as the first child of a root group, over the whole top screen unless over / margin name a box, with its own color when today's mechanism hides the template (single_screen.json's fill record).",
+  "layouts": {
+    "ui011": {"backdrop": "ui011_l_bg", "hide": ["ui011_sen_r"]},
+    "ui413": {"backdrop": "ui413_boad_haikei"},
+    "ui495": {"backdrop": "ui495_boad_haikei"},
+    "ui496": {"backdrop": "ui496_BG"},
+    "ui511": {"hide": ["ui511_sprite_008", "ui511_wb_000"]},
+    "ui497": {"hide": ["ui497_BG"], "nudge": {"ui497_button1": [-218, 56], "ui497_button2": [-218, 56], "ui497_button3": [-94, -6], "ui497_button4": [-94, -6]}},
+    "ui801": {"hide": ["ui801_bg"], "fill": {"group": "ui801_l_bg", "template": "ui801_bg"}},
+    "ui803": {"hide": ["ui803_bg1"], "fill": {"group": "ui803_bg", "template": "ui801:ui801_bg", "color": [255, 255, 255, 255]}},
+    "ui805": {"hide": ["ui805_back00"]}
+  }
+}

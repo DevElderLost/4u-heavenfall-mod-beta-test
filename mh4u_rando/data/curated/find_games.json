@@ -1,0 +1,31 @@
+{
+ "description": "Where and how far the installer looks for the player's game files (mh4u_rando/install/find_games.py). Each entry is {\"value\": ..., \"description\": ...}; edit the values by hand, the code reads them.",
+ "user_folders": {
+  "value": ["Downloads", "Desktop", "Documents", "Descargas", "Escritorio", "Documentos"],
+  "description": "The player's own folders searched after the emulators' (names under the home folder; on Windows the real Downloads, Desktop and Documents are searched too, wherever they were moved)."
+ },
+ "user_depth": {
+  "value": 2,
+  "description": "How many folders down each of those is searched (0: only its own files)."
+ },
+ "game_folder_depth": {
+  "value": 4,
+  "description": "How many folders down an emulator's game folder is searched when its settings say deep scan (without it, only the folder itself, as the emulator does)."
+ },
+ "min_bytes": {
+  "value": 104857600,
+  "description": "Files smaller than this are not opened (a game file is far bigger: the smaller .cia and .app files of other games are skipped, which spares reads on a cold disk)."
+ },
+ "max_files": {
+  "value": 300,
+  "description": "Game files (by extension) whose header is read in one search; the search stops there."
+ },
+ "max_entries": {
+  "value": 20000,
+  "description": "Folder entries looked at in one search, files of any kind included; the search stops there."
+ },
+ "max_seconds": {
+  "value": 4.0,
+  "description": "Seconds after which the search stops (a slow or disconnected network drive)."
+ }
+}

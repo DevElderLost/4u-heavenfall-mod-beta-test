@@ -1,0 +1,22 @@
+# This machine's paths (local.example.ini shows the keys)
+local.ini
+# Builds, recordings and pictures (tools/build_exe.py, tools/ui_recorder.py, tools/ui.py)
+work/
+output/
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+# Never commit game files
+*.3ds
+*.cia
+*.cci
+*.cxi
+*.zcci
+*.zcia
+*.zcxi
+*.app
+*.arc
+*.cst

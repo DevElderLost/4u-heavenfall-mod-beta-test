@@ -1,0 +1,15 @@
+Heavenfall Beta, a module of Heavenfall, is released under the GNU General Public License, version 3 or (at your
+option) any later version (LICENSE.txt). Its source code: https://github.com/popzol/4u-heavenfall-mod-beta
+
+The program reads your own Monster Hunter 4 Ultimate files and writes the mod next to them; it carries none of their
+data. Monster Hunter belongs to Capcom; this mod is not affiliated with Capcom or Nintendo.
+
+Programs and libraries inside the _internal folder:
+
+* Python (Python Software Foundation License), https://www.python.org
+* Qt for Python (PySide6) and Qt, used under the GNU LGPL version 3, https://www.qt.io/qt-for-python
+  The Qt libraries are the unmodified files in _internal\PySide6; you may replace them with your own build.
+  Their source code is at https://code.qt.io
+* PyInstaller (GPL version 2 with the exception that allows bundling any program), https://pyinstaller.org
+* python-zstandard and Zstandard (BSD licence), https://github.com/indygreg/python-zstandard, for Azahar's
+  compressed game files

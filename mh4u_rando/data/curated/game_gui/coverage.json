@@ -1,0 +1,54 @@
+{
+  "description": "The screens still to record, as the recorder's window lists them. Numbers by theme: 01-09 title and creation, 10-19 town and map, 20-49 facilities, 50-59 Palico, 60-69 quests and Arena, 70-74 help, 75-89 multiplayer, 90-99 Meownster Hunters. Each entry's groups were seen shown in kept save states or belong to a layout whose screen is settled; facilities not named yet (Forja, Armeria, shops...) get their entries from the first recordings.",
+  "screens": [
+    {"id": "01", "name": "Pulsa A (pantalla de título)", "groups": ["ui805_u_title"]},
+    {"id": "02", "name": "Menú principal", "groups": ["ui803_top_menu"]},
+    {"id": "03", "name": "Partida nueva: Elegir personaje", "any": ["ui800_l_midashi", "ui800_l_seibetsu", "ui800_l_hadairo", "ui800_l_top_icon", "ui800_l_kirikae"]},
+    {"id": "04", "name": "Partida nueva: aspecto del cazador", "any": ["ui415_l_uraita_p", "ui415_l_botan_5", "ui415_l_botan_4", "ui415_l_botan_2", "ui415_l_sentaku_color", "ui415_l_botan_iro", "ui415_l_botan_page", "ui415_l_colorscale", "ui415_l_camera", "ui415_l_syoki"], "without": ["ui470_base"]},
+    {"id": "05", "name": "Partida nueva: Tipo A / Tipo B", "any": ["ui810_layer_001", "ui811_layer_001", "ui811_setumei", "ui811_system_button"]},
+
+    {"id": "10", "name": "Pueblo (andando, con el minimapa)", "groups": ["ui422_map"]},
+    {"id": "11", "name": "Mapa del mundo", "groups": ["ui430_l_worldmap"]},
+    {"id": "12", "name": "Mapa del mundo: Solo/multijugador", "groups": ["ui430_l_botan_3"]},
+
+    {"id": "20", "name": "Wyporio: menú", "groups": ["ui405_l_topmenu"]},
+    {"id": "21", "name": "Wyporio: pestañas", "groups": ["ui405_l_tab1"]},
+    {"id": "22", "name": "Mi set", "groups": ["ui417_m_panel"], "without": ["ui470_base"]},
+    {"id": "23", "name": "Caldero de fusión: lista", "groups": ["ui473_list"]},
+    {"id": "24", "name": "Caldero de fusión: talismán", "groups": ["ui474_omamori00"]},
+    {"id": "25", "name": "Puesto de comida", "groups": ["ui419_l_bg"]},
+    {"id": "26", "name": "Caja de objetos", "groups": ["ui400_boxwaku00"], "without": ["ui470_base"]},
+
+    {"id": "50", "name": "Tablón de camaradas: menú", "groups": ["ui470_top"]},
+    {"id": "51", "name": "Tablón de camaradas: Desplegar/entrenar", "groups": ["ui470_kanri"]},
+    {"id": "52", "name": "Tablón de camaradas: Titulares", "groups": ["ui471_1P", "ui475_regular00"]},
+    {"id": "53", "name": "Tablón de camaradas: Gestionar equipo", "groups": ["ui470_sub"]},
+    {"id": "54", "name": "Tablón de camaradas: cambiar el equipo", "groups": ["ui472_otomo00"]},
+    {"id": "55", "name": "Tablón de camaradas: sets de equipo", "groups": ["ui470_main_waku01"]},
+    {"id": "56", "name": "Tablón de camaradas: Cambiar ropa", "groups": ["ui415_l_uraita_p", "ui470_base"]},
+    {"id": "57", "name": "Tablón de camaradas: Cambiar mensajes", "groups": ["ui470_main_waku00", "ui475_regular00"], "without": ["ui471_1P"]},
+    {"id": "58", "name": "Tablón de camaradas: Despedir", "groups": ["ui475_regular00"], "without": ["ui470_main_waku00"]},
+    {"id": "59", "name": "Tablón de camaradas: Reservas", "groups": ["ui475_hikae_waku00"]},
+
+    {"id": "60", "name": "Puesto de misión: lista de misiones", "groups": ["ui409_boad_haikei"]},
+    {"id": "61", "name": "Arena: mostrador (Misiones de Arena)", "groups": ["ui495_boad_haikei"]},
+    {"id": "62", "name": "Arena: equipo y arma", "groups": ["ui497_board_scr"]},
+    {"id": "63", "name": "Misión en marcha", "groups": ["ui202_tairyoku"]},
+    {"id": "64", "name": "Fin de misión: recompensas", "any": ["ui209_l_waku_01", "ui209_l_housyu", "ui210_haikei"]},
+
+    {"id": "70", "name": "Ayuda: temas", "groups": ["ui560_l_bg"], "without": ["ui011_l_bg"]},
+    {"id": "71", "name": "Ayuda: un tema abierto", "groups": ["ui560_l_bg", "ui011_l_bg"]},
+    {"id": "72", "name": "Tutorial de la primera visita (chica del gong, Cantina, Forja...)", "groups": ["ui011_l_bg"], "without": ["ui560_l_bg"]},
+    {"id": "73", "name": "Ayuda del gremio: controles de arma", "groups": ["ui223_wea_paper", "ui020_listwaku00_001"]},
+
+    {"id": "75", "name": "Sala de reunión", "groups": ["ui500_PL_list"]},
+    {"id": "76", "name": "Crear una sala de reunión", "groups": ["ui490_l_item"]},
+    {"id": "77", "name": "Gestos y frases", "groups": ["ui038_l_bg"]},
+    {"id": "78", "name": "Tarjeta del gremio", "groups": ["ui502_bg"]},
+    {"id": "79", "name": "Tarjeta del gremio: Modificar", "groups": ["ui503_BG"]},
+    {"id": "80", "name": "Lista de tarjetas", "groups": ["ui504_BG"]},
+    {"id": "81", "name": "Búsqueda de cazador (misión en línea)", "groups": ["ui060_bg"]},
+
+    {"id": "90", "name": "Cazamiaunstruos: expedición", "any": ["ui700_gage", "ui705_nunoback", "ui710_maku", "ui711_maku", "ui712_maku", "ui713_maku"]}
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "The Guild's help menu's Weapon Controls page: a screen of the game GUI arrangement. The page (ui223: paper, title tab and page counter; ui230 - ui243: the weapon's own page) is loaded on the touch screen; here it goes to the top screen at the left of the weapon list (ui020, x 228-396), at scale 0.7 (the paper 224 pixels wide: all the room that leaves), its wood hidden. The blocks keep the game's own place elsewhere (the quest's pause menu opens the same layouts), so their places are this screen's, not defaults.",
+  "screens": [
+    {"id": "weapon_guide", "number": "73", "name": "Ayuda del gremio: controles de arma", "mode": "single_screen", "when": {"all": ["ui223_wea_paper", "ui020_listwaku00_001"]}, "blocks": {
+      "ui223.fondo": {"hidden": true},
+      "ui223.pagina": {"x": 2, "y": 19, "scale": 0.7, "screen": "top"},
+      "ui230.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui231.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui232.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui233.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui234.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui235.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui236.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui237.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui238.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui239.pagina": {"x": 4.1, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui240.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui241.pagina": {"x": 4.8, "y": 38.6, "scale": 0.7, "screen": "top"},
+      "ui242.pagina": {"x": 3.4, "y": 40.0, "scale": 0.7, "screen": "top"},
+      "ui243.pagina": {"x": 4.8, "y": 40.0, "scale": 0.7, "screen": "top"}
+    }}
+  ]
+}

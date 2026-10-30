@@ -1,0 +1,35 @@
+{
+  "description": "The Courier's StreetPass menus (Mensajero): screens of the game GUI arrangement. The menu (ui511, the touch screen's wooden board with the menu and its lists) and the information panel beside it (ui510, the top screen's panel: StreetPass is..., Guild Quest Info, Palico Info) stand side by side on the top screen, below the Courier's sign, so nothing overlaps and nothing leaves the screen. Every screen shares one place (the 320 x 240 board, scale 0.72, left; the panel, scale 0.72, right); they differ by the menu they show. 84 is the root menu and the Inbox (any ui511 menu none of the others). The recorded normal-mode signatures of these menus are not in work/ui yet: the rules name the layout's own groups (ui511_sure_commu the root menu, commu_set the Inbox, guildcard_box the received cards, quest_box and otomo_box the received quests and Palicoes, quest_set and otomo_set the ones being sent).",
+  "screens": [
+    {"id": "courier", "number": "84", "name": "Mensajero: StreetPass y buzón", "mode": "single_screen", "when": {"all": ["ui511_BG"], "none": ["ui511_guildcard_box1", "ui511_guildcard_box2", "ui511_quest_box", "ui511_otomo_box", "ui511_quest_set", "ui511_otomo_set"]}, "blocks": {
+      "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
+      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.fondo": {}
+    }},
+    {"id": "courier_cards", "number": "85", "name": "Mensajero: tarjetas del gremio recibidas", "mode": "single_screen", "when": {"all": ["ui511_BG"], "any": ["ui511_guildcard_box1", "ui511_guildcard_box2"]}, "blocks": {
+      "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
+      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.fondo": {}
+    }},
+    {"id": "courier_quests_received", "number": "86", "name": "Mensajero: misiones recibidas", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_quest_box"]}, "blocks": {
+      "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
+      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.fondo": {}
+    }},
+    {"id": "courier_palicoes_received", "number": "87", "name": "Mensajero: Pálicos recibidos", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_otomo_box"]}, "blocks": {
+      "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
+      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.fondo": {}
+    }},
+    {"id": "courier_quests_sent", "number": "88", "name": "Mensajero: misiones del gremio", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_quest_set"]}, "blocks": {
+      "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
+      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.fondo": {}
+    }},
+    {"id": "courier_palicoes_sent", "number": "89", "name": "Mensajero: Pálicos", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_otomo_set"]}, "blocks": {
+      "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
+      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.fondo": {}
+    }}
+  ]
+}

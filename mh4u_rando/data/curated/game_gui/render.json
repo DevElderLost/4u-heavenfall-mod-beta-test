@@ -1,0 +1,10 @@
+{
+  "description": "The pictures of the game's screens: background is the colour behind the GUI (RGB); font_textures are the game's font pages (ARC entry names) the glyphs of texts are cut from, page 0 first; text_font is the plain font of a text drawn from its string (no glyphs recorded); outline, label: the blocks' boxes and their numbers on arranged pictures (RGBA, pixels of the picture as saved); zoom: how many times bigger a picture is saved (whole pixels, no smoothing); fidelity: a pixel differs from an emulator screenshot's when a channel differs by more than changed_threshold, and shift_search is how many pixels each way the comparison looks for the best match.",
+  "background": [0, 0, 0],
+  "font_textures": ["loc\\lyt\\font\\font_loc_00_AM_NOMIP"],
+  "text_font": "Arial",
+  "outline": {"color": [255, 60, 60, 255], "width": 2, "backdrop_color": [80, 160, 255, 255]},
+  "label": {"size": 11, "color": [255, 255, 255, 255], "back": [0, 0, 0, 180]},
+  "zoom": 2,
+  "fidelity": {"changed_threshold": 24, "shift_search": 4}
+}

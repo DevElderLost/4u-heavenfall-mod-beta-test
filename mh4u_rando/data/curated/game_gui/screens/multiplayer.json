@@ -1,0 +1,40 @@
+{
+  "description": "Gathering Hall, online menus and the guild card: screens of the game GUI arrangement. Each menu keeps one place wherever it opens (over the town, the hall or the world map), so its place is its blocks' default and these screens list them ({}: the default) for their numbers. 78: the guild card, the one screen with the photo mode (the card's Y; `photo` keeps the preview's sky and the greeting's speech box, which the game shows only while the player has the greeting on with X); its rule is the card's hint block's (single_screen.json card_info, whose `when` and `unless` the rule repeats): the card up alone. 78b: the card's monster record page, where the game uses Y itself (the capture / slay switch), so no photo mode.",
+  "screens": [
+    {"id": "hall_creation", "number": "76", "name": "Crear una sala de reunión", "mode": "single_screen", "when": {"any": ["ui490_l_item", "ui490_l_item_1"], "none": ["ui560_l_bg"]}, "blocks": {
+      "ui490.menu": {},
+      "ui490.fondo": {}
+    }},
+    {"id": "hall_creation_help", "number": "76b", "name": "Crear una sala de reunión con la ayuda abierta", "mode": "single_screen", "when": {"all": ["ui560_l_bg"], "any": ["ui490_l_item", "ui490_l_item_1"]}, "blocks": {
+      "ui490.menu": {"hidden": true},
+      "ui490.fondo": {}
+    }},
+    {"id": "guild_card", "number": "78", "name": "Tarjeta del gremio", "mode": "single_screen", "when": {"all": ["ui502_bg"], "none": ["ui503_BG", "ui504_BG", "ui502_M_dialy"]}, "photo": ["ui505_guild_bg", "ui505_message"], "blocks": {
+      "ui502.tarjeta": {},
+      "ui502.fondo": {}
+    }},
+    {"id": "guild_card_monsters", "number": "78b", "name": "Tarjeta del gremio: registro de monstruos", "mode": "single_screen", "when": {"all": ["ui502_bg", "ui502_M_dialy"]}, "blocks": {
+      "ui502.tarjeta": {},
+      "ui502.fondo": {}
+    }},
+    {"id": "guild_card_edit", "number": "79", "name": "Tarjeta del gremio: Modificar", "mode": "single_screen", "when": {"all": ["ui503_BG"]}, "photo": ["ui505_guild_bg", "ui505_message"], "photo_toggle": "X", "blocks": {
+      "ui503.modificar": {},
+      "ui503.fondo": {}
+    }},
+    {"id": "guild_card_list", "number": "80", "name": "Lista de tarjetas", "mode": "single_screen", "when": {"all": ["ui504_BG"]}, "blocks": {
+      "ui504.lista": {},
+      "ui504.fondo": {}
+    }},
+    {"id": "hunter_search", "number": "81", "name": "Búsqueda de cazador", "mode": "single_screen", "when": {"all": ["ui060_bg"]}, "blocks": {
+      "ui060.busqueda": {}
+    }},
+    {"id": "friends", "number": "82", "name": "Lista de amigos", "mode": "single_screen", "when": {"any": ["ui501_bg", "ui501_furatto_list", "ui501_furatto_irai_1", "ui501_furatto_irai_2"]}, "blocks": {
+      "ui501.amigos": {},
+      "ui501.fondo": {}
+    }},
+    {"id": "online_menu", "number": "83", "name": "Multijugador en línea", "mode": "single_screen", "when": {"any": ["ui530_l_bg", "ui530_ui530", "ui530_f_inv"]}, "blocks": {
+      "ui530.menu": {},
+      "ui530.fondo": {}
+    }}
+  ]
+}
