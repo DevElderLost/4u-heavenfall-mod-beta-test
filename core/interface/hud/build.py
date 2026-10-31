@@ -5,7 +5,7 @@ The layouts were identified in the game with research/probes/hud_probe.py.
 
 import os
 import re
-from collections.abc import Iterator, Mapping
+from collections.abc import Collection, Iterator, Mapping
 from pathlib import Path
 from typing import Protocol
 
@@ -30,6 +30,19 @@ HUD_LAYOUTS: dict[str, dict[str, AnchorSpec | dict[str, AnchorSpec]]] = {
         "ui001": Anchor.IN_PLACE,      # prompts (climb...) and names over the characters, placed by the code
     },
 }
+# ARC in <lang>/data/ -> layout -> root groups whose panes the game's code positions every frame in the file's own
+# units (states of the HUD: the Charge Blade's phials write y -2 to their nulls and x to the shield, the bowgun's
+# ammunition writes x / y to its nulls, the reload icons write theirs). Each is scaled as one: every pane keeps the
+# file's numbers under one null (`<group>_frame`, the name the executable's first-pane rule knows) that takes the
+# factor, so what the code writes is scaled with it instead of landing in the unscaled units.
+HUD_WRAPPED: dict[str, dict[str, tuple[str, ...]]] = {
+    "core_quest.arc": {
+        "ui202": ("ui202_mushi", "ui202_aucher00", "ui202_slash_axe", "ui202_souken", "ui202_tati", "ui202_bowgun00",
+                  "ui202_bowgun01", "ui202_hue", "ui202_gunlance", "ui202_guard_axe", "ui202_reload",
+                  "ui202_tamakazu30", "ui202_b_tama", "ui202_a_bin", "ui202_panel_bin", "ui202_panel_tama"),
+    },
+}
+FRAME_SUFFIX = "_frame"
 # One per area and language (164 each). The code moves the whole map layout; it is drawn as if the map's
 # 128x128 frame started at the screen's top-left corner, so its top-right corner is at (72, 120).
 # Only together with the executable patch (code_patch.patch_hud): the code places the map icons.
@@ -67,8 +80,10 @@ def short_name(entry_name: str) -> str:
     return entry_name.split("\\")[-1]
 
 
-def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, AnchorSpec]], factor: float) -> bytes:
-    """The ARC with the given layouts scaled, together with every animation of the ARC that moves them."""
+def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, AnchorSpec]], factor: float,
+              wrapped: Mapping[str, Collection[str]] | None = None) -> bytes:
+    """The ARC with the given layouts scaled, together with every animation of the ARC that moves them. `wrapped`:
+    layout -> root groups (HUD_WRAPPED) that scale as one null instead of pane by pane."""
     arc = parse_arc(raw)
     entries = {short_name(e.name): e for e in arc.entries if e.type_hash == LYT_TYPE_HASH}
     animation_entries = [e for e in arc.entries if e.type_hash == LANL_TYPE_HASH]
@@ -78,7 +93,11 @@ def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, Anchor
             raise KeyError(f"no layout named {name}")
         layout = parse_lyt(entries[name].data)
         anchors = anchor if isinstance(anchor, Mapping) else anchor_all(layout, anchor)
-        scale_hud(layout, animations, factor, anchors)
+        frames = []
+        for group in (wrapped or {}).get(name, ()):
+            frames.append(group + FRAME_SUFFIX)
+            layout.wrap_children(layout.find(group), frames[-1], layout.plain_null())
+        scale_hud(layout, animations, factor, anchors, frames)
         entries[name].data = layout.to_bytes()
     for entry, file in zip(animation_entries, animations):
         entry.data = file.to_bytes()
@@ -120,7 +139,7 @@ def hud_files(rom: GameFiles, factor: float,
             raw = rom.read(path)
             if target_hint and arc_name == QUEST_ARC:
                 raw = add_hint(raw)
-            yield path, scale_arc(raw, layouts_of(arc_name, with_code_patch), factor)
+            yield path, scale_arc(raw, layouts_of(arc_name, with_code_patch), factor, HUD_WRAPPED.get(arc_name))
         for path in map_paths:
             if path.startswith(lang + "/"):
                 raw = rom.read(path)

@@ -97,7 +97,6 @@ made smaller to leave room for the menu that joins it.
 """
 
 import json
-import struct
 from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass, field
 from functools import cache
@@ -622,12 +621,7 @@ def _layers(layout: Layout, layers: Iterable[Layer]) -> None:
 
 def _plain_null(layout: Layout) -> Pane:
     """A null with no scale, tint nor offset of its own (z 0, scale 1, opaque white), the template of a wrapper."""
-    for pane in layout.panes:
-        if (pane.kind == PaneKind.NULL and pane.scale == (1.0, 1.0)
-                and struct.unpack_from("<f", layout.data, pane.offset + 0x14)[0] == 0.0
-                and bytes(layout.data[pane.offset + 0x20:pane.offset + 0x24]) == bytes(4 * [255])):
-            return pane
-    raise ValueError("the layout has no plain null to copy for a carried pane")
+    return layout.plain_null()
 
 
 def _carry(layout: Layout, names: Iterable[str]) -> None:

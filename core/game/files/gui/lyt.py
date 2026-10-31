@@ -368,6 +368,16 @@ class Layout:
             struct.pack_into("<I", record, VISIBLE_AT[PaneKind.NULL], int(visible))
         return self._insert(parent, template, PaneKind.NULL, name, edit, b"", first)
 
+    def plain_null(self) -> Pane:
+        """A null of this layout with no scale, tint nor offset of its own (z 0, scale 1, opaque white): the template
+        of a wrapper."""
+        for pane in self.panes:
+            if (pane.kind == PaneKind.NULL and pane.scale == (1.0, 1.0)
+                    and struct.unpack_from("<f", self.data, pane.offset + 0x14)[0] == 0.0
+                    and bytes(self.data[pane.offset + 0x20:pane.offset + 0x24]) == bytes(4 * [255])):
+                return pane
+        raise LytFormatError("the layout has no plain null to copy for a wrapper")
+
     def wrap_in_null(self, pane: Pane, name: str, template: Pane, subtree: bool = False) -> Pane:
         """Put the childless `pane` (not a null nor a group) inside a new null `name`, a copy of `template`'s record
         at (0, 0) and shown, that takes the pane's place among its siblings: positions are relative to the parent,
