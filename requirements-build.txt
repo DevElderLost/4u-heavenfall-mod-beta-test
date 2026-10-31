@@ -1,4 +1,4 @@
-# Exact versions to build the Windows program (python tools/build_exe.py; docs/development.md, "Building the .exe"),
+# Exact versions to build the Windows program (python tools/release/build_exe.py; docs/develop/development.md, "Building the .exe"),
 # on top of requirements.txt: pip install -r requirements.txt -r requirements-build.txt
 pyinstaller==6.22.3
 pyinstaller-hooks-contrib==2026.9

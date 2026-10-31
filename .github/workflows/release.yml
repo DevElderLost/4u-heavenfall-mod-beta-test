@@ -1,5 +1,5 @@
 # Builds Heavenfall Beta for Windows and attaches HeavenfallBeta-windows.zip to the GitHub release of the tag.
-# Push a tag to release (docs/development.md, "Publishing a release"):  git tag v0.1.0 && git push origin v0.1.0
+# Push a tag to release (docs/develop/development.md, "Publishing a release"):  git tag v0.1.0 && git push origin v0.1.0
 # Run by hand (Actions > Release > Run workflow) to only build: the zip is then an artifact of the run.
 name: Release
 
@@ -35,7 +35,7 @@ jobs:
         run: python -m ruff check .
 
       - name: Build HeavenfallBeta-windows.zip
-        run: python tools/build_exe.py --work work/exe
+        run: python tools/release/build_exe.py --work work/exe
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:

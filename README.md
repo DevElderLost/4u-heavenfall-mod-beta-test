@@ -87,7 +87,7 @@ button is greyed out, the line under it says what is missing.
 
 **On another system** (or to run it from the source code): install [Python](https://www.python.org/downloads/) 3.10
 or newer, download this page's code (green **Code** button, **Download ZIP**), and in a terminal in that folder run
-`pip install -r requirements.txt`, then `python -m mh4u_rando.gui`.
+`pip install -r requirements.txt`, then `python -m core.gui`.
 
 > **Tip:** keep a copy of your save before installing a new mod, just in case.
 
@@ -124,7 +124,7 @@ How the mod works, and how to move any menu of the game yourself, explained for 
 * [How it works](docs/how_it_works.md): what the mod changes in the game and how an install is built.
 * [Editing the interface](docs/editing_the_ui.md): record the game's screens, see them as pictures, move their parts
   with plain numbers and try them in the emulator.
-* [Development](docs/development.md): running from the code, building the Windows program, publishing a release.
+* [Development](docs/develop/development.md): running from the code, building the Windows program, publishing a release.
 
 ## Credits and license
 

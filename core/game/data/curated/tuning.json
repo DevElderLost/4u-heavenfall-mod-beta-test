@@ -1,0 +1,13 @@
+{
+ "description": "Every arbitrary probability and parameter of the randomizer. Each entry is {\"value\": ..., \"description\": ...}; edit the value, keep the description up to date. Loaded and checked by core/game/data/tuning.py.",
+ "memory": {
+  "resource_to_root_mb": {
+   "value": 2,
+   "description": "Megabytes the game's Resource heap (models, textures, maps; 47 MB on an Old 3DS, 52 on a New 3DS) gives to its root heap, which the mod's added code and data take from, so a full mod boots on an Old 3DS (game/executable/memory_split.py). Every built executable gets it."
+  },
+  "old3ds_root_margin_kb": {
+   "value": 1024,
+   "description": "Kilobytes the Old 3DS root heap must keep free after the boot with the executable's extension at its largest; tests/game/executable/test_memory_split.py fails below it (the room the ported monsters' objects take in a hunt, and what the measure may have missed)."
+  }
+ }
+}

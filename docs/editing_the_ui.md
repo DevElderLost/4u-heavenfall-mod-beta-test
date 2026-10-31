@@ -26,7 +26,7 @@ too (`names_en.json`), which the tools show.
 
 ## The files
 
-All of them are in `mh4u_rando/data/curated/game_gui/`:
+All of them are in `core/game/data/curated/game_gui/`:
 
 | File | What it holds | Edit it? |
 |---|---|---|
@@ -108,7 +108,7 @@ The recorder copies the game's interface from the emulator's memory between two 
 frame starts and ends. A **recording probe** is your usual mod plus two small counters the game updates every frame:
 
 ```
-python tools/ui.py probe rec --install
+python tools/ui/ui.py probe rec --install
 ```
 
 builds the next round, `output/ui/rec_1`, `rec_2`..., with your Options page's choices and single-screen mode on, and
@@ -119,7 +119,7 @@ first (the program's Uninstall button). Then restart the emulation (Emulation > 
 ### 2. Record
 
 ```
-python tools/ui_recorder.py
+python tools/ui/ui_recorder.py
 ```
 
 opens the recorder's window. Play to the screens you care about. The window shows each emulator window's state
@@ -129,28 +129,28 @@ to record. It only reads the emulator's memory; it never writes to it.
 * **Ctrl+P** in the emulator saves a screenshot; the recorder pairs it with the copy of that moment and files a
   **request** with the note you typed in the window. "Mark this screen" files one without a picture.
 * Recordings go to `work/ui/recordings/`, requests to `work/ui/peticiones/` (the folder keeps its Spanish name).
-* Save states work too, without a probe: `python tools/ui_recorder.py --state slot1.cst slot2.cst`.
+* Save states work too, without a probe: `python tools/ui/ui_recorder.py --state slot1.cst slot2.cst`.
 
 ### 3. Look
 
 ```
-python tools/ui.py gallery            # output/ui/galeria/index.html: every recorded screen, original and arranged
-python tools/ui.py show 78            # a screen: its rule, its blocks' final places, its recordings and pictures
-python tools/ui.py render 78 --arranged   # PNGs of a screen as the mod places it (output/ui/pictures)
-python tools/ui.py pending            # the requests not answered yet, newest first
+python tools/ui/ui.py gallery            # output/ui/galeria/index.html: every recorded screen, original and arranged
+python tools/ui/ui.py show 78            # a screen: its rule, its blocks' final places, its recordings and pictures
+python tools/ui/ui.py render 78 --arranged   # PNGs of a screen as the mod places it (output/ui/pictures)
+python tools/ui/ui.py pending            # the requests not answered yet, newest first
 ```
 
 The arranged pictures outline each block with its number. They are drawn from the recording and the game's files,
 the same way the engine in the game places things, so you can work without starting the game each time.
-`python tools/ui.py compare 78 screenshot.png --arranged` measures how far a picture is from a real screenshot.
+`python tools/ui/ui.py compare 78 screenshot.png --arranged` measures how far a picture is from a real screenshot.
 
 ### 4. Change
 
 Either edit the JSON in a text editor, or let the tool do it (it refuses anything relative or out of range):
 
 ```
-python tools/ui.py set 78 ui502.tarjeta x=40 y=3 scale=0.9
-python tools/ui.py set 78 ui502.tarjeta scale=none        # give the field back to the block's default
+python tools/ui/ui.py set 78 ui502.tarjeta x=40 y=3 scale=0.9
+python tools/ui/ui.py set 78 ui502.tarjeta scale=none        # give the field back to the block's default
 ```
 
 Then render again and look.
@@ -158,7 +158,7 @@ Then render again and look.
 ### 5. Check
 
 ```
-python tools/ui.py check
+python tools/ui/ui.py check
 ```
 
 checks, over every recorded screen: each matches exactly one screen of the files; no moved block overlaps another
@@ -170,18 +170,18 @@ pieces still fit every scene. It ends with code 0 when there is no problem. Miss
 
 ### 6. Try it in the game
 
-Build and install again: press **Update** in the program (run from the code, `python -m mh4u_rando.gui`, so it uses
-your files), or build the next probe with `python tools/ui.py probe rec --install`. Restart the emulation.
+Build and install again: press **Update** in the program (run from the code, `python -m core.gui`, so it uses
+your files), or build the next probe with `python tools/ui/ui.py probe rec --install`. Restart the emulation.
 
 ## Adding a screen or a block
 
-1. Record the screen (above). `python tools/ui.py show <signature>` (the recorded screen's name the gallery shows)
+1. Record the screen (above). `python tools/ui/ui.py show <signature>` (the recorded screen's name the gallery shows)
    lists its groups and the screens it matches.
 2. A new block: add it to `blocks.json` with an id `<layout>.<word>`, a name, its layout and groups, and its English
    name in `names_en.json` (`"blocks"`). Use the game's own English words (Guild Card, Gathering Hall, Palico Board...).
 3. A new screen: add it to the theme's file with a new number, a rule that only it matches, and its blocks; its
    English name goes in `names_en.json` (`"screens"`).
-4. `python tools/ui.py check`, then try it.
+4. `python tools/ui/ui.py check`, then try it.
 
 ## When something goes wrong
 
@@ -190,7 +190,7 @@ your files), or build the next probe with `python tools/ui.py probe rec --instal
 | Recorder: "Install the recording probe" | The installed mod has no frame counters: install a probe (step 1) and restart the emulation |
 | Recorder: "The emulator runs as administrator..." | Open the emulator as a normal user |
 | Recorder: "No exact copy this turn (retrying)" for a long time | The game leaves too little time between frames; it keeps trying |
-| `tools/ui.py`: "no layouts" | `local.ini` has no `mh4u_romfs`, or the folder is not a RomFS dump |
+| `tools/ui/ui.py`: "no layouts" | `local.ini` has no `mh4u_romfs`, or the folder is not a RomFS dump |
 | Checker: "matches no screen" | A recorded screen no rule takes: give it a screen, or list it in `check.json`'s `unarranged` |
 | Checker: "matches N screens" | Two rules take the same screen: make one of them stricter |
 | Checker: "overlap by N pixels" | Two blocks cover each other on that screen: move one, or mark a real background as `backdrop` |

@@ -1,0 +1,41 @@
+# Lint and a smoke check on every push and pull request: every module imports, the command line and the interface
+# tools start (building a mod needs the game, which only a player's machine has).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"      # the version the pinned packages were tested on
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install the packages
+        run: python -m pip install -r requirements.txt
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Every module imports
+        run: >-
+          python -c "import importlib, pathlib;
+          [importlib.import_module('.'.join(p.with_suffix('').parts)) for p in sorted(pathlib.Path('core').rglob('*.py'))
+          if p.name != '__main__.py']"
+
+      - name: The command line and the interface tools start
+        run: |
+          python -m core --help
+          python tools/ui/ui.py --help

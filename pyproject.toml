@@ -1,6 +1,6 @@
 [project]
 name = "heavenfall-beta"
-version = "0.1.0"   # keep equal to mh4u_rando/__init__.py
+version = "0.1.0"   # keep equal to core/__init__.py
 description = "Heavenfall Beta: play Monster Hunter 4 Ultimate on one screen in an emulator"
 requires-python = ">=3.10"
 license = "GPL-3.0-or-later"
@@ -8,15 +8,15 @@ dependencies = ["PySide6>=6.6", "numpy>=1.24", "zstandard>=0.22"]  # numpy: the 
 
 [project.optional-dependencies]
 dev = ["ruff>=0.6"]
-# The Windows program (tools/build_exe.py); its exact pins are in requirements-build.txt, which the release uses
+# The Windows program (tools/release/build_exe.py); its exact pins are in requirements-build.txt, which the release uses
 build = ["pyinstaller>=6.22"]
 
 [project.scripts]
-heavenfall-beta = "mh4u_rando.gui.__main__:main"    # the app (needs PySide6)
-heavenfall-beta-cli = "mh4u_rando.__main__:main"    # the command line, as `python -m mh4u_rando`
+heavenfall-beta = "core.gui.__main__:main"    # the app (needs PySide6)
+heavenfall-beta-cli = "core.app.cli:main"    # the command line, as `python -m core`
 
 [tool.setuptools.packages.find]
-include = ["mh4u_rando*"]       # the other folders (docs, tools) are not the package
+include = ["core*"]       # the other folders (docs, tools) are not the package
 
 [tool.ruff]
 line-length = 120
