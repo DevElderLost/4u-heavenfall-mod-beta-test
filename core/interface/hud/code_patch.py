@@ -12,6 +12,10 @@ with x = 45 - 98 * progress, in pixels; both constants of its literal pool are
 scaled (the gauge's anchor is x = 0). Its bar fills are scales, so they follow
 the data.
 
+Sharpness: FUN_00b9d0f0 moves the whole sharpness group (a root group, which no
+null of the layout scales) by literal floats of its pool when a weapon gauge
+sits beside it (the Gunlance's shells: x -20); they are scaled the same way.
+
 Target switch (not part of the HUD size): FUN_00b94854 runs the touch-screen
 target camera panel and has a button shortcut test; it is redirected to
 asm/target_button.s, which also accepts L held + D-pad up. That request comes from
@@ -42,8 +46,8 @@ from core.game.executable.code_space import (
 )
 
 __all__ = ["BASE_ADDRESS", "CodePatchError", "bl_target", "encode_bl", "encode_branch", "face_params",
-           "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_target_button",
-           "patch_target_face"]
+           "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_sharpness_slide",
+           "patch_target_button", "patch_target_face"]
 
 CodePatchError = CodeSpaceError
 
@@ -58,6 +62,13 @@ ICON_CALLS = (
 )
 # Literal pool of FUN_00b98454 (only read there): face x = START + STEP * progress.
 MOUNT_FACE_FLOATS = {0xB987D4: -98.0, 0xB987D8: 45.0}
+# Literal pool of FUN_00b9d0f0 (only read there), which places the sharpness group (ui202_kireaji) through
+# FUN_00b972d8 by the HUD's gauge mode (byte 0xA8 of 0x108260C): the group's x for mode 1 (-20: the Gunlance's shells,
+# the Charge Blade's phials) and mode 2 (-34); and the place FUN_00b972d8 adds to a slot's run-time offset instead,
+# when FUN_00b84f38 asks for it: (-41, -2), its x -61 in mode 1, -75 in mode 2. The group is a root, so no null of
+# the layout scales what the code writes there.
+SHARPNESS_SLIDE_FLOATS = {0xB9D210: -41.0, 0xB9D214: -2.0, 0xB9D220: -61.0, 0xB9D224: -20.0, 0xB9D228: -75.0,
+                          0xB9D22C: -34.0}
 # Literal pool of FUN_00b9793c (only read there): the circle's y = 120 - 128 v - OFFSET. Through the
 # wrapper the map's top edge (y 120, v = 0) stays put, so the offset scales with the map.
 MINIMAP_CIRCLE_OFFSET = (0xB97AFC, 4.0)
@@ -119,19 +130,31 @@ def patch_minimap_icons(code: bytes, factor: float, layout: Layout | None = None
     return bytes(out)
 
 
-def patch_mount_gauge(code: bytes, factor: float) -> bytes:
-    """`code` with the mount gauge's monster face moving along a bar scaled by `factor`."""
-    out = bytearray(code)
-    for address, value in MOUNT_FACE_FLOATS.items():
-        if struct.unpack_from("<f", out, _offset(address))[0] != value:
+def _scale_floats(code: bytes, floats: dict[int, float], factor: float) -> bytes:
+    """`code` with each literal float of `floats` (address -> the update's value) times `factor`, all checked first."""
+    for address, value in floats.items():
+        if len(code) < _offset(address) + 4 or struct.unpack_from("<f", code, _offset(address))[0] != value:
             raise CodePatchError(f"unexpected value at {address:#x}: not the update's executable")
+    out = bytearray(code)
+    for address, value in floats.items():
         struct.pack_into("<f", out, _offset(address), value * factor)
     return bytes(out)
 
 
+def patch_mount_gauge(code: bytes, factor: float) -> bytes:
+    """`code` with the mount gauge's monster face moving along a bar scaled by `factor`."""
+    return _scale_floats(code, MOUNT_FACE_FLOATS, factor)
+
+
+def patch_sharpness_slide(code: bytes, factor: float) -> bytes:
+    """`code` where FUN_00b9d0f0 moves the sharpness group by `factor` times the game's numbers, as the scaled layout
+    around it: at every HUD size the bar keeps its full size's gap to the shells."""
+    return _scale_floats(code, SHARPNESS_SLIDE_FLOATS, factor)
+
+
 def patch_hud(code: bytes, factor: float, layout: Layout | None = None) -> bytes:
     """Every executable patch of the HUD size option."""
-    return patch_mount_gauge(patch_minimap_icons(code, factor, layout), factor)
+    return patch_sharpness_slide(patch_mount_gauge(patch_minimap_icons(code, factor, layout), factor), factor)
 
 
 def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True) -> bytes:

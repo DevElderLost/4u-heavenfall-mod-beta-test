@@ -9,5 +9,15 @@
    "value": 1024,
    "description": "Kilobytes the Old 3DS root heap must keep free after the boot with the executable's extension at its largest; tests/game/executable/test_memory_split.py fails below it (the room the ported monsters' objects take in a hunt, and what the measure may have missed)."
   }
+ },
+ "cheats": {
+  "insta_kill_attack_multiplier": {
+   "value": 10000,
+   "description": "Debug cheat 'Insta kill' (cheat_insta_kill; cheats/cheats.py): the hunter's weapon attack is multiplied by this."
+  },
+  "insta_kill_attack_cap": {
+   "value": 32000,
+   "description": "Debug cheat 'Insta kill': the most the multiplied attack may be (the game keeps the attack in 16 bits)."
+  }
  }
 }

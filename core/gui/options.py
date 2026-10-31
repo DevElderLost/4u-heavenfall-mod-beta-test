@@ -805,6 +805,13 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "emulator's online rooms do not fail on a slow connection."),
                    emulator_only=True),
         ), T("Truco de Klark231. Solo funciona en el emulador.", "Cheat by Klark231. It only works in the emulator.")),
+        Group(T("Depuración", "Debug"), (
+            Option("cheat_insta_kill", T("Muerte instantánea", "Insta kill"),
+                   T("El ataque del cazador se multiplica: cada golpe derriba a un monstruo al instante.",
+                     "The hunter's attack is multiplied: every hit brings a monster down at once."),
+                   emulator_only=True),
+        ), T("Para probar misiones, no para jugar. Solo funciona en el emulador.",
+             "For testing quests, not for playing. It only works in the emulator.")),
     )),
 )
 

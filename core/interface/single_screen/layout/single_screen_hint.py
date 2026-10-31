@@ -17,7 +17,7 @@ neither scales nor moves it.
 
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from core.game.files.arc import parse_arc, write_arc
@@ -29,7 +29,8 @@ SETTINGS_FILE = CURATED_DIR / "single_screen.json"
 SCREEN_WIDTH, SCREEN_HEIGHT = 400.0, 240.0
 BUTTONS = ("X", "Y")
 Rect = tuple[float, float, float, float]    # left, top, width, height, in pixels from the box's top-left corner
-_KEYS = {"layout", "group", "right", "top", "size", "scale", "sprites", "icon", "text", "message"}
+_KEYS = {"layout", "group", "right", "right_by_language", "top", "size", "scale", "sprites", "icon", "text", "message"}
+_ROW_KEYS = {"layout", "group", "scale", "shifts"}
 _SPRITE_KEYS = {"name", "template", "rect"}
 _ICON_KEYS = {"template", "rect", "regions"}
 _TEXT_KEYS = {"template", "rect", "font_scale", "spaces"}
@@ -71,7 +72,8 @@ class MapHint:
     text pane (the template's font times `text_font_scale` times `scale`, `text_spaces` blank characters of room; its
     colours are the template's: a text pane's fourth colour is its shadow, which must stay dark). The block fills the
     pane with message `message_id` of the lobby message file `message_file` (the game's own, in the player's language;
-    0 is Lobby_<language>). `scale` has no default in the file; 1 (the dataclass's) draws the panel as designed."""
+    0 is Lobby_<language>). `scale` has no default in the file; 1 (the dataclass's) draws the panel as designed.
+    `rights`: language -> its own `right`, for a word that would not fit at `right` (`for_language`)."""
     layout: str
     group: str
     right: float
@@ -88,6 +90,11 @@ class MapHint:
     message_file: int
     message_id: int
     scale: float = 1.0
+    rights: Mapping[str, float] = field(default_factory=dict)
+
+    def for_language(self, language: str) -> "MapHint":
+        """The hint as `language`'s files get it: its own `right` when it has one."""
+        return replace(self, right=self.rights.get(language, self.right))
 
     @property
     def box(self) -> tuple[float, float]:
@@ -180,13 +187,75 @@ def map_hint_settings(path: Path = SETTINGS_FILE) -> MapHint:
         raise _fail(", message, id", "a message number, 0 to 65535")
     hint_scale = _number(record["scale"], ", scale", *SCALE_LIMITS)
     text_rect = _rect(text["rect"], ", text, rect", box)
-    right = check_right(_number(record["right"], ", right", -SCREEN_WIDTH, SCREEN_WIDTH), box[0] * hint_scale,
-                        text_rect[0] * hint_scale, _fail)
-    return MapHint(_name(record["layout"], ", layout"), _name(record["group"], ", group"), right,
+
+    def a_right(value: object, where: str) -> float:
+        return check_right(_number(value, where, -SCREEN_WIDTH, SCREEN_WIDTH), box[0] * hint_scale,
+                           text_rect[0] * hint_scale, _fail)
+
+    rights = record["right_by_language"]
+    if not isinstance(rights, dict) or not set(rights) <= set(LANGUAGES):
+        raise _fail(", right_by_language", f"language -> right, the languages among {', '.join(LANGUAGES)}")
+    return MapHint(_name(record["layout"], ", layout"), _name(record["group"], ", group"),
+                   a_right(record["right"], ", right"),
                    _number(record["top"], ", top", 0, SCREEN_HEIGHT), box, tuple(sprites),
                    _template(icon["template"], ", icon"), _rect(icon["rect"], ", icon, rect", box), cells,
                    _template(text["template"], ", text"), text_rect,
-                   scale, spaces, file, ident, hint_scale)
+                   scale, spaces, file, ident, hint_scale,
+                   {language: a_right(value, ", right_by_language") for language, value in rights.items()})
+
+
+@dataclass(frozen=True)
+class KeyRow:
+    """The curated "key_row" section: rows of the game's own top-right key hints (`group`'s children in `layout`, the
+    lobby's ui013: the long row the hall's "[Y] Ingredient Levels" shows, its short twin), each drawn at `scale` from
+    the screen's top right corner (x 400, the row's own top) and then `shifts[row][language]` pixels to the right."""
+    layout: str
+    group: str
+    scale: float
+    shifts: Mapping[str, Mapping[str, float]]
+
+
+def _row_fail(where: str, what: str) -> ValueError:
+    return ValueError(f"single_screen.json, key_row{where}: {what}")
+
+
+def key_row_settings(path: Path = SETTINGS_FILE) -> KeyRow:
+    """The key_row section of single_screen.json, validated."""
+    record = json.loads(Path(path).read_text(encoding="utf-8")).get("key_row")
+    if not isinstance(record, dict) or set(record) != _ROW_KEYS:
+        raise _row_fail("", f"a record with {', '.join(sorted(_ROW_KEYS))}, nothing else")
+    scale = record["scale"]
+    if isinstance(scale, bool) or not isinstance(scale, int | float) or not SCALE_LIMITS[0] <= scale <= SCALE_LIMITS[1]:
+        raise _row_fail(", scale", f"a number from {SCALE_LIMITS[0]} to {SCALE_LIMITS[1]}")
+    shifts = record["shifts"]
+    if not isinstance(shifts, dict) or not shifts:
+        raise _row_fail(", shifts", "row -> {language: pixels}")
+    for row, by_language in shifts.items():
+        if not isinstance(by_language, dict) or set(by_language) != set(LANGUAGES) or any(
+                isinstance(v, bool) or not isinstance(v, int | float) or abs(v) > SCREEN_WIDTH
+                for v in by_language.values()):
+            raise _row_fail(f", shifts, {row}", f"pixels for each language: {', '.join(LANGUAGES)}")
+    return KeyRow(_name(record["layout"], ""), _name(record["group"], ""), float(scale),
+                  {row: {language: float(v) for language, v in values.items()} for row, values in shifts.items()})
+
+
+def scale_key_rows(layout: Layout, rows: KeyRow, language: str) -> None:
+    """Scale each row of `rows` (a null right under `rows.group`, a root at the layout's origin) by `rows.scale` about
+    the screen's right edge at the row's own point (its top), then move it its `language` shift right. Refuses a row
+    that is not such a null or that is scaled already (a second pass)."""
+    group = layout.find(rows.group)
+    if group.position != (0.0, 0.0):
+        raise ValueError(f"{rows.group} is not at the layout's origin")
+    s = rows.scale
+    for name, shifts in rows.shifts.items():
+        row = layout.find(name)
+        if row.kind != PaneKind.NULL or row.parent is not group or row.scale != (1.0, 1.0):
+            raise ValueError(f"{name}: an unscaled null right under {rows.group}")
+        x, y = row.position
+        # a child at screen x X goes to 400 + s (X - 400) + shift (layout x grows to the left: screen x = 200 - x); the
+        # row's own point is its top, which stays
+        row.position = (s * (x + SCREEN_WIDTH / 2) - SCREEN_WIDTH / 2 - shifts[language], y)
+        row.scale = (s, s)
 
 
 def _find(layouts: Mapping[str, Layout], spec: str) -> Pane:
@@ -234,8 +303,9 @@ def add_map_hint(layout: Layout, others: Mapping[str, Layout], hint: MapHint, bu
     pane.font_size = (text.font_size[0] * font, text.font_size[1] * font)
 
 
-def hint_arc(raw: bytes, hint: MapHint, button: str) -> bytes:
-    """The ARC with the hint in its host layout; an ARC without the host is returned as it was."""
+def hint_arc(raw: bytes, hint: MapHint, button: str, rows: KeyRow | None = None, language: str | None = None) -> bytes:
+    """The ARC with the hint in its host layout and, given `rows`, the game's key-hint rows drawn for `language`
+    (scale_key_rows); an ARC without the host is returned as it was."""
     arc = parse_arc(raw)
     entries = {e.name.split("\\")[-1]: e for e in arc.entries if e.type_hash == LYT_TYPE_HASH}
     if hint.layout not in entries:
@@ -244,19 +314,25 @@ def hint_arc(raw: bytes, hint: MapHint, button: str) -> bytes:
     layout = parse_lyt(entries[hint.layout].data)
     add_map_hint(layout, others, hint, button)
     entries[hint.layout].data = layout.to_bytes()
+    if rows is not None:
+        row_layout = parse_lyt(entries[rows.layout].data)
+        scale_key_rows(row_layout, rows, language)
+        entries[rows.layout].data = row_layout.to_bytes()
     return write_arc(arc)
 
 
 def map_hint_files(rom: GameFiles, files: Mapping[str, bytes] | None = None, hint: MapHint | None = None,
-                   button: str | None = None) -> dict[str, bytes]:
-    """(RomFS path -> ARC) of each language's core_lobby.arc with the hint: from the copy in `files` (the run's earlier
-    interface files, single-screen's placed layouts included) or the game's. The curated hint and the button of
-    `world_map.open` by default."""
+                   button: str | None = None, rows: KeyRow | None = None) -> dict[str, bytes]:
+    """(RomFS path -> ARC) of each language's core_lobby.arc with the hint (at that language's `right`) and the game's
+    key-hint rows drawn at the hints' size: from the copy in `files` (the run's earlier interface files, single-screen's
+    placed layouts included) or the game's. The curated hint, rows and the button of `world_map.open` by default."""
     from core.interface.single_screen.executable.single_screen_world_map import world_map_settings
     hint = hint or map_hint_settings()
+    rows = rows or key_row_settings()
     button = button or world_map_settings().open
     out = {}
     for language in LANGUAGES:
         path = f"{language}/data/core_lobby.arc"
-        out[path] = hint_arc((files or {}).get(path) or rom.read(path), hint, button)
+        out[path] = hint_arc((files or {}).get(path) or rom.read(path), hint.for_language(language), button, rows,
+                             language)
     return out

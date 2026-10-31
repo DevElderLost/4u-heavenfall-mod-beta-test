@@ -79,7 +79,9 @@ class Block:
     in a row) moves those panes on their own: the block that holds the group whole keeps the rest, and the group's
     screen, priority and visibility, so a part sets only x, y and scale; with none set it follows the whole block; it
     may also be `hidden` on its own, or shown while the whole block
-    is hidden (`Arrangement.hides`)."""
+    is hidden (`Arrangement.hides`). A **world** block (`world`) holds groups whose panes the game's code places in the
+    3D world (the hunters' name tags): the draw adds the camera's offset to the group's first level only, so its groups
+    get no wrapper and it sets only screen, priority and hidden."""
     id: str
     name: str
     layout: str
@@ -89,6 +91,7 @@ class Block:
     overlay: bool = False
     part: tuple[str, ...] = ()
     name_en: str = ""                       # its English name (names_en.json); "" when it has none
+    world: bool = False
 
 
 @dataclass(frozen=True)
@@ -300,7 +303,7 @@ def load_blocks(path: Path, settings: Settings) -> dict[str, Block]:
         where = f"{Path(path).name}, block {index}"
         if not isinstance(record, dict):
             _fail(where, "a block is an object")
-        unknown = set(record) - {"id", "name", "layout", "groups", "default", "backdrop", "overlay", "part"}
+        unknown = set(record) - {"id", "name", "layout", "groups", "default", "backdrop", "overlay", "part", "world"}
         if unknown:
             _fail(where, f"unknown keys {sorted(unknown)}")
         block_id, name, layout = record.get("id"), record.get("name"), record.get("layout")
@@ -334,10 +337,18 @@ def load_blocks(path: Path, settings: Settings) -> dict[str, Block]:
             _fail(where, "backdrop must be true or false")
         if not isinstance(overlay, bool):
             _fail(where, "overlay must be true or false")
+        world = record.get("world", False)
+        if not isinstance(world, bool):
+            _fail(where, "world must be true or false")
+        if world and part:
+            _fail(where, "a world block holds whole groups (it gets no wrapper to split a part off)")
         default = _placement(record.get("default", {}), f"{where}, default", settings)
         if part:
             _part_placement(default, f"{where}, default")
-        out[block_id] = Block(block_id, name.strip(), layout, groups, default, backdrop, overlay, tuple(part))
+        if world:
+            _world_placement(default, f"{where}, default")
+        out[block_id] = Block(block_id, name.strip(), layout, groups, default, backdrop, overlay, tuple(part),
+                              world=world)
     taken: dict[tuple[str, str], str] = {}
     for block in out.values():
         if not block.part:
@@ -357,6 +368,12 @@ def _part_placement(placement: Placement, where: str) -> None:
     if (placement.screen, placement.priority) != (None, None):
         _fail(where, "a part block sets only x, y, scale and hidden (its group's screen and priority are the whole "
                      "block's)")
+
+
+def _world_placement(placement: Placement, where: str) -> None:
+    """A world block's placement sets screen, priority and hidden only: its groups have no wrapper to move or scale."""
+    if (placement.x, placement.y, placement.scale) != (None, None, None):
+        _fail(where, "a world block sets only screen, priority and hidden (its groups get no wrapper to move or scale)")
 
 
 def load_screens(path: Path, blocks: dict[str, Block], settings: Settings) -> list[Screen]:
@@ -404,6 +421,8 @@ def parse_screens(data: dict, filename: str, blocks: dict[str, Block], settings:
             moved[block_id] = _placement(placement, f"{where}, {block_id}", settings)
             if blocks[block_id].part:
                 _part_placement(moved[block_id], f"{where}, {block_id}")
+            if blocks[block_id].world:
+                _world_placement(moved[block_id], f"{where}, {block_id}")
         photo = None
         if "photo" in record:
             if settings.photo is None:

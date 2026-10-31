@@ -286,7 +286,7 @@ menu_shift:
     .space  80                        @ the patcher's: per ui006 table entry the float x, y of the group in a creation menu
     .global help_places
 help_places:
-    .space  224                       @ the patcher's: up to 14 places: when mask, unless mask, float x, y (16 bytes each)
+    .space  256                       @ the patcher's: up to 16 places: when mask, unless mask, float x, y (16 bytes each)
     .global extra_count
 extra_count:
     .word   0                         @ the patcher's: how many entries extra_table holds

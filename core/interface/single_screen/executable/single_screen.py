@@ -71,6 +71,9 @@ from core.interface.single_screen.executable.single_screen_card_info import patc
 from core.interface.single_screen.executable.single_screen_board import (
     board_page_shift, patch_board_page, supports_board_page,
 )
+from core.interface.single_screen.executable.single_screen_canteen_page import (
+    canteen_page_shift, patch_canteen_page, supports_canteen_page,
+)
 from core.interface.single_screen.executable.single_screen_pools import gui_pool_nulls, patch_pools, supports_pools
 from core.interface.game_gui import engine as game_gui_engine
 from core.interface.game_gui.game_gui import patch_game_gui
@@ -176,7 +179,8 @@ def prompt_stay_bottom(path: Path = SETTINGS_FILE) -> tuple[str, ...]:
 # The description panel (ui006_help00 / help01) on the top screen: the block scans the GUI's group list once for the
 # names of a table, each with the bits of what it
 # takes part in, and decides from the bits.
-HELP_PLACES = 14                     # the most places the curated "help_top" may list (their scan bits end at bit 29)
+HELP_PLACES = 16                     # the most places the curated "help_top" may list (the block's help_places room)
+PLACE_BITS = range(2, 30)            # the scan bits the places' when and unless lists share (place_masks)
 HELP_SCAN = 96                       # the most distinct group names the block's scan table holds
 HELP_EXTRAS = 16                     # the most (place, other ui006 group) shifts the block's extra table holds
 PLACE_SIZE = 16                      # a place's record: when mask, unless mask, x, y (float)
@@ -187,9 +191,21 @@ NO_PANEL = 1 << 31                   # in a place's unless word (never a scan bi
 HELP_FLAGS = ("layered_preview.shown",)    # the one variable flag the block reads (layered_preview + 9)
 
 
-def place_bits(index: int) -> tuple[int, int]:
-    """The scan bits of place `index`: a group in its `when`, a group (or the flag) in its `unless`."""
-    return 1 << (2 + 2 * index), 1 << (3 + 2 * index)
+def place_masks(places) -> list[tuple[int, int]]:
+    """Each place's (when mask, unless mask), in order: a scan bit of its own for a non-empty `when` (a group in it),
+    another for a non-empty `unless` (a group in it, or a flag), 0 for an empty list (the block takes a when of 0 as
+    always and an unless of 0 as never). The bits are PLACE_BITS, one each; CodeSpaceError when they run out."""
+    free = iter(PLACE_BITS)
+    out = []
+    for place in places:
+        try:
+            when = 1 << next(free) if place.when else 0
+            unless = 1 << next(free) if place.unless or place.flags else 0
+        except StopIteration:
+            raise CodeSpaceError(f"help_top: the places' when and unless lists need more than the "
+                                 f"{len(PLACE_BITS)} scan bits the block has (at {place.name})") from None
+        out.append((when, unless))
+    return out
 
 
 @dataclass(frozen=True)
@@ -301,6 +317,7 @@ def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> Hel
     for name in top.stay_bottom:
         bits[name_hash(name)] = bits.get(name_hash(name), 0) | BIT_STAY
     records, extras, flag_mask = [], [], 0
+    masks = place_masks(top.places)
     for index, place in enumerate(top.places):
         seen = set()
         for name, shift in place.groups:
@@ -311,7 +328,7 @@ def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> Hel
                 raise CodeSpaceError(f"help_top, place {place.name}: {name!r} is the panel or listed twice")
             seen.add(at)
             extras.append(struct.pack("<IIff", index, at, 0.0 - shift[0], 0.0 - shift[1]))
-        when, unless = place_bits(index)
+        when, unless = masks[index]
         for name in place.when:
             bits[name_hash(name)] = bits.get(name_hash(name), 0) | when
         for name in place.unless:
@@ -321,7 +338,7 @@ def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> Hel
                 raise CodeSpaceError(f"help_top, place {place.name}: no flag {flag!r} (the block reads {HELP_FLAGS})")
             flag_mask |= unless
         # 0.0 - n: no negative zero for a shift of 0 (the block compares the floats' bits to the group's)
-        records.append(struct.pack("<IIff", when if place.when else 0, unless | (0 if place.panel else NO_PANEL),
+        records.append(struct.pack("<IIff", when, unless | (0 if place.panel else NO_PANEL),
                                    0.0 - place.shift[0], 0.0 - place.shift[1]))
     if len(bits) > HELP_SCAN:
         raise CodeSpaceError(f"{len(bits)} group names to scan for, the block's table holds {HELP_SCAN}")
@@ -493,6 +510,7 @@ def supports_single_screen(code: bytes) -> bool:
                 and arena_pad.supports_arena_pad(code)
                 and supports_pools(code)
                 and supports_board_page(code)
+                and supports_canteen_page(code)
                 and all(code[a - BASE_ADDRESS:a - BASE_ADDRESS + 4] == word for a, word in ENGINE_SITES))
     except IndexError:
         return False
@@ -522,6 +540,7 @@ def patch_single_screen(code: bytes, offsets: dict[int, int], layout: Layout | N
     out = patch_prompt_screen(out, prompt_stay_bottom(), layout, creation.creation_prompt(), help_top())
     out = patch_layout_choice(out)
     out = patch_board_page(out, board_page_shift())
+    out = patch_canteen_page(out, canteen_page_shift())
     # the Arena's select scene: ui497 is on the top screen in single-screen mode (the engine's block)
     out = arena_pad.patch_arena_pad(quests.patch_arena_choice(out), layout)
     out = patch_pay_pad(out, layout)

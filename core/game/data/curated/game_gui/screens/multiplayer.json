@@ -26,7 +26,8 @@
       "ui504.fondo": {}
     }},
     {"id": "hunter_search", "number": "81", "name": "Búsqueda de cazador", "mode": "single_screen", "when": {"all": ["ui060_bg"]}, "blocks": {
-      "ui060.busqueda": {}
+      "ui060.busqueda": {},
+      "ui060.fondo": {}
     }},
     {"id": "friends", "number": "82", "name": "Lista de amigos", "mode": "single_screen", "when": {"any": ["ui501_bg", "ui501_furatto_list", "ui501_furatto_irai_1", "ui501_furatto_irai_2"]}, "blocks": {
       "ui501.amigos": {},

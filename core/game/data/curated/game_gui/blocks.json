@@ -1,5 +1,5 @@
 {
-  "description": "The blocks of the game GUI arrangement: root groups of one layout that move together. id: layout.word; name: its Spanish name, as the game shows it; groups: the root groups; default: the placement in single-screen mode when no screen moves the block (x, y: the visible box's top-left corner in screen pixels; scale; screen top or bottom; priority 0-255; hidden); backdrop: may lie under other blocks; overlay: opens over another screen (a window, a menu on top) and may cover what is drawn under it; part: panes of the one root group, siblings in a row under one null right under it, that move on their own (x, y and scale only; the block holding the group whole keeps the rest, the screen, priority and hiding).",
+  "description": "The blocks of the game GUI arrangement: root groups of one layout that move together. id: layout.word; name: its Spanish name, as the game shows it; groups: the root groups; default: the placement in single-screen mode when no screen moves the block (x, y: the visible box's top-left corner in screen pixels; scale; screen top or bottom; priority 0-255; hidden); backdrop: may lie under other blocks; overlay: opens over another screen (a window, a menu on top) and may cover what is drawn under it; part: panes of the one root group, siblings in a row under one null right under it, that move on their own (x, y and scale only; the block holding the group whole keeps the rest, the screen, priority and hiding); world: groups whose panes the game places in the 3D world (the hunters' name tags), never wrapped, so the block sets only screen, priority and hidden.",
   "blocks": [
     {"id": "ui560.temas", "name": "Ayuda: temas y barra de ayuda", "layout": "ui560", "groups": ["ui560_l_kami", "ui560_help00"], "default": {"x": 73.6, "y": 66, "scale": 0.8, "screen": "top", "priority": 80}, "overlay": true},
     {"id": "ui560.fondo", "name": "Ayuda: fondo de madera", "layout": "ui560", "groups": ["ui560_l_bg"], "default": {"hidden": true}, "backdrop": true},
@@ -25,7 +25,8 @@
     {"id": "ui511.menus", "name": "Mensajero: menús de StreetPass", "layout": "ui511", "groups": ["ui511_BG", "ui511_sure_commu", "ui511_guildcard_box1", "ui511_guildcard_box2", "ui511_sure_set", "ui511_commu_set", "ui511_quest_set", "ui511_otomo_set", "ui511_otomo_box", "ui511_quest_box", "ui511_neko"], "default": {"x": 88, "y": 86.2, "scale": 0.7, "screen": "top", "priority": 57}},
     {"id": "ui510.paneles", "name": "Mensajero: paneles de información (StreetPass, misiones, Pálicos)", "layout": "ui510", "groups": ["ui510_sure_setting", "ui510_guild_info", "ui510_otomo_info", "ui510_otomo_status", "ui510_levelquest_info", "ui510_search_quest"], "default": {"screen": "top"}},
     {"id": "ui510.fondo", "name": "Mensajero: fondo de los paneles", "layout": "ui510", "groups": ["ui510_base"], "default": {"screen": "top"}, "backdrop": true},
-    {"id": "ui060.busqueda", "name": "Búsqueda de cazador", "layout": "ui060", "groups": ["ui060_bg", "ui060_midasi", "ui060_player", "ui060_yajirusi", "ui060_midasi_1", "ui060_online", "ui060_ita_1", "ui060_ita_2", "ui060_PL_buki_bougu", "ui060_caravan"], "default": {"x": 88, "y": 62.4, "scale": 0.7, "screen": "top"}},
+    {"id": "ui060.busqueda", "name": "Búsqueda de cazador", "layout": "ui060", "groups": ["ui060_midasi", "ui060_player", "ui060_yajirusi", "ui060_midasi_1", "ui060_online", "ui060_ita_1", "ui060_ita_2", "ui060_PL_buki_bougu", "ui060_caravan"], "default": {"x": 72, "y": 63, "scale": 0.8, "screen": "top", "priority": 57}},
+    {"id": "ui060.fondo", "name": "Búsqueda de cazador: fondo", "layout": "ui060", "groups": ["ui060_bg"], "default": {"hidden": true}, "backdrop": true},
     {"id": "ui443.lista", "name": "Elección de canción: título, lista y cursor", "layout": "ui443", "groups": ["ui443_midasi", "ui443_list", "ui443_cur"]},
     {"id": "ui443.fondo", "name": "Elección de canción: fondo de madera", "layout": "ui443", "groups": ["ui443_bg"], "backdrop": true},
     {"id": "ui455.existencias", "name": "Wyceum: existencias (disponibilidad)", "layout": "ui455", "groups": ["ui455_listwaku", "ui455_item", "ui455_moji"], "default": {"x": 2, "y": 58, "scale": 0.9, "screen": "top"}},
@@ -48,8 +49,9 @@
     {"id": "ui498.tiempo", "name": "Arena: tiempo restante", "layout": "ui498", "groups": ["ui498_l_time"], "default": {"x": 293, "y": 1, "screen": "top"}},
     {"id": "ui498.cortina", "name": "Arena: cortina del cartel", "layout": "ui498", "groups": ["ui498_noren"], "default": {"hidden": true}},
     {"id": "ui422.mapa", "name": "Minimapa del pueblo", "layout": "ui422", "groups": ["ui422_map", "ui422_Circle_icon", "ui422_icon", "ui422_serifu_icon", "ui422_player_icon"], "default": {"hidden": true}},
-    {"id": "ui804.arte", "name": "Título: fondo y copyright", "layout": "ui804", "groups": ["ui804_title"], "backdrop": true},
+    {"id": "ui804.arte", "name": "Título: fondo", "layout": "ui804", "groups": ["ui804_title"], "backdrop": true},
     {"id": "ui804.logo", "name": "Título: logotipo", "layout": "ui804", "groups": ["ui804_title"], "part": ["ui804_shadow", "ui804_mark", "ui804_title10_00", "ui804_title10", "ui804_title10_000", "ui804_title10_01", "ui804_title10_11"], "default": {"x": 84, "y": 13.4, "scale": 0.76}},
+    {"id": "ui804.copyright", "name": "Título: copyright", "layout": "ui804", "groups": ["ui804_title"], "part": ["ui804_syouhyou"], "default": {"x": 80, "y": 221.6, "scale": 0.6}},
     {"id": "ui804.cartel", "name": "Título: cartel Elegir personaje", "layout": "ui804", "groups": ["ui804_l_kanban"], "default": {"hidden": true}},
     {"id": "ui801.alfombra", "name": "Elegir partida: alfombra dorada de fondo", "layout": "ui801", "groups": ["ui801_l_bg"], "backdrop": true},
     {"id": "ui805.pulsa", "name": "Pulsa A", "layout": "ui805", "groups": ["ui805_u_title"], "default": {"x": 159.1, "y": 190.4, "scale": 0.55, "screen": "top", "priority": 2}},
@@ -73,6 +75,6 @@
     {"id": "ui241.pagina", "name": "Controles de arma: página 241", "layout": "ui241", "groups": ["ui241_rod200"]},
     {"id": "ui242.pagina", "name": "Controles de arma: página 242", "layout": "ui242", "groups": ["ui242_bowgun"]},
     {"id": "ui243.pagina", "name": "Controles de arma: página 243", "layout": "ui243", "groups": ["ui243_bow"]},
-    {"id": "ui001.nombres", "name": "Nombres de los cazadores sobre el mundo", "layout": "ui001", "groups": ["ui001_pop1"], "default": {"priority": 0}, "backdrop": true}
+    {"id": "ui001.nombres", "name": "Nombres de los cazadores sobre el mundo", "layout": "ui001", "groups": ["ui001_pop1"], "default": {"priority": 0}, "backdrop": true, "world": true}
   ]
 }
