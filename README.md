@@ -130,7 +130,7 @@ Want to understand how the mod works or learn how to edit the game's menus yours
 ## Credits and license
 
 - **Developed by:** popzol and BlitzWOLF.
-- **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The 3D, glow and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
+- **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The visual and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
 - **Game data reference:** [Kiranico](https://mh4u.kiranico.com/).
 
 **License:** This project is licensed under the [GNU General Public License v3.0 or later](LICENSE). See the license for the full terms and conditions.
