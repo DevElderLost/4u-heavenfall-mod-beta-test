@@ -1,204 +1,261 @@
 # Editing the interface
 
-Everything single-screen mode puts on the top screen sits where a few data files say. To move a menu you change a
-number in those files, look at a picture of the result, and try it in the emulator. This page explains the files, the
-tools and the whole loop. What the mod does in general is in [how_it_works.md](how_it_works.md); running from the
-code is in [development.md](development.md).
+Everything Single Screen Mode displays on the top screen is positioned using a set of data files. To move a menu, edit a value in those files, preview the result, and test it in the emulator. This guide explains the files, tools and workflow involved. For an overview of what the mod does, see [how_it_works.md](how_it_works.md). For instructions on running the project from source, see [development.md](development.md).
 
-## The ideas in one minute
+## Key concepts
 
-* The game draws its interface from **layouts** (`uiNNN`, for example `ui502` is the Guild Card). A layout is a tree:
-  its top-level **groups** (root groups, such as `ui502_kihon`) hold the pictures and texts.
-* The game shows and hides groups as you move through menus. Which groups are shown tells which **screen** of the game
-  you are on: "the Guild Card open, no edit window", "the quest list", and so on.
-* A **block** is a set of root groups of one layout that move together, such as "the Guild Card" or "its wooden
-  background". Blocks have ids like `ui502.tarjeta` (layout, a dot, a word).
-* A **screen** in the files has a **rule** (which groups must be shown, may be shown, must not be shown) and the
-  **place** of each block while it is showing.
-* Every value is **absolute**: the final x, y and scale, never "10 pixels more". A block's final place on a screen is
-  the screen's value; where the screen says nothing, the block's own default; where that says nothing too, where the
-  game draws it.
-* Coordinates are pixels of the screen: the top screen is 400 x 240, the touch screen 320 x 240; x grows to the right,
-  y downwards. `x`, `y` are the top-left corner of the block's visible box.
+- The game draws its interface using **layouts** (`uiNNN`, for example, `ui502` is the Guild Card). Each layout is a tree of elements. Its top-level **groups** (root groups, such as `ui502_kihon`) contain pictures and text.
+- The game shows and hides groups as you navigate through menus. The combination of visible groups identifies which **screen** of the game is currently displayed: for example, "the Guild Card is open, with no editing window" or "the quest list".
+- A **block** is a set of root groups from the same layout that move together, such as the Guild Card or its wooden background. Blocks have IDs in the format `ui502.tarjeta` (layout name, followed by a dot and a word).
+- Each **screen** definition has a **rule** specifying which groups must be visible, which may be visible, and which must be hidden. It also defines the **placement** of each block on that screen.
+- All placement values are **absolute**, not relative. They specify the final x, y and scale, rather than how far an element should move. A screen's placement takes priority over a block's default placement. If neither specifies a value, the game uses its own default.
+- Coordinates are measured in screen pixels: the top screen is 400 × 240, and the bottom screen is 320 × 240. X increases to the right, and Y increases downwards. `x` and `y` refer to the top-left corner of the block's visible bounding box.
 
-The files' names (blocks, screens) are in Spanish, as the person who made them reads the game; each has an English name
-too (`names_en.json`), which the tools show.
+The data files use Spanish names for blocks and screens, as that is how they were originally organized. Each entry also has an English name in `names_en.json`, which is what the tools display.
 
 ## The files
 
-All of them are in `core/game/data/curated/game_gui/`:
+All the files are located in `core/game/data/curated/game_gui/`:
 
-| File | What it holds | Edit it? |
+| File | Contents | Edit it? |
 |---|---|---|
-| `blocks.json` | Every block: its layout, groups and default place | Yes |
-| `screens/<theme>.json` | Every screen: its number, rule and blocks' places (one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, monnyan) | Yes |
-| `names_en.json` | The English name of every screen, block and screen to record | When you add one |
-| `fixes.json` | Changes to a layout that are no place: panes hidden, a background stretched, a pane nudged inside its group, a fill | Rarely |
-| `settings.json` | The limits (scale 0.25 to 2.0, a corner at most 120 pixels outside its screen) and the photo mode's buttons | Rarely |
-| `check.json` | The checker's limits, and the recorded screens that are left unarranged on purpose | Sometimes |
-| `coverage.json` | The screens the recorder's window lists as still to record | Optional |
-| `recorder.json`, `render.json` | The recorder's timings, the pictures' colours and zoom | No |
+| `blocks.json` | Every block, its layout, groups and default placement | Yes |
+| `screens/<theme>.json` | Every screen, its number, visibility rule and block placements. There is one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier and monnyan. | Yes |
+| `names_en.json` | English names for every screen, block and screen to record | When adding one |
+| `fixes.json` | Non-positional layout changes, such as hiding panes, stretching backgrounds, moving panes within their groups or applying fills | Rarely |
+| `settings.json` | Placement limits (scale 0.25 to 2.0, with block corners allowed up to 120 pixels outside the screen) and photo mode buttons | Rarely |
+| `check.json` | Checker limits and screens that have been recorded but are intentionally left unarranged | Sometimes |
+| `coverage.json` | Screens still waiting to be recorded, as listed in the recorder window | Optional |
+| `recorder.json`, `render.json` | Recorder timings, preview colours and zoom settings | No |
 
 ### A block (`blocks.json`)
 
+For example, these are two blocks from the Guild Card layout:
+
 ```json
-{"id": "ui502.tarjeta", "name": "Tarjeta del gremio", "layout": "ui502",
- "groups": ["ui502_kihon", "ui502_buki_siyou", "..."],
- "default": {"x": 40, "y": 3, "scale": 1, "screen": "top", "priority": 56}},
-{"id": "ui502.fondo", "name": "Tarjeta del gremio: fondo de madera", "layout": "ui502",
- "groups": ["ui502_bg"], "default": {"hidden": true}, "backdrop": true}
+{
+  "id": "ui502.tarjeta",
+  "name": "Tarjeta del gremio",
+  "layout": "ui502",
+  "groups": ["ui502_kihon", "ui502_buki_siyou", "..."],
+  "default": {
+    "x": 40,
+    "y": 3,
+    "scale": 1,
+    "screen": "top",
+    "priority": 56
+  }
+}
 ```
 
-* `groups`: the root groups that move together; a group belongs to one block at most.
-* `default`: its place on every screen that does not set one (a [placement](#a-placement)).
-* `backdrop: true`: a background; other blocks may lie over it without counting as an overlap.
-* `overlay: true`: a window or menu that opens over another screen and may cover what is under it.
-* `part`: instead of whole groups, a few panes of its one group that move on their own (siblings in a row under one
-  null right under the group), for example the Guild Card's "X Greeting On/Off" button:
-  `{"id": "ui502.saludo", "groups": ["ui502_kihon"], "part": ["ui502_FL_X_button", "ui502_x", "ui502_m_m"], ...}`.
-  The block that holds the whole group keeps the rest; a part sets only `x`, `y`, `scale` and `hidden`, and with none
-  of x, y and scale it follows its whole block.
+```json
+{
+  "id": "ui502.fondo",
+  "name": "Tarjeta del gremio: fondo de madera",
+  "layout": "ui502",
+  "groups": ["ui502_bg"],
+  "default": {
+    "hidden": true
+  },
+  "backdrop": true
+}
+```
+
+- `groups`: the root groups that move together. A group can belong to at most one block.
+- `default`: the block's default placement on any screen that does not define its own placement (see [A placement](#a-placement)).
+- `backdrop: true`: marks the block as a background. Other blocks can overlap it without triggering an overlap warning.
+- `overlay: true`: marks a window or menu that opens on top of another screen and may cover whatever is underneath.
+- `part`: allows you to move individual panes within a group instead of moving the entire group. These panes must be siblings under the same `null` node, directly beneath the group.
+
+  For example, the Guild Card's "X Greeting On/Off" button:
+
+  ```json
+  {
+    "id": "ui502.saludo",
+    "groups": ["ui502_kihon"],
+    "part": ["ui502_FL_X_button", "ui502_x", "ui502_m_m"]
+  }
+  ```
+
+  The block containing the whole group continues to control everything else. A part can override only `x`, `y`, `scale` and `hidden`. If it does not specify any of `x`, `y` or `scale`, it follows the placement of the block containing its group.
 
 ### A screen (`screens/<theme>.json`)
 
+For example:
+
 ```json
-{"id": "guild_card", "number": "78", "name": "Tarjeta del gremio", "mode": "single_screen",
- "when": {"all": ["ui502_bg"], "none": ["ui503_BG", "ui504_BG", "ui502_M_dialy"]},
- "photo": ["ui505_guild_bg", "ui505_message"],
- "blocks": {"ui502.tarjeta": {}, "ui502.fondo": {}}}
+{
+  "id": "guild_card",
+  "number": "78",
+  "name": "Tarjeta del gremio",
+  "mode": "single_screen",
+  "when": {
+    "all": ["ui502_bg"],
+    "none": ["ui503_BG", "ui504_BG", "ui502_M_dialy"]
+  },
+  "photo": ["ui505_guild_bg", "ui505_message"],
+  "blocks": {
+    "ui502.tarjeta": {},
+    "ui502.fondo": {}
+  }
+}
 ```
 
-* `number`: what people call it ("78 Guild Card"), and its blocks are "78.1", "78.2"... in the order listed. Unique.
-* `when`: the rule. Every group of `all` is shown, at least one of `any` (when given), none of `none`. A recorded
-  screen must match exactly one screen (the checker says when not).
-* `blocks`: block id to its place here; `{}` keeps the block's default (it is listed for its number).
-* `mode`: `single_screen`, the mode the mod builds (`normal`, for two-screen play, is in the format but unused).
-* `photo` (optional): the screen has a photo mode, and these groups stay drawn while it is on; it starts with the
-  `toggle` button of `settings.json` (Y), or this screen's `photo_toggle` (the Edit Card screen uses X, because the
-  game uses Y there), and any button ends it. Before giving a button to the photo mode, check what the game does with
-  it on that screen.
+- `number`: the number used to identify the screen (for example, "78 Guild Card"). Its blocks are numbered "78.1", "78.2", and so on, in the order they are listed. Each screen number must be unique.
+- `when`: the visibility rule. Every group listed under `all` must be visible, at least one group under `any` must be visible (when `any` is specified), and no group under `none` may be visible. Each recorded screen must match exactly one screen definition. The checker reports cases where this is not true.
+- `blocks`: maps block IDs to their placements on this screen. An empty object (`{}`) keeps the block's default placement.
+- `mode`: `single_screen` is the mode used when building the mod. `normal`, intended for regular two-screen play, is also supported by the format but is currently unused.
+- `photo` (optional): lists the groups that remain visible while photo mode is active. Photo mode is activated using the `toggle` button in `settings.json` (Y by default), or this screen's `photo_toggle` setting (the Edit Card screen uses X because the game already uses Y there). Pressing any button exits photo mode. Before assigning a button to photo mode, check what the game normally does with that button on the screen.
 
 ### A placement
 
 | Field | Meaning |
 |---|---|
-| `x`, `y` | The top-left corner of the block's visible box, in pixels of its screen |
-| `scale` | Its size: 1 is the game's, 0.5 half (between 0.25 and 2.0) |
+| `x`, `y` | The top-left corner of the block's visible bounding box, in pixels |
+| `scale` | The block's size. `1` is the original game size; `0.5` is half that size (allowed range: 0.25 to 2.0) |
 | `screen` | `top` or `bottom` |
-| `priority` | Its draw order, 0 to 255: higher is in front |
-| `hidden` | `true` hides it on this screen |
+| `priority` | Draw order, from 0 to 255. Higher values are drawn in front. |
+| `hidden` | Set to `true` to hide the block on this screen |
 
-Any field can be left out: it then comes from the block's default, else from the game.
+Any field can be omitted. Its value is then inherited from the block's default placement or, if no default is specified, from the game's original behavior.
 
-## The loop: record, look, change, check, try
+## The workflow: record, preview, edit, check and test
 
-### 0. Once: running from the code and `local.ini`
+### 0. Initial setup: running from source and configuring `local.ini`
 
-Run the tools from a copy of this repository (development.md, "Running from the code"). Then copy
-`local.example.ini` to `local.ini` and fill in:
+First, set up the project by following the instructions in [development.md](development.md), under "Running from the code".
 
-* `mh4u_rom`: your game file, European or American;
-* `mh4u_romfs`: the game's files dumped by the emulator. In Azahar: right-click the game in the list, **Dump RomFS**;
-  it goes to `%APPDATA%/Azahar/dump/romfs/<title>/`. The pictures are drawn from it;
-* `emulator_dir`, if your emulator's user folder is not `%APPDATA%/Azahar`.
+Then copy `local.example.ini` to `local.ini` and configure:
+
+- `mh4u_rom`: your European or American game file.
+- `mh4u_romfs`: the game's files dumped by the emulator. In Azahar, right-click the game in the game list and select **Dump RomFS**. The files are saved to `%APPDATA%/Azahar/dump/romfs/<title>/`. The preview tools use them to render the game's interface.
+- `emulator_dir`: only if your emulator's user folder is not located at `%APPDATA%/Azahar`.
 
 ### 1. Install a recording probe
 
-The recorder copies the game's interface from the emulator's memory between two frames, so it needs to know when a
-frame starts and ends. A **recording probe** is your usual mod plus two small counters the game updates every frame:
+The recorder copies the game's interface directly from the emulator's memory between frames. To do this, it needs to know when each frame starts and ends.
 
-```
+A **recording probe** is your usual mod with two additional counters that the game updates every frame.
+
+```bash
 python tools/ui/ui.py probe rec --install
 ```
 
-builds the next round, `output/ui/rec_1`, `rec_2`..., with your Options page's choices and single-screen mode on, and
-installs it into the emulator. Add `--two-screen` to record the game's own interface on both screens (single-screen
-mode off). It installs only into an empty mod folder or over an earlier probe: uninstall your usual Heavenfall Beta install
-first (the program's Uninstall button). Then restart the emulation (Emulation > Restart).
+This builds the next recording probe (`output/ui/rec_1`, `rec_2`, and so on), using the options selected on the Options page with Single Screen Mode enabled, and installs it into the emulator.
+
+Add `--two-screen` to record the game's original interface on both screens, with Single Screen Mode disabled.
+
+The probe can only be installed into an empty mod folder or over a previous recording probe. Uninstall your regular Heavenfall Beta installation first using the program's **Uninstall** button.
+
+After installation, restart the emulation (**Emulation > Restart**).
 
 ### 2. Record
 
-```
+```bash
 python tools/ui/ui_recorder.py
 ```
 
-opens the recorder's window. Play to the screens you care about. The window shows each emulator window's state
-("Recording" when it copies), the screen it is on, how many screens it recorded and which listed screens are still
-to record. It only reads the emulator's memory; it never writes to it.
+This opens the recorder window. Play the game and navigate to the screens you want to record.
 
-* **Ctrl+P** in the emulator saves a screenshot; the recorder pairs it with the copy of that moment and files a
-  **request** with the note you typed in the window. "Mark this screen" files one without a picture.
-* Recordings go to `work/ui/recordings/`, requests to `work/ui/peticiones/` (the folder keeps its Spanish name).
-* Save states work too, without a probe: `python tools/ui/ui_recorder.py --state slot1.cst slot2.cst`.
+The window displays each emulator window's current state (showing "Recording" while a capture is being made), the screen being displayed, the number of screens recorded and which screens in the coverage list are still waiting to be recorded.
 
-### 3. Look
+The recorder only reads the emulator's memory. It never writes to it.
 
+- Press **Ctrl+P** in the emulator to save a screenshot. The recorder pairs it with the memory capture from that moment and creates a **request** containing the note you entered in the recorder window.
+- Click **Mark this screen** to create a request without a screenshot.
+- Recordings are saved in `work/ui/recordings/`. Requests are saved in `work/ui/peticiones/` (the folder keeps its original Spanish name).
+- You can also record from save states without installing a probe:
+
+  ```bash
+  python tools/ui/ui_recorder.py --state slot1.cst slot2.cst
+  ```
+
+### 3. Preview
+
+```bash
+python tools/ui/ui.py gallery              # output/ui/galeria/index.html: all recorded screens, original and arranged
+python tools/ui/ui.py show 78               # screen rule, final block placements, recordings and screenshots
+python tools/ui/ui.py render 78 --arranged   # PNG previews of a screen as arranged by the mod
+python tools/ui/ui.py pending                # unanswered requests, newest first
 ```
-python tools/ui/ui.py gallery            # output/ui/galeria/index.html: every recorded screen, original and arranged
-python tools/ui/ui.py show 78            # a screen: its rule, its blocks' final places, its recordings and pictures
-python tools/ui/ui.py render 78 --arranged   # PNGs of a screen as the mod places it (output/ui/pictures)
-python tools/ui/ui.py pending            # the requests not answered yet, newest first
+
+The arranged previews outline each block and label it with its number. They are rendered using the recordings and the game's files, following the same placement logic as the in-game engine. This means you can work on the interface without having to launch the game every time.
+
+You can also compare an arranged preview against an actual screenshot:
+
+```bash
+python tools/ui/ui.py compare 78 screenshot.png --arranged
 ```
 
-The arranged pictures outline each block with its number. They are drawn from the recording and the game's files,
-the same way the engine in the game places things, so you can work without starting the game each time.
-`python tools/ui/ui.py compare 78 screenshot.png --arranged` measures how far a picture is from a real screenshot.
+This measures how closely the preview matches the screenshot.
 
-### 4. Change
+### 4. Edit
 
-Either edit the JSON in a text editor, or let the tool do it (it refuses anything relative or out of range):
+You can edit the JSON files directly in a text editor or use the command-line tool. The tool rejects relative values and values outside the allowed ranges.
 
-```
+```bash
 python tools/ui/ui.py set 78 ui502.tarjeta x=40 y=3 scale=0.9
-python tools/ui/ui.py set 78 ui502.tarjeta scale=none        # give the field back to the block's default
+python tools/ui/ui.py set 78 ui502.tarjeta scale=none
 ```
 
-Then render again and look.
+Setting a field to `none` resets it to the block's default value.
+
+Render the screen again to preview your changes.
 
 ### 5. Check
 
-```
+```bash
 python tools/ui/ui.py check
 ```
 
-checks, over every recorded screen: each matches exactly one screen of the files; no moved block overlaps another
-(measured on the pictures' pixels) unless one is a background or an overlay on top; nothing leaves its screen by more
-than a few pixels; every group a block or rule names exists in the game's files; the game's memory pools for interface
-pieces still fit every scene. It ends with code 0 when there is no problem. Missing English names are warnings.
-`--json` gives the same report as JSON. The pools need the game update's decrypted executable as
-`work/inputs/code_update.bin` and are skipped without it ("Not checked: pools...").
+The checker validates every recorded screen:
 
-### 6. Try it in the game
+- Each recording matches exactly one screen definition.
+- Blocks do not overlap, based on their visible pixels, unless the overlap is allowed by a background or an overlay.
+- No block extends beyond the screen boundaries by more than a few pixels.
+- Every group referenced by a block or visibility rule exists in the game's files.
+- The game's memory pools for interface elements have enough space for every scene.
 
-Build and install again: press **Update** in the program (run from the code, `python -m core.gui`, so it uses
-your files), or build the next probe with `python tools/ui/ui.py probe rec --install`. Restart the emulation.
+The checker exits with code `0` when no problems are found. Missing English names are reported as warnings.
+
+Use `--json` to get the same report in JSON format.
+
+Checking the memory pools requires the game's decrypted update executable at `work/inputs/code_update.bin`. If it is missing, this check is skipped and the report displays `"Not checked: pools..."`.
+
+### 6. Test in the game
+
+Build and install the mod again, then restart the emulation.
+
+You can either click **Update** in the program (when running it from source with `python -m core.gui`) or build another recording probe using:
+
+```bash
+python tools/ui/ui.py probe rec --install
+```
 
 ## Adding a screen or a block
 
-1. Record the screen (above). `python tools/ui/ui.py show <signature>` (the recorded screen's name the gallery shows)
-   lists its groups and the screens it matches.
-2. A new block: add it to `blocks.json` with an id `<layout>.<word>`, a name, its layout and groups, and its English
-   name in `names_en.json` (`"blocks"`). Use the game's own English words (Guild Card, Gathering Hall, Palico Board...).
-3. A new screen: add it to the theme's file with a new number, a rule that only it matches, and its blocks; its
-   English name goes in `names_en.json` (`"screens"`).
-4. `python tools/ui/ui.py check`, then try it.
+1. Record the screen using the workflow above. Then run `python tools/ui/ui.py show <signature>`, where `<signature>` is the name displayed for the recording in the gallery. This lists its groups and the screen definitions it matches.
+2. To add a block, define it in `blocks.json` with an ID in the format `<layout>.<word>`, a name, its layout and its groups. Add its English name to the `"blocks"` section of `names_en.json`. Use the game's own English terminology (Guild Card, Gathering Hall, Palico Board, etc.).
+3. To add a screen, define it in the appropriate theme file with a unique number, a rule that matches only that screen and its blocks. Add its English name to the `"screens"` section of `names_en.json`.
+4. Run `python tools/ui/ui.py check` and test the result in the emulator.
 
-## When something goes wrong
+## Troubleshooting
 
-| You see | It means |
+| Message or situation | Meaning / solution |
 |---|---|
-| Recorder: "Install the recording probe" | The installed mod has no frame counters: install a probe (step 1) and restart the emulation |
-| Recorder: "The emulator runs as administrator..." | Open the emulator as a normal user |
-| Recorder: "No exact copy this turn (retrying)" for a long time | The game leaves too little time between frames; it keeps trying |
-| `tools/ui/ui.py`: "no layouts" | `local.ini` has no `mh4u_romfs`, or the folder is not a RomFS dump |
-| Checker: "matches no screen" | A recorded screen no rule takes: give it a screen, or list it in `check.json`'s `unarranged` |
-| Checker: "matches N screens" | Two rules take the same screen: make one of them stricter |
-| Checker: "overlap by N pixels" | Two blocks cover each other on that screen: move one, or mark a real background as `backdrop` |
-| Probe: "is not one of our probes" | Your usual install is in the mod folder: uninstall it first |
+| Recorder: "Install the recording probe" | The installed mod does not have the frame counters. Install a recording probe (step 1) and restart emulation. |
+| Recorder: "The emulator runs as administrator..." | The emulator is running with administrator privileges. Close it and reopen it as a normal user. |
+| Recorder: "No exact copy this turn (retrying)" appears for a long time | The game is leaving too little time between frames for the recorder to capture the interface. It will keep retrying. |
+| `tools/ui/ui.py`: "no layouts" | `local.ini` does not contain a valid `mh4u_romfs` path, or the selected folder is not a RomFS dump. |
+| Checker: "matches no screen" | No screen rule matches this recording. Add a screen definition for it, or list it under `unarranged` in `check.json`. |
+| Checker: "matches N screens" | Multiple screen rules match the same recording. Make the rules more specific so that only one matches. |
+| Checker: "overlap by N pixels" | Two blocks overlap on that screen. Move one of them, or mark an actual background block as `backdrop`. |
+| Probe: "is not one of our probes" | Your regular mod installation is still in the mod folder. Uninstall it before installing the probe. |
 
-## How the game ends up drawing it
+## How the game actually draws the interface
 
-The build wraps each block's groups in a new invisible null inside the layout files, and turns the screens into a
-table. A small engine added to the game runs every frame: it finds the screen whose rule matches the groups the game
-shows, and writes each wrapper's place, screen, priority and visibility, all absolute, so nothing can drift. Details:
-[how_it_works.md](how_it_works.md), "Single-screen mode".
+During the build process, each block's groups are wrapped in a new invisible `null` inside the layout files, and the screen definitions are converted into a table.
+
+A small engine added to the game runs every frame. It identifies the screen whose visibility rule matches the groups currently being displayed, then updates each wrapper's placement, screen, priority and visibility. All values are absolute, so elements cannot gradually drift from their intended positions.
+
+For more technical details, see [how_it_works.md](how_it_works.md), under "Single-screen mode".
