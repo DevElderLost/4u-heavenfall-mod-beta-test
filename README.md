@@ -128,7 +128,7 @@ How the mod works, and how to move any menu of the game yourself, explained for 
 
 ## Credits and license
 
-* Made by popzol and blitzwolf95.
+* Made by popzol and BlitzWOLF.
 * Cheats: the field of view code is by mikewii7, the online fix by Klark231; the 3D, glow and frame rate codes come
   from the Monster Hunter 4 Ultimate community.
 * Game data reference: [Kiranico](https://mh4u.kiranico.com/).
