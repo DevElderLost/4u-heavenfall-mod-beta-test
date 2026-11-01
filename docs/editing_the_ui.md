@@ -31,7 +31,7 @@ All of them are in `core/game/data/curated/game_gui/`:
 | File | What it holds | Edit it? |
 |---|---|---|
 | `blocks.json` | Every block: its layout, groups and default place | Yes |
-| `screens/<theme>.json` | Every screen: its number, rule and blocks' places (one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, monnyan) | Yes |
+| `screens/<theme>.json` | Every screen: its number, rule and blocks' places (one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, monnyan, loading) | Yes |
 | `names_en.json` | The English name of every screen, block and screen to record | When you add one |
 | `fixes.json` | Changes to a layout that are no place: panes hidden, a background stretched, a pane nudged inside its group, a fill | Rarely |
 | `settings.json` | The limits (scale 0.25 to 2.0, a corner at most 120 pixels outside its screen) and the photo mode's buttons | Rarely |

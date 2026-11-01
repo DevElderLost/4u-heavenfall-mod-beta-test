@@ -253,14 +253,14 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "layered_equipment",
                    "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode", "cheat_no_bloom_dof",
                    "cheat_fps",
-                   "cheat_fov", "cheat_net_fix")
+                   "cheat_fov", "cheat_net_fix", "cheat_insta_kill")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only) and a 3DS run takes their defaults (Settings.for_console): the HUD size and the
 # touchless target; the ported monsters (Alatreon, Mizutsune, Glavenus) go to a 3DS too; the cheats are emulator only.
 # Single-screen mode moves layouts between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_fov", "cheat_net_fix")
+                 "cheat_fov", "cheat_net_fix", "cheat_insta_kill")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -410,6 +410,7 @@ class Settings:
     cheat_fps: CheatFps = CheatFps.GAME   # the frame rate forced to a fixed value
     cheat_fov: int = 50                   # the camera's field of view in degrees; 50 is the game's own (untouched)
     cheat_net_fix: bool = False           # the online fix by Klark231
+    cheat_insta_kill: bool = False        # debug: the hunter's attack multiplied (curated tuning.json, cheats)
 
     # New game (executable patch, not randomized)
     starting_kit: bool = True  # the developer's kit in the item box (game/data/curated/starting_kit.txt)

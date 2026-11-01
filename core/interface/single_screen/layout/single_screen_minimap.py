@@ -8,7 +8,7 @@ to the top screen while the player has it on. This module adds, to each language
 
 * the state: a new root group of the map's layout (`state_group`, a hidden null in it, nothing drawn) that the game
   creates hidden with the layout and never touches (no binder names it); the block keeps the on / off state in its
-  shown bit, so the minimap is off whenever the lobby's layouts load;
+  shown bit, shown meaning off, so the minimap is on whenever the lobby's layouts load;
 * the frame: nine sprites (a 9-slice: corners at 1:1, edges and middle stretched) behind the map, the first children
   of the map's group (`ui422_map`), cut from a panel of the game's own texture (the "Ayuda" window's picture panel,
   `cmn_help_ID` of core_common.arc, named from the layout like the hints name their glyphs' texture). They surround

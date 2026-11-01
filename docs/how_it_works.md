@@ -119,7 +119,8 @@ What the player sees: the touch screen's menus on the top screen. How:
 `core/interface/hud/` scales every layout drawn over the game on the top screen during quests (clock, health, stamina, sharpness,
 item selector, minimap...) towards its own corner, in steps of 90, 80, 70 or 60 %, by changing the layout files. A few
 things the game places from its code (the minimap's icons, the mount gauge) need executable patches
-(`interface/hud/code_patch.py`, block `minimap_wrapper`).
+(`interface/hud/code_patch.py`, blocks `minimap_wrapper` and `minimap_zoom`: the latter for the minimap zoomed on the
+current area and the Everwood's whole map).
 
 ## Locking on with L
 

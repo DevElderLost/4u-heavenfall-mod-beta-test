@@ -130,6 +130,9 @@ ARCS = ("core_lobby.arc", "core_common.arc", "core_title.arc", "core_dlc.arc", "
 # only the game GUI engine places them (interface/game_gui/build.py: the Guild's Weapon Controls page), so today's
 # mechanism never reads them
 WEAPON_ARCS = tuple(f"pl_wp{n:02d}_lyt.arc" for n in range(17))
+# The loading screens with the paper characters (ui108, beside the loading picture ui103 / ui104 / ui105), under
+# <language>/data/; only the game GUI engine places them
+LOADING_ARCS = ("loading_5.arc", "loading_6.arc", "loading_7.arc")
 STAGE_LAYOUTS = {"v00a01_map.arc": ("ui480", "ui481", "ui470", "ui471", "ui415"),
                  "v03a01_map.arc": ("ui480", "ui481", "ui470", "ui471", "ui415"),
                  "v04a00_map.arc": ("ui474",)}
@@ -1003,7 +1006,8 @@ def keyboard_backdrop_files(rom: GameFiles, width: int | None = None) -> dict[st
 def single_screen_paths(mod_dir: Path) -> list[Path]:
     """Every file the mode can leave in a mod folder."""
     return ([Path(mod_dir) / "romfs" / language / "data" / name for language in LANGUAGES
-             for name in ARCS + WEAPON_ARCS] + [Path(mod_dir) / "romfs" / path for path in KEYBOARD_ARCS])
+             for name in ARCS + WEAPON_ARCS + LOADING_ARCS]
+            + [Path(mod_dir) / "romfs" / path for path in KEYBOARD_ARCS])
 
 
 def remove_single_screen_files(mod_dir: Path) -> None:

@@ -5,12 +5,19 @@ corner, but the code places the minimap icons (ui250) every frame for the
 full-size map, and likewise the visible circle of the stage map shown without
 the Map item. These eight call sites of FUN_006c40e0 (world -> map
 projection) are redirected to a wrapper (asm/minimap_wrapper.s) that maps the
-projected position the same way.
+projected position the same way. With the minimap zoomed on the current area the
+same functions take an area's zoom and offset from FUN_005a5f14 instead, and the
+Everwood's whole map a fixed point per area from FUN_005a7bec: their calls go to
+minimap_zoom.c, which scales those the same way., and .
 
 Mount gauge: FUN_00b98454 moves the monster face (ui204_face) along the bar
 with x = 45 - 98 * progress, in pixels; both constants of its literal pool are
 scaled (the gauge's anchor is x = 0). Its bar fills are scales, so they follow
 the data.
+
+Sharpness: FUN_00b9d0f0 moves the whole sharpness group (a root group, which no
+null of the layout scales) by literal floats of its pool when a weapon gauge
+sits beside it (the Gunlance's shells: x -20); they are scaled the same way.
 
 Target switch (not part of the HUD size): FUN_00b94854 runs the touch-screen
 target camera panel and has a button shortcut test; it is redirected to
@@ -42,8 +49,8 @@ from core.game.executable.code_space import (
 )
 
 __all__ = ["BASE_ADDRESS", "CodePatchError", "bl_target", "encode_bl", "encode_branch", "face_params",
-           "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_target_button",
-           "patch_target_face"]
+           "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_sharpness_slide",
+           "patch_target_button", "patch_target_face"]
 
 CodePatchError = CodeSpaceError
 
@@ -56,8 +63,24 @@ ICON_CALLS = (
     0xB8BC6C,  # FUN_00b8b9f8
     0xB97A90,  # FUN_00b9793c: the visible circle of the stage map without the Map item (sprite_mask_write)
 )
+# The same functions' calls of FUN_005a5f14 (the area's zoom and offset), taken instead of the projection when the
+# minimap is zoomed on the current area (minimap_zoom.c), in the order of ICON_CALLS.
+AREA_ZOOM = 0x5A5F14
+ZOOM_CALLS = (0xB836A8, 0xB8F10C, 0xB95704, 0xB82E38, 0xB82EDC, 0xB87F40, 0xB8BB04, 0xB979BC)
+ZOOM_HALF = 64.0    # 128 * W/2 / W: the offset that moves the zoomed view's icons as the projection's W/2 does
+# FUN_00b954ec's call of FUN_005a7bec (the Everwood's fixed point of an area), which overwrites the players' projection
+# on map 13's whole-map view
+AREA_POINT = 0x5A7BEC
+POINT_CALL = 0xB959BC
 # Literal pool of FUN_00b98454 (only read there): face x = START + STEP * progress.
 MOUNT_FACE_FLOATS = {0xB987D4: -98.0, 0xB987D8: 45.0}
+# Literal pool of FUN_00b9d0f0 (only read there), which places the sharpness group (ui202_kireaji) through
+# FUN_00b972d8 by the HUD's gauge mode (byte 0xA8 of 0x108260C): the group's x for mode 1 (-20: the Gunlance's shells,
+# the Charge Blade's phials) and mode 2 (-34); and the place FUN_00b972d8 adds to a slot's run-time offset instead,
+# when FUN_00b84f38 asks for it: (-41, -2), its x -61 in mode 1, -75 in mode 2. The group is a root, so no null of
+# the layout scales what the code writes there.
+SHARPNESS_SLIDE_FLOATS = {0xB9D210: -41.0, 0xB9D214: -2.0, 0xB9D220: -61.0, 0xB9D224: -20.0, 0xB9D228: -75.0,
+                          0xB9D22C: -34.0}
 # Literal pool of FUN_00b9793c (only read there): the circle's y = 120 - 128 v - OFFSET. Through the
 # wrapper the map's top edge (y 120, v = 0) stays put, so the offset scales with the map.
 MINIMAP_CIRCLE_OFFSET = (0xB97AFC, 4.0)
@@ -101,37 +124,55 @@ def _offset(address: int) -> int:
 
 def patch_minimap_icons(code: bytes, factor: float, layout: Layout | None = None) -> bytes:
     """`code` with the minimap icons (and the visible circle without the Map item) scaled by `factor`
-    towards the map's top-right corner."""
+    towards the map's top-right corner, in the whole-map view and in the view zoomed on the current area."""
     layout = layout or load_layout()
     out = bytearray(code)
     circle, offset = MINIMAP_CIRCLE_OFFSET
     if len(out) < _offset(circle) + 4 or struct.unpack_from("<f", out, _offset(circle))[0] != offset:
         raise CodePatchError(f"unexpected value at {circle:#x}: not the update's executable")
-    for site in ICON_CALLS:
-        if bl_target(out, site) != PROJECT:
-            raise CodePatchError(f"unexpected instruction at {site:#x}: not the update's executable")
+    for sites, callee in ((ICON_CALLS, PROJECT), (ZOOM_CALLS, AREA_ZOOM), ((POINT_CALL,), AREA_POINT)):
+        for site in sites:
+            if bl_target(out, site) != callee:
+                raise CodePatchError(f"unexpected instruction at {site:#x}: not the update's executable")
     layout.place(out, "minimap_wrapper")
     struct.pack_into("<f", out, _offset(layout.symbol("minimap_wrapper", "scale")), factor)
     struct.pack_into("<f", out, _offset(layout.symbol("minimap_wrapper", "half_rest")), (1 - factor) / 2)
+    layout.place(out, "minimap_zoom")
+    layout.place(out, "minimap_zoom_data", struct.pack("<2f", factor, ZOOM_HALF * (1 - factor)))
     for site in ICON_CALLS:
         layout.hook(out, site, "minimap_wrapper", calls=PROJECT)
+    for site in ZOOM_CALLS:
+        layout.hook(out, site, "minimap_zoom", calls=AREA_ZOOM)
+    layout.hook(out, POINT_CALL, layout.symbol("minimap_zoom", "minimap_point"), calls=AREA_POINT)
     struct.pack_into("<f", out, _offset(circle), offset * factor)
+    return bytes(out)
+
+
+def _scale_floats(code: bytes, floats: dict[int, float], factor: float) -> bytes:
+    """`code` with each literal float of `floats` (address -> the update's value) times `factor`, all checked first."""
+    for address, value in floats.items():
+        if len(code) < _offset(address) + 4 or struct.unpack_from("<f", code, _offset(address))[0] != value:
+            raise CodePatchError(f"unexpected value at {address:#x}: not the update's executable")
+    out = bytearray(code)
+    for address, value in floats.items():
+        struct.pack_into("<f", out, _offset(address), value * factor)
     return bytes(out)
 
 
 def patch_mount_gauge(code: bytes, factor: float) -> bytes:
     """`code` with the mount gauge's monster face moving along a bar scaled by `factor`."""
-    out = bytearray(code)
-    for address, value in MOUNT_FACE_FLOATS.items():
-        if struct.unpack_from("<f", out, _offset(address))[0] != value:
-            raise CodePatchError(f"unexpected value at {address:#x}: not the update's executable")
-        struct.pack_into("<f", out, _offset(address), value * factor)
-    return bytes(out)
+    return _scale_floats(code, MOUNT_FACE_FLOATS, factor)
+
+
+def patch_sharpness_slide(code: bytes, factor: float) -> bytes:
+    """`code` where FUN_00b9d0f0 moves the sharpness group by `factor` times the game's numbers, as the scaled layout
+    around it: at every HUD size the bar keeps its full size's gap to the shells."""
+    return _scale_floats(code, SHARPNESS_SLIDE_FLOATS, factor)
 
 
 def patch_hud(code: bytes, factor: float, layout: Layout | None = None) -> bytes:
     """Every executable patch of the HUD size option."""
-    return patch_mount_gauge(patch_minimap_icons(code, factor, layout), factor)
+    return patch_sharpness_slide(patch_mount_gauge(patch_minimap_icons(code, factor, layout), factor), factor)
 
 
 def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True) -> bytes:

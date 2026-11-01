@@ -6,17 +6,18 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### One screen
 - The title screen, main menu, quest list, Canteen, yes / no questions and menu descriptions show on the top screen.
-- Shops, equipment sets, the Melding Pot, Palico menus, help, tutorials and the Arena show on top too.
+- Shops, equipment sets, the Melding Pot, Palico menus, the Gallery, help, tutorials and the Arena show on top too.
 - Gathering Hall menus, Guild Cards, friends, chat and gestures show on top too.
+- After a quest, the loading screen's paper characters and their message show small on top.
 - New characters are made on the top screen and named with the D-pad.
 - In towns and Gathering Halls, X opens the World Map on the top screen, with pad controls.
-- In towns and halls, L shows a framed town map with the place's name.
+- In towns and halls, a framed town map with the place's name shows by default; L hides it.
 - In a Gathering Hall, a box at the top left lists each hunter's weapon, name, Hunter Rank and ticket.
 - On the Guild Card (Y) and while editing it (X), a photo mode hides the menus around the hunters.
 
 ### Hunting
 - L plus D-pad up locks on to a large monster or switches targets, showing its face on top.
-- The top-screen HUD can shrink to 90, 80, 70 or 60 percent; it starts at 70.
+- The top-screen HUD and the talk windows can shrink to 90, 80, 70 or 60 percent; it starts at 70.
 
 ### Cheats
 - 3D is off and glow and distant blur are gone by default, for a sharper picture.

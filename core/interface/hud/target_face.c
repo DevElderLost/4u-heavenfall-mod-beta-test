@@ -10,10 +10,11 @@
  *     or with two monsters the locked one (target 1 = target_icon01, 2 = target_icon02) or
  *     else the first one that is known;
  *   - the copy of target00 (the lock mark) is shown while the touch one is, over that face;
- *   - both copies sit at PARAMS.x/y and at the depth (group + 0x30, z) of the HUD's health bar, 22.0 like every HUD
- *     group (the item pouch, the talk window ui005...), not the touch panel's 0.0 (a talk
- *     window covered the face; every recorded draw-order value had the copy in front, so the depth is the one thing
- *     that set it apart from the HUD's groups); the kept first-level nulls (target_icon00, t_mark00) get
+ *   - both copies sit at PARAMS.x/y, at the depth (group + 0x30, z) of the HUD's health bar, 22.0 like every HUD
+ *     group (the item pouch, the talk window ui005...), not the touch panel's 0.0, and at its draw order (layer and
+ *     priority of group + 0x18, the lock mark's one above the face's, as the touch panel's 10 and 11), not the 0x80 a
+ *     group gets at creation, so a talk window (priority 0x3f in a quest) is drawn in front of them; the kept
+ *     first-level nulls (target_icon00, t_mark00) get
  *     the layout's position and scale times PARAMS.scale (a null's scale reaches its children);
  *     target_icon00 also gets the shade (+0x20) of the chosen face's null, which the game lowers
  *     when the monster dies (the face darkens, as on the touch screen), only darker: below 1.0
@@ -64,6 +65,7 @@ extern const struct params face_params; /* the face_params block, filled by code
 GAME void panel_update(void);                /* FUN_00b94854 */
 GAME void group_show(u32 group, u32 visible); /* FUN_00ae53e0 */
 GAME void pane_redraw(u32 group, u32 pane);  /* FUN_00ae6bcc */
+GAME void gui_group_order(u32 group, u32 layer, u32 priority);  /* FUN_00ae63c8 */
 /* Thumb-1 (ARMv6K) has no VFP: functions that compute with floats are ARM. So is the entry, which
  * the game calls with an ARM bl. */
 #define ARM __attribute__((target("arm"), noinline))
@@ -78,6 +80,16 @@ enum { SPRITE = 0, NULL_PANE = 1, TEXT = 2 };
 #define TARGET_ICON02 0x672ea30du
 #define ONE 0x3f800000u                 /* 1.0f */
 #define T_MARK00 0xa1de3a3bu            /* ui601_t_mark00: the lock marks and the cross (batu00) */
+
+/* The HUD's draw order on a copy: the health bar's layer and priority (bits 27-31 and 19-26 of + 0x18) plus `above`,
+ * through the game's own setter, only when they differ. */
+static void order(u32 copy, u32 above)
+{
+    u32 hud = W(HUD_REF, 0x18), layer = hud >> 27, priority = (hud >> 19 & 0xFF) + above;
+    u32 now = W(copy, 0x18);
+    if (now >> 27 != layer || (now >> 19 & 0xFF) != priority)
+        gui_group_order(copy, layer, priority);
+}
 
 static int board(u32 hash)
 {
@@ -258,6 +270,7 @@ __attribute__((noinline)) static void update(void)
             F(copy, 0x28) = face_params.x;
             F(copy, 0x2C) = face_params.y;
             F(copy, 0x30) = F(HUD_REF, 0x30);  /* the HUD's depth, not the touch panel's 0.0 */
+            order(copy, i ? 1 : 0);            /* the lock mark over the face, as the touch panel's 11 over 10 */
             mirror(copy, W(BINDER[i], 8), W(copy, 8), face);
         }
     }

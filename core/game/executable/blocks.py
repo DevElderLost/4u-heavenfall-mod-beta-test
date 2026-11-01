@@ -95,6 +95,8 @@ TAIL_FALL = "tail_fall"
 # the recording probe places them, never a mod, so they go after everything else and move nothing; built into the
 # layout, so the probe needs no ARM toolchain (an edition's developers have none)
 GUI_FRAME_MARKS = "game_gui_recorder"
+# The debug cheat insta kill (cheats/cheats.py): after the recorder's marks, so it moves no other block either
+INSTA_KILL = "cheat_insta_kill"
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -115,12 +117,17 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), CHEATS, MOVE_WATCH, TAIL_FALL,
-                   GUI_FRAME_MARKS)
+                   GUI_FRAME_MARKS, INSTA_KILL)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
     BlockSpec("ext_bootstrap", "extension", "game/executable/ext_bootstrap.s", region="text_tail"),
     BlockSpec("minimap_wrapper", "hud_scale", "interface/hud/minimap_wrapper.s"),
+    # The minimap icons the placement functions do not project (the zoomed area view's zoom and offsets, the
+    # Everwood's fixed points, scaled) and its two floats (scale, 64 (1 - scale)), which
+    # code_patch.patch_minimap_icons fills
+    BlockSpec("minimap_zoom", "hud_scale", "interface/hud/minimap_zoom.c", region="ext"),
+    BlockSpec("minimap_zoom_data", "hud_scale", size=8, region="ext"),
     BlockSpec("target_button", "touchless_target", "interface/hud/target_button.s"),
     BlockSpec("dpad_filter", "touchless_target", "interface/hud/dpad_filter.s"),
     BlockSpec("face_loader", "target_face", "interface/hud/face_loader.s"),
@@ -378,6 +385,10 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # The recording probe's wrapper of the frame's wait for the GPU (tools/ui/ui_probe.py, patch_frame_marks): it keeps
     # the variable gui_frame_marks
     BlockSpec("gui_frame_marks_probe", GUI_FRAME_MARKS, "interface/game_gui/gui_frame_marks.s", region="ext"),
+    # The debug cheat insta kill (cheats/cheats.py): the hunter's attack
+    # multiplied and capped, and its two words (multiplier, cap) from curated gui_presets.json
+    BlockSpec("insta_kill", INSTA_KILL, "cheats/insta_kill.c", region="ext"),
+    BlockSpec("insta_kill_data", INSTA_KILL, size=8, region="ext"),
 )
 
 
@@ -471,6 +482,7 @@ GAME_SYMBOLS = {
     "panel_update": 0xB94854,     # FUN_00b94854, target camera panel update
     "group_show": 0xAE53E0,       # FUN_00ae53e0(group, visible)
     "group_show_body": 0xAE53E4,  # its second instruction (face_show.s runs the first itself)
+    "gui_group_order": 0xAE63C8,  # FUN_00ae63c8(group, layer, priority): bits 27-31 and 19-26 of +0x18, then marked
     "pane_redraw": 0xAE6BCC,
     "gx_frame_wait": 0xBF5FEC,    # FUN_00bf5fec(gx): the frame's wait for the GPU, then the buffers' swap
     "new_profile": 0xC25B50,        # FUN_00c25b50(save, profile), last call of the character creation
@@ -1022,6 +1034,8 @@ GAME_SYMBOLS |= {
     # ui202's binder: ui202_tairyoku, the health bar (interface/hud/code_patch.HUD_REF)
     "health_binder": 0x1083EDC,
     "minimap_project": 0x6C40E0,        # FUN_006c40e0
+    "minimap_area_zoom": 0x5A5F14,      # FUN_005a5f14(area, &zoom, offset): the zoomed area view's zoom and offset
+    "minimap_area_point": 0x5A7BEC,     # FUN_005a7bec(point, area): the Everwood's fixed point of an area (whole map)
     # equipment/mhgen/sound_number.s: FUN_0030d08c's `bhi` target (no sound path) and the instructions after its lookups
     "sound_skip": 0x30D740,
     "sound_bank_looked_up": 0x30D334,
@@ -1123,6 +1137,8 @@ GAME_SYMBOLS |= {
 GAME_SYMBOLS |= {
     "frame_update": 0x644320,           # FUN_00644320(app): the engine's timing update, once per frame (frame limiter)
     "gx_main": 0x10572CC,               # the variable holding MtGX's draw object
+    # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
+    "hunter_gear_stat": 0x2F8F34,
 }
 
 # The Caravan's quest girl (interface/quest_counter/executable/quest_counter.s)

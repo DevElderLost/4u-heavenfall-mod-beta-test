@@ -251,10 +251,11 @@ def wrap_arc(raw: bytes, wanted: Mapping[str, Iterable[str]],
 
 
 def wanted_groups(arrangement: Arrangement) -> dict[str, tuple[str, ...]]:
-    """Layout name -> the root groups of every block of it."""
+    """Layout name -> the root groups of every block of it that gets wrappers (a world block's do not: the draw adds the
+    camera's offset to its panes on the group's first level only, which a wrapper would push down a level)."""
     out: dict[str, list[str]] = {}
     for block in arrangement.blocks.values():
-        if not block.part:
+        if not block.part and not block.world:
             out.setdefault(block.layout, []).extend(block.groups)
     return {name: tuple(groups) for name, groups in out.items()}
 
@@ -276,6 +277,7 @@ def engine_files(read, arrangement: Arrangement, paths: Iterable[str],
     The same layout in several ARCs (languages) must get the same targets."""
     files = files or {}
     wanted = wanted_groups(arrangement)
+    arranged = {block.layout for block in arrangement.blocks.values()}     # a world block's layout too: no wrapper
     out: dict[str, bytes] = {}
     targets: dict[str, tuple[Target, ...]] = {}
     layouts: dict[str, Layout] = {}
@@ -283,7 +285,7 @@ def engine_files(read, arrangement: Arrangement, paths: Iterable[str],
         raw = files.get(path) or read(path)
         for entry in parse_arc(raw).entries:
             name = entry.name.replace("/", "\\").split("\\")[-1]
-            if entry.type_hash == LYT_TYPE_HASH and name in wanted and name not in layouts:
+            if entry.type_hash == LYT_TYPE_HASH and name in arranged and name not in layouts:
                 layouts[name] = parse_lyt(entry.data)
         patched, found = wrap_arc(raw, wanted, wanted_parts(arrangement))
         for group, value in found.items():

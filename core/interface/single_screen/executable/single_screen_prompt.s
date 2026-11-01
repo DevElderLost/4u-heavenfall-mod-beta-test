@@ -14,12 +14,14 @@
 @   MODE_BOTTOM  a group of the curated help_top.stay_bottom is shown (the NPC talk window, the boot's save list, the
 @                the chosen look), or no place of help_top fits: everything on the bottom screen at (0, 0);
 @   MODE_HELP    the first place of help_top (help_places: when mask, unless mask, x, y) whose when has a shown group
-@                (or is empty) and whose unless has none: only the panel groups (help_mask: help00 and help01) on the
+@                (or is empty) and whose unless has none, among those a quest may take (quest_places) when the game
+@                mode (the game control's byte +0x2B) is a quest's (quest_kinds), among all of them otherwise: only the
+@                panel groups (help_mask: help00 and help01) on the
 @                top screen at the place's x, y, the buttons, the cross and the rest on the bottom at (0, 0) (a place
 @                with NO_PANEL leaves the panel down too, and only its extra groups, e.g. "Mi set"'s key hints, go up).
 @ The modes after the first are decided by one scan of the GUI manager's group list (manager = *(gui + 0x100), list =
 @ *(manager + 0x154), 0x600 pointers): each shown group (bit 0x400 of group + 0x44) is looked up by its name hash in
-@ scan_table (hash, bits; a 0 hash ends it, the patcher's: at most 96 names), the bits of what is shown are or'd, plus
+@ scan_table (hash, bits; a 0 hash ends it, the patcher's: at most 128 names), the bits of what is shown are or'd, plus
 @ flag_mask when the byte layered_preview + 9 (the layered selector's frame is open) is set; the places and the modes
 @ are decided from that mask alone.
 @ The owner is the static object prompt_owner: +0x00..+0x24 the groups (in the order of the binder table
@@ -206,11 +208,26 @@ not_menu:
     mov     r10, #MODE_BOTTOM
     tst     r9, #BIT_STAY
     bxne    lr
+    mvn     r7, #0                    @ the places that may be taken (bit 0 the next one): all of them ...
+    ldr     r0, =game_control
+    ldr     r0, [r0]
+    cmp     r0, #0
+    beq     places
+    ldrb    r0, [r0, #0x2B]           @ ... but in a quest (a game mode of quest_kinds) only a quest's own
+    cmp     r0, #32
+    bhs     places
+    ldr     r1, quest_kinds
+    mov     r2, #1
+    tst     r1, r2, lsl r0
+    ldrne   r7, quest_places
+places:
     ldr     r0, help_count
     ldr     r1, =help_places
 try_place:
     cmp     r0, #0
     bxeq    lr                        @ no place fits: the touch screen
+    tst     r7, #1
+    beq     place_next                @ not one a quest may take
     ldr     r2, [r1]                  @ its when mask (0: always)
     ldr     r3, [r1, #4]              @ its unless mask
     cmp     r2, #0
@@ -226,6 +243,7 @@ when_ok:
 place_next:
     add     r1, r1, #PLACE_SIZE
     sub     r0, r0, #1
+    mov     r7, r7, lsr #1
     b       try_place
 
 @ MODE_HELP: where the chosen place puts the group of table index r8 -> r2 the address of its x, y (floats), 0: it stays on
@@ -281,12 +299,18 @@ flag_mask:
     .global help_count
 help_count:
     .word   0                         @ the patcher's: how many places help_places holds
+    .global quest_kinds
+quest_kinds:
+    .word   0                         @ the patcher's: bit n set: game mode n (game control + 0x2B) is a quest
+    .global quest_places
+quest_places:
+    .word   0                         @ the patcher's: bit i set: a quest may take place i (the others are skipped there)
     .global menu_shift
 menu_shift:
     .space  80                        @ the patcher's: per ui006 table entry the float x, y of the group in a creation menu
     .global help_places
 help_places:
-    .space  224                       @ the patcher's: up to 14 places: when mask, unless mask, float x, y (16 bytes each)
+    .space  384                       @ the patcher's: up to 24 places: when mask, unless mask, float x, y (16 bytes each)
     .global extra_count
 extra_count:
     .word   0                         @ the patcher's: how many entries extra_table holds
@@ -295,4 +319,4 @@ extra_table:
     .space  256                       @ the patcher's: up to 16 {place index, ui006 table index, float x, y} (16 bytes each)
     .global scan_table
 scan_table:
-    .space  776                       @ the patcher's: up to 96 {name hash, bits} and a 0 hash (8 bytes each)
+    .space  1032                      @ the patcher's: up to 128 {name hash, bits} and a 0 hash (8 bytes each)

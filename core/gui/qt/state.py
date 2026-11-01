@@ -57,9 +57,11 @@ class AppState(QObject):
     # -- the player's own options (Options page): field -> value as saved in a settings file (enums by value)
     @property
     def personal(self) -> dict:
-        """The saved choices over the defaults (gui_defaults.json), so a first start needs no visit to Options."""
+        """The saved choices over the defaults (gui_defaults.json), so a first start needs no visit to Options; a saved
+        choice for an option the presets no longer offer is dropped."""
         from core.app.presets import personal_defaults
-        return {**personal_defaults(), **self.preferences.install_options}
+        defaults = personal_defaults()
+        return {**defaults, **{k: v for k, v in self.preferences.install_options.items() if k in defaults}}
 
     @personal.setter
     def personal(self, values: dict) -> None:
