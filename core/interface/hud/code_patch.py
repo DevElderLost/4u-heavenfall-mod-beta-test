@@ -19,6 +19,10 @@ Sharpness: FUN_00b9d0f0 moves the whole sharpness group (a root group, which no
 null of the layout scales) by literal floats of its pool when a weapon gauge
 sits beside it (the Gunlance's shells: x -20); they are scaled the same way.
 
+Talk windows: one layout (ui005) serves the villages, the Gathering Hall and the quests, so the data keeps them at
+full size under one null each (build.HUD_IN_QUEST), and talk_size.c, called each frame in place of sMhMain::frame's
+call of FUN_005a805c, gives those nulls the HUD size while the game mode is a quest's.
+
 Target switch (not part of the HUD size): FUN_00b94854 runs the touch-screen
 target camera panel and has a button shortcut test; it is redirected to
 asm/target_button.s, which also accepts L held + D-pad up. That request comes from
@@ -43,14 +47,17 @@ instead of being corrupted.
 """
 
 import struct
+from collections.abc import Iterable
 
+from core.game.data.tuning import tuning
+from core.game.files.gui.lyt import name_hash
 from core.game.executable.code_space import (
     BASE_ADDRESS, COND_EQ, CodeSpaceError, Layout, bl_target, encode_bl, encode_branch, load_layout,
 )
 
 __all__ = ["BASE_ADDRESS", "CodePatchError", "bl_target", "encode_bl", "encode_branch", "face_params",
            "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_sharpness_slide",
-           "patch_target_button", "patch_target_face"]
+           "patch_talk_size", "patch_target_button", "patch_target_face", "talk_size_data"]
 
 CodePatchError = CodeSpaceError
 
@@ -84,6 +91,12 @@ SHARPNESS_SLIDE_FLOATS = {0xB9D210: -41.0, 0xB9D214: -2.0, 0xB9D220: -61.0, 0xB9
 # Literal pool of FUN_00b9793c (only read there): the circle's y = 120 - 128 v - OFFSET. Through the
 # wrapper the map's top edge (y 120, v = 0) stays put, so the offset scales with the map.
 MINIMAP_CIRCLE_OFFSET = (0xB97AFC, 4.0)
+# sMhMain::frame (FUN_00af52a0): its call of FUN_005a805c, the GUI's per-frame update of its pop-up groups, once a frame
+# in every scene; talk_size.c makes it, then sizes the talk windows by the game mode.
+POPUP_UPDATE = 0x5A805C
+TALK_FRAME_CALL = 0xAF53D0
+TALK_WINDOWS = 4    # the windows talk_size_data holds (talk_size.c TALKS)
+GAME_MODES = 32     # the game control's byte +0x2B as bits of a word
 
 # L + D-pad up: the D-pad / C-stick actions are called from FUN_00b1cdf0 through asm/dpad_filter.s.
 DPAD_HOOK = 0xB1D0B0
@@ -170,9 +183,40 @@ def patch_sharpness_slide(code: bytes, factor: float) -> bytes:
     return _scale_floats(code, SHARPNESS_SLIDE_FLOATS, factor)
 
 
+def talk_size_data(factor: float, quest_modes: Iterable[int] | None = None) -> bytes:
+    """The block `talk_size_data`: the bits of the game modes that are a quest's (curated tuning.json,
+    interface.talk_window_quest_modes), then per talk window (build.quest_frames) its name hash, its null's and the
+    null's x, y and scale in a quest."""
+    from core.interface.hud.build import quest_frames   # build imports this module through hint
+    modes = tuning("interface", "talk_window_quest_modes") if quest_modes is None else quest_modes
+    if not all(isinstance(mode, int) and 0 <= mode < GAME_MODES for mode in modes):
+        raise ValueError(f"tuning.json interface.talk_window_quest_modes: game modes 0 to {GAME_MODES - 1}, "
+                         f"not {modes}")
+    frames = quest_frames(factor)
+    if len(frames) != TALK_WINDOWS:
+        raise ValueError(f"talk_size.c holds {TALK_WINDOWS} talk windows, build.HUD_IN_QUEST has {len(frames)}")
+    data = struct.pack("<I", sum(1 << mode for mode in set(modes)))
+    for group, null, x, y, scale in frames:
+        data += struct.pack("<2I3f", name_hash(group), name_hash(null), x, y, scale)
+    return data
+
+
+def patch_talk_size(code: bytes, factor: float, layout: Layout | None = None) -> bytes:
+    """`code` where the talk windows take the HUD size `factor` in a quest and their full size elsewhere:
+    sMhMain::frame's call of FUN_005a805c goes to talk_size.c, which makes it and then places each window's null
+    (build.HUD_IN_QUEST)."""
+    layout = layout or load_layout()
+    out = bytearray(code)
+    layout.place(out, "talk_size")
+    layout.place(out, "talk_size_data", talk_size_data(factor))
+    layout.hook(out, TALK_FRAME_CALL, "talk_size", calls=POPUP_UPDATE)
+    return bytes(out)
+
+
 def patch_hud(code: bytes, factor: float, layout: Layout | None = None) -> bytes:
     """Every executable patch of the HUD size option."""
-    return patch_sharpness_slide(patch_mount_gauge(patch_minimap_icons(code, factor, layout), factor), factor)
+    code = patch_sharpness_slide(patch_mount_gauge(patch_minimap_icons(code, factor, layout), factor), factor)
+    return patch_talk_size(code, factor, layout)
 
 
 def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True) -> bytes:

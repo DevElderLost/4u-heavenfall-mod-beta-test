@@ -9,5 +9,13 @@
    "value": 1024,
    "description": "Kilobytes the Old 3DS root heap must keep free after the boot with the executable's extension at its largest; tests/game/executable/test_memory_split.py fails below it (the room the ported monsters' objects take in a hunt, and what the measure may have missed)."
   }
+ },
+ "interface": {
+  "talk_window_quest_modes": {
+   "value": [
+    1
+   ],
+   "description": "HUD size: the game modes (the game control's byte +0x2B, 0 to 31: 1 a quest, 5 its results, 2 the Gathering Hall) in which the talk windows shrink with the HUD; in every other mode (the villages, the Gathering Hall) they keep their full size (interface/hud/code_patch.py patch_talk_size)."
+  }
  }
 }

@@ -49,8 +49,8 @@ then checks the finished folder. `--work DIR` builds elsewhere; `--no-zip` skips
 Push a tag that starts with `v`:
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 The workflow in `.github/workflows/release.yml` lints the code, builds `HeavenfallBeta-windows.zip` on Windows and attaches

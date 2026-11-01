@@ -128,6 +128,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # code_patch.patch_minimap_icons fills
     BlockSpec("minimap_zoom", "hud_scale", "interface/hud/minimap_zoom.c", region="ext"),
     BlockSpec("minimap_zoom_data", "hud_scale", size=8, region="ext"),
+    # The talk windows at the HUD size only in a quest (each frame, after the GUI's pop-up update) and their data: the
+    # quest game modes' bits and per window its name hash, its null's and the null's x, y and scale in a quest
+    # (code_patch.patch_talk_size)
+    BlockSpec("talk_size", "hud_scale", "interface/hud/talk_size.c", region="ext"),
+    BlockSpec("talk_size_data", "hud_scale", size=4 + 4 * 20, region="ext"),
     BlockSpec("target_button", "touchless_target", "interface/hud/target_button.s"),
     BlockSpec("dpad_filter", "touchless_target", "interface/hud/dpad_filter.s"),
     BlockSpec("face_loader", "target_face", "interface/hud/face_loader.s"),
@@ -1036,6 +1041,7 @@ GAME_SYMBOLS |= {
     "minimap_project": 0x6C40E0,        # FUN_006c40e0
     "minimap_area_zoom": 0x5A5F14,      # FUN_005a5f14(area, &zoom, offset): the zoomed area view's zoom and offset
     "minimap_area_point": 0x5A7BEC,     # FUN_005a7bec(point, area): the Everwood's fixed point of an area (whole map)
+    "gui_popup_update": 0x5A805C,       # FUN_005a805c(): the GUI's per-frame update of its pop-up groups
     # equipment/mhgen/sound_number.s: FUN_0030d08c's `bhi` target (no sound path) and the instructions after its lookups
     "sound_skip": 0x30D740,
     "sound_bank_looked_up": 0x30D334,

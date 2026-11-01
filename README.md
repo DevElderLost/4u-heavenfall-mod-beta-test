@@ -44,7 +44,7 @@ It's the best place to get help, discuss the mod and keep up with the latest new
 
 **A smaller HUD**
 
-- The HUD elements displayed over the game (clock, health, stamina, sharpness, item selector, minimap, talk windows, etc.) can be scaled down, moving towards their respective corners. Available sizes are 90%, 80%, 70% and 60%. The default size is 70%.
+- The HUD elements displayed over the game (clock, health, stamina, sharpness, item selector, minimap, talk windows during quests, etc.) can be scaled down, moving towards their respective corners. Available sizes are 90%, 80%, 70% and 60%. The default size is 70%.
 
 **Built-in cheats**
 

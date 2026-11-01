@@ -1,6 +1,6 @@
 [project]
 name = "heavenfall-beta"
-version = "0.1.0"   # keep equal to core/__init__.py
+version = "0.1.2"   # keep equal to core/__init__.py
 description = "Heavenfall Beta: play Monster Hunter 4 Ultimate on one screen in an emulator"
 requires-python = ">=3.10"
 license = "GPL-3.0-or-later"
