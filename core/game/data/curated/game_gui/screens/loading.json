@@ -1,0 +1,9 @@
+{
+  "description": "Loading screens: screens of the game GUI arrangement. The loading screen with the paper characters (ui108) opens after a quest over whatever scene ends; its blocks keep one place wherever it shows, so the places are their defaults and the screen lists them ({}) for its number.",
+  "screens": [
+    {"id": "loading_characters", "number": "67", "name": "Pantalla de carga con personajes", "mode": "single_screen", "when": {"all": ["ui108_l_fukidashi"]}, "blocks": {
+      "ui108.globo": {},
+      "ui108.personajes": {}
+    }}
+  ]
+}

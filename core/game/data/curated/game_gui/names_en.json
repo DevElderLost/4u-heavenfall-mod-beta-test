@@ -24,12 +24,14 @@
     "arena_choice": "Arena: equipment and weapon",
     "arena_quest_list": "Arena: quest list",
     "quest_board": "Quest Board",
+    "loading_characters": "Loading screen with characters",
     "press_a": "Press A (title screen)",
     "main_menu": "Main menu",
     "save_list": "Choose a saved game",
     "main_menu_options": "Main menu: options",
     "town_minimap": "Town (walking, with the minimap)",
     "song_select": "Song Selection",
+    "gallery": "Gallery",
     "wyceum_menu": "Wyceum: menu and stock",
     "wyceum_wypiedras": "Wyceum: choose Wystones"
   },
@@ -60,8 +62,9 @@
     "ui510.fondo": "Courier: the panels' background",
     "ui060.busqueda": "Hunter Search",
     "ui060.fondo": "Hunter Search: background",
-    "ui443.lista": "Song Selection: title, list and cursor",
-    "ui443.fondo": "Song Selection: wooden background",
+    "ui443.lista": "Song Selection and Gallery: title, list and cursor",
+    "ui443.fondo": "Song Selection and Gallery: wooden background",
+    "ui442.galeria": "Gallery: paper, title, preview and description",
     "ui455.existencias": "Wyceum: stock (availability)",
     "ui455.detalle": "Wyceum: the Wystone's details",
     "ui456.lista": "Wyceum: Wystone list and its title",
@@ -108,7 +111,9 @@
     "ui241.pagina": "Weapon Controls: page 241",
     "ui242.pagina": "Weapon Controls: page 242",
     "ui243.pagina": "Weapon Controls: page 243",
-    "ui001.nombres": "Hunters' names over the world"
+    "ui001.nombres": "Hunters' names over the world",
+    "ui108.globo": "Loading screen: the character's speech balloon",
+    "ui108.personajes": "Loading screen: the paper characters"
   },
   "coverage": {
     "01": "Press A (title screen)",

@@ -42,8 +42,8 @@ file is never modified.
   top screen.
 
 **A smaller HUD**
-* Everything drawn over the game on the top screen (clock, health, stamina, sharpness, item selector, minimap...)
-  shrinks towards its corner: 90, 80, 70 or 60 %. It starts at 70 %.
+* Everything drawn over the game on the top screen (clock, health, stamina, sharpness, item selector, minimap, talk
+  windows...) shrinks towards its corner: 90, 80, 70 or 60 %. It starts at 70 %.
 
 **Cheats, in case your emulator's own don't work**
 * 3D off and no glow or distant blur, for a sharper picture: on unless you turn them off.

@@ -27,8 +27,9 @@
     {"id": "ui510.fondo", "name": "Mensajero: fondo de los paneles", "layout": "ui510", "groups": ["ui510_base"], "default": {"screen": "top"}, "backdrop": true},
     {"id": "ui060.busqueda", "name": "Búsqueda de cazador", "layout": "ui060", "groups": ["ui060_midasi", "ui060_player", "ui060_yajirusi", "ui060_midasi_1", "ui060_online", "ui060_ita_1", "ui060_ita_2", "ui060_PL_buki_bougu", "ui060_caravan"], "default": {"x": 72, "y": 63, "scale": 0.8, "screen": "top", "priority": 57}},
     {"id": "ui060.fondo", "name": "Búsqueda de cazador: fondo", "layout": "ui060", "groups": ["ui060_bg"], "default": {"hidden": true}, "backdrop": true},
-    {"id": "ui443.lista", "name": "Elección de canción: título, lista y cursor", "layout": "ui443", "groups": ["ui443_midasi", "ui443_list", "ui443_cur"]},
-    {"id": "ui443.fondo", "name": "Elección de canción: fondo de madera", "layout": "ui443", "groups": ["ui443_bg"], "backdrop": true},
+    {"id": "ui443.lista", "name": "Elección de canción y Galería: título, lista y cursor", "layout": "ui443", "groups": ["ui443_midasi", "ui443_list", "ui443_cur"], "default": {"priority": 44}, "overlay": true},
+    {"id": "ui443.fondo", "name": "Elección de canción y Galería: fondo de madera", "layout": "ui443", "groups": ["ui443_bg"], "backdrop": true},
+    {"id": "ui442.galeria", "name": "Galería: papel, título, imagen y descripción", "layout": "ui442", "groups": ["ui442_Gallery_ue"], "backdrop": true},
     {"id": "ui455.existencias", "name": "Wyceum: existencias (disponibilidad)", "layout": "ui455", "groups": ["ui455_listwaku", "ui455_item", "ui455_moji"], "default": {"x": 2, "y": 58, "scale": 0.9, "screen": "top"}},
     {"id": "ui455.detalle", "name": "Wyceum: detalle de la Wypiedra", "layout": "ui455", "groups": ["ui455_subwaku02"], "default": {"x": 0, "y": 117, "scale": 0.72, "screen": "top"}},
     {"id": "ui456.lista", "name": "Wyceum: lista de Wypiedras y su título", "layout": "ui456", "groups": ["ui456_l_kami", "ui456_l_top"], "default": {"x": 211, "y": 1, "scale": 0.7, "screen": "top"}},
@@ -75,6 +76,8 @@
     {"id": "ui241.pagina", "name": "Controles de arma: página 241", "layout": "ui241", "groups": ["ui241_rod200"]},
     {"id": "ui242.pagina", "name": "Controles de arma: página 242", "layout": "ui242", "groups": ["ui242_bowgun"]},
     {"id": "ui243.pagina", "name": "Controles de arma: página 243", "layout": "ui243", "groups": ["ui243_bow"]},
-    {"id": "ui001.nombres", "name": "Nombres de los cazadores sobre el mundo", "layout": "ui001", "groups": ["ui001_pop1"], "default": {"priority": 0}, "backdrop": true, "world": true}
+    {"id": "ui001.nombres", "name": "Nombres de los cazadores sobre el mundo", "layout": "ui001", "groups": ["ui001_pop1"], "default": {"priority": 0}, "backdrop": true, "world": true},
+    {"id": "ui108.globo", "name": "Pantalla de carga: bocadillo del personaje", "layout": "ui108", "groups": ["ui108_l_fukidashi"], "default": {"x": 4, "y": 114.1, "scale": 0.6, "screen": "top"}},
+    {"id": "ui108.personajes", "name": "Pantalla de carga: personajes de papel", "layout": "ui108", "groups": ["ui108_l_uketsuke", "ui108_l_dancyo", "ui108_l_neko", "ui108_l_kaizou", "ui108_l_jijii", "ui108_l_ganna", "ui108_l_beteran", "ui108_l_rida", "ui108_l_raibaru", "ui108_l_bukiya", "ui108_l_sisyo"], "default": {"x": 4, "y": 172.1, "scale": 0.7, "screen": "top"}}
   ]
 }

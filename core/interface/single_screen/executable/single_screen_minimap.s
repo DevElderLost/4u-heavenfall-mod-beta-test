@@ -18,16 +18,18 @@
 @     same way (the lobby, the scene), scene + 0x9788 is 7 (an NPC's talk) or 8 (its follow-up);
 @  3. the button (minimap_button, a raw bit: L 0x100, the 3DS's L as FUN_005b8460 gives it, as it gives X 0x1000, the
 @     world map's): a fresh press (in the pressed word +0x94, and no MARK in +0x90, the held word the blocks left last
-@     frame) while ACTIVE flips the state group's shown bit with FUN_00ae53e0 (the state lives there: the game creates
-@     the group hidden with the layout, so the minimap is off when the lobby's layouts load, and never touches it). A
+@     frame) while ACTIVE flips the state group's shown bit with FUN_00ae53e0 (the state lives there, and the group
+@     says "off" while shown: the game creates it hidden with the layout, so the minimap is on when the lobby's layouts
+@     load, and never touches it). A
 @     button the block used is hidden from the game until it is released: its bit is cleared in the held, pressed,
 @     released, changed and repeat words and MARK (0x8000000, which FUN_005b8460 never sets: its bits are the buttons,
 @     0x100000-0x800000 the C-stick, 0x1000000 a touch and the circle pad's) is set in the held word, so the next
 @     frame's pressed bit (held & ~old, old without the bit) is known not to be fresh; MARK is cleared from the other
 @     words every frame. L is the camera's reset in the hubs: the press that turns the minimap never reaches the
 @     camera;
-@  4. every following group goes to the top screen (*(gui + 0x245)) while the state group is shown and no talk is on
-@     (TALK 0), and to the touch screen (*(gui + 0x246)) otherwise (the state hidden or not there, or a talk: the talk
+@  4. every following group goes to the top screen (*(gui + 0x245)) while the state is on (its group found and hidden)
+@     and no talk is on (TALK 0), and to the touch screen (*(gui + 0x246)) otherwise (the state off or its group not
+@     there, or a talk: the talk
 @     window ui005_kaiwa00 would cover the map; the state group is not touched, so the map comes back when the talk
 @     ends if it was on). First, when the state group is found, minimap_hall(on) (single_screen_minimap_hall.c) shows
 @     or hides the map with the game's own functions in the hall's hub states (nothing in the others). Then
@@ -207,10 +209,11 @@ clean:
     cmp     r1, #0xA4
     bne     clean
 state:
-    mov     r8, #0                    @ 4. the following groups: on the top screen while the state is on ...
-    ldr     r0, [sp, #FOUND]
+    mov     r8, #0                    @ 4. the following groups: on the top screen while the state is on (its group
+    ldr     r0, [sp, #FOUND]          @    found and hidden: the group says "off") ...
     cmp     r0, #0
     ldrne   r0, [r0, #0x44]
+    eorne   r0, r0, #SHOWN
     andne   r8, r0, #SHOWN
     cmp     r11, #0
     movne   r8, #0                    @ ... and no talk is on (the state is left as it is)

@@ -9,6 +9,7 @@
     "ui497": {"hide": ["ui497_BG"], "nudge": {"ui497_button1": [-218, 56], "ui497_button2": [-218, 56], "ui497_button3": [-94, -6], "ui497_button4": [-94, -6]}},
     "ui801": {"hide": ["ui801_bg"], "fill": {"group": "ui801_l_bg", "template": "ui801_bg"}},
     "ui803": {"hide": ["ui803_bg1"], "fill": {"group": "ui803_bg", "template": "ui801:ui801_bg", "color": [255, 255, 255, 255]}},
-    "ui805": {"hide": ["ui805_back00"]}
+    "ui805": {"hide": ["ui805_back00"]},
+    "ui442": {"hide": ["ui442_Gallery_moji", "ui442_sprite_009"]}
   }
 }

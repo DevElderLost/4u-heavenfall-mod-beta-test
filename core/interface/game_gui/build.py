@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.interface.hud.build import LANGUAGES
-from core.interface.single_screen.layout.single_screen import ARCS, SETTINGS_FILE, WEAPON_ARCS
+from core.interface.single_screen.layout.single_screen import ARCS, LOADING_ARCS, SETTINGS_FILE, WEAPON_ARCS
 from core.interface.game_gui import engine
 from core.interface.game_gui.config import Arrangement, load_arrangement
 from core.interface.game_gui.fixes import fix_arc
@@ -50,6 +50,8 @@ LAYOUT_SCREENS = {
     # the Song Select: the stage lists' (FUN_00c10ce8) ui443, byte 1, binder
     # kind 2; a recording shows its four groups on the touch screen (bits 7)
     "ui443": "bottom",      # the song list, its title and cursor, and their wooden ground
+    # the Gallery's picture: the stage lists' ui442 (the room's kinds), byte 0; a recording shows it on the top screen
+    "ui442": "top",         # its paper, title, preview and description (the list under it is ui443)
     # the Wyceum: the stage kind 13 list's (FUN_00c10ce8) ui455, byte 0,
     # ui456, byte 1
     "ui455": "top",         # the Availability table, the Selected Wystones panel and the description panel
@@ -70,6 +72,9 @@ LAYOUT_SCREENS = {
     # the hunters' name tags over the world: the common list's layout; its
     # code puts each name over its character on the top screen
     "ui001": "top",
+    # the loading screen's paper characters and their balloon: the loading lists' (FUN_00c10e70, 0xEFE664 + 4 * kind,
+    # kinds 5-7) ui108, on the touch screen; its groups are found by name (FUN_002b297c), no binder kind
+    "ui108": "bottom",
 }
 
 
@@ -80,9 +85,9 @@ class Build:
 
 
 def arc_paths() -> tuple[str, ...]:
-    """The RomFS paths of the ARCs that may hold an arranged layout, per language: the ones today's mechanism places and
-    the weapon archives (the weapon guide's pages)."""
-    return tuple(f"{language}/data/{name}" for language in LANGUAGES for name in ARCS + WEAPON_ARCS)
+    """The RomFS paths of the ARCs that may hold an arranged layout, per language: the ones today's mechanism places,
+    the weapon archives (the weapon guide's pages) and the loading screens with the paper characters."""
+    return tuple(f"{language}/data/{name}" for language in LANGUAGES for name in ARCS + WEAPON_ARCS + LOADING_ARCS)
 
 
 def arranged_layouts(arrangement: Arrangement) -> set[str]:

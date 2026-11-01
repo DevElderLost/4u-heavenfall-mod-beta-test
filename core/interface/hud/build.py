@@ -28,6 +28,9 @@ HUD_LAYOUTS: dict[str, dict[str, AnchorSpec | dict[str, AnchorSpec]]] = {
     },
     "core_common.arc": {
         "ui001": Anchor.IN_PLACE,      # prompts (climb...) and names over the characters, placed by the code
+        # the talk windows (NPCs', quests'), from their bottom-left corner; not the hall's chat log (kaiwa03, chat)
+        "ui005": {"ui005_kaiwa00": Anchor.BOTTOM_LEFT, "ui005_kaiwa01": Anchor.BOTTOM_LEFT,
+                  "ui005_kaiwa02": Anchor.BOTTOM_LEFT, "ui005_kaiwa04": Anchor.BOTTOM_LEFT},
     },
 }
 # ARC in <lang>/data/ -> layout -> root groups whose panes the game's code positions every frame in the file's own

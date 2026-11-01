@@ -5,7 +5,10 @@ corner, but the code places the minimap icons (ui250) every frame for the
 full-size map, and likewise the visible circle of the stage map shown without
 the Map item. These eight call sites of FUN_006c40e0 (world -> map
 projection) are redirected to a wrapper (asm/minimap_wrapper.s) that maps the
-projected position the same way.
+projected position the same way. With the minimap zoomed on the current area the
+same functions take an area's zoom and offset from FUN_005a5f14 instead, and the
+Everwood's whole map a fixed point per area from FUN_005a7bec: their calls go to
+minimap_zoom.c, which scales those the same way., and .
 
 Mount gauge: FUN_00b98454 moves the monster face (ui204_face) along the bar
 with x = 45 - 98 * progress, in pixels; both constants of its literal pool are
@@ -60,6 +63,15 @@ ICON_CALLS = (
     0xB8BC6C,  # FUN_00b8b9f8
     0xB97A90,  # FUN_00b9793c: the visible circle of the stage map without the Map item (sprite_mask_write)
 )
+# The same functions' calls of FUN_005a5f14 (the area's zoom and offset), taken instead of the projection when the
+# minimap is zoomed on the current area (minimap_zoom.c), in the order of ICON_CALLS.
+AREA_ZOOM = 0x5A5F14
+ZOOM_CALLS = (0xB836A8, 0xB8F10C, 0xB95704, 0xB82E38, 0xB82EDC, 0xB87F40, 0xB8BB04, 0xB979BC)
+ZOOM_HALF = 64.0    # 128 * W/2 / W: the offset that moves the zoomed view's icons as the projection's W/2 does
+# FUN_00b954ec's call of FUN_005a7bec (the Everwood's fixed point of an area), which overwrites the players' projection
+# on map 13's whole-map view
+AREA_POINT = 0x5A7BEC
+POINT_CALL = 0xB959BC
 # Literal pool of FUN_00b98454 (only read there): face x = START + STEP * progress.
 MOUNT_FACE_FLOATS = {0xB987D4: -98.0, 0xB987D8: 45.0}
 # Literal pool of FUN_00b9d0f0 (only read there), which places the sharpness group (ui202_kireaji) through
@@ -112,20 +124,26 @@ def _offset(address: int) -> int:
 
 def patch_minimap_icons(code: bytes, factor: float, layout: Layout | None = None) -> bytes:
     """`code` with the minimap icons (and the visible circle without the Map item) scaled by `factor`
-    towards the map's top-right corner."""
+    towards the map's top-right corner, in the whole-map view and in the view zoomed on the current area."""
     layout = layout or load_layout()
     out = bytearray(code)
     circle, offset = MINIMAP_CIRCLE_OFFSET
     if len(out) < _offset(circle) + 4 or struct.unpack_from("<f", out, _offset(circle))[0] != offset:
         raise CodePatchError(f"unexpected value at {circle:#x}: not the update's executable")
-    for site in ICON_CALLS:
-        if bl_target(out, site) != PROJECT:
-            raise CodePatchError(f"unexpected instruction at {site:#x}: not the update's executable")
+    for sites, callee in ((ICON_CALLS, PROJECT), (ZOOM_CALLS, AREA_ZOOM), ((POINT_CALL,), AREA_POINT)):
+        for site in sites:
+            if bl_target(out, site) != callee:
+                raise CodePatchError(f"unexpected instruction at {site:#x}: not the update's executable")
     layout.place(out, "minimap_wrapper")
     struct.pack_into("<f", out, _offset(layout.symbol("minimap_wrapper", "scale")), factor)
     struct.pack_into("<f", out, _offset(layout.symbol("minimap_wrapper", "half_rest")), (1 - factor) / 2)
+    layout.place(out, "minimap_zoom")
+    layout.place(out, "minimap_zoom_data", struct.pack("<2f", factor, ZOOM_HALF * (1 - factor)))
     for site in ICON_CALLS:
         layout.hook(out, site, "minimap_wrapper", calls=PROJECT)
+    for site in ZOOM_CALLS:
+        layout.hook(out, site, "minimap_zoom", calls=AREA_ZOOM)
+    layout.hook(out, POINT_CALL, layout.symbol("minimap_zoom", "minimap_point"), calls=AREA_POINT)
     struct.pack_into("<f", out, _offset(circle), offset * factor)
     return bytes(out)
 

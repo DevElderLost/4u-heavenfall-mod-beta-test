@@ -7,7 +7,7 @@
  * and ui420's second group (FUN_00aab4dc) and the place name (ui421's second group), and only state 1 shows them again.
  * So the minimap block, which moves the groups the game shows, had nothing to move there and L was left dead.
  *
- * minimap_hall(on), called by the minimap block every frame with what it wants (on: its state group shown and no talk),
+ * minimap_hall(on), called by the minimap block every frame with what it wants (on: the state on, its group hidden, and no talk),
  * does in states 0x12 and 0x14 what the game does in the others:
  *   - on, the map hidden: what state 1 does to show it (FUN_00a2e76c's sequence): FUN_00a407f8(scene) shows the groups,
  *     then FUN_00a13270, FUN_00a136c0 and FUN_009dabb8 (scene, the stage's kind FUN_002b5ad8(game)) set the place,
