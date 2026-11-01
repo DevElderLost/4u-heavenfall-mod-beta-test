@@ -1,4 +1,4 @@
-# Heavenfall Beta: play Monster Hunter 4 Ultimate on one screen
+# Heavenfall Beta: Play Monster Hunter 4 Ultimate on a Single Screen
 
 **A fan mod for Monster Hunter 4 Ultimate (3DS, European or American version) for playing on one screen in an
 emulator.** It is a module of Heavenfall, a mod for Monster Hunter 4 Ultimate. The touch screen's menus move to the top screen, a button combination locks on to monsters without
@@ -31,7 +31,7 @@ file is never modified.
   the Canteen, yes / no questions and menu descriptions.
 * Shops, equipment sets, the Melding Pot, Palico menus, help, tutorials and the Arena show on top too, and so do the
   Gathering Hall's menus, Guild Cards, friends, chat and gestures.
-* New characters are made on the top screen too, and you name them with the D-pad.
+* New characters are created on the top screen too, and you name them with the D-pad.
 * In towns and Gathering Halls, X opens the World Map on the top screen and L shows the town map.
 * In a Gathering Hall, a box at the top left lists each hunter's weapon, name, Hunter Rank and ticket.
 * On the Guild Card, Y hides the menus around the hunters so you can take a picture (X while editing the card).
@@ -77,7 +77,7 @@ it found.
 **4. Check the destination.** The program finds Azahar or Citra on its own. If it does not, press **Choose folder…**
 and pick the emulator's folder.
 
-**5. Choose your options.** The **Options** page has one screen, locking on with L, the HUD size and the cheats.
+**5. Choose your options.** The **Options** page has one screen, the HUD size and the cheats.
 Hover over any option to read what it does.
 
 **6. Press Install.** It takes a short while. If the emulator was running the game, restart the emulation. If the
@@ -100,7 +100,7 @@ or newer, download this page's code (green **Code** button, **Download ZIP**), a
 
 ## Questions and problems
 
-**Is my game file changed?** No. The program only reads it and installs a separate mod folder.
+**Is my game file changed?** No. The program only reads it and installs a separate mod folder (your emulator mod folder).
 
 **Do I need the game's update?** No. The mod is built from the game itself and works the same with the update
 installed or not.
@@ -111,11 +111,12 @@ asks before replacing it; say no if you want to keep that mod.
 **Can I use it on a real 3DS?** No. Heavenfall Beta changes how the game is drawn for an emulator's single screen, so it
 only works in Azahar or Citra.
 
-**Should I use the cheats here or my emulator's?** Either. If your emulator's own cheat list works for you, turn
-this program's cheats off on the Options page. Don't turn on the same cheat in both places.
+**Should I use the cheats here or my emulator's?** It is better to use the cheats included with the mod. 
+If you decide to use them, make sure to turn off your emulator's own cheat list on the Options page. 
+Don't turn on the same cheat in both places at the same time.
 
-**I found a bug.** Please open an issue on this page (the **Issues** tab) and attach the `settings_.json` file
-from your emulator's mod folder.
+**I found a bug.** Please report it preferably in the **bug-reports** channel on my Discord server, or alternatively
+by opening an issue on the **Issues** tab on GitHub, and attach the `settings_.json` file from your emulator's mod folder.
 
 ## For developers
 
