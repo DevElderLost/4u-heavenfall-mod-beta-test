@@ -7,9 +7,6 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Hunting
 - Talk windows keep their full size in towns and Gathering Halls; only quests shrink them with the HUD.
 
-### Cheats
-- The insta kill cheat is gone from Options; a choice saved for it is ignored.
-
 ### The program
 - The interface editing tools are in English, and Ctrl+P in the recorder saves a mark to work on.
 
