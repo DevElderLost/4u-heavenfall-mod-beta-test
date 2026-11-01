@@ -13,14 +13,14 @@ from core.interface.game_gui import render
 from core.interface.game_gui import strings as S
 from core.interface.game_gui.config import MODES, Arrangement, Placement, Screen, load_arrangement, save_screens
 from core.interface.game_gui.recorded import RecordedScreen, find_recorded, recorded_screens
-from core.interface.game_gui.requests import read_requests
+from core.interface.game_gui.recorder.marks import read_marks
 
 KEYS = tuple(f.name for f in fields(Placement))
 _NUMBER_CHARS = set("0123456789.-")
 
 
 class EditError(ValueError):
-    """A request the arrangement's format refuses (the message says why)."""
+    """A change the arrangement's format refuses (the message says why)."""
 
 
 def find_screen(arrangement: Arrangement, ref: str, mode: str | None = None) -> Screen:
@@ -165,7 +165,7 @@ def show(arrangement: Arrangement, ref: str, root: Path, pictures: Path, mode: s
     """`ref` (a screen's id or number, else a recorded screen's signature or its start) described in the tools'
     language: for a
     screen its rule, its blocks' final places, the recorded screens it matches and their pictures; for a recorded
-    screen its groups, the screens it matches per mode, its blocks, the requests about it and its pictures."""
+    screen its groups, the screens it matches per mode, its blocks, the marks about it and its pictures."""
     recorded = recorded_screens(root)
     try:
         screen = find_screen(arrangement, ref, mode)
@@ -199,11 +199,11 @@ def _show_recorded(arrangement: Arrangement, screen: RecordedScreen, root: Path,
                                                  or S.tr(S.NO_SCREEN_MATCHED)))
     lines.append(S.tr(S.SHOW_SHOWN_BLOCKS))
     lines += _blocks_text(arrangement, first, owned_blocks(arrangement, screen.groups)) or [S.tr(S.NONE_ITEM)]
-    asked = [r for r in read_requests(root)
-             if any(w.get("signature") in screen.aliases for w in r.windows.values())]
-    if asked:
-        lines.append(S.tr(S.SHOW_REQUESTS, requests=", ".join(
-            f"{r.id} ({S.tr(S.ANSWERED if r.answer is not None else S.PENDING)})" for r in asked)))
+    marked = [m for m in read_marks(root)
+              if any(w.get("signature") in screen.aliases for w in m.windows.values())]
+    if marked:
+        lines.append(S.tr(S.SHOW_MARKS, marks=", ".join(
+            f"{m.id} ({S.tr(S.DONE if m.done is not None else S.PENDING)})" for m in marked)))
     lines.append(S.tr(S.SHOW_RECORDINGS))
     lines += _recorded_lines(screen, pictures)
     return "\n".join(lines)

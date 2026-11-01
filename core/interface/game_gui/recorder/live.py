@@ -1,6 +1,6 @@
 """The live recorder: one `WindowRecorder` per emulator window, each
-copying the game's GUI between its frame marks, checking the copy and feeding the screens; `RecorderService` finds the
-emulator windows (two at once in multiplayer, «Ventana 1» / «Ventana 2», "Window 1" in English), reconnects after
+copying the game's GUI between its frame counters, checking the copy and feeding the screens; `RecorderService` finds
+the emulator windows (two at once in multiplayer, «Ventana 1» / «Ventana 2», "Window 1" in English), reconnects after
 restarts, loaded states and the emulator closing and opening, pairs the Ctrl+P pictures with the snapshots and keeps the
 log. The statuses are in the tools' language (interface/game_gui/strings.py); the log is in English."""
 
@@ -21,10 +21,10 @@ from core.interface.game_gui.recorder import checks, identity
 from core.interface.game_gui.recorder import reader as default_reader
 from core.interface.game_gui.recorder.coverage import load_coverage, missing
 from core.interface.game_gui.recorder.exact import (
-    NO_PROBE, FrameMarks, NoFrameMarks, NotExact, copy_arguments, exact_copy,
+    NO_PROBE, FrameCounters, NoFrameCounters, NotExact, copy_arguments, exact_copy,
 )
 from core.interface.game_gui.recorder.image import MemoryImage, OutsideImage
-from core.interface.game_gui.recorder.marks import PictureWatch, file_request, pair, screenshot_folder
+from core.interface.game_gui.recorder.marks import MARKS_DIR, PictureWatch, file_mark, pair, screenshot_folder
 from core.interface.game_gui.recorder.screens import ScreenTracker
 from core.interface.game_gui.recorder.store import Session, recorded_signatures, session_name
 
@@ -44,15 +44,15 @@ def setup_log(root: Path) -> Path:
 
 
 class TickWatch:
-    """Whether the frame marks tick: both moved since the link was made and once read equal (the recording probe runs
-    the game's frames). NoFrameMarks when they stay still for `window` seconds, or without marks. Each check reads the
-    marks in a row for up to `spin` seconds of `timer` (the fine clock, real time in a run): the quiet window can be
-    shorter than the gap between two turns, and one read per turn took its absence for a probe that never lets the
-    marks agree."""
+    """Whether the frame counters tick: both moved since the link was made and once read equal (the recording probe runs
+    the game's frames). NoFrameCounters when they stay still for `window` seconds, or without counters. Each check reads
+    the counters in a row for up to `spin` seconds of `timer` (the fine clock, real time in a run): the quiet window can
+    be shorter than the gap between two turns, and one read per turn took its absence for a probe that never lets the
+    counters agree."""
 
-    def __init__(self, marks: FrameMarks | None, window: float, clock=time.monotonic, spin: float = 0.0,
+    def __init__(self, counters: FrameCounters | None, window: float, clock=time.monotonic, spin: float = 0.0,
                  timer=time.perf_counter):
-        self.marks, self.window, self.clock, self.spin, self.timer = marks, window, clock, spin, timer
+        self.counters, self.window, self.clock, self.spin, self.timer = counters, window, clock, spin, timer
         self.first: tuple[int, int] | None = None
         self.since = 0.0
         self.moved = [False, False]
@@ -60,12 +60,12 @@ class TickWatch:
         self.refused = False                # the last window ended still: the probe counts as missing
 
     def check(self, memory) -> bool:
-        if self.marks is None:
-            raise NoFrameMarks(S.tr(S.NO_MARKS_DECLARED))
+        if self.counters is None:
+            raise NoFrameCounters(S.tr(S.NO_COUNTERS_DECLARED))
         now = self.clock()
         stop = self.timer() + self.spin
         while True:
-            value = self.marks.read(memory)
+            value = self.counters.read(memory)
             if self.first is None:
                 self.first, self.since = value, now
             self.moved = [self.moved[i] or value[i] != self.first[i] for i in range(2)]
@@ -76,10 +76,10 @@ class TickWatch:
             self.refused = False
             return True
         if now - self.since >= self.window:
-            why = S.tr(S.MARKS_NEVER_AGREE if all(self.moved) else S.MARKS_STILL)
+            why = S.tr(S.COUNTERS_NEVER_AGREE if all(self.moved) else S.COUNTERS_STILL)
             self.first, self.since, self.moved, self.equal = value, now, [False, False], False
             self.refused = True
-            raise NoFrameMarks(why)
+            raise NoFrameCounters(why)
         return False
 
 
@@ -109,13 +109,13 @@ class Context:
     """What every window's recorder shares."""
 
     def __init__(self, settings, root: Path, session: Session, emulator_dir: Path | None, romfs: Path | None,
-                 candidates, marks: FrameMarks | None, reader=default_reader, attach=memory_module.attach,
+                 candidates, counters: FrameCounters | None, reader=default_reader, attach=memory_module.attach,
                  clock=time.monotonic, wall=time.time, layouts: checks.LayoutIndex | None = None,
                  timer=time.perf_counter):
         self.settings, self.root, self.session = settings, Path(root), session
-        self.emulator_dir, self.romfs, self.candidates, self.marks = emulator_dir, romfs, candidates, marks
+        self.emulator_dir, self.romfs, self.candidates, self.counters = emulator_dir, romfs, candidates, counters
         self.reader, self.attach, self.clock, self.wall = reader, attach, clock, wall
-        self.timer = timer                  # the fine clock: a copy and the marks' check last milliseconds
+        self.timer = timer                  # the fine clock: a copy and the counters' check last milliseconds
         self._indexes: dict[str | None, checks.LayoutIndex] = {}
         self._layouts = layouts
         self.sessions: dict[str, Session] = {session.gui_mode: session}
@@ -199,7 +199,7 @@ class WindowRecorder:
         session = self.ctx.session_for(identity.gui_mode(self.mod))
         if self.tracker.session is not session:
             self.tracker = ScreenTracker(self.ctx.settings, session, self.label)
-        self.ticks = TickWatch(self.ctx.marks, self.ctx.settings.tick_window_s, self.ctx.clock,
+        self.ticks = TickWatch(self.ctx.counters, self.ctx.settings.tick_window_s, self.ctx.clock,
                                self.ctx.settings.tick_spin_s, self.ctx.timer)
         self.status = S.tr(S.CHECKING_PROBE)
         LOG.info("%s (pid %s): connected, version %s, mod %s, session %s", self.label, self.pid,
@@ -213,7 +213,7 @@ class WindowRecorder:
             if self.regions is None:
                 self.regions = reader.regions(self.memory, settings.merge_gap, settings.max_slots,
                                               settings.max_panes_per_group)
-            image, proof = exact_copy(self.memory, self.ctx.marks, self.regions, clock=self.ctx.timer,
+            image, proof = exact_copy(self.memory, self.ctx.counters, self.regions, clock=self.ctx.timer,
                                       **copy_arguments(settings))
             when = self.ctx.wall()
             try:
@@ -248,10 +248,10 @@ class WindowRecorder:
                     if not self.ticks.refused:
                         self.status = S.tr(S.CHECKING_PROBE)
                     return None
-            except LinkRefused as error:            # the marks' page is not mapped: no probe
-                raise NoFrameMarks(S.tr(S.NO_MARKS)) from error
+            except LinkRefused as error:            # the counters' page is not mapped: no probe
+                raise NoFrameCounters(S.tr(S.NO_COUNTERS)) from error
             copied = self._copy()
-        except NoFrameMarks as error:
+        except NoFrameCounters as error:
             self._problem(S.tr(NO_PROBE), str(error))
             return None
         except NotExact as error:
@@ -301,17 +301,17 @@ class WindowRecorder:
 
 
 class RecorderService:
-    """Every emulator window's recorder, the pictures and the requests; `tick` runs one turn of all of them."""
+    """Every emulator window's recorder, the pictures and the marks; `tick` runs one turn of all of them."""
 
     def __init__(self, settings, root: Path, emulator_dir: Path | None = None, romfs: Path | None = None,
-                 candidates=None, marks: FrameMarks | None = None, reader=default_reader,
+                 candidates=None, counters: FrameCounters | None = None, reader=default_reader,
                  attach=memory_module.attach, pids=emulator_module.emulator_pids, coverage=None,
                  session: str | None = None, clock=time.monotonic, wall=time.time, pictures: Path | None = None,
                  layouts: checks.LayoutIndex | None = None, timer=time.perf_counter):
         self.settings, self.root = settings, Path(root)
-        self.session = Session(self.root, session or session_name("vivo"))
+        self.session = Session(self.root, session or session_name("live"))
         self.context = Context(settings, self.root, self.session, emulator_dir, romfs,
-                               [] if candidates is None else candidates, marks, reader, attach, clock, wall,
+                               [] if candidates is None else candidates, counters, reader, attach, clock, wall,
                                layouts, timer)
         self.pids, self.clock, self.wall = pids, clock, wall
         self.windows: dict[int, WindowRecorder] = {}
@@ -320,7 +320,7 @@ class RecorderService:
         self.pictures = PictureWatch(folder, settings.picture_settle_s, wall) if folder else None
         self.paused = False
         self.note = ""
-        self.requests: list[Path] = []
+        self.marks: list[Path] = []
         self.actions: queue.Queue = queue.Queue()
         self._next_scan = self._next_pictures = 0.0
         self.message = ""
@@ -355,14 +355,14 @@ class RecorderService:
         if not snapshots:
             snapshots = {S.tr(S.WINDOW_LABEL, n=1): None}
         blinking = set().union(*(w.tracker.blinking for w in self.windows.values())) if self.windows else set()
-        folder = file_request(self.root / "peticiones", snapshots, note, picture, when, blinking)
-        self.requests.append(folder)
-        self.message = S.tr(S.REQUEST_SAVED, name=folder.name)
-        LOG.info("request %s (picture %s, note %r)", folder.name, picture, note)
+        folder = file_mark(self.root / MARKS_DIR, snapshots, note, picture, when, blinking)
+        self.marks.append(folder)
+        self.message = S.tr(S.MARK_SAVED, name=folder.name)
+        LOG.info("mark %s (picture %s, note %r)", folder.name, picture, note)
         return folder
 
     def mark(self, note: str = "") -> None:
-        """«Marcar esta pantalla»: a request with each window's latest snapshot (filed by the next `tick`)."""
+        """The "Mark this screen" button: a mark with each window's latest snapshot (filed by the next `tick`)."""
         self.actions.put(("mark", note))
 
     def tick(self) -> None:
@@ -411,4 +411,4 @@ class RecorderService:
         return {"session": ", ".join(s.name for s in list(self.context.sessions.values())), "paused": self.paused,
                 "windows": windows, "screens": len(entries), "variants": sum(len(e["variants"]) for e in entries),
                 "missing": [f"{s.id} {S.named(s)}" for s in missing(self.coverage, signatures)],
-                "coverage": len(self.coverage), "requests": len(self.requests), "message": self.message}
+                "coverage": len(self.coverage), "marks": len(self.marks), "message": self.message}

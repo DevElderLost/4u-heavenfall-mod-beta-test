@@ -1,21 +1,21 @@
 {
-  "description": "Title screen and character creation: screens of the game GUI arrangement. Press A and the boot's menu and save list keep one place each (their blocks' defaults: the menus today's single-screen look, press A and the save list as arranged); the gold rug behind the main menu (ui803.fondo, hidden by default) shows on the main menu only, over the title art. The title art (ui804.arte) and the save list's rug (ui801.alfombra) stay where the game draws them until a screen moves them.",
+  "description": "Title screen and character creation: screens of the game GUI arrangement. Press A and the boot's menu and save list keep one place each (their blocks' defaults: the menus today's single-screen look, press A and the save list as arranged); the gold rug behind the main menu (ui803.background, hidden by default) shows on the main menu only, over the title art. The title art (ui804.art) and the save list's rug (ui801.carpet) stay where the game draws them until a screen moves them.",
   "screens": [
     {"id": "press_a", "number": "01", "name": "Pulsa A (pantalla de título)", "mode": "single_screen", "when": {"all": ["ui805_u_title"]}, "blocks": {
-      "ui805.pulsa": {}
+      "ui805.press": {}
     }},
     {"id": "main_menu", "number": "02", "name": "Menú principal", "mode": "single_screen", "when": {"all": ["ui803_top_menu"]}, "blocks": {
-      "ui804.arte": {},
-      "ui803.fondo": {"x": 40.0, "y": 0.0, "screen": "top", "hidden": false},
+      "ui804.art": {},
+      "ui803.background": {"x": 40.0, "y": 0.0, "screen": "top", "hidden": false},
       "ui803.menu": {}
     }},
     {"id": "save_list", "number": "06", "name": "Elegir partida", "mode": "single_screen", "when": {"all": ["ui803_continue"]}, "blocks": {
-      "ui801.alfombra": {},
-      "ui803.partidas": {}
+      "ui801.carpet": {},
+      "ui803.saves": {}
     }},
     {"id": "main_menu_options", "number": "07", "name": "Menú principal: opciones", "mode": "single_screen", "when": {"any": ["ui803_game_settei", "ui803_language_settei"], "none": ["ui803_top_menu"]}, "blocks": {
-      "ui804.arte": {},
-      "ui803.opciones": {}
+      "ui804.art": {},
+      "ui803.options": {}
     }}
   ]
 }

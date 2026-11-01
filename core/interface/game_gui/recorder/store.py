@@ -6,7 +6,7 @@
                                          files, variants
     recordings/<session>_single_screen/  the same session's screens while the mod arranged the GUI
     recordings/<session>/transitions.json   [{from, to, count, first, last}]
-    peticiones/<id>/                     the Ctrl+P marks (marks.py)
+    marks/<id>/                          the marks saved with Ctrl+P or the "Mark this screen" button (marks.py)
     recorder.log"""
 
 import hashlib

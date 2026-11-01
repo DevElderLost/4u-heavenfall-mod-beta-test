@@ -1,28 +1,28 @@
 """The game GUI's arrangement tools: pictures of the recorded screens, the gallery, the
-checker and the commands that answer the recorder's requests.
+checker, the marks you saved while recording and the recording probe.
 
     python tools/ui/ui.py render REF [--arranged] [--out DIR] [--mode M]
         both screens of a snapshot (.json.zst, a recorded screen's signature, or a screen's number or id: its first
         recorded screen) as PNGs, as recorded or arranged; default --out: the main checkout's output/ui/pictures
     python tools/ui/ui.py gallery [--reviewed [SIGNATURE ...]] [--out DIR] [--mode M]
-        output/ui/galeria/index.html (local, never published); --reviewed marks this build's pictures as reviewed
+        output/ui/gallery/index.html (local, never published); --reviewed marks this build's pictures as reviewed
     python tools/ui/ui.py compare REF SCREENSHOT [--arranged]
         how far a picture is from the emulator's screenshot of the same moment
     python tools/ui/ui.py check [--json] [--no-pictures]
         the arrangement checker (as text, or JSON for scripts); exit code 1 when it finds problems
-    python tools/ui/ui.py pending [--json]
-        the requests not answered yet, newest first: picture, note, recorded screen, the screens it matches
+    python tools/ui/ui.py marks [--json]
+        the marks not done yet, newest first: picture, note, recorded screen, the screens it matches
     python tools/ui/ui.py show REF [--mode M]
         a screen (number or id: rule, blocks, final places, recorded screens, pictures) or a recorded screen
     python tools/ui/ui.py set SCREEN BLOCK key=value ... [--mode M]
         a block's placement on a screen, absolute values only (x, y, scale, screen, priority, hidden; key=none)
-    python tools/ui/ui.py answer REQUEST TEXT [--commit SHA]
-        marks a request answered (respuesta.json beside it; nothing is deleted)
+    python tools/ui/ui.py done MARK [NOTE] [--commit SHA]
+        sets a mark done (done.json beside it, with the note; nothing is deleted)
     python tools/ui/ui.py probe NAME [--install] [--two-screen]
-        builds the next round output/ui/NAME_<n> (your mod's options, single-screen mode on, the recorder's marks;
+        builds the next round output/ui/NAME_<n> (your mod's options, single-screen mode on, the frame counters;
         tools/ui/ui_probe.py) and with --install puts it in the emulator's mod folder only over one of our own probes
 
-Recordings and requests come from the main checkout's work/ui (--root changes it), the arrangement from
+Recordings and marks come from the main checkout's work/ui (--root changes it), the arrangement from
 game/data/curated/game_gui (--arrangement changes it); layouts and textures from the installed mod's ARCs, then the
 RomFS dump's (local.ini), in recorder.json's layout language. The texts are in the edition's tools language
 (game/data/curated/edition.json); --lang es|en changes it."""
@@ -35,11 +35,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from core.app import local_config  # noqa: E402
-from core.interface.game_gui import check, edit, fidelity, gallery, render, requests  # noqa: E402
+from core.interface.game_gui import check, edit, fidelity, gallery, render  # noqa: E402
 from core.interface.game_gui import strings as S  # noqa: E402
 from core.interface.game_gui.config import ARRANGEMENT_DIR, MODES, load_arrangement  # noqa: E402
 from core.interface.game_gui.engine import unwrap_snapshot  # noqa: E402
 from core.interface.game_gui.recorded import find_recorded, recorded_screens  # noqa: E402
+from core.interface.game_gui.recorder import marks  # noqa: E402
 from core.interface.game_gui.recorder.settings import load_settings  # noqa: E402
 from core.interface.game_gui.recorder.store import ui_root  # noqa: E402
 from core.interface.game_gui.snapshot import load  # noqa: E402
@@ -127,7 +128,7 @@ def cmd_render(args, root: Path) -> int:
 
 
 def cmd_gallery(args, root: Path) -> int:
-    out = args.out or local_config.main_checkout() / "output" / "ui" / "galeria"
+    out = args.out or local_config.main_checkout() / "output" / "ui" / "gallery"
     page = gallery.build(root, out, assets(), arrangement_of(args), args.mode)
     print(page)
     if args.reviewed is not None:
@@ -177,15 +178,15 @@ def _window_record(arrangement, screens, record: dict, folder: Path) -> dict:
             "screens": edit.screens_of_groups(arrangement, record.get("groups", []))}
 
 
-def cmd_pending(args, root: Path) -> int:
+def cmd_marks(args, root: Path) -> int:
     arrangement = arrangement_of(args)
     screens = recorded_screens(root)
     out = []
-    for request in requests.pending(root):
-        out.append({"id": request.id, "time": request.time, "note": request.note,
-                     "picture": str(request.picture) if request.picture else None,
-                     "windows": {window: _window_record(arrangement, screens, record, request.folder)
-                                 for window, record in request.windows.items()}})
+    for mark in marks.pending(root):
+        out.append({"id": mark.id, "time": mark.time, "note": mark.note,
+                     "picture": str(mark.picture) if mark.picture else None,
+                     "windows": {window: _window_record(arrangement, screens, record, mark.folder)
+                                 for window, record in mark.windows.items()}})
     if args.json:
         print(json.dumps(out, ensure_ascii=False, indent=1))
         return 0
@@ -226,9 +227,9 @@ def cmd_set(args, root: Path) -> int:
     return 0
 
 
-def cmd_answer(args, root: Path) -> int:
+def cmd_done(args, root: Path) -> int:
     try:
-        print(requests.answer(root, args.request, args.text, args.commit))
+        print(marks.mark_done(root, args.mark, args.note, args.commit))
     except ValueError as error:
         print(error, file=sys.stderr)
         return 2
@@ -239,7 +240,7 @@ def cmd_probe(args, root: Path) -> int:
     from tools.ui import ui_probe  # the pipeline and the installer: only this command needs them
     probes = local_config.main_checkout() / "output" / "ui"
     out = ui_probe.next_out(probes, args.name)
-    result, settings, _marks = ui_probe.build(out, single_screen=not args.two_screen)
+    result, settings, _counters = ui_probe.build(out, single_screen=not args.two_screen)
     print(S.tr(S.PROBE_BUILT, out=out))
     if not args.install:
         return 0
@@ -279,7 +280,7 @@ def main(argv=None) -> int:
     command = commands.add_parser("check")
     command.add_argument("--json", action="store_true", help="machine-readable")
     command.add_argument("--no-pictures", action="store_true", help="skip the names, overlaps and edges")
-    command = commands.add_parser("pending")
+    command = commands.add_parser("marks")
     command.add_argument("--json", action="store_true")
     command = commands.add_parser("show")
     command.add_argument("ref", help="a screen's number or id, or a recorded screen's signature")
@@ -289,10 +290,10 @@ def main(argv=None) -> int:
     command.add_argument("block", help="the block's id")
     command.add_argument("values", nargs="+", help="key=value, absolute (x, y, scale, screen, priority, hidden)")
     command.add_argument("--mode", choices=MODES)
-    command = commands.add_parser("answer")
-    command.add_argument("request")
-    command.add_argument("text", help="the one-line answer")
-    command.add_argument("--commit", default="")
+    command = commands.add_parser("done")
+    command.add_argument("mark", help="the mark's id (its folder's name)")
+    command.add_argument("note", nargs="?", default="", help="a one-line note: what was done")
+    command.add_argument("--commit", default="", help="the commit that made the change")
     command = commands.add_parser("probe")
     command.add_argument("name", help="the probe's name (its rounds: output/ui/<name>_<n>)")
     command.add_argument("--install", action="store_true", help="install it over one of our own probes only")
@@ -301,7 +302,7 @@ def main(argv=None) -> int:
     S.set_language(args.lang)
     root = args.root or ui_root()
     return {"render": cmd_render, "gallery": cmd_gallery, "compare": cmd_compare, "check": cmd_check,
-            "pending": cmd_pending, "show": cmd_show, "set": cmd_set, "answer": cmd_answer,
+            "marks": cmd_marks, "show": cmd_show, "set": cmd_set, "done": cmd_done,
             "probe": cmd_probe}[args.command](args, root)
 
 

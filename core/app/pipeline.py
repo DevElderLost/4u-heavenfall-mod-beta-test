@@ -48,7 +48,7 @@ NEEDS_ROM = "needs the game ROM"
 
 @dataclass(frozen=True)
 class Probe:
-    """A developer probe's own executable patch (tools/ui/ui_probe.py's frame marks): `patch` takes the canonical
+    """A developer probe's own executable patch (tools/ui/ui_probe.py's frame counters): `patch` takes the canonical
     executable after every patch of the mod and returns it patched; `layout` places the blocks it places (the committed
     layout plus the probe's), so the run carries them to the player's version like the mod's."""
     patch: Callable[[bytes], bytes]

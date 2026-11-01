@@ -1,7 +1,7 @@
 """The exact copy of the running game's GUI. The recording probe writes two
-u32 frame marks: "frame started" after the frame's wait for the GPU, "frame done" just before it. A copy is kept only
-when the marks agree before and after it and did not move: the game ran no logic while it was taken. Without marks that
-tick (no recording probe installed), nothing is recorded: never unverified data."""
+u32 frame counters: "frame started" after the frame's wait for the GPU, "frame done" just before it. A copy is kept only
+when the counters agree before and after it and did not move: the game ran no logic while it was taken. Without counters
+that tick (no recording probe installed), nothing is recorded: never unverified data."""
 
 import struct
 import time
@@ -15,8 +15,8 @@ from core.interface.game_gui.recorder.image import MemoryImage
 NO_PROBE = S.NO_PROBE
 
 
-class NoFrameMarks(RuntimeError):
-    """The game's frame marks are missing or do not tick: the recording probe is not installed (or the emulation is
+class NoFrameCounters(RuntimeError):
+    """The game's frame counters are missing or do not tick: the recording probe is not installed (or the emulation is
     paused since the link was made)."""
 
     def __init__(self, detail: str):
@@ -26,9 +26,9 @@ class NoFrameMarks(RuntimeError):
 
 class CopyStats:
     """What one `exact_copy` call saw, for the log when it finds no copy:
-    the marks reads, how many read a frame running, how many started a copy, how many of those the game cut short (torn,
-    thrown away), the slowest copy and, once copies keep being cut short, the length of the quiet windows (every other
-    window is measured instead of used: read in a row until the marks part)."""
+    the counters reads, how many read a frame running, how many started a copy, how many of those the game cut short
+    (torn, thrown away), the slowest copy and, once copies keep being cut short, the length of the quiet windows (every
+    other window is measured instead of used: read in a row until the counters part)."""
 
     def __init__(self):
         self.tries = self.running = self.copies = self.torn = self.frames = 0
@@ -45,12 +45,12 @@ class CopyStats:
     @property
     def no_pause(self) -> bool:
         """Whether the game leaves no pause long enough for a copy: copies were cut short, windows were timed and the
-        longest is shorter than the slowest copy (seen: 0.02 ms against 0.5 ms). Reading the marks harder or
+        longest is shorter than the slowest copy (seen: 0.02 ms against 0.5 ms). Reading the counters harder or
         sooner cannot change that; a lighter scene can."""
         return self.torn >= 2 and len(self.windows) >= 2 and self.window_s < self.copy_s
 
     def seen(self, started: int, done: int) -> None:
-        """One marks read."""
+        """One counters read."""
         self.tries += 1
         if self._started is not None and started != self._started:
             self.frames += (started - self._started) & 0xFFFFFFFF
@@ -61,13 +61,13 @@ class CopyStats:
         windows = sorted(self.windows)
         quiet = (f"{len(windows)} quiet windows measured, median {windows[len(windows) // 2] * 1000:.2f} ms, longest "
                  f"{windows[-1] * 1000:.2f} ms" if windows else "no quiet window measured")
-        return (f"{self.tries} reads of the marks in {self.elapsed_s * 1000:.0f} ms, {self.frames} frames seen, "
+        return (f"{self.tries} reads of the counters in {self.elapsed_s * 1000:.0f} ms, {self.frames} frames seen, "
                 f"{self.running} reads with the frame running, {self.copies} copies started, {self.torn} cut short by "
                 f"the game, slowest copy {self.copy_s * 1000:.2f} ms, {quiet}")
 
 
 class NotExact(RuntimeError):
-    """No copy was taken between two frames' logic in the time allowed (the marks moved every time)."""
+    """No copy was taken between two frames' logic in the time allowed (the counters moved every time)."""
 
     def __init__(self, detail: str, stats: "CopyStats | None" = None):
         super().__init__(detail)
@@ -75,14 +75,14 @@ class NotExact(RuntimeError):
 
 
 @dataclass(frozen=True)
-class FrameMarks:
-    """The canonical addresses of the two u32 marks the recording probe writes."""
+class FrameCounters:
+    """The canonical addresses of the two u32 counters the recording probe writes."""
     started: int
     done: int
 
     @classmethod
-    def from_code_space(cls, variable: str) -> "FrameMarks | None":
-        """The marks at the code space's variable `variable` (two u32: started, done), None while it is not declared
+    def from_code_space(cls, variable: str) -> "FrameCounters | None":
+        """The counters at the code space's variable `variable` (two u32: started, done), None while it is not declared
         (game/executable/blocks.py)."""
         from core.game.executable.code_space import CodeSpaceError, load_layout
         try:
@@ -100,12 +100,12 @@ class FrameMarks:
 class _Plain:
     """The copy through the view's own reads (a view without a read plan: save states, tests' fakes)."""
 
-    def __init__(self, memory, marks: FrameMarks, regions):
-        self.memory, self.marks, self.regions = memory, marks, regions
+    def __init__(self, memory, counters: FrameCounters, regions):
+        self.memory, self.counters, self.regions = memory, counters, regions
         self.copied: dict[int, bytes] = {}
 
-    def read_marks(self) -> tuple[int, int]:
-        return self.marks.read(self.memory)
+    def read_counters(self) -> tuple[int, int]:
+        return self.counters.read(self.memory)
 
     def copy(self) -> None:
         self.copied = {address: self.memory.read_raw(address, size) for address, size in self.regions}
@@ -115,18 +115,19 @@ class _Plain:
 
 
 class _Planned:
-    """The copy through reads resolved ahead (process.py, `ReadPlan`): inside the quiet window the marks cost one read
-    of 8 bytes and the copy only its reads. The marks are read as one pair: `started` only ever grows, so two reads that
-    both say started == done with the same value prove no frame began between them, whichever word was read first."""
+    """The copy through reads resolved ahead (process.py, `ReadPlan`): inside the quiet window the counters cost one
+    read of 8 bytes and the copy only its reads. The counters are read as one pair: `started` only ever grows, so two
+    reads that both say started == done with the same value prove no frame began between them, whichever word was read
+    first."""
 
-    def __init__(self, memory, marks: FrameMarks, regions):
-        if marks.done != marks.started + 4:
-            raise ValueError("the planned marks read needs the two marks side by side")
-        self.pair = memory.client.plan([(memory.shift(marks.started), 8)])
+    def __init__(self, memory, counters: FrameCounters, regions):
+        if counters.done != counters.started + 4:
+            raise ValueError("the planned counters read needs the two counters side by side")
+        self.pair = memory.client.plan([(memory.shift(counters.started), 8)])
         self.plan = memory.client.plan(regions)
         self.regions = regions
 
-    def read_marks(self) -> tuple[int, int]:
+    def read_counters(self) -> tuple[int, int]:
         self.pair.read()
         return struct.unpack("<II", self.pair.buffers[0].raw)
 
@@ -139,35 +140,35 @@ class _Planned:
         return self.plan.result()
 
 
-def exact_copy(memory, marks: FrameMarks, regions: list[tuple[int, int]], attempts: int | None = None,
+def exact_copy(memory, counters: FrameCounters, regions: list[tuple[int, int]], attempts: int | None = None,
                retry_sleep: float = 0.0, sleep=time.sleep, timeout: float | None = None, measure_limit: float = 0.0,
                clock=time.perf_counter) -> tuple[MemoryImage, Proof]:
-    """One copy of `regions` (running addresses) taken while no frame logic ran: the marks read before (started ==
+    """One copy of `regions` (running addresses) taken while no frame logic ran: the counters read before (started ==
     done) and after the copy are the same four values. The copy starts at the first read that shows the quiet window
-    open and the marks are read in a tight loop (`retry_sleep` 0), so the whole window serves the copy. NotExact after
-    `attempts` reads of the marks or `timeout` seconds, whichever the caller gave first; its `stats` say what was seen.
-    On a live link the reads are resolved ahead (ReadPlan), so a copy costs its reads and nothing else."""
+    open and the counters are read in a tight loop (`retry_sleep` 0), so the whole window serves the copy. NotExact
+    after `attempts` reads of the counters or `timeout` seconds, whichever the caller gave first; its `stats` say what
+    was seen. On a live link the reads are resolved ahead (ReadPlan), so a copy costs its reads and nothing else."""
     if attempts is None and timeout is None:
         raise ValueError("exact_copy needs attempts or a timeout")
     client = getattr(memory, "client", None)
-    taker = _Planned(memory, marks, regions) if hasattr(client, "plan") else _Plain(memory, marks, regions)
+    taker = _Planned(memory, counters, regions) if hasattr(client, "plan") else _Plain(memory, counters, regions)
     stats, begun = CopyStats(), clock()
     while True:
         now = clock()
         if (attempts is not None and stats.tries >= attempts) or (timeout is not None and now - begun >= timeout):
             break
-        before = taker.read_marks()
+        before = taker.read_counters()
         stats.seen(*before)
         if before[0] == before[1]:
             if stats.measure_next:                  # copies keep being cut short: how long does the window last?
                 stats.measure_next, last = False, now
-                while clock() - now < measure_limit and taker.read_marks() == before:
+                while clock() - now < measure_limit and taker.read_counters() == before:
                     last = clock()
                 stats.windows.append(last - now)
                 continue
             stats.copies += 1
             taker.copy()
-            after = taker.read_marks()
+            after = taker.read_counters()
             stats.copy_s = max(stats.copy_s, clock() - now)
             if after == before:
                 return MemoryImage(taker.take(), memory.shift), Proof("frame_marks", before[0], before[1], stats.tries)

@@ -1,24 +1,24 @@
 {
-  "description": "Town, rooms and the world map: screens of the game GUI arrangement. The town minimap (ui422.mapa) is hidden by default and placed on screen 10 only, while the player has it on (L: its state group ui422_ss_minimap_off, shown while off: on by default, interface/single_screen/layout/single_screen_minimap.py) and no talk window is up (the hall's chat log ui005_kaiwa03 is no talk); its frame is made for the scale given here and the town's name (ui421) follows its top-left corner.",
+  "description": "Town, rooms and the world map: screens of the game GUI arrangement. The town minimap (ui422.map) is hidden by default and placed on screen 10 only, while the player has it on (L: its state group ui422_ss_minimap_off, shown while off: on by default, interface/single_screen/layout/single_screen_minimap.py) and no talk window is up (the hall's chat log ui005_kaiwa03 is no talk); its frame is made for the scale given here and the town's name (ui421) follows its top-left corner.",
   "screens": [
     {"id": "town_minimap", "number": "10", "name": "Pueblo (andando, con el minimapa)", "mode": "single_screen", "when": {"all": ["ui422_map"], "none": ["ui422_ss_minimap_off", "ui005_kaiwa00", "ui005_kaiwa01", "ui005_kaiwa02", "ui005_kaiwa04"]}, "blocks": {
-      "ui422.mapa": {"x": 7.0, "y": 141.2, "scale": 0.4, "screen": "top", "hidden": false}
+      "ui422.map": {"x": 7.0, "y": 141.2, "scale": 0.4, "screen": "top", "hidden": false}
     }},
     {"id": "song_select", "number": "13", "name": "Selección de canción", "mode": "single_screen", "when": {"any": ["ui443_bg", "ui443_list", "ui443_midasi", "ui443_cur"], "none": ["ui442_Gallery_ue"]}, "blocks": {
-      "ui443.lista": {"x": 49.6, "y": 42.0, "scale": 0.94, "screen": "top"},
-      "ui443.fondo": {"hidden": true}
+      "ui443.list": {"x": 49.6, "y": 42.0, "scale": 0.94, "screen": "top"},
+      "ui443.background": {"hidden": true}
     }},
     {"id": "gallery", "number": "14", "name": "Galería", "mode": "single_screen", "when": {"all": ["ui442_Gallery_ue", "ui443_list"]}, "blocks": {
-      "ui443.lista": {"x": 180.0, "y": 88.0, "scale": 0.64, "screen": "top", "priority": 44}
+      "ui443.list": {"x": 180.0, "y": 88.0, "scale": 0.64, "screen": "top", "priority": 44}
     }},
     {"id": "wyceum_menu", "number": "27", "name": "Wyceum: menú y existencias", "mode": "single_screen", "when": {"all": ["ui455_listwaku"], "none": ["ui456_l_kami"]}, "blocks": {
-      "ui455.existencias": {}
+      "ui455.stock": {}
     }},
-    {"id": "wyceum_wypiedras", "number": "28", "name": "Wyceum: elegir Wypiedras", "mode": "single_screen", "when": {"all": ["ui456_l_kami"]}, "blocks": {
-      "ui455.detalle": {},
-      "ui456.lista": {},
-      "ui456.globo": {},
-      "ui456.fondo": {}
+    {"id": "wyceum_wystones", "number": "28", "name": "Wyceum: elegir Wypiedras", "mode": "single_screen", "when": {"all": ["ui456_l_kami"]}, "blocks": {
+      "ui455.details": {},
+      "ui456.list": {},
+      "ui456.balloon": {},
+      "ui456.background": {}
     }}
   ]
 }

@@ -64,20 +64,20 @@ TO_RECORD = T("Falta por grabar:", "Still to record:")
 TO_RECORD_COUNT = T("Falta por grabar ({missing} de {total}):", "Still to record ({missing} of {total}):")
 TO_RECORD_NO_LIST = T("Falta por grabar: sin lista de pantallas (coverage.json)",
                       "Still to record: no list of screens (coverage.json)")
-NOTE_HINT = T("Nota para la petición (opcional; va con la próxima captura Ctrl+P o con el botón)",
-              "Note for the request (optional; goes with the next Ctrl+P screenshot or with the button)")
+NOTE_HINT = T("Nota para la marca (opcional; va con la próxima captura Ctrl+P o con el botón)",
+              "Note for the mark (optional; goes with the next Ctrl+P screenshot or with the button)")
 MARK = T("Marcar esta pantalla", "Mark this screen")
 PAUSE = T("Pausar", "Pause")
 RESUME = T("Reanudar", "Resume")
 SESSION = T("Sesión: {session}", "Session: {session}")
 WAITING = T("Esperando al emulador (Citra o Azahar abierto con el juego)…",
             "Waiting for the emulator (Citra or Azahar running the game)…")
-RECORDED = T("Pantallas grabadas en esta sesión: {screens} (variantes: {variants}); peticiones: {requests}",
-             "Screens recorded in this session: {screens} (variants: {variants}); requests: {requests}")
+RECORDED = T("Pantallas grabadas en esta sesión: {screens} (variantes: {variants}); marcas: {marks}",
+             "Screens recorded in this session: {screens} (variants: {variants}); marks: {marks}")
 
 # ---- the recorder's statuses (recorder/live.py, exact.py) ----
 NO_PROBE = T("Instala la sonda de grabación", "Install the recording probe")
-NO_MARKS = T("el juego no tiene las marcas de fotograma", "the game has no frame marks")
+NO_COUNTERS = T("el juego no tiene los contadores de fotograma", "the game has no frame counters")
 CONNECTING = T("Conectando…", "Connecting…")
 CLOSED = T("Cerrado", "Closed")
 AS_ADMIN = T("El emulador se ejecuta como administrador: ábrelo sin serlo",
@@ -101,7 +101,7 @@ REJECTED_CHECKS = T("Copia rechazada: {count} fallos (ver el registro)",
 RECORDING = T("Grabando", "Recording")
 RECORDING_SINGLE = T("Grabando (pantalla única, aparte)", "Recording (single screen, kept apart)")
 WINDOW_LABEL = T("Ventana {n}", "Window {n}")
-REQUEST_SAVED = T("Petición guardada: {name}", "Request saved: {name}")
+MARK_SAVED = T("Marca guardada: {name}", "Mark saved: {name}")
 HEADLESS_WAITING = T("esperando al emulador", "waiting for the emulator")
 HEADLESS_COUNTS = T("pantallas {screens}, variantes {variants}", "screens {screens}, variants {variants}")
 
@@ -186,8 +186,8 @@ SHOW_RECORDED = T("Pantalla grabada {sig} ({count} grupos): {groups}",
 SHOW_ALIASES = T("Nombres del grabador: {aliases}", "The recorder's names: {aliases}")
 NO_SCREEN_MATCHED = T("ninguna pantalla", "no screen")
 SHOW_SHOWN_BLOCKS = T("Bloques que muestra (final):", "Blocks it shows (final):")
-SHOW_REQUESTS = T("Peticiones: {requests}", "Requests: {requests}")
-ANSWERED = T("atendida", "answered")
+SHOW_MARKS = T("Marcas: {marks}", "Marks: {marks}")
+DONE = T("hecha", "done")
 PENDING = T("pendiente", "pending")
 SHOW_RECORDINGS = T("Grabaciones:", "Recordings:")
 
@@ -212,7 +212,7 @@ GALLERY_NO_BLOCKS = T("Ningún bloque de la ordenación se muestra aquí.", "No 
 GALLERY_GROUPS = T("Grupos mostrados", "Groups shown")
 
 # ---- tools/ui/ui.py and the recording probe (tools/ui/ui_probe.py) ----
-PENDING_COUNT = T("{count} peticiones pendientes (la más nueva primero)", "{count} pending requests (newest first)")
+PENDING_COUNT = T("{count} marcas pendientes (la más nueva primero)", "{count} pending marks (newest first)")
 PENDING_NOTE = T("  nota: «{note}»", "  note: “{note}”")
 PENDING_PICTURE = T("  imagen: {picture}", "  picture: {picture}")
 NO_PICTURE = T("ninguna", "none")
@@ -235,11 +235,13 @@ PROBE_NOT_OURS = T("{folder} no es una sonda nuestra (es tu mod u otra cosa): no
 PROBE_OTHER_SESSION = T("{folder} tiene una sonda hecha fuera de {probes}: no se toca",
                         "{folder} holds a probe made outside {probes}: left as it is")
 
-# ---- the probe check and the requests (recorder/live.py, marks.py) ----
-NO_MARKS_DECLARED = T("este ejecutable no declara las marcas de fotograma", "this executable declares no frame marks")
-MARKS_NEVER_AGREE = T("las marcas de fotograma avanzan pero nunca coinciden: la sonda deja una espera del fotograma "
-                      "entre ellas", "the frame marks move but never agree: the probe leaves a frame wait between them")
-MARKS_STILL = T("las marcas de fotograma no avanzan", "the frame marks do not move")
+# ---- the probe check and the marks (recorder/live.py, marks.py) ----
+NO_COUNTERS_DECLARED = T("este ejecutable no declara los contadores de fotograma",
+                         "this executable declares no frame counters")
+COUNTERS_NEVER_AGREE = T("los contadores de fotograma avanzan pero nunca coinciden: la sonda deja una espera del "
+                         "fotograma entre ellos",
+                         "the frame counters move but never agree: the probe leaves a frame wait between them")
+COUNTERS_STILL = T("los contadores de fotograma no avanzan", "the frame counters do not move")
 NO_RECENT_COPY = T("ninguna copia exacta reciente", "no recent exact copy")
 
 # ---- the pictures' warnings (render.py) ----

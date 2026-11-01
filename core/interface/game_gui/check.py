@@ -55,8 +55,8 @@ STAGE_KINDS = 17                      # entries of the stage list table, 8 bytes
 
 @dataclass(frozen=True)
 class Problem:
-    kind: str                         # sin_pantalla, varias_pantallas, lista, solape, fuera, nombre, pool,
-    message: str                      # envoltorio, nombres, ilegible; the message in the tools' language
+    kind: str                         # no_screen, several_screens, unarranged_list, overlap, outside, missing_name,
+    message: str                      # pool, wrap, too_many_names, unreadable; the message in the tools' language
     mode: str = ""
     screen: str = ""                  # the arrangement screen's number, when one matched
     signature: str = ""               # the recorded screen's
@@ -163,19 +163,20 @@ def check_matches(arrangement: Arrangement, recorded: list[RecordedScreen], sett
             sig = screen.signature
             if len(competing) > 1:
                 problems.append(Problem(
-                    "varias_pantallas", S.tr(S.SEVERAL_SCREENS, sig=sig, where=where, count=len(competing),
+                    "several_screens", S.tr(S.SEVERAL_SCREENS, sig=sig, where=where, count=len(competing),
                                              titles=", ".join(S.title(s) for s in competing)),
                     mode, competing[0].number, sig))
             elif not found and required and not listed_as:
                 shown = ", ".join(screen.groups[:6]) + (", ..." if len(screen.groups) > 6 else "")
                 problems.append(Problem(
-                    "sin_pantalla", S.tr(S.NO_SCREEN, sig=sig, where=where, shown=shown), mode, "", sig))
+                    "no_screen", S.tr(S.NO_SCREEN, sig=sig, where=where, shown=shown), mode, "", sig))
             elif found and listed_as:
                 problems.append(Problem(
-                    "lista", S.tr(S.LISTED_BUT_MATCHES, sig=sig, where=where, title=S.title(found[0])), mode,
+                    "unarranged_list", S.tr(S.LISTED_BUT_MATCHES, sig=sig, where=where, title=S.title(found[0])), mode,
                     found[0].number, sig))
         for sig in sorted(set(listed) - seen):
-            problems.append(Problem("lista", S.tr(S.LISTED_NOT_RECORDED, where=where, sig=sig), mode, "", sig))
+            problems.append(Problem("unarranged_list", S.tr(S.LISTED_NOT_RECORDED, where=where, sig=sig), mode, "",
+                                    sig))
     return problems
 
 
@@ -233,7 +234,7 @@ def check_pictures(arrangement: Arrangement, recorded: list[RecordedScreen], ass
                 try:
                     snapshot = load(recorded_screen.snapshot)
                 except (OSError, SnapshotFormatError) as error:
-                    problems.append(Problem("ilegible", S.tr(S.UNREADABLE, sig=sig, error=error), signature=sig))
+                    problems.append(Problem("unreadable", S.tr(S.UNREADABLE, sig=sig, error=error), signature=sig))
                     scenes[sig] = None
                     continue
                 scenes[sig] = (snapshot, render.scene(snapshot, assets, picture_settings)[0])
@@ -248,8 +249,8 @@ def check_pictures(arrangement: Arrangement, recorded: list[RecordedScreen], ass
 
 def picture_problems(arrangement: Arrangement, mode: str, items: list[render.Item], screen, places, signature: str,
                      settings: CheckSettings, picture_settings: render.RenderSettings) -> list[Problem]:
-    """The pixel problems (`solape`, `fuera`) of one arranged picture (render.arrange's items, screen and places of the
-    recorded screen `signature`) as check_pictures finds them."""
+    """The pixel problems (`overlap`, `outside`) of one arranged picture (render.arrange's items, screen and places of
+    the recorded screen `signature`) as check_pictures finds them."""
     owner = arrangement.owners()
     views = ["top"] if mode == "single_screen" else list(geometry.SCREEN_SIZES)
     return _picture_problems(arrangement, mode, views, items, screen, places, owner, moved_blocks(arrangement, mode),
@@ -307,7 +308,7 @@ def _picture_problems(arrangement, mode, views, items, screen, places, owner, mo
                     blocks = tuple(sorted(t[1] for t in pair if t[0] == "block"))
                     names = tuple(sorted(t[1] for t in pair if t[0] == "group"))
                     problems.append(Problem(
-                        "solape", S.tr(S.OVERLAP, a=label(mover), b=label(other), count=count,
+                        "overlap", S.tr(S.OVERLAP, a=label(mover), b=label(other), count=count,
                                        side=S.side_name(view), where=where, sig=sig), mode, number, sig, blocks, names,
                         pixels=count))
     for place in places:
@@ -318,7 +319,7 @@ def _picture_problems(arrangement, mode, views, items, screen, places, owner, mo
         excess = _outside(by_thing.get(("block", place.block.id), []), place.screen)
         if excess > settings.outside_pixels:
             problems.append(Problem(
-                "fuera", S.tr(S.OUTSIDE, a=label(("block", place.block.id)), excess=f"{excess:.0f}",
+                "outside", S.tr(S.OUTSIDE, a=label(("block", place.block.id)), excess=f"{excess:.0f}",
                               side=S.side_name(place.screen), where=where, sig=sig), mode, number, sig,
                 (place.block.id,), pixels=int(np.ceil(excess))))
     return problems
@@ -357,21 +358,21 @@ def check_names(arrangement: Arrangement, layouts) -> list[Problem]:
         for group in block.groups:
             if group not in roots.get(block.layout, set()):
                 problems.append(Problem(
-                    "nombre", S.tr(S.BLOCK_GROUP_MISSING, id=block.id, name=S.named(block), group=group,
+                    "missing_name", S.tr(S.BLOCK_GROUP_MISSING, id=block.id, name=S.named(block), group=group,
                                    layout=block.layout), blocks=(block.id,), names=(group,)))
             elif block.part:
                 for pane in sorted(set(block.part) - panes.get((block.layout, group), set())):
                     problems.append(Problem(
-                        "nombre", S.tr(S.BLOCK_PANE_MISSING, id=block.id, name=S.named(block), pane=pane,
+                        "missing_name", S.tr(S.BLOCK_PANE_MISSING, id=block.id, name=S.named(block), pane=pane,
                                        group=group), blocks=(block.id,), names=(group,)))
     for screen in arrangement.screens:
         for group in sorted(screen.when.groups() - every):
             problems.append(Problem(
-                "nombre", S.tr(S.RULE_GROUP_MISSING, title=S.title(screen), mode=S.mode_name(screen.mode),
+                "missing_name", S.tr(S.RULE_GROUP_MISSING, title=S.title(screen), mode=S.mode_name(screen.mode),
                                group=group), screen.mode, screen.number, names=(group,)))
         for group in sorted(set(screen.photo or ()) - every):
             problems.append(Problem(
-                "nombre", S.tr(S.PHOTO_GROUP_MISSING, title=S.title(screen), mode=S.mode_name(screen.mode),
+                "missing_name", S.tr(S.PHOTO_GROUP_MISSING, title=S.title(screen), mode=S.mode_name(screen.mode),
                                group=group), screen.mode, screen.number, names=(group,)))
     return problems
 
@@ -391,7 +392,7 @@ def check_table(arrangement: Arrangement) -> list[Problem]:
     names |= {g for screen in arrangement.screens for g in screen.when.groups()}
     if len(names) <= engine.MAX_NAMES:
         return []
-    return [Problem("nombres", S.tr(S.TOO_MANY_NAMES, count=len(names), limit=engine.MAX_NAMES))]
+    return [Problem("too_many_names", S.tr(S.TOO_MANY_NAMES, count=len(names), limit=engine.MAX_NAMES))]
 
 
 # ---- pools and the loader's depth ----
@@ -428,7 +429,7 @@ def check_pools(arrangement: Arrangement, layouts: Mapping[str, bytes], scenes: 
             except (KeyError, ValueError, LytFormatError) as error:
                 block = arrangement.blocks[owner[group]]
                 problems.append(Problem(
-                    "envoltorio", S.tr(S.CANNOT_WRAP, id=block.id, name=S.named(block), group=group, error=error),
+                    "wrap", S.tr(S.CANNOT_WRAP, id=block.id, name=S.named(block), group=group, error=error),
                     blocks=(block.id,), names=(group,)))
         wrapped[name] = layout
     plain: dict[str, object] = {}

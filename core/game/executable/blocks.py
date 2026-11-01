@@ -91,7 +91,7 @@ MOVE_WATCH = "area_move_watch"
 # The ported monsters' severed tail thrown and cooled as in MH Generations (gameplay/tail_fall/tail_fall.py), after
 # everything else
 TAIL_FALL = "tail_fall"
-# The game GUI recorder's frame marks (tools/ui/ui_probe.py): only
+# The game GUI recorder's frame counters (tools/ui/ui_probe.py): only
 # the recording probe places them, never a mod, so they go after everything else and move nothing; built into the
 # layout, so the probe needs no ARM toolchain (an edition's developers have none)
 GUI_FRAME_MARKS = "game_gui_recorder"
@@ -418,7 +418,7 @@ VARIABLES = (
     # struct select: the title's hunter select screen, its hunters wear their slots' looks (bss_tail is full: its
     # 8 bytes came from layered_debug, whose counters became u16)
     VariableSpec("layered_select", "layered_equipment", 8),
-    # The game GUI recorder's frame marks (u32 started, done): only the
+    # The game GUI recorder's frame counters (u32 started, done): only the
     # recording probe writes them (tools/ui/ui_probe.py, block gui_frame_marks_probe), never the product. Not a debug
     # variable: the product's own telemetry writes the debug place (Alatreon's shell log); its room came from halving
     # that log's ground ring.

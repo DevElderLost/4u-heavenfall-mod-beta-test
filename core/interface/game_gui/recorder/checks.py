@@ -233,7 +233,7 @@ def check_group(group: Group, index: LayoutIndex) -> str | None:
 
 
 def check(managers: list[Manager], index: LayoutIndex) -> dict:
-    """Names every group and pane and marks what the game placed; {"ok", "failures", "groups", "panes", "placed"}."""
+    """Names every group and pane and counters what the game placed; {"ok", "failures", "groups", "panes", "placed"}."""
     failures, panes, moved = [], 0, 0
     for manager in managers:
         seen: dict[int, int] = {}

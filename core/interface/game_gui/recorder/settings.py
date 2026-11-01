@@ -13,14 +13,14 @@ COVERAGE = CURATED / "coverage.json"
 
 @dataclass(frozen=True)
 class RecorderSettings:
-    frame_marks_variable: str       # the code space's variable holding the two u32 frame marks (started, done)
+    frame_marks_variable: str       # the code space's variable holding the two u32 frame counters (started, done)
     copy_timeout_s: float           # how long one turn looks for a quiet window to copy in before giving up
-    retry_sleep_s: float            # wait between two reads of the marks while looking for the window (0: none)
-    tick_spin_s: float              # how long the probe check reads the marks in a row before it answers "not yet"
+    retry_sleep_s: float            # wait between two reads of the counters while looking for the window (0: none)
+    tick_spin_s: float              # how long the probe check reads the counters in a row before it answers "not yet"
     window_measure_s: float         # a quiet window is measured (for the log) at most this long; 0 never measures
     no_pause_rest_s: float          # a window that finds no pause long enough for a copy rests this long
     copy_interval_s: float          # time between copies of one emulator window
-    tick_window_s: float            # how long the marks may stay still before the recording probe counts as missing
+    tick_window_s: float            # how long the counters may stay still before the recording probe counts as missing
     reconnect_interval_s: float     # time between looks for emulators and games
     rediscover_attempts: int        # copies in a row that may find the GUI moved before a turn is given up
     merge_gap: int                  # bytes between two copied pages below which one read takes both

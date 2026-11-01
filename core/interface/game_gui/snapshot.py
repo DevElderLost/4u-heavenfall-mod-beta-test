@@ -75,8 +75,8 @@ class Manager:
 
 @dataclass
 class Proof:
-    """Why the copy is exact. `method` "frame_marks": the game's two frame marks read before and after the copy agreed
-    (`started` == `done`, unchanged), after `attempts` tries; "save_state": a save state, frozen by nature."""
+    """Why the copy is exact. `method` "frame_marks": the game's two frame counters read before and after the copy
+    agreed (`started` == `done`, unchanged), after `attempts` tries; "save_state": a save state, frozen by nature."""
     method: str
     started: int | None = None
     done: int | None = None

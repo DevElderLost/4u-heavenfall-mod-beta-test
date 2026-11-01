@@ -1,17 +1,17 @@
 # Editing the interface
 
-Everything Single Screen Mode displays on the top screen is positioned using a set of data files. To move a menu, edit a value in those files, preview the result, and test it in the emulator. This guide explains the files, tools and workflow involved. For an overview of what the mod does, see [how_it_works.md](how_it_works.md). For instructions on running the project from source, see [development.md](development.md).
+Everything Single Screen Mode displays on the top screen is positioned using a set of data files. To move a menu, edit a value in those files, preview the result, and test it in the emulator. This guide explains the files, the tools and the workflow involved. The tools are for your own use: you record the game while you play, save marks on the screens you want to change, and change the files yourself. For an overview of what the mod does, see [how_it_works.md](how_it_works.md). For instructions on running the project from source, see [development.md](development.md).
 
 ## Key concepts
 
 - The game draws its interface using **layouts** (`uiNNN`, for example, `ui502` is the Guild Card). Each layout is a tree of elements. Its top-level **groups** (root groups, such as `ui502_kihon`) contain pictures and text.
 - The game shows and hides groups as you navigate through menus. The combination of visible groups identifies which **screen** of the game is currently displayed: for example, "the Guild Card is open, with no editing window" or "the quest list".
-- A **block** is a set of root groups from the same layout that move together, such as the Guild Card or its wooden background. Blocks have IDs in the format `ui502.tarjeta` (layout name, followed by a dot and a word).
+- A **block** is a set of root groups from the same layout that move together, such as the Guild Card or its wooden background. Blocks have IDs in the format `ui502.card` (layout name, followed by a dot and a word).
 - Each **screen** definition has a **rule** specifying which groups must be visible, which may be visible, and which must be hidden. It also defines the **placement** of each block on that screen.
 - All placement values are **absolute**, not relative. They specify the final x, y and scale, rather than how far an element should move. A screen's placement takes priority over a block's default placement. If neither specifies a value, the game uses its own default.
 - Coordinates are measured in screen pixels: the top screen is 400 × 240, and the bottom screen is 320 × 240. X increases to the right, and Y increases downwards. `x` and `y` refer to the top-left corner of the block's visible bounding box.
 
-The data files use Spanish names for blocks and screens, as that is how they were originally organized. Each entry also has an English name in `names_en.json`, which is what the tools display.
+IDs, file names and folder names are in English. Each block and screen also has a Spanish `name`, which the tools show when they run in Spanish (`--lang es`); the English names are in `names_en.json`, and those are what the tools show by default.
 
 ## The files
 
@@ -19,14 +19,14 @@ All the files are located in `core/game/data/curated/game_gui/`:
 
 | File | Contents | Edit it? |
 |---|---|---|
-| `blocks.json` | Every block: its layout, groups and default place | Yes |
-| `screens/<theme>.json` | Every screen: its number, rule and blocks' places (one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, monnyan, loading) | Yes |
-| `names_en.json` | The English name of every screen, block and screen to record | When you add one |
-| `fixes.json` | Changes to a layout that are no place: panes hidden, a background stretched, a pane nudged inside its group, a fill | Rarely |
-| `settings.json` | The limits (scale 0.25 to 2.0, a corner at most 120 pixels outside its screen) and the photo mode's buttons | Rarely |
-| `check.json` | The checker's limits, and the recorded screens that are left unarranged on purpose | Sometimes |
-| `coverage.json` | The screens the recorder's window lists as still to record | Optional |
-| `recorder.json`, `render.json` | The recorder's timings, the pictures' colours and zoom | No |
+| `blocks.json` | Every block, its layout, groups and default placement | Yes |
+| `screens/<theme>.json` | Every screen, its number, visibility rule and block placements. There is one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, monnyan and loading. | Yes |
+| `names_en.json` | English names for every screen, block and screen to record | When adding one |
+| `fixes.json` | Non-positional layout changes, such as hiding panes, stretching backgrounds, moving panes within their groups or applying fills | Rarely |
+| `settings.json` | Placement limits (scale 0.25 to 2.0, with block corners allowed up to 120 pixels outside the screen) and photo mode buttons | Rarely |
+| `check.json` | Checker limits and screens that have been recorded but are intentionally left unarranged | Sometimes |
+| `coverage.json` | Screens still waiting to be recorded, as listed in the recorder window | Optional |
+| `recorder.json`, `render.json` | Recorder timings, preview colours and zoom settings | No |
 
 ### A block (`blocks.json`)
 
@@ -34,7 +34,7 @@ For example, these are two blocks from the Guild Card layout:
 
 ```json
 {
-  "id": "ui502.tarjeta",
+  "id": "ui502.card",
   "name": "Tarjeta del gremio",
   "layout": "ui502",
   "groups": ["ui502_kihon", "ui502_buki_siyou", "..."],
@@ -50,7 +50,7 @@ For example, these are two blocks from the Guild Card layout:
 
 ```json
 {
-  "id": "ui502.fondo",
+  "id": "ui502.background",
   "name": "Tarjeta del gremio: fondo de madera",
   "layout": "ui502",
   "groups": ["ui502_bg"],
@@ -61,6 +61,7 @@ For example, these are two blocks from the Guild Card layout:
 }
 ```
 
+- `name`: the block's Spanish name. Its English name ("Guild Card") goes in `names_en.json`.
 - `groups`: the root groups that move together. A group can belong to at most one block.
 - `default`: the block's default placement on any screen that does not define its own placement (see [A placement](#a-placement)).
 - `backdrop: true`: marks the block as a background. Other blocks can overlap it without triggering an overlap warning.
@@ -71,7 +72,7 @@ For example, these are two blocks from the Guild Card layout:
 
   ```json
   {
-    "id": "ui502.saludo",
+    "id": "ui502.greeting",
     "groups": ["ui502_kihon"],
     "part": ["ui502_FL_X_button", "ui502_x", "ui502_m_m"]
   }
@@ -95,8 +96,8 @@ For example:
   },
   "photo": ["ui505_guild_bg", "ui505_message"],
   "blocks": {
-    "ui502.tarjeta": {},
-    "ui502.fondo": {}
+    "ui502.card": {},
+    "ui502.background": {}
   }
 }
 ```
@@ -135,7 +136,7 @@ Then copy `local.example.ini` to `local.ini` and configure:
 
 The recorder copies the game's interface directly from the emulator's memory between frames. To do this, it needs to know when each frame starts and ends.
 
-A **recording probe** is your usual mod with two additional counters that the game updates every frame.
+A **recording probe** is your usual mod with two additional frame counters that the game updates every frame.
 
 ```bash
 python tools/ui/ui.py probe rec --install
@@ -149,7 +150,7 @@ The probe can only be installed into an empty mod folder or over a previous reco
 
 After installation, restart the emulation (**Emulation > Restart**).
 
-### 2. Record
+### 2. Record, and mark what you want to change
 
 ```bash
 python tools/ui/ui_recorder.py
@@ -161,9 +162,11 @@ The window displays each emulator window's current state (showing "Recording" wh
 
 The recorder only reads the emulator's memory. It never writes to it.
 
-- Press **Ctrl+P** in the emulator to save a screenshot. The recorder pairs it with the memory capture from that moment and creates a **request** containing the note you entered in the recorder window.
-- Click **Mark this screen** to create a request without a screenshot.
-- Recordings are saved in `work/ui/recordings/`. Requests are saved in `work/ui/peticiones/` (the folder keeps its original Spanish name).
+When a screen needs changing, save a **mark** on it: a note to yourself, with the exact copy of that moment, so you can come back to it later.
+
+- Type a note in the recorder window (optional), then press **Ctrl+P** in the emulator. The emulator saves a screenshot, and the recorder pairs it with the memory copy from that moment.
+- Or click **Mark this screen** to save a mark without a screenshot.
+- Recordings are saved in `work/ui/recordings/` and marks in `work/ui/marks/`, one folder each.
 - You can also record from save states without installing a probe:
 
   ```bash
@@ -173,10 +176,10 @@ The recorder only reads the emulator's memory. It never writes to it.
 ### 3. Preview
 
 ```bash
-python tools/ui/ui.py gallery              # output/ui/galeria/index.html: all recorded screens, original and arranged
-python tools/ui/ui.py show 78               # screen rule, final block placements, recordings and screenshots
+python tools/ui/ui.py marks                  # your marks not done yet, newest first: note, screenshot, screen
+python tools/ui/ui.py gallery                # output/ui/gallery/index.html: all recorded screens, original and arranged
+python tools/ui/ui.py show 78                # screen rule, final block placements, recordings and screenshots
 python tools/ui/ui.py render 78 --arranged   # PNG previews of a screen as arranged by the mod
-python tools/ui/ui.py pending                # unanswered requests, newest first
 ```
 
 The arranged previews outline each block and label it with its number. They are rendered using the recordings and the game's files, following the same placement logic as the in-game engine. This means you can work on the interface without having to launch the game every time.
@@ -194,8 +197,8 @@ This measures how closely the preview matches the screenshot.
 You can edit the JSON files directly in a text editor or use the command-line tool. The tool rejects relative values and values outside the allowed ranges.
 
 ```bash
-python tools/ui/ui.py set 78 ui502.tarjeta x=40 y=3 scale=0.9
-python tools/ui/ui.py set 78 ui502.tarjeta scale=none
+python tools/ui/ui.py set 78 ui502.card x=40 y=3 scale=0.9
+python tools/ui/ui.py set 78 ui502.card scale=none
 ```
 
 Setting a field to `none` resets it to the block's default value.
@@ -232,11 +235,19 @@ You can either click **Update** in the program (when running it from source with
 python tools/ui/ui.py probe rec --install
 ```
 
+When a mark is dealt with, tick it off so that `marks` stops listing it:
+
+```bash
+python tools/ui/ui.py done <mark> "card moved up"
+```
+
+`<mark>` is the mark's ID, the name of its folder, as `marks` lists it. The mark stays in its folder; only a `done.json` file is added beside it.
+
 ## Adding a screen or a block
 
 1. Record the screen using the workflow above. Then run `python tools/ui/ui.py show <signature>`, where `<signature>` is the name displayed for the recording in the gallery. This lists its groups and the screen definitions it matches.
-2. To add a block, define it in `blocks.json` with an ID in the format `<layout>.<word>`, a name, its layout and its groups. Add its English name to the `"blocks"` section of `names_en.json`. Use the game's own English terminology (Guild Card, Gathering Hall, Palico Board, etc.).
-3. To add a screen, define it in the appropriate theme file with a unique number, a rule that matches only that screen and its blocks. Add its English name to the `"screens"` section of `names_en.json`.
+2. To add a block, define it in `blocks.json` with an English ID in the format `<layout>.<word>`, a name, its layout and its groups. Add its English name to the `"blocks"` section of `names_en.json`. Use the game's own English terminology (Guild Card, Gathering Hall, Palico Board, etc.).
+3. To add a screen, define it in the appropriate theme file with an English ID, a unique number, a rule that matches only that screen and its blocks. Add its English name to the `"screens"` section of `names_en.json`.
 4. Run `python tools/ui/ui.py check` and test the result in the emulator.
 
 ## Troubleshooting

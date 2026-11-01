@@ -1,11 +1,12 @@
 """The game GUI recorder's probe: the mod with single-screen mode off,
-plus the frame marks the recorder needs to copy the GUI only between frames (core/interface/game_gui/gui_frame_marks.s).
+plus the frame counters the recorder needs to copy the GUI only between frames
+(core/interface/game_gui/gui_frame_marks.s).
 
     python tools/ui/ui_probe.py --out output/ui/rec<N>_<round> [--single-screen] [--rom GAME] [--mhgen MHGEN]
 
 Writes OUT: a whole mod without the randomizer, as the GUI installs it (presets.install_settings) with the
 installer options this machine's GUI has saved, `single_screen` off (the recordings are the game's own GUI) and
-`layered_equipment` on (its menus are recorded too), and the frame marks: the variable `gui_frame_marks`
+`layered_equipment` on (its menus are recorded too), and the frame counters: the variable `gui_frame_marks`
 (game/executable/blocks.py) that sMhMain::frame's two hooks keep (started, done). GAME is the player's base game,
 European or American (default: local.ini `mh4u_rom`); MHGEN is MH Generations' decrypted .3ds (default: local.ini
 `mhgen_rom`). `--single-screen`: single-screen mode on instead (the migration's probes: today's look with the arranged
@@ -32,13 +33,13 @@ RENDER_SITE = 0xBFA718      # FUN_00bfa6c0 (the GX's render)
 GX_END_SITE = 0xBFA470      # FUN_00bfa460 (the GX's end)
 
 
-def marks_layout() -> Layout:
-    """The committed layout: the marks' block is packed after every block of a mod, so it fits beside any of them."""
+def counters_layout() -> Layout:
+    """The committed layout: the counters' block is packed after every block of a mod, so it fits beside any of them."""
     return load_layout()
 
 
-def patch_frame_marks(code: bytes, layout: Layout) -> bytes:
-    """`code`, the canonical executable, with the marks' block and both calls of the frame's wait going through it
+def patch_frame_counters(code: bytes, layout: Layout) -> bytes:
+    """`code`, the canonical executable, with the counters' block and both calls of the frame's wait going through it
     (each site must still call the wait)."""
     out = bytearray(code)
     layout.place(out, BLOCK)
@@ -99,15 +100,15 @@ def recording_settings(single_screen: bool = False):
 
 
 def build(out: Path, single_screen: bool, rom: Path | None = None, mhgen: Path | None = None):
-    """Writes the probe into `out` (a new folder); returns (the run's result, the settings, the marks' address)."""
+    """Writes the probe into `out` (a new folder); returns (the run's result, the settings, the counters' address)."""
     config = local_config.load()
     rom = rom or config.get("mh4u_rom")
     if rom is None:
         raise SystemExit("no base game: --rom, or local.ini mh4u_rom")
     if Path(out).exists():
         raise SystemExit(f"{out} exists: a new name each round")
-    layout = marks_layout()
-    probe = pipeline.Probe(lambda code: patch_frame_marks(code, layout), layout)
+    layout = counters_layout()
+    probe = pipeline.Probe(lambda code: patch_frame_counters(code, layout), layout)
     settings = recording_settings(single_screen)
     result = pipeline.run(Path(rom), Path(out), settings, mhgen_rom=mhgen or config.get("mhgen_rom"), probe=probe)
     for notice in result.notices:
@@ -123,8 +124,8 @@ def main() -> None:
     parser.add_argument("--single-screen", action="store_true",
                         help="single-screen mode on (the arranged screens placed by the game GUI engine)")
     args = parser.parse_args()
-    result, _settings, marks = build(args.out, args.single_screen, args.rom, args.mhgen)
-    print(f"{args.out}: {result.game_version}, frame marks at {marks:#x}, executable {result.executable_path}")
+    result, _settings, counters = build(args.out, args.single_screen, args.rom, args.mhgen)
+    print(f"{args.out}: {result.game_version}, frame counters at {counters:#x}, executable {result.executable_path}")
 
 
 if __name__ == "__main__":

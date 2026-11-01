@@ -3,33 +3,33 @@
   "screens": [
     {"id": "courier", "number": "84", "name": "Mensajero: StreetPass y buzón", "mode": "single_screen", "when": {"all": ["ui511_BG"], "none": ["ui511_guildcard_box1", "ui511_guildcard_box2", "ui511_quest_box", "ui511_otomo_box", "ui511_quest_set", "ui511_otomo_set"]}, "blocks": {
       "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
-      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
-      "ui510.fondo": {}
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
     }},
     {"id": "courier_cards", "number": "85", "name": "Mensajero: tarjetas del gremio recibidas", "mode": "single_screen", "when": {"all": ["ui511_BG"], "any": ["ui511_guildcard_box1", "ui511_guildcard_box2"]}, "blocks": {
       "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
-      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
-      "ui510.fondo": {}
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
     }},
     {"id": "courier_quests_received", "number": "86", "name": "Mensajero: misiones recibidas", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_quest_box"]}, "blocks": {
       "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
-      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
-      "ui510.fondo": {}
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
     }},
     {"id": "courier_palicoes_received", "number": "87", "name": "Mensajero: Pálicos recibidos", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_otomo_box"]}, "blocks": {
       "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
-      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
-      "ui510.fondo": {}
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
     }},
     {"id": "courier_quests_sent", "number": "88", "name": "Mensajero: misiones del gremio", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_quest_set"]}, "blocks": {
       "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
-      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
-      "ui510.fondo": {}
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
     }},
     {"id": "courier_palicoes_sent", "number": "89", "name": "Mensajero: Pálicos", "mode": "single_screen", "when": {"all": ["ui511_BG", "ui511_otomo_set"]}, "blocks": {
       "ui511.menus": {"x": 2.0, "y": 66.48, "scale": 0.72},
-      "ui510.paneles": {"x": 127.2, "y": 42.0, "scale": 0.72},
-      "ui510.fondo": {}
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
     }}
   ]
 }

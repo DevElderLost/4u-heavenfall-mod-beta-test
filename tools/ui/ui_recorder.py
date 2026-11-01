@@ -6,8 +6,8 @@ only.
     python tools/ui/ui_recorder.py --state A.cst ...   imports save states as snapshots (no window)
                                 [--session NAME] [--root DIR]
 
-Everything goes into the main checkout's work/ui/ (recordings/<session>/, peticiones/ (the requests), recorder.log);
---root changes it. Live recording needs the recording probe installed (its frame marks); without it nothing is
+Everything goes into the main checkout's work/ui/ (recordings/<session>/, marks/, recorder.log);
+--root changes it. Live recording needs the recording probe installed (its frame counters); without it nothing is
 recorded. The window speaks the edition's tools language (game/data/curated/edition.json); --lang es|en changes it."""
 
 import argparse
@@ -21,7 +21,7 @@ from core.app import local_config  # noqa: E402
 from core.interface.game_gui import strings as S  # noqa: E402
 from core.interface.game_gui.memory import local_candidates  # noqa: E402
 from core.interface.game_gui.recorder.checks import LayoutIndex, fallback_folders, layout_folders  # noqa: E402
-from core.interface.game_gui.recorder.exact import FrameMarks  # noqa: E402
+from core.interface.game_gui.recorder.exact import FrameCounters  # noqa: E402
 from core.interface.game_gui.recorder.live import LOG, RecorderService, setup_log  # noqa: E402
 from core.interface.game_gui.recorder.settings import load_settings  # noqa: E402
 from core.interface.game_gui.recorder.states import import_states  # noqa: E402
@@ -29,7 +29,7 @@ from core.interface.game_gui.recorder.store import Session, session_name, ui_roo
 
 
 def states(paths: list[Path], root: Path, name: str | None, settings, config) -> int:
-    session = Session(root, name or session_name("estados"))
+    session = Session(root, name or session_name("states"))
     cache: dict = {}
 
     def layouts(_title):
@@ -55,7 +55,7 @@ def states(paths: list[Path], root: Path, name: str | None, settings, config) ->
 
 def live(root: Path, name: str | None, settings, config, headless: bool) -> int:
     service = RecorderService(settings, root, config.get("emulator_dir"), config.romfs_dir, local_candidates(),
-                              FrameMarks.from_code_space(settings.frame_marks_variable), session=name)
+                              FrameCounters.from_code_space(settings.frame_marks_variable), session=name)
     if headless:
         stop = threading.Event()
         thread = threading.Thread(target=service.run, args=(stop,), daemon=True)

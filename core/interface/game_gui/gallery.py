@@ -2,16 +2,16 @@
 to judge the arrangement by. Never published: it holds the game's pictures.
 
 Per recorded screen (each screen once over the sessions, recorded.py; its latest recording's first snapshot),
-in the order of the arrangement's numbers: its number and Spanish name from
+in the order of the arrangement's numbers: its number and name (in the tools' language) from
 the arrangement (the screen its shown groups match), else its signature; the original pair of screens; the arranged
 top screen with every block's outline, number ("07.2") and name; the blocks' final places; the warnings; and
 "changed since your last review" when its pictures differ from the ones marked reviewed (`mark_reviewed`, a small
 JSON of picture digests in work/ui).
 
-    output/ui/galeria/index.html          the page (Spanish)
-    output/ui/galeria/img/<signature>_*.png
-    output/ui/galeria/digests.json        the digests of this build's pictures
-    work/ui/galeria_revisada.json         the digests last reviewed"""
+    output/ui/gallery/index.html          the page, in the tools' language
+    output/ui/gallery/img/<signature>_*.png
+    output/ui/gallery/digests.json        the digests of this build's pictures
+    work/ui/gallery_reviewed.json         the digests last reviewed"""
 
 import hashlib
 import html
@@ -26,7 +26,7 @@ from core.interface.game_gui import strings as S
 from core.interface.game_gui.recorded import RecordedScreen, recorded_screens
 from core.interface.game_gui.snapshot import SnapshotFormatError, load
 
-REVIEW_FILE = "galeria_revisada.json"
+REVIEW_FILE = "gallery_reviewed.json"
 DIGESTS_FILE = "digests.json"
 
 
@@ -81,7 +81,7 @@ def build(root: Path, out: Path, assets: render.Assets, arrangement: Arrangement
         shown = ["top"] if mode == "single_screen" else ["top", "bottom"]
         for name in shown:
             image = render.outlined(arranged.screens[name], arranged.blocks, name, settings)
-            entry.images[f"arranged_{name}"] = render.save_png(image, out / "img" / f"{stem}_ordenada_{name}.png").name
+            entry.images[f"arranged_{name}"] = render.save_png(image, out / "img" / f"{stem}_arranged_{name}.png").name
         entry.digest = _digest(*original.screens.values(), *(arranged.screens[name] for name in shown))
         entry.changed = reviewed.get(recorded.signature) != entry.digest
         digests[recorded.signature] = entry.digest
@@ -137,7 +137,7 @@ def _page(entries: list[GalleryEntry], mode: str) -> str:
                            f"{e(S.tr(S.GALLERY_TITLE))}</title>",
         "<style>body{font-family:sans-serif;background:#222;color:#eee;margin:16px}"
         "section{border-top:1px solid #555;padding:8px 0}img{image-rendering:pixelated;margin:4px;"
-        "border:1px solid #444}.cambio{color:#fc6;font-weight:bold}.aviso{color:#f88}"
+        "border:1px solid #444}.changed{color:#fc6;font-weight:bold}.warning{color:#f88}"
         "figure{display:inline-block;margin:0 8px 0 0;vertical-align:top}figcaption{font-size:13px;color:#aaa}"
         "td{padding:0 12px 0 0}code{color:#9cf}</style></head><body>",
         f"<h1>{e(S.tr(S.GALLERY_TITLE))}</h1>",
@@ -146,7 +146,7 @@ def _page(entries: list[GalleryEntry], mode: str) -> str:
     ]
     for entry in entries:
         rows.append(f'<section id="{e(entry.screen.signature)}"><h2>{e(entry.title)}'
-                    + (f' <span class="cambio">{e(S.tr(S.GALLERY_CHANGED))}</span>' if entry.changed else "")
+                    + (f' <span class="changed">{e(S.tr(S.GALLERY_CHANGED))}</span>' if entry.changed else "")
                     + "</h2>")
         sessions = entry.screen.sessions
         rows.append(f"<p>{e(S.tr(S.GALLERY_SIGNATURE))} <code>{e(entry.screen.signature)}</code>, "
@@ -169,7 +169,7 @@ def _page(entries: list[GalleryEntry], mode: str) -> str:
         else:
             rows.append(f"<p>{e(S.tr(S.GALLERY_NO_BLOCKS))}</p>")
         for warning in entry.warnings:
-            rows.append(f'<p class="aviso">{e(S.tr(S.CHECK_WARNING, warning=warning))}</p>')
+            rows.append(f'<p class="warning">{e(S.tr(S.CHECK_WARNING, warning=warning))}</p>')
         rows.append(f"<details><summary>{e(S.tr(S.GALLERY_GROUPS))}</summary><p>"
                     + ", ".join(e(g) for g in entry.screen.groups) + "</p></details></section>")
     rows.append("</body></html>")

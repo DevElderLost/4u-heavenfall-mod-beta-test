@@ -1,6 +1,6 @@
 """The recorder's window (PySide6; texts in the tools' language, interface/game_gui/strings.py): each emulator window's
 state («Ventana 1» / "Window 1", «Ventana 2»), the
-screen it is on, the screens recorded, those still to record, a note for the request, «Marcar esta pantalla» ("Mark this
+screen it is on, the screens recorded, those still to record, a note for the mark, «Marcar esta pantalla» ("Mark this
 screen") and «Pausar» ("Pause"). The recording runs in a thread of its own (`RecorderService.run`); the window only
 reads its status."""
 
@@ -56,7 +56,7 @@ class RecorderWindow(QMainWindow):
         layout.addWidget(self.message)
         self.setCentralWidget(body)
         self.resize(560, 520)
-        self._requests = 0
+        self._marks = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.refresh)
         self.timer.start(refresh_ms)
@@ -82,7 +82,7 @@ class RecorderWindow(QMainWindow):
         windows = status["windows"]
         self.windows.setText("\n".join(window_text(w) for w in windows) if windows else S.tr(S.WAITING))
         self.recorded.setText(S.tr(S.RECORDED, screens=status["screens"], variants=status["variants"],
-                                   requests=status["requests"]))
+                                   marks=status["marks"]))
         if status["coverage"]:
             self.missing_title.setText(S.tr(S.TO_RECORD_COUNT, missing=len(status["missing"]),
                                             total=status["coverage"]))
@@ -92,8 +92,8 @@ class RecorderWindow(QMainWindow):
             self.missing.clear()
             self.missing.addItems(status["missing"])
         self.pause_button.setText(S.tr(S.RESUME if status["paused"] else S.PAUSE))
-        if status["requests"] != self._requests:
-            self._requests = status["requests"]
+        if status["marks"] != self._marks:
+            self._marks = status["marks"]
             if not self.service.note:
                 self.note.clear()
         self.message.setText(status["message"])
