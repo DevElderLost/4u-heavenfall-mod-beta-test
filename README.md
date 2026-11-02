@@ -6,7 +6,7 @@ Heavenfall Beta is the single-screen module of Heavenfall, a mod for Monster Hun
 
 You choose your options in a small program, press one button, and it installs the mod into your emulator. Your game file is never modified.
 
-**[Download it from the Releases page](../../releases/latest)** (the latest "Heavenfall Single-Screen Mod" release, file `HeavenfallBeta-windows.zip`), then follow the [installation instructions](#installation-step-by-step).
+**[Download it from the Releases page](../../releases/latest)** (the latest "Heavenfall Single-Screen Mod" release, file `HeavenfallBeta-windows.zip`), then follow the [installation instructions](#installation).
 
 **On Android or Steam Deck?** You don't need the program: **[make the mod on the web page](https://popzol.github.io/4u-heavenfall-mod-beta/)** ([how](#on-android-or-steam-deck)).
 
@@ -22,7 +22,7 @@ It's the best place to get help, discuss the mod and keep up with the latest new
 
 - [What the mod adds](#what-the-mod-adds)
 - [What you need](#what-you-need)
-- [Installation, step by step](#installation-step-by-step)
+- [Installation, step by step](#installation)
 - [On Android or Steam Deck](#on-android-or-steam-deck)
 - [Removing or updating the mod](#removing-or-updating-the-mod)
 - [Questions and problems](#questions-and-problems)
@@ -58,7 +58,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 ## What you need
 
-1. **A Windows computer.** On other operating systems, you can run the program using Python (see the end of the installation instructions). On Android or Steam Deck, you only need a browser ([see below](#on-android-or-steam-deck)).
+1. **Windows** On other operating systems, you can run the program using Python (see the end of the installation instructions). On Android or Steam Deck, you only need a browser ([see below](#on-android-or-steam-deck)).
 2. **The Azahar emulator** ([azahar-emu.org](https://azahar-emu.org/)) or Citra.
 3. **Your own decrypted copy of Monster Hunter 4 Ultimate (European or American version).** Supported formats are `.3ds`, `.cia`, and Azahar's compressed `.zcci` or `.zcia` formats.
 
@@ -66,7 +66,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
    The game update is optional; the mod works with or without it installed.
 
-## Installation, step by step
+## Installation
 
 **1. Download the program.** Download `HeavenfallBeta-windows.zip` from the latest "Heavenfall Single-Screen Mod" release on the [Releases page](../../releases/latest) and extract it anywhere (for example, on your Desktop).
 
