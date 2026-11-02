@@ -55,7 +55,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 ## What you need
 
-1. **A Windows computer.** On other operating systems, you can run the program using Python (see the end of the installation instructions).
+1. **Windows** On other operating systems, you can run the program using Python (see the end of the installation instructions).
 2. **The Azahar emulator** ([azahar-emu.org](https://azahar-emu.org/)) or Citra.
 3. **Your own decrypted copy of Monster Hunter 4 Ultimate (European or American version).** Supported formats are `.3ds`, `.cia`, and Azahar's compressed `.zcci` or `.zcia` formats.
 
