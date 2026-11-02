@@ -5,7 +5,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ## Unreleased
 
 ### The program
-- The mod can be made on Android from a web page, with nothing to install.
+- The mod can be made in a browser on Android or PC, with nothing to install.
 
 ## 0.1.2
 

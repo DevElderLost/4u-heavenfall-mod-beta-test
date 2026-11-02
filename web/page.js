@@ -11,9 +11,10 @@ const TEXTS = {
       + "El archivo no se modifica.",
     choose: "Elegir archivo",
     gameMissing: "¿No ves tu juego?",
-    missingAndroid: "Abre el menú lateral del selector y entra en el almacenamiento del móvil o en la tarjeta SD.",
-    missingDeck: "Si el navegador no ve la tarjeta SD, copia el juego a Descargas o dale permiso con Flatseal, que se "
+    androidMissing: "Abre el menú lateral del selector y entra en el almacenamiento del móvil o en la tarjeta SD.",
+    deckMissing: "Si el navegador no ve la tarjeta SD, copia el juego a Descargas o dale permiso con Flatseal, que se "
       + "instala desde Discover.",
+    pcMissing: "Búscalo donde lo guardaste: el navegador puede abrir cualquier carpeta de tu PC.",
     engine: "Preparando el motor (la primera vez descarga unos 15 MB)…",
     checking: "Comprobando el juego…",
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
@@ -64,13 +65,22 @@ const TEXTS = {
       "{move}",
       "En Azahar, elige <code>View &gt; Screen Layout &gt; Single Screen</code> y abre el juego.",
     ],
+    pcSteps: [
+      "Descarga el zip y descomprímelo. Dentro está la carpeta <code>{title}</code>.",
+      "En Azahar, abre <code>File &gt; Open Azahar Folder &gt; User Folder</code> (en Citra, su carpeta de usuario) y "
+        + "entra en <code>load/mods</code>. Si <code>mods</code> no existe, créala.",
+      "{deleteOld}",
+      "{move}",
+      "En el emulador, elige <code>View &gt; Screen Layout &gt; Single Screen</code> y abre el juego.",
+    ],
     otherRegion: "Esta es la carpeta del juego europeo; la del americano es <code>{other}</code>. Al elegir tu juego "
       + "se muestra la tuya.",
     deckUntested: "Estos pasos aún no se han probado en una Steam Deck real. Si algo no coincide, avisa y adjunta los "
       + "datos técnicos.",
     diagnostics: "Datos técnicos",
     diagnosticsHelp: "Si algo falla, copia esto en tu aviso de error.",
-    windows: "¿Juegas en un PC con Windows? Es más cómodo el programa: lo instala en el emulador por ti.",
+    windows: "En Windows es más cómodo el programa: instala el mod en el emulador por ti y lo quita con un botón.",
+    programLink: "Descargar el programa",
     source: "Código fuente",
     license: "Licencia",
     thirdParty: "Otros componentes",
@@ -86,9 +96,10 @@ const TEXTS = {
       + "The file is never modified.",
     choose: "Choose file",
     gameMissing: "Can't see your game?",
-    missingAndroid: "Open the picker's side menu and go to your phone's storage or SD card.",
-    missingDeck: "If the browser can't see the SD card, copy the game to Downloads or give it permission with Flatseal, "
+    androidMissing: "Open the picker's side menu and go to your phone's storage or SD card.",
+    deckMissing: "If the browser can't see the SD card, copy the game to Downloads or give it permission with Flatseal, "
       + "which you can install from Discover.",
+    pcMissing: "Look for it where you saved it: the browser can open any folder on your PC.",
     engine: "Getting the engine ready (the first time downloads about 15 MB)…",
     checking: "Checking the game…",
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
@@ -136,13 +147,23 @@ const TEXTS = {
       "{move}",
       "In Azahar, choose <code>View &gt; Screen Layout &gt; Single Screen</code> and open the game.",
     ],
+    pcSteps: [
+      "Download the zip and extract it. Inside is the <code>{title}</code> folder.",
+      "In Azahar, open <code>File &gt; Open Azahar Folder &gt; User Folder</code> (in Citra, its user folder) and go to "
+        + "<code>load/mods</code>. If <code>mods</code> doesn't exist, create it.",
+      "{deleteOld}",
+      "{move}",
+      "In the emulator, choose <code>View &gt; Screen Layout &gt; Single Screen</code> and open the game.",
+    ],
     otherRegion: "This is the European game's folder; the American game's is <code>{other}</code>. Yours appears once "
       + "you choose your game.",
     deckUntested: "These steps haven't been tried on a real Steam Deck yet. If something doesn't match, please report "
       + "it with the technical details.",
     diagnostics: "Technical details",
     diagnosticsHelp: "If something goes wrong, copy this into your bug report.",
-    windows: "Playing on a Windows PC? The program is easier: it installs the mod into the emulator for you.",
+    windows: "On Windows the program is easier: it installs the mod into the emulator for you and removes it with one "
+      + "button.",
+    programLink: "Download the program",
     source: "Source code",
     license: "License",
     thirdParty: "Other components",
@@ -221,6 +242,12 @@ function firstLanguage() {
   return tag.split("-")[0] === "es" ? "es" : "en";
 }
 
+// The device's install steps: a Steam Deck says only that it is Linux, so any Linux that is no Android opens on them.
+function firstPlatform() {
+  if (/android/i.test(navigator.userAgent)) return "android";
+  return /linux|x11/i.test(navigator.userAgent) ? "deck" : "pc";
+}
+
 function drawTexts() {
   document.documentElement.lang = page.language;
   for (const element of document.querySelectorAll("[data-text]")) {
@@ -235,7 +262,7 @@ function drawTexts() {
 function drawInstall() {
   const title = page.game?.title ?? EUR_TITLE;
   const parts = { title, deleteOld: text("deleteOld", { title }), move: text("move", { title }) };
-  const steps = TEXTS[page.language][page.platform === "android" ? "androidSteps" : "deckSteps"];
+  const steps = TEXTS[page.language][`${page.platform}Steps`];
   $("#install-steps").replaceChildren(...steps.map((step) => {
     const item = document.createElement("li");
     item.innerHTML = fill(fill(step, parts), parts);
@@ -245,7 +272,8 @@ function drawInstall() {
   note.hidden = Boolean(page.game?.title);
   note.innerHTML = text("otherRegion", { other: USA_TITLE });
   $("#install-untested").hidden = page.platform !== "deck";
-  $("#game-missing").textContent = text(page.platform === "android" ? "missingAndroid" : "missingDeck");
+  $("#install-program").hidden = page.platform !== "pc";
+  $("#game-missing").textContent = text(`${page.platform}Missing`);
   for (const tab of document.querySelectorAll(".tab")) {
     tab.setAttribute("aria-pressed", String(tab.dataset.platform === page.platform));
   }
@@ -594,7 +622,7 @@ function connect() {
 
 async function start() {
   page.language = firstLanguage();
-  page.platform = /android/i.test(navigator.userAgent) ? "android" : "deck";
+  page.platform = firstPlatform();
   connect();
   drawTexts();
   drawDiagnostics();

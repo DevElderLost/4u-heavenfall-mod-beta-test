@@ -6,15 +6,11 @@ Heavenfall Beta is the single-screen module of Heavenfall, a mod for Monster Hun
 
 You choose your options in a small program, press one button, and it installs the mod into your emulator. Your game file is never modified.
 
-**[Download it from the Releases page](../../releases/latest)** (the latest "Heavenfall Single-Screen Mod" release, file `HeavenfallBeta-windows.zip`), then follow the [installation instructions](#installation).
+## Links
 
-**On Android or Steam Deck?** You don't need the program: **[make the mod on the web page](https://popzol.github.io/4u-heavenfall-mod-beta/)** ([how](#on-android-or-steam-deck)).
-
-## Join the community
-
-Want to follow development, ask questions, report bugs, or share feedback? Come join the **[Heavenfall Discord server](https://discord.gg/qQwPRc8CDF)**!
-
-It's the best place to get help, discuss the mod and keep up with the latest news.
+- **Windows program:** https://github.com/popzol/4u-heavenfall-mod-beta/releases/latest (the file `HeavenfallBeta-windows.zip`; [installation instructions](#installation))
+- **Web installer, for Android, Steam Deck or PC, with nothing to install:** https://popzol.github.io/4u-heavenfall-mod-beta/ ([how it works](#the-web-installer))
+- **Discord server, for help, bug reports, feedback and news:** https://discord.gg/qQwPRc8CDF
 
 > **Status:** Beta. Heavenfall Beta is currently compatible with the **Azahar** and **Citra** emulators on PC, and with **Azahar** on Android. It has not been tried on a real Steam Deck yet. It does not work on a real 3DS.
 
@@ -23,7 +19,7 @@ It's the best place to get help, discuss the mod and keep up with the latest new
 - [What the mod adds](#what-the-mod-adds)
 - [What you need](#what-you-need)
 - [Installation, step by step](#installation)
-- [On Android or Steam Deck](#on-android-or-steam-deck)
+- [The web installer](#the-web-installer)
 - [Removing or updating the mod](#removing-or-updating-the-mod)
 - [Questions and problems](#questions-and-problems)
 - [For developers](#for-developers)
@@ -58,7 +54,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 ## What you need
 
-1. **Windows** On other operating systems, you can run the program using Python (see the end of the installation instructions). On Android or Steam Deck, you only need a browser ([see below](#on-android-or-steam-deck)).
+1. **Windows** On other operating systems, you can run the program using Python (see the end of the installation instructions). On Android or Steam Deck, you only need a browser ([the web installer](#the-web-installer)).
 2. **The Azahar emulator** ([azahar-emu.org](https://azahar-emu.org/)) or Citra.
 3. **Your own decrypted copy of Monster Hunter 4 Ultimate (European or American version).** Supported formats are `.3ds`, `.cia`, and Azahar's compressed `.zcci` or `.zcia` formats.
 
@@ -91,9 +87,9 @@ python -m core.gui
 
 > **Tip:** Keep a backup of your save before installing a new mod, just in case.
 
-## On Android or Steam Deck
+## The web installer
 
-The **[web page](https://popzol.github.io/4u-heavenfall-mod-beta/)** makes the same mod in your browser, with nothing to install. Your game is never uploaded: everything happens on your device.
+**https://popzol.github.io/4u-heavenfall-mod-beta/** makes the same mod in your browser, with nothing to install. It's meant for Android and Steam Deck, where the program doesn't run, and it works on a PC too. Your game is never uploaded: everything happens on your device.
 
 1. Open the page in a recent version of Chrome or Firefox (on a Steam Deck, in Desktop Mode) and choose your game file.
 2. Change the options if you want, press **Make the mod** and keep the page open until it finishes.
@@ -107,7 +103,7 @@ The **[web page](https://popzol.github.io/4u-heavenfall-mod-beta/)** makes the s
 
 - **To uninstall:** Click **Uninstall** on the Install page. This restores the game to its original state. The program only removes the files it installed.
 - **To change your options:** Change them on the Options page and click **Update** on the Install page (or **Apply now** on the Options page).
-- **If you used the web page:** To uninstall, delete the mod's folder from `load/mods/`. To change your options or update, delete it too, then make the mod again and move in the new folder: old files left behind would still be loaded.
+- **If you used the web installer:** To uninstall, delete the mod's folder from `load/mods/`. To change your options or update, delete it too, then make the mod again and move in the new folder: old files left behind would still be loaded.
 
 ## Questions and problems
 
