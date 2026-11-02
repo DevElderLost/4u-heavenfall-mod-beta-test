@@ -63,7 +63,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
    The game update is optional; the mod works with or without it installed.
 
-## Installation, step by step
+## Installation
 
 **1. Download the program.** Download `HeavenfallBeta-windows.zip` from the latest "Heavenfall Single-Screen Mod" release on the [Releases page](../../releases/latest) and extract it anywhere (for example, on your Desktop).
 
