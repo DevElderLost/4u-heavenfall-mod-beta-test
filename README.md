@@ -6,7 +6,7 @@ Heavenfall Beta is the single-screen module of Heavenfall, a mod for Monster Hun
 
 You choose your options in a small program, press one button, and it installs the mod into your emulator. Your game file is never modified.
 
-**[Download it from the Releases page](../../releases/latest)** (`HeavenfallBeta-windows.zip`), then follow the [installation instructions](#installation-step-by-step).
+**[Download it from the Releases page](../../releases/latest)** (the latest "Heavenfall Single-Screen Mod" release, file `HeavenfallBeta-windows.zip`), then follow the [installation instructions](#installation-step-by-step).
 
 ## Join the community
 
@@ -65,7 +65,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 ## Installation, step by step
 
-**1. Download the program.** Download `HeavenfallBeta-windows.zip` from the latest release on the [Releases page](../../releases/latest) and extract it anywhere (for example, on your Desktop).
+**1. Download the program.** Download `HeavenfallBeta-windows.zip` from the latest "Heavenfall Single-Screen Mod" release on the [Releases page](../../releases/latest) and extract it anywhere (for example, on your Desktop).
 
 **2. Open it.** Double-click `HeavenfallBeta.exe`. Since the program is not digitally signed, Windows may display a "Windows protected your PC" warning. If you downloaded it from the official repository, click **More info**, then **Run anyway**. The program automatically selects English or Spanish based on your system language. You can change it at the bottom of the left panel.
 
