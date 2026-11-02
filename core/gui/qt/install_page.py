@@ -24,7 +24,7 @@ from core.app.edition import edition
 from core.install import find_games
 from core.install.targets import mods_folder_for
 from core.gui.i18n import T
-from core.gui.strings import REGIONS, install_error
+from core.gui.strings import REGIONS, describe_problem
 from core.gui.qt import jobs
 from core.gui.qt.page import Page
 from core.gui.qt.state import AppState
@@ -136,21 +136,6 @@ STAGE_NAMES = {
     "install": T("Copiando…", "Copying…"),
     "done": T("Listo", "Done"),
 }
-
-_PROBLEM_WORDS = {
-    "the file was not found": T("no se encontró el archivo", "the file was not found"),
-    "(title ": T("(título ", "(title "),     # after the refusal of a game the mod does not know
-}
-
-
-def _problem_words() -> dict:
-    """The English texts a problem may hold, with their translations (the game file refusals by kind)."""
-    from core.game.executable.containers import MESSAGES
-    from core.install.build import GAME_PROBLEMS
-    from core.gui.strings import EXTRACT_ERRORS
-    from core.gui.strings import GAME_PROBLEMS as TRANSLATIONS
-    return {**_PROBLEM_WORDS, **{MESSAGES[kind]: text for kind, text in EXTRACT_ERRORS.items()},
-            **{GAME_PROBLEMS[kind]: text for kind, text in TRANSLATIONS.items()}}
 
 # ---- seams ----------------------------------------------------------------------------------------------------------
 
@@ -314,22 +299,10 @@ def file_region(path: str) -> T | None:
     return REGIONS[kind[1]] if kind else None
 
 
-def _describe_problem(problem: str, language: str, words: dict) -> str:
-    """One refusal in the player's language: a whole message of the install path (strings.INSTALL_ERRORS), else its
-    known pieces (a game file's refusals by kind)."""
-    translated = install_error(problem, language)
-    if translated is not None:
-        return translated
-    for english, text in words.items():
-        problem = problem.replace(english, text(language))
-    return problem
-
-
 def describe_failure(failure: Failure | str, language: str) -> str:
-    words = _problem_words()
     if isinstance(failure, Failure):
-        return "; ".join(_describe_problem(problem, language, words) for problem in failure.problems)
-    return _describe_problem(failure, language, words)
+        return "; ".join(describe_problem(problem, language) for problem in failure.problems)
+    return describe_problem(failure, language)
 
 
 # ---- one run ---------------------------------------------------------------------------------------------------------

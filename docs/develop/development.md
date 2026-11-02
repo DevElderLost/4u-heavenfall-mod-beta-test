@@ -58,6 +58,33 @@ it to the release of that tag (creating the release when there is none). Running
 Release > Run workflow) only builds, and keeps the zip as an artifact of the run. Keep the version in
 `pyproject.toml` and `core/__init__.py` equal to the tag.
 
+## The web page
+
+The same build runs in the player's browser, for devices that cannot run the program (Android, Steam Deck). It is a
+static site: no server does any work, and the game file never leaves the device.
+
+```
+python tools/release/build_web.py                 # write the site into work/web/site
+python tools/release/build_web.py --serve         # ... and serve it on your network, to try it on a phone
+python tools/release/build_web.py --pin VERSION   # move to another Pyodide version
+```
+
+The tool needs only the standard library. What runs where:
+
+| File | What it does |
+|---|---|
+| `web/index.html`, `page.js`, `style.css` | The page: its texts in both languages, the options, the install steps |
+| `web/worker.js` | Runs the engine outside the page, so the page keeps responding |
+| `web/engine.js` | Starts Python (Pyodide), mounts the game so that only the pieces asked for are read, calls `core/app/web.py` |
+| `web/pyodide.json` | The Pyodide version and the checksum of every file the site serves |
+| `core/app/web.py` | What the page asks of Python: the options, the check of the game, the mod as a zip. The run is the program's own |
+| `core/app/pipeline.py` and what it imports | The build: it must keep working without threads, subprocesses or native code other than `zstandard` |
+
+The options come from the program's own list (`core/gui/options.py`), so a new option appears on the page by itself.
+
+The workflow in `.github/workflows/pages.yml` publishes the site on GitHub Pages for every tag, or by hand (Actions >
+Web page > Run workflow). The repository's Settings > Pages > Source must be "GitHub Actions".
+
 ## The compiled code
 
 The code added to the game is already compiled, in `core/game/executable/generated/code_space.json`: running or building
@@ -76,4 +103,5 @@ Heavenfall's other features (the randomizer, other monsters, the 3DS). `core` is
 | `core/game/data/curated/` | Every decision as data: the interface arrangement (`game_gui/`), the defaults, sizes |
 | `tools/ui/ui.py`, `ui_recorder.py`, `ui_probe.py` | The interface tools ([editing_the_ui.md](editing_the_ui.md)) |
 | `tools/release/build_exe.py`, `heavenfall.spec`, `exe/` | The Windows build |
+| `web/`, `tools/release/build_web.py` | The web page and its site |
 | `docs/` | This documentation |

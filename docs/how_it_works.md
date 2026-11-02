@@ -53,7 +53,9 @@ install: copied into <emulator>/load/mods/<title>/   (0004000000126100 European,
 4. **The copy** (`core/install/deploy.py`): the new files go into a folder beside the target first and replace
    the previous install in one step; anything this program did not install is never touched without asking.
 
-The same run without the window: `python -m core --rom GAME --out FOLDER` (options: `--help`).
+The same run without the window: `python -m core --rom GAME --out FOLDER` (options: `--help`). In a browser, on devices
+that cannot run the program: the web page ([development.md](develop/development.md), "The web page"), which makes the
+mod on the player's device and leaves step 4 to the player.
 
 ## The executable: one version to write patches for
 

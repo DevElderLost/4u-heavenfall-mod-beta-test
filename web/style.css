@@ -1,0 +1,149 @@
+/* The program's colours (core/gui/qt/theme.py), for a phone first: one column, touch targets of 44 px or more. */
+:root {
+  --background: #0d0b0e;
+  --card: #1a161e;
+  --border: #2e2735;
+  --text: #eeeadb;
+  --muted: #a199ab;
+  --gold: #d8a818;
+  --gold-hover: #e8bb30;
+  --danger: #ff8a85;
+  --good: #8fd18f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0 auto;
+  max-width: 640px;
+  padding: 16px;
+  background: var(--background);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow-wrap: anywhere;
+}
+
+h1 { margin: 0; font-size: 1.4rem; line-height: 1.2; color: var(--gold); }
+h2 { margin: 0 0 8px; font-size: 1.15rem; }
+h3 { margin: 20px 0 4px; font-size: 1rem; color: var(--gold); }
+p { margin: 8px 0; }
+a { color: var(--gold); }
+
+.top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.logo { flex: none; border-radius: 10px; }
+.heading { flex: 1; min-width: 0; }
+.heading p { margin: 2px 0 0; color: var(--muted); font-size: .9rem; }
+
+.card {
+  margin: 12px 0;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.note { color: var(--muted); font-size: .9rem; }
+.problem { color: var(--danger); }
+
+button, .button, select { font: inherit; }
+
+.button {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 16px;
+  background: var(--border);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button.primary { background: var(--gold); border-color: var(--gold); color: #1a1200; }
+.button.primary:hover:not(:disabled) { background: var(--gold-hover); }
+.button:disabled { opacity: .45; cursor: default; }
+.button[hidden], [hidden] { display: none; }
+
+.quiet {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: none;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* The real file input stays reachable by keyboard and screen readers; its label is the visible button. */
+.picker { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.picker:focus-visible + .status, label.button:focus-within { outline: 2px solid var(--gold); }
+
+.status { min-height: 1.5em; }
+.status.good { color: var(--good); }
+.status.bad { color: var(--danger); }
+
+progress { display: block; width: 100%; height: 8px; margin: 12px 0 0; accent-color: var(--gold); }
+
+details { margin-top: 8px; color: var(--muted); }
+summary { min-height: 32px; cursor: pointer; }
+#options-box > summary { min-height: 44px; padding: 10px 0; color: var(--gold); font-weight: 600; }
+#options-box { color: var(--text); }
+
+.group { padding: 10px 0; border-top: 1px solid var(--border); }
+.group:first-of-type { border-top: 0; }
+.group-title { margin: 0; font-weight: 600; }
+.help { margin: 2px 0 8px; color: var(--muted); font-size: .875rem; }
+
+.option { margin: 10px 0; }
+.option.off { opacity: .45; }
+
+.line { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 10px 0; cursor: pointer; }
+.line input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--gold); }
+
+.field { display: block; margin-bottom: 4px; font-weight: 500; }
+
+select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  background: var(--background);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.number { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.number input { flex: 1; min-width: 0; accent-color: var(--gold); }
+.number output { flex: none; min-width: 2.5em; text-align: right; font-weight: 600; }
+
+fieldset { margin: 0; padding: 0; border: 0; }
+legend { padding: 0; font-weight: 500; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+.tab {
+  flex: 1;
+  min-height: 44px;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.tab[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); font-weight: 600; }
+
+ol { margin: 8px 0; padding-left: 24px; }
+li { margin: 8px 0; }
+code { padding: 1px 4px; background: var(--background); border-radius: 4px; font-size: .9em; }
+
+footer { margin: 20px 0; color: var(--muted); font-size: .85rem; }
+pre {
+  padding: 8px;
+  background: var(--card);
+  border-radius: 8px;
+  font-size: .8rem;
+  white-space: pre-wrap;
+}

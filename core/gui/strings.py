@@ -244,6 +244,27 @@ def install_error(problem: str, language: str) -> str | None:
     return None
 
 
+PROBLEM_WORDS = {
+    "the file was not found": T("no se encontró el archivo", "the file was not found"),
+    "(title ": T("(título ", "(title "),     # after the refusal of a game the mod does not know
+}
+
+
+def describe_problem(problem: str, language: str) -> str:
+    """One refusal in the player's language: a whole message of the install path (INSTALL_ERRORS), else its known
+    pieces (a game file's refusals by kind)."""
+    translated = install_error(problem, language)
+    if translated is not None:
+        return translated
+    from core.game.executable.containers import MESSAGES
+    from core.install.build import GAME_PROBLEMS as ENGLISH
+    words = {**PROBLEM_WORDS, **{MESSAGES[kind]: text for kind, text in EXTRACT_ERRORS.items()},
+             **{ENGLISH[kind]: text for kind, text in GAME_PROBLEMS.items()}}
+    for english, text in words.items():
+        problem = problem.replace(english, text(language))
+    return problem
+
+
 # The region a game file is from, shown beside its picker
 REGIONS = {"eur": T("Europa", "Europe"), "usa": T("América", "America")}
 FIX_APPLIED_INSTALLED = T("Arreglo instalado: revisión {revision}, código {code}. Envía {file} a quien juegue contigo.",

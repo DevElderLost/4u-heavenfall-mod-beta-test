@@ -35,7 +35,8 @@ jobs:
           [importlib.import_module('.'.join(p.with_suffix('').parts)) for p in sorted(pathlib.Path('core').rglob('*.py'))
           if p.name != '__main__.py']"
 
-      - name: The command line and the interface tools start
+      - name: The command line and the interface tools start, and the web page's site is written
         run: |
           python -m core --help
           python tools/ui/ui.py --help
+          python tools/release/build_web.py --skip-pyodide --out work/web/site

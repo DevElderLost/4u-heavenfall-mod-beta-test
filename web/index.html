@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Heavenfall Beta</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="stylesheet" href="style.css">
+<script type="module" src="page.js"></script>
+</head>
+<body data-state="loading">
+<header class="top">
+  <img class="logo" src="logo.png" alt="" width="56" height="56">
+  <div class="heading">
+    <h1>Heavenfall Beta</h1>
+    <p data-text="tagline"></p>
+  </div>
+  <button id="language" type="button" class="quiet"></button>
+</header>
+
+<main>
+  <p class="note" data-text="privacy"></p>
+  <p id="unsupported" class="problem" role="alert" hidden></p>
+  <noscript><p class="problem">This page needs JavaScript. / Esta página necesita JavaScript.</p></noscript>
+
+  <section class="card">
+    <h2 data-text="gameTitle"></h2>
+    <p data-text="gameHelp"></p>
+    <label class="button" for="game" data-text="choose"></label>
+    <input id="game" type="file" class="picker">
+    <p id="game-status" class="status" role="status"></p>
+    <details>
+      <summary data-text="gameMissing"></summary>
+      <p id="game-missing"></p>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2 data-text="optionsTitle"></h2>
+    <p data-text="optionsHelp"></p>
+    <details id="options-box">
+      <summary data-text="optionsShow"></summary>
+      <div id="options"></div>
+      <button id="reset" type="button" class="quiet" data-text="reset"></button>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2 data-text="buildTitle"></h2>
+    <button id="build" type="button" class="button primary" disabled data-text="build"></button>
+    <progress id="progress" hidden></progress>
+    <p id="build-status" class="status" role="status"></p>
+    <a id="download" class="button primary" hidden></a>
+  </section>
+
+  <section class="card">
+    <h2 data-text="installTitle"></h2>
+    <div class="tabs" role="group" data-label="platform">
+      <button type="button" class="tab" data-platform="android">Android</button>
+      <button type="button" class="tab" data-platform="deck">Steam Deck</button>
+    </div>
+    <ol id="install-steps"></ol>
+    <p id="install-note" class="note"></p>
+    <p id="install-untested" class="note" data-text="deckUntested"></p>
+  </section>
+</main>
+
+<footer>
+  <details id="diagnostics">
+    <summary data-text="diagnostics"></summary>
+    <p data-text="diagnosticsHelp"></p>
+    <pre id="diagnostics-text"></pre>
+  </details>
+  <p data-text="windows"></p>
+  <p>
+    <a href="https://github.com/popzol/4u-heavenfall-mod-beta" data-text="source"></a> ·
+    <a href="LICENSE.txt" data-text="license"></a> ·
+    <a href="THIRD_PARTY.txt" data-text="thirdParty"></a>
+  </p>
+  <p data-text="trademark"></p>
+</footer>
+</body>
+</html>

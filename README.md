@@ -8,19 +8,22 @@ You choose your options in a small program, press one button, and it installs th
 
 **[Download it from the Releases page](../../releases/latest)** (the latest "Heavenfall Single-Screen Mod" release, file `HeavenfallBeta-windows.zip`), then follow the [installation instructions](#installation-step-by-step).
 
+**On Android or Steam Deck?** You don't need the program: **[make the mod on the web page](https://popzol.github.io/4u-heavenfall-mod-beta/)** ([how](#on-android-or-steam-deck)).
+
 ## Join the community
 
 Want to follow development, ask questions, report bugs, or share feedback? Come join the **[Heavenfall Discord server](https://discord.gg/qQwPRc8CDF)**!
 
 It's the best place to get help, discuss the mod and keep up with the latest news.
 
-> **Status:** Beta. Heavenfall Beta is currently compatible with the **Azahar** and **Citra** emulators on PC only. It does not work on a real 3DS.
+> **Status:** Beta. Heavenfall Beta is currently compatible with the **Azahar** and **Citra** emulators on PC, and with **Azahar** on Android. It has not been tried on a real Steam Deck yet. It does not work on a real 3DS.
 
 ## Contents
 
 - [What the mod adds](#what-the-mod-adds)
 - [What you need](#what-you-need)
 - [Installation, step by step](#installation-step-by-step)
+- [On Android or Steam Deck](#on-android-or-steam-deck)
 - [Removing or updating the mod](#removing-or-updating-the-mod)
 - [Questions and problems](#questions-and-problems)
 - [For developers](#for-developers)
@@ -55,7 +58,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 ## What you need
 
-1. **A Windows computer.** On other operating systems, you can run the program using Python (see the end of the installation instructions).
+1. **A Windows computer.** On other operating systems, you can run the program using Python (see the end of the installation instructions). On Android or Steam Deck, you only need a browser ([see below](#on-android-or-steam-deck)).
 2. **The Azahar emulator** ([azahar-emu.org](https://azahar-emu.org/)) or Citra.
 3. **Your own decrypted copy of Monster Hunter 4 Ultimate (European or American version).** Supported formats are `.3ds`, `.cia`, and Azahar's compressed `.zcci` or `.zcia` formats.
 
@@ -88,10 +91,23 @@ python -m core.gui
 
 > **Tip:** Keep a backup of your save before installing a new mod, just in case.
 
+## On Android or Steam Deck
+
+The **[web page](https://popzol.github.io/4u-heavenfall-mod-beta/)** makes the same mod in your browser, with nothing to install. Your game is never uploaded: everything happens on your device.
+
+1. Open the page in a recent version of Chrome or Firefox (on a Steam Deck, in Desktop Mode) and choose your game file.
+2. Change the options if you want, press **Make the mod** and keep the page open until it finishes.
+3. Download the zip and extract it. Inside is a folder named `0004000000126100` (European game) or `0004000000126300` (American game).
+4. Move that folder into `load/mods/` inside Azahar's user folder. It must end up as `load/mods/0004000000126100/romfs`. The page shows the steps for your device.
+5. Choose the **Single Screen** layout in Azahar and open the game.
+
+> **Steam Deck:** these steps haven't been tried on a real Steam Deck yet. If something doesn't match, please let me know on my Discord server.
+
 ## Removing or updating the mod
 
 - **To uninstall:** Click **Uninstall** on the Install page. This restores the game to its original state. The program only removes the files it installed.
 - **To change your options:** Change them on the Options page and click **Update** on the Install page (or **Apply now** on the Options page).
+- **If you used the web page:** To uninstall, delete the mod's folder from `load/mods/`. To change your options or update, delete it too, then make the mod again and move in the new folder: old files left behind would still be loaded.
 
 ## Questions and problems
 

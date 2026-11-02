@@ -1,0 +1,14 @@
+Heavenfall Beta, a module of Heavenfall, is released under the GNU General Public License, version 3 or (at your
+option) any later version (LICENSE.txt). Its source code: https://github.com/popzol/4u-heavenfall-mod-beta
+
+The page reads your own Monster Hunter 4 Ultimate file in your browser and sends nothing anywhere; it carries none of the
+game's data. Monster Hunter belongs to Capcom; this mod is not affiliated with Capcom or Nintendo.
+
+Programs and libraries the page loads, unmodified, from its pyodide folder:
+
+* Pyodide (Mozilla Public License 2.0), https://pyodide.org, https://github.com/pyodide/pyodide
+* Python (Python Software Foundation License), https://www.python.org
+* python-zstandard and Zstandard (BSD licence), https://github.com/indygreg/python-zstandard, for Azahar's
+  compressed game files
+* CFFI (MIT License), https://github.com/python-cffi/cffi, and pycparser (BSD licence),
+  https://github.com/eliben/pycparser, which python-zstandard's package depends on
