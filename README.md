@@ -20,7 +20,7 @@ It's the best place to get help, discuss the mod and keep up with the latest new
 
 - [What the mod adds](#what-the-mod-adds)
 - [What you need](#what-you-need)
-- [Installation, step by step](#installation-step-by-step)
+- [Installation, step by step](#installation)
 - [Removing or updating the mod](#removing-or-updating-the-mod)
 - [Questions and problems](#questions-and-problems)
 - [For developers](#for-developers)
