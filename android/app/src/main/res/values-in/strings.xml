@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Heavenfall Beta</string>
+    <string name="tagline">Monster Hunter 4 Ultimate di satu layar, untuk Azahar</string>
+    <string name="privacy">File game hanya dibaca, tidak diubah atau diunggah: semuanya diproses di HP ini.</string>
+    <string name="tab_install">Instal</string>
+    <string name="tab_options">Opsi</string>
+
+    <string name="game_title">1. Game kamu</string>
+    <string name="game_help">Monster Hunter 4 Ultimate versi Eropa atau Amerika yang sudah didekripsi (.3ds, .cia). Update tidak diperlukan.</string>
+    <string name="choose_game">Pilih file game</string>
+    <string name="game_none">Belum ada file dipilih.</string>
+    <string name="game_ok">%1$s (%2$s)</string>
+
+    <string name="dest_title">2. Folder Azahar</string>
+    <string name="dest_help">Pilih folder user Azahar (yang berisi load/mods; biasanya muncul di menu samping pemilih file). Mod disimpan ke load/mods/&lt;title&gt;. Kalau tidak muncul, pakai \"Simpan sebagai zip\" lalu ekstrak ke sana dengan file manager.</string>
+    <string name="choose_dest">Pilih folder Azahar</string>
+    <string name="dest_none">Belum ada folder dipilih.</string>
+    <string name="dest_chosen">Folder: %1$s</string>
+
+    <string name="install">Instal</string>
+    <string name="save_zip">Simpan sebagai zip…</string>
+    <string name="install_hint">Pilih file game yang valid dan folder Azahar untuk menginstal.</string>
+
+    <string name="working_loading">Memulai Python…</string>
+    <string name="working_checking">Memeriksa game…</string>
+    <string name="working_copying">Menyalin file game (pemilih file tidak memberi akses langsung)…</string>
+    <string name="stage_rom">Membaca game…</string>
+    <string name="stage_write">Membuat mod…</string>
+    <string name="stage_zip">Mengemas mod…</string>
+    <string name="stage_install">Menyalin mod ke Azahar: %1$d / %2$d file</string>
+
+    <string name="done_installed">Terpasang di load/mods/%1$s. Mulai ulang emulasi kalau game sedang berjalan, lalu pilih layout Single Screen di Azahar.</string>
+    <string name="done_zip_saved">Zip tersimpan. Ekstrak sampai load/mods/&lt;title&gt;/romfs ada di dalam folder user Azahar.</string>
+    <string name="notices_title">Tidak disertakan:</string>
+    <string name="err_generic">Terjadi kesalahan.</string>
+    <string name="err_destination">Folder Azahar tidak bisa ditulis. Pilih lagi.</string>
+
+    <string name="replace_title">Ganti folder yang sudah ada?</string>
+    <string name="replace_text">Folder itu berisi file yang bukan dari Heavenfall Beta. File tersebut akan dihapus.</string>
+    <string name="replace_yes">Ganti</string>
+    <string name="replace_no">Batal</string>
+</resources>

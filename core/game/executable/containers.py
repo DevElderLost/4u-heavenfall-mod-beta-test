@@ -21,7 +21,10 @@ import threading
 from collections import OrderedDict
 from pathlib import Path
 
-import zstandard
+try:
+    import zstandard
+except ImportError:    # a build without the package (the Android app may lack its wheel): only .zcci/.zcia need it
+    zstandard = None
 
 # Every extension a player's game file may have: the file pickers and tools/build/setup_local.py list them.
 EXTENSIONS = (".3ds", ".cci", ".cxi", ".app", ".cia", ".zcci", ".zcxi", ".zcia")
@@ -336,6 +339,9 @@ class _ZstdFile(_View):
 
 
 def _open_z3ds(raw, path: Path) -> _ZstdFile:
+    if zstandard is None:
+        raise ExtractError("compressed game files (.zcci, .zcxi, .zcia) need the zstandard package, which this build "
+                           "does not include; use the .3ds or .cia file instead")
     status = os.fstat(raw.fileno())
     key = (os.path.abspath(path), status.st_size, status.st_mtime_ns)
     with _lock:
