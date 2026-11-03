@@ -41,7 +41,10 @@ class InstallViewModel(app: Application) : AndroidViewModel(app) {
 
     var game by mutableStateOf<GameState?>(null)
         private set
-    var destination by mutableStateOf<Uri?>(preferences.getString("destination", null)?.let(Uri::parse))
+    // the folder of an earlier run, unless its permission is gone (then it is chosen again)
+    var destination by mutableStateOf<Uri?>(
+        preferences.getString("destination", null)?.let(Uri::parse)?.takeIf { folder.usable(it) },
+    )
         private set
     var destinationName by mutableStateOf<String?>(null)
         private set
@@ -50,7 +53,16 @@ class InstallViewModel(app: Application) : AndroidViewModel(app) {
     var confirmReplace by mutableStateOf(false)
         private set
 
+    /** Whether "All files access" is on (Android 11 and newer): the game is read where it is, the mod written as files. */
+    var allFiles by mutableStateOf(StorageAccess.hasAllFiles())
+        private set
+
     val busy: Boolean get() = status is Status.Working
+
+    /** Read the switch again: the player may have changed it in the system's settings. */
+    fun refreshStorage() {
+        allFiles = StorageAccess.hasAllFiles()
+    }
 
     init {
         destination?.let { uri ->
@@ -153,7 +165,7 @@ class InstallViewModel(app: Application) : AndroidViewModel(app) {
             var zip: File? = null
             try {
                 val title = chosen.check.title ?: throw IOException(string(R.string.err_generic))
-                val mods = folder.modsDirectory(tree) ?: throw IOException(string(R.string.err_destination))
+                val mods = folder.target(tree) ?: throw IOException(string(R.string.err_destination))
                 if (!replaceConfirmed && folder.isForeign(mods, title)) {
                     confirmReplace = true
                     return@launch

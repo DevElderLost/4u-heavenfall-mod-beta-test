@@ -6,6 +6,11 @@
     <string name="tab_install">Instal</string>
     <string name="tab_options">Opsi</string>
 
+    <string name="storage_title">Izin penyimpanan</string>
+    <string name="storage_help">Opsional, Android 11 ke atas. Dengan \"Akses semua file\", game dibaca langsung dari lokasinya dan mod ditulis sebagai file biasa, jadi tidak ada penyalinan berulang dan instal ulang hanya menulis file yang berubah. Tanpa izin ini aplikasi memakai pemilih file, yang juga berfungsi. Folder di dalam Android/data aplikasi lain selalu lewat pemilih file.</string>
+    <string name="storage_grant">Izinkan akses semua file</string>
+    <string name="storage_granted">Akses semua file aktif.</string>
+
     <string name="game_title">1. Game kamu</string>
     <string name="game_help">Monster Hunter 4 Ultimate versi Eropa atau Amerika yang sudah didekripsi (.3ds, .cia). Update tidak diperlukan.</string>
     <string name="choose_game">Pilih file game</string>

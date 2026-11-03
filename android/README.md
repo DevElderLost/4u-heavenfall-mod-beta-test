@@ -19,6 +19,16 @@ Azahar's compressed files (`.zcci`, `.zcxi`, `.zcia`) need the `zstandard` packa
 for yet on Python 3.13. The app refuses them with a message; use the `.3ds` or `.cia`. To try them, build with
 `-Pheavenfall.zstd=true` (it adds the package; the build fails if the wheel does not exist).
 
+## Storage access
+
+The file picker (SAF) is enough to use the app. On Android 11 and newer the Install page also offers **All files
+access** (`MANAGE_EXTERNAL_STORAGE`): with it the game is read where it is and the mod is written as plain files, so
+the game is not copied and installing again writes only the files that changed (each file is compared by size and
+CRC32 with the one already in the folder; files the mod no longer has are deleted). Without it, or for a folder inside
+another app's `Android/data` (which Android does not open even with that permission), the picker's URIs are used, with
+the same comparison. When the picker gives no real file for the game, one copy is kept in the cache and reused until the
+chosen file changes.
+
 ## Build
 
 On GitHub: **Actions > Android app > Run workflow**, then download the `HeavenfallBeta-android` artifact (a zip with the

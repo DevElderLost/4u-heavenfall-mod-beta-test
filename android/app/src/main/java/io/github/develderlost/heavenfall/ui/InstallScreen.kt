@@ -1,5 +1,6 @@
 package io.github.develderlost.heavenfall.ui
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +30,7 @@ fun InstallScreen(
     onPickGame: () -> Unit,
     onPickDestination: () -> Unit,
     onSaveZip: () -> Unit,
+    onGrantStorage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val game = model.game
@@ -49,6 +51,22 @@ fun InstallScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.storage_title), style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.storage_help), style = MaterialTheme.typography.bodySmall)
+                    if (model.allFiles) {
+                        Text(stringResource(R.string.storage_granted))
+                    } else {
+                        OutlinedButton(onClick = onGrantStorage, enabled = idle) {
+                            Text(stringResource(R.string.storage_grant))
+                        }
+                    }
+                }
+            }
+        }
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

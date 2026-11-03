@@ -2,6 +2,8 @@ package io.github.develderlost.heavenfall
 
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
@@ -91,10 +93,19 @@ class HeavenfallBridge(private val context: Context) {
     }
 
     /**
-     * The chosen game as a path Python can read. The picker's file descriptor is reopened through /proc/self/fd when
-     * it is a real, seekable file (no copy of a 1 GB game); otherwise the game is copied to the cache first.
+     * The chosen game as a path Python can read, without copying it whenever that is possible:
+     * 1. with "All files access", the real file behind the picker's URI;
+     * 2. the picker's file descriptor reopened through /proc/self/fd when it is a real, seekable file;
+     * 3. otherwise one copy in the cache, kept for the next call (the check and the build use the same copy) and
+     *    made again only when the chosen file is another one or has changed.
      */
     fun openGame(uri: Uri, onCopy: () -> Unit = {}): GameFile {
+        if (StorageAccess.hasAllFiles()) {
+            val real = StorageAccess.pathOf(uri)
+            if (real != null && real.isFile && real.canRead()) {
+                return GameFile(real.absolutePath) {}
+            }
+        }
         val resolver = context.contentResolver
         val descriptor = resolver.openFileDescriptor(uri, "r") ?: throw IOException("cannot open $uri")
         val direct = "/proc/self/fd/${descriptor.fd}"
@@ -102,12 +113,43 @@ class HeavenfallBridge(private val context: Context) {
             return GameFile(direct) { descriptor.close() }
         }
         descriptor.close()
-        onCopy()
         val copy = File(context.cacheDir, "game-copy")
+        val note = File(context.cacheDir, "game-copy.key")
+        val fingerprint = fingerprint(uri)
+        val key = "$uri|$fingerprint"
+        if (fingerprint != null && copy.isFile && note.isFile && note.readText() == key) {
+            return GameFile(copy.absolutePath) {}
+        }
+        onCopy()
+        note.delete()
+        val part = File(context.cacheDir, "game-copy.part")
         val input = resolver.openInputStream(uri) ?: throw IOException("cannot read $uri")
-        input.use { source -> copy.outputStream().use { target -> source.copyTo(target, 1 shl 20) } }
-        return GameFile(copy.absolutePath) { copy.delete() }
+        input.use { source -> part.outputStream().use { target -> source.copyTo(target, 1 shl 20) } }
+        copy.delete()
+        if (!part.renameTo(copy)) {
+            throw IOException("cannot keep the copy of the game")
+        }
+        if (fingerprint != null) {
+            note.writeText(key)
+        }
+        return GameFile(copy.absolutePath) {}
     }
+
+    /** The picker's size and modification time of the file, to know a kept copy is still of this file; null if unknown. */
+    private fun fingerprint(uri: Uri): String? =
+        try {
+            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (!cursor.moveToFirst()) {
+                    return@use null
+                }
+                val size = cursor.getColumnIndex(OpenableColumns.SIZE).takeIf { it >= 0 && !cursor.isNull(it) }
+                val modified = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                    .takeIf { it >= 0 && !cursor.isNull(it) }
+                if (size == null || modified == null) null else "${cursor.getLong(size)}-${cursor.getLong(modified)}"
+            }
+        } catch (e: Exception) {
+            null
+        }
 
     private fun seekable(path: String): Boolean =
         try {

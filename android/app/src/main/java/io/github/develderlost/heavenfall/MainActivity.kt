@@ -20,4 +20,9 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        model.refreshStorage()      // "All files access" is switched in the system's settings, outside the app
+    }
 }

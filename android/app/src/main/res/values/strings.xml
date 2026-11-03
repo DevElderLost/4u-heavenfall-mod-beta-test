@@ -6,6 +6,11 @@
     <string name="tab_install">Install</string>
     <string name="tab_options">Options</string>
 
+    <string name="storage_title">Storage access</string>
+    <string name="storage_help">Optional, Android 11 and newer. With \"All files access\" the game is read where it is and the mod is written as plain files, so nothing is copied twice and installing again only writes what changed. Without it the app uses the file picker, which also works. A folder inside another app\'s Android/data always goes through the picker.</string>
+    <string name="storage_grant">Allow access to all files</string>
+    <string name="storage_granted">All files access is on.</string>
+
     <string name="game_title">1. Your game</string>
     <string name="game_help">The decrypted European or American Monster Hunter 4 Ultimate (.3ds, .cia). The update is not needed.</string>
     <string name="choose_game">Choose game file</string>

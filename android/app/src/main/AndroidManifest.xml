@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No permissions: the game file and the emulator's folder are chosen with the system's file picker. -->
+    <!-- The game file and the emulator's folder are chosen with the system's file picker (SAF), which needs no
+         permission. "All files access" (Android 11 and newer) is optional: with it the game is read where it is and
+         the mod is written as plain files, instead of going through content:// URIs (copies of the game, slower
+         writes). The app asks for it on its Install page and works without it. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"

@@ -6,6 +6,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### The program
 - The mod can be made in a browser on Android or PC, with nothing to install.
+- On Android 11 and newer the app can use "All files access": the game is read where it is, the mod is written as plain files, and installing again only writes the files that changed.
 
 ## 0.1.2
 
