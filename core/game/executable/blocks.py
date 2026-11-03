@@ -1108,7 +1108,7 @@ GAME_SYMBOLS |= {
 # The players' box (interface/single_screen/executable/single_screen_players.c)
 GAME_SYMBOLS |= {
     "members_refresh": 0xA6EEA0,        # FUN_00a6eea0(scene): fills the member list's four cards (hub state 0x14)
-    "group_depth": 0x28BEAC,            # FUN_0028beac(group, 0xff): a group's stereo depth (the game's own when 0xff)
+    "group_depth": 0x28BEAC,            # FUN_0028beac(group, 0xff): a group's shift for the touch bar (0xff: its place)
     "online_mode": 0x2B1040,            # FUN_002b1040(): the session's mode, 0 none, 1 local room, 2 online
 }
 

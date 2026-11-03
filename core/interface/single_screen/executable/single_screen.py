@@ -121,6 +121,12 @@ CHARACTER_LITERALS = ((HUNTER_X, HUNTER_X_ORIGINAL), (FELYNE_X, FELYNE_X_ORIGINA
                       (FELYNE_TURN, FELYNE_TURN_ORIGINAL), (CAMERA_Z, CAMERA_Z_ORIGINAL))
 CHARACTER_SHIFT_MAX = 110            # the hunter clips past about x 150
 
+# the touch menu bar's shift: the floats FUN_0028bfa0
+# and FUN_0028beac read, by the bar's place and a second index: on top 0, 0; at the bottom 36, 30
+BAR_SHIFT_TABLE = 0xDF53C8
+BAR_SHIFT_ORIGINAL = struct.pack("<2f", 36.0, 30.0)
+BAR_SHIFT_AT_BOTTOM = BAR_SHIFT_TABLE + 8
+
 SCREEN_PATCHES: dict[str, tuple[tuple[int, bytes, bytes], ...]] = {
     # the quest list: the lobby list's byte (FUN_00c0ff8c, index 2); its binder FUN_009e6910 keeps the loader's screen
     "ui409": ((0xEFE002, b"\x01", b"\x00"),),
@@ -419,6 +425,16 @@ def patch_character_models(code: bytes, shift: float) -> bytes:
     return bytes(out)
 
 
+def patch_bar_shift(code: bytes) -> bytes:
+    """`code` with the shift of the touch menu bar at the bottom at 0: FUN_0028bfa0 and FUN_0028beac read it from this
+    table for the groups' second translate, and it moved the groups on the top screen too."""
+    at = BAR_SHIFT_AT_BOTTOM - BASE_ADDRESS
+    if code[at:at + len(BAR_SHIFT_ORIGINAL)] != BAR_SHIFT_ORIGINAL:
+        raise CodeSpaceError(f"touch bar shift at {BAR_SHIFT_AT_BOTTOM:#x}: {code[at:at + 8].hex()} is not the "
+                             f"update's {BAR_SHIFT_ORIGINAL.hex()} (another executable, or already patched)")
+    return code[:at] + bytes(len(BAR_SHIFT_ORIGINAL)) + code[at + len(BAR_SHIFT_ORIGINAL):]
+
+
 def priority_table(offsets: dict[int, int]) -> bytes:
     """Block `single_screen_priorities`: the count, then {name hash, offset} per group, zero-padded."""
     if len(offsets) > SINGLE_SCREEN_ROOM:
@@ -518,6 +534,7 @@ def supports_single_screen(code: bytes) -> bool:
         return (all(code[a - BASE_ADDRESS:a - BASE_ADDRESS + len(old)] == old
                     for edits in SCREEN_PATCHES.values() for a, old, _new in edits)
                 and all(code[a - BASE_ADDRESS:a - BASE_ADDRESS + 4] == old for a, old in CHARACTER_LITERALS)
+                and code[BAR_SHIFT_AT_BOTTOM - BASE_ADDRESS:][:8] == BAR_SHIFT_ORIGINAL
                 and creation.supports_creation_camera(code)
                 and creation.supports_creation_panel(code)
                 and creation.supports_creation_boards(code)
@@ -554,9 +571,10 @@ def patch_single_screen(code: bytes, offsets: dict[int, int], layout: Layout | N
     """`code` (extended) in single-screen mode, with the curated settings: their `top_screen` layouts loaded on the
     top screen, the groups of `offsets` (name hash -> priority offset,
     interface/single_screen/layout/single_screen.priority_offsets of the placed layouts) drawn in front, ui006 on the
-    top screen while a prompt is open, the choose-character models moved right, the new game's touch-panel layout choice
-    skipped (B: interface/single_screen/executable/single_screen_layout.py) and a save's layout replaced by B when a
-    quest loads (interface/single_screen/executable/single_screen_panels.c), the Canteen's pay choice moving with the
+    top screen while a prompt is open, the touch menu bar's shift at 0, the choose-character models moved right, the
+    new game's touch-panel layout choice skipped (B: interface/single_screen/executable/single_screen_layout.py) and a
+    save's layout replaced by B when a quest loads (interface/single_screen/executable/single_screen_panels.c), the
+    Canteen's pay choice moving with the
     pad's left / right, the name keyboard on the top screen with the pad's virtual finger, X for the world map and its
     "[X] Map" hint, the town minimap on the top screen with its button and hint, and the frames of the Palico menus
     (interface/single_screen/executable/single_screen_frames.py), and the guild card hidden and shown with Y (its hint
@@ -567,6 +585,7 @@ def patch_single_screen(code: bytes, offsets: dict[int, int], layout: Layout | N
     layout = layout or load_layout()
     out = patch_pools(patch_character_models(patch_screens(code, top_screen_layouts()), character_shift()),
                       gui_pool_nulls())
+    out = patch_bar_shift(out)
     out = creation.patch_creation_panel(creation.patch_creation_camera(out, layout=layout))
     out = creation.patch_creation_boards(out, layout=layout)
     out = creation.patch_creation_pad(out, layout)

@@ -6,6 +6,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### One screen
 - Hunters who chose the other touch layout get the one that keeps the map on top.
+- The world map and menus stay in place when the touch bar is at the bottom.
 
 ### Hunting
 - Select kicks, and only Start opens the menu; you can turn it off.
