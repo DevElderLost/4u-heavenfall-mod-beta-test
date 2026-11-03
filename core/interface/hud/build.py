@@ -54,6 +54,14 @@ HUD_WRAPPED: dict[str, dict[str, tuple[str, ...]]] = {
     },
 }
 FRAME_SUFFIX = "_frame"
+# ARC in <lang>/data/ -> layout -> nulls of the file that take the factor as their scale while what is under them keeps
+# the file's numbers (scale_hud's `unscaled`), for panes whose size the code writes every frame in the file's units:
+# the item selector's icons, whose timer bar (the Wystone's) gets its height from the code.
+HUD_SCALED_NULLS: dict[str, dict[str, tuple[str, ...]]] = {
+    "core_quest.arc": {
+        "ui205": tuple(f"ui205_icon0{i}" for i in range(5)),
+    },
+}
 # One per area and language (164 each). The code moves the whole map layout; it is drawn as if the map's
 # 128x128 frame started at the screen's top-left corner, so its top-right corner is at (72, 120).
 # Only together with the executable patch (code_patch.patch_hud): the code places the map icons.
@@ -105,10 +113,13 @@ def quest_frames(factor: float) -> list[tuple[str, str, float, float, float]]:
 
 def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, AnchorSpec]], factor: float,
               wrapped: Mapping[str, Collection[str]] | None = None,
-              in_quest: Mapping[str, Mapping[str, AnchorSpec]] | None = None) -> bytes:
+              in_quest: Mapping[str, Mapping[str, AnchorSpec]] | None = None,
+              scaled_nulls: Mapping[str, Collection[str]] | None = None) -> bytes:
     """The ARC with the given layouts scaled, together with every animation of the ARC that moves them. `wrapped`:
     layout -> root groups (HUD_WRAPPED) that scale as one null instead of pane by pane. `in_quest`: layout -> root
-    groups (HUD_IN_QUEST) left at full size under one null each, which the executable scales in a quest."""
+    groups (HUD_IN_QUEST) left at full size under one null each, which the executable scales in a quest.
+    `scaled_nulls`: layout -> nulls of the file (HUD_SCALED_NULLS) that take the factor as their scale and leave what
+    is under them as the file has it."""
     arc = parse_arc(raw)
     entries = {short_name(e.name): e for e in arc.entries if e.type_hash == LYT_TYPE_HASH}
     animation_entries = [e for e in arc.entries if e.type_hash == LANL_TYPE_HASH]
@@ -126,7 +137,7 @@ def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, Anchor
             for group in (wrapped or {}).get(name, ()):
                 frames.append(group + FRAME_SUFFIX)
                 layout.wrap_children(layout.find(group), frames[-1], layout.plain_null())
-            scale_hud(layout, animations, factor, anchors, frames)
+            scale_hud(layout, animations, factor, anchors, [*frames, *(scaled_nulls or {}).get(name, ())])
         entries[name].data = layout.to_bytes()
     for entry, file in zip(animation_entries, animations):
         entry.data = file.to_bytes()
@@ -169,7 +180,8 @@ def hud_files(rom: GameFiles, factor: float,
             if target_hint and arc_name == QUEST_ARC:
                 raw = add_hint(raw)
             yield path, scale_arc(raw, layouts_of(arc_name, with_code_patch), factor, HUD_WRAPPED.get(arc_name),
-                                  HUD_IN_QUEST.get(arc_name) if with_code_patch else None)
+                                  HUD_IN_QUEST.get(arc_name) if with_code_patch else None,
+                                  HUD_SCALED_NULLS.get(arc_name))
         for path in map_paths:
             if path.startswith(lang + "/"):
                 raw = rom.read(path)

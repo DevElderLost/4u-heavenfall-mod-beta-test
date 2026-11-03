@@ -250,9 +250,9 @@ EQUIPMENT_SWITCHES = ("randomize_recipes", "randomize_weapon_stats", "randomize_
 # same seed may differ in them (they are left out of the fix checksum, core/app/fix.py). The monster icons only
 # change quest board pictures, which the checksum ignores.
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
-                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "layered_equipment",
-                   "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode", "cheat_no_bloom_dof",
-                   "cheat_fps",
+                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "select_kick", "hold_a",
+                   "layered_equipment", "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode",
+                   "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
@@ -391,6 +391,13 @@ class Settings:
     # Gathering, mining, bug catching, carving and fishing GATHER_SPEED times faster, on top of the Speed Gatherer
     # skill (core/gameplay/fast_gathering/fast_gathering.py)
     fast_gathering: bool = False
+    # Select kicks (the touch panel's "Special Attack") and only Start opens the Game Menu; without it Select opens
+    # the menu like Start (core/gameplay/select_kick/select_kick.py)
+    select_kick: bool = False
+    # Holding A repeats it: in a quest with the weapon sheathed (picking up, gathering, mining, carving), and in the
+    # quest rewards and the Wyporium's claim items panel, where A takes an item and the cursor goes on to the next
+    # (core/gameplay/hold_a/hold_a.py)
+    hold_a: bool = False
     # "Layered Equipment" at the Smithy: choose the look of each armor part and weapon class over what is worn
     # (core/equipment/layered/layered_equipment.py)
     layered_equipment: bool = False

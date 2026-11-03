@@ -150,6 +150,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # In the extension, so the older blocks keep their places.
     BlockSpec("fast_text", "fast_text", "interface/fast_text/fast_text.s", region="ext"),
     BlockSpec("fast_gathering", "fast_gathering", "gameplay/fast_gathering/fast_gathering.s", region="ext"),
+    # Holding A repeats it (gameplay/hold_a/hold_a.py): three entries, one for the hunter's
+    # input and one for each panel that takes items one at a time
+    BlockSpec("hold_a", "hold_a", "gameplay/hold_a/hold_a.c", region="ext"),
     # The cheats' per-frame writes (cheats/cheats.py): the code and its table of (object, offset,
     # value)
     BlockSpec("cheats", CHEATS, "cheats/cheats.s", region="ext"),
@@ -220,6 +223,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # ... and the Canteen's pay buttons driven with left / right: the pay choice's cursor step takes the pad's left and
     # right as up and down
     BlockSpec("single_screen_pay", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_pay.s",
+              region="ext"),
+    # ... and the touch-panel layout B on every save (interface/single_screen/executable/single_screen_layout.py): the
+    # quest HUD's load of the saved panels asks
+    # this block for the record, which writes layout B first when the record is not B
+    BlockSpec("single_screen_panels", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_panels.c",
               region="ext"),
     # ... and the creation's Aceptar / Atrás buttons driven with left / right: the menu cursor's call on the main pages
     # takes the pad's left and right as down and up on
@@ -1104,6 +1112,13 @@ GAME_SYMBOLS |= {
     "online_mode": 0x2B1040,            # FUN_002b1040(): the session's mode, 0 none, 1 local room, 2 online
 }
 
+# The touch-panel layout B on every save (interface/single_screen/executable/single_screen_panels.c): the saved panel
+# record and the game's own write of layout A or B
+GAME_SYMBOLS |= {
+    "panel_record": 0xC1CC9C,           # FUN_00c1cc9c(save, index): the saved touch-panel record (16 bytes each from 0)
+    "panel_layout_write": 0xC26754,     # FUN_00c26754(save, layout): record 0 as layout A (0) or B (1); r4 = layout
+}
+
 # The town minimap in a Gathering Hall (interface/single_screen/executable/single_screen_minimap_hall.c): what the hub
 # machine calls to show the map (its state 1) and to
 # hide it (on the way to 0x12 and 0x14)
@@ -1170,4 +1185,12 @@ GAME_SYMBOLS |= {
     "piece_step": 0xC2D364,             # FUN_00c2d364(piece, monster, flag): the cut piece's state machine
     "piece_angles": 0xB059F0,           # FUN_00b059f0(unit): the unit's quaternion (+0x50) from its angles (+0xD20)
     "piece_record": 0x94C45C,           # FUN_0094c45c(monster, flag): the piece's record in the monster's emd, or 0
+}
+
+# Holding A repeats it (gameplay/hold_a/hold_a.c): the hunter's item mode call, the quest
+# result scene and the Wyporium's claim panel (hunter_is_local, above, tells the hunter this console plays)
+GAME_SYMBOLS |= {
+    "hunter_item_mode": 0xB28F54,       # FUN_00b28f54(hunter): item mode (L held), called by the hunter's input update
+    "result_scene": 0xACCD24,           # FUN_00accd24(scene, ?, ?): the quest result scene, once per frame
+    "claim_scene": 0x5E5CB8,            # FUN_005e5cb8(panel): the Wyporium's claim items panel, once per frame
 }

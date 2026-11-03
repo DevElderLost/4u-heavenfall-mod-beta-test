@@ -56,7 +56,9 @@ from core.interface.single_screen.executable import single_screen_creation as cr
 from core.interface.single_screen.executable import single_screen_quests as quests
 from core.interface.single_screen.executable import single_screen_arena as arena_pad
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, branch_word, load_layout
-from core.interface.single_screen.executable.single_screen_layout import patch_layout_choice, supports_layout_choice
+from core.interface.single_screen.executable.single_screen_layout import (
+    patch_layout_choice, patch_layout_load, supports_layout_choice, supports_layout_load
+)
 from core.interface.single_screen.executable.single_screen_keyboard import patch_keyboard, supports_keyboard
 from core.interface.single_screen.executable import single_screen_world_map as world_map
 from core.interface.single_screen.executable import single_screen_others as others
@@ -527,6 +529,7 @@ def supports_single_screen(code: bytes) -> bool:
                 and code[PAD_UPDATE_HOOK - BASE_ADDRESS:PAD_UPDATE_HOOK - BASE_ADDRESS + 4]
                 == branch_word(PAD_UPDATE_HOOK, PAD_UPDATE_CALLEE, link=True)
                 and supports_layout_choice(code)
+                and supports_layout_load(code)
                 and quests.supports_arena_choice(code)
                 and arena_pad.supports_arena_pad(code)
                 and supports_pools(code)
@@ -552,7 +555,8 @@ def patch_single_screen(code: bytes, offsets: dict[int, int], layout: Layout | N
     top screen, the groups of `offsets` (name hash -> priority offset,
     interface/single_screen/layout/single_screen.priority_offsets of the placed layouts) drawn in front, ui006 on the
     top screen while a prompt is open, the choose-character models moved right, the new game's touch-panel layout choice
-    skipped (B: interface/single_screen/executable/single_screen_layout.py), the Canteen's pay choice moving with the
+    skipped (B: interface/single_screen/executable/single_screen_layout.py) and a save's layout replaced by B when a
+    quest loads (interface/single_screen/executable/single_screen_panels.c), the Canteen's pay choice moving with the
     pad's left / right, the name keyboard on the top screen with the pad's virtual finger, X for the world map and its
     "[X] Map" hint, the town minimap on the top screen with its button and hint, and the frames of the Palico menus
     (interface/single_screen/executable/single_screen_frames.py), and the guild card hidden and shown with Y (its hint
@@ -568,7 +572,7 @@ def patch_single_screen(code: bytes, offsets: dict[int, int], layout: Layout | N
     out = creation.patch_creation_pad(out, layout)
     out = patch_priorities(out, offsets, layout)
     out = patch_prompt_screen(out, prompt_stay_bottom(), layout, creation.creation_prompt(), help_top())
-    out = patch_layout_choice(out)
+    out = patch_layout_load(patch_layout_choice(out), layout)
     out = patch_board_page(out, board_page_shift())
     out = patch_page_counters(out, page_counter_shifts())
     out = patch_farm_carts(out, farm_status_factor())

@@ -41,6 +41,15 @@ You choose your options in a small program, press one button, and it installs th
 
 - Hold L and press Up on the D-pad to lock on to a large monster or switch between targets. The target monster's face is displayed on the top screen.
 
+**Kick on Select**
+
+- Select kicks, and only Start opens the menu. You can turn this off in Options.
+
+**Holding A**
+
+- Holding A with your weapon sheathed keeps picking up, gathering and carving, without pressing it again.
+- In quest rewards and the Wyporium's Claim Items, A takes an item and moves to the next one, and holding it keeps going.
+
 **A smaller HUD**
 
 - The HUD elements displayed over the game (clock, health, stamina, sharpness, item selector, minimap, talk windows during quests, etc.) can be scaled down, moving towards their respective corners. Available sizes are 90%, 80%, 70% and 60%. The default size is 70%.
@@ -72,7 +81,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 **4. Check the destination.** The program automatically detects your Azahar or Citra installation. If it can't find it, click **Choose folder…** and select your emulator's folder.
 
-**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, HUD size and cheats. Hover over any option to see what it does.
+**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, controls, HUD size and cheats. Hover over any option to see what it does.
 
 **6. Click Install.** Installation may take a few moments. If the emulator was running the game, restart emulation for the changes to take effect. If the Install button is disabled, the message below it explains what's missing.
 

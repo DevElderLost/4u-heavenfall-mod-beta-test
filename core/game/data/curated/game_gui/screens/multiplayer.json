@@ -2,10 +2,12 @@
   "description": "Gathering Hall, online menus and the guild card: screens of the game GUI arrangement. Each menu keeps one place wherever it opens (over the town, the hall or the world map), so its place is its blocks' default and these screens list them ({}: the default) for their numbers. 78: the guild card, the one screen with the photo mode (the card's Y; `photo` keeps the preview's sky and the greeting's speech box, which the game shows only while the player has the greeting on with X); its rule is the card's hint block's (single_screen.json card_info, whose `when` and `unless` the rule repeats): the card up alone. 78b: the card's monster record page, where the game uses Y itself (the capture / slay switch), so no photo mode.",
   "screens": [
     {"id": "hall_creation", "number": "76", "name": "Crear una sala de reunión", "mode": "single_screen", "when": {"any": ["ui490_l_item", "ui490_l_item_1"], "none": ["ui560_l_bg"]}, "blocks": {
+      "ui490.pages": {},
       "ui490.menu": {},
       "ui490.background": {}
     }},
     {"id": "hall_creation_help", "number": "76b", "name": "Crear una sala de reunión con la ayuda abierta", "mode": "single_screen", "when": {"all": ["ui560_l_bg"], "any": ["ui490_l_item", "ui490_l_item_1"]}, "blocks": {
+      "ui490.pages": {"hidden": true},
       "ui490.menu": {"hidden": true},
       "ui490.background": {}
     }},

@@ -1,6 +1,6 @@
-"""Single-screen mode: the new game's touch-panel layout choice (A / B) is skipped and B is always taken. B keeps the
-Map on the top HUD, which the mode
-needs.
+"""Single-screen mode: the new game's touch-panel layout choice (A / B) is skipped and B is always taken, and a save
+that holds another layout gets B when a quest loads.
+B keeps the Map on the top HUD, which the mode needs.
 
 The title scene's mode 2 (FUN_00b79b98) asks the question between the Felyne step and the save-slot list. Two sites
 of the canonical executable, every word checked first:
@@ -19,7 +19,9 @@ player's version.
 
 import struct
 
-from core.game.executable.code_space import BASE_ADDRESS, COND_EQ, CodeSpaceError, branch_word, encode_branch
+from core.game.executable.code_space import (
+    BASE_ADDRESS, COND_EQ, CodeSpaceError, Layout, bl_target, branch_word, encode_branch, load_layout
+)
 
 CHOICE_SITE = 0xB79C00               # sub-state 0 of FUN_00b79b98: six words
 CHOICE_ENTRY = 0xB79D88              # the A press after its releases and click: `cmp r5, #0` ... `mov r7, #1`
@@ -94,4 +96,37 @@ def patch_layout_choice(code: bytes) -> bytes:
     )
     struct.pack_into("<6I", out, CHOICE_SITE - BASE_ADDRESS, *words)
     out[BACK_SITE - BASE_ADDRESS:BACK_SITE - BASE_ADDRESS + 4] = encode_branch(BACK_SITE, BACK_TARGET, cond=COND_EQ)
+    return bytes(out)
+
+
+# ----- layout B on every save --------------------------------------------------------------------------------------
+#
+# The quest HUD's init, FUN_00b892f0 (from FUN_00b823d4 when a quest loads), asks FUN_00c1cc9c(save, 0) for the saved
+# touch-panel record and copies it into the runtime object. A save made before the question was skipped may hold layout
+# A (the Map on the touch screen) or an arrangement of the player's. The call goes through the block
+# `single_screen_panels` (single_screen_panels.c), which writes layout B first when the record is not B.
+
+LOAD_SITE = 0xB8931C                 # in FUN_00b892f0: bl FUN_00c1cc9c(save, 0)
+LOAD_CALLEE = 0xC1CC9C
+
+
+def supports_layout_load(code: bytes) -> bool:
+    """True if the call of the saved record in the quest HUD's init is the game's own (the canonical executable,
+    unpatched)."""
+    try:
+        return bl_target(code, LOAD_SITE) == LOAD_CALLEE
+    except struct.error:
+        return False
+
+
+def patch_layout_load(code: bytes, layout: Layout | None = None) -> bytes:
+    """`code` (extended) where the quest HUD's load of the saved touch panels takes layout B first when the saved one is
+    not B (block `single_screen_panels`)."""
+    layout = layout or load_layout()
+    if not supports_layout_load(code):
+        raise CodeSpaceError(f"layout load: the call at {LOAD_SITE:#x} is not the update's (another executable, or "
+                             "already patched)")
+    out = bytearray(code)
+    layout.place(out, "single_screen_panels")
+    layout.hook(out, LOAD_SITE, "single_screen_panels", calls=LOAD_CALLEE)
     return bytes(out)

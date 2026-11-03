@@ -31,6 +31,8 @@ from core.game.executable.player_code import open_code
 from core.game.executable.rebase import feature_gaps
 from core.interface.single_screen.executable.single_screen import patch_single_screen, supports_single_screen
 from core.game.executable.versions import VersionMap
+from core.gameplay.hold_a.hold_a import patch_hold_a, supports_hold_a
+from core.gameplay.select_kick.select_kick import patch_select_kick, supports_select_kick
 from core.interface.hud.build import hud_files, remove_hud_files
 from core.interface.hud.build import hint_files
 from core.interface.hud.code_patch import patch_interface
@@ -159,6 +161,12 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if wants_cheats(settings) and not cheats:
         notices.append(left_out("cheats", "the game keeps its picture, camera, frame rate and online waits",
                                 NOT_AVAILABLE))
+    select_kick = settings.select_kick and supports_select_kick(code)
+    if settings.select_kick and not select_kick:
+        notices.append(left_out("select kick", "Select opens the menu like Start and no button kicks", NOT_AVAILABLE))
+    hold_a = settings.hold_a and supports_hold_a(code)
+    if settings.hold_a and not hold_a:
+        notices.append(left_out("hold A", "A must be pressed again for each action", NOT_AVAILABLE))
 
     announce("write")
     output_dir = mod_folder(output_dir)
@@ -166,13 +174,17 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     result = RunResult(output_dir=output_dir, seed=settings.seed, notices=notices, mod_title=game_mod_title(game))
     screen_offsets, engine_table = write_interface_files(result, RomFS(game), settings, patch_interface_code,
                                                          single_screen)
-    if not (patch_interface_code or single_screen or cheats or probe is not None):
+    if not (patch_interface_code or single_screen or cheats or select_kick or hold_a or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
         notes = session.Session()   # what the patchers write that depends on where the game's code sits
         with session.recording(notes):
             # room for the executable's extension on an Old 3DS (docs/how_it_works.md, "The executable")
             patched = patch_memory_split(code, resource_to_root_mb())
+            if select_kick:
+                patched = patch_select_kick(patched)
+            if hold_a:
+                patched = patch_hold_a(patched)
             if cheats:
                 patched = patch_cheats(patched, settings)
             if patch_interface_code:

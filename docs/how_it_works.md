@@ -47,8 +47,8 @@ install: copied into <emulator>/load/mods/<title>/   (0004000000126100 European,
      (below);
    * writes the interface files: the smaller HUD (`interface/hud/`), then single-screen mode's layouts
      (`interface/single_screen/run.py`), which are made last because they place whole layouts, with what the HUD step changed;
-   * patches the executable in this order: the memory split, the cheats, the HUD and lock-on code, single-screen
-     mode;
+   * patches the executable in this order: the memory split, Select's kick, holding A, the cheats, the HUD and lock-on
+     code, single-screen mode;
    * carries every patch back onto the player's own executable and writes it with its header.
 4. **The copy** (`core/install/deploy.py`): the new files go into a folder beside the target first and replace
    the previous install in one step; anything this program did not install is never touched without asking.
@@ -131,6 +131,21 @@ Holding L and pressing D-pad up locks on to a large monster, as a tap on the tou
 D-pad up; block `target_button` then makes the game's own target test switch the target, sound included. The target's
 face shows on the top screen (blocks `face_*`, `target_face.c`). Patches: `interface/hud/code_patch.py`, `patch_interface`.
 
+## Select's kick
+
+The game turns a held Select into Start, so both open the menu and no button kicks. Four words change that
+(`gameplay/select_kick/select_kick.py`): the call that turns Select into Start becomes a `nop`, the raw pad read passes
+Select beside Start, and the empty entry of the pad's table whose game bit is the kick takes Select. Start keeps the menu,
+and the game's own option "START kicks" is untouched.
+
+## Holding A
+
+Block `hold_a` (`gameplay/hold_a/hold_a.c`, patch in `hold_a.py`) hooks three calls of the game. In a quest, with the
+weapon sheathed and the circle pad at rest, holding A presses it again at the game menus' own repeat rate. In the quest
+rewards and the Wyporium's Claim Items, holding A does the same, and after a cell empties the cursor moves to the next
+one with an item. A change of step (a full pouch, a question) leaves the cursor where it is and asks for a new press, so
+nothing is confirmed by accident.
+
 ## The cheats
 
 Five well-known cheat codes, built into the executable so they work without the emulator's cheat list
@@ -156,6 +171,7 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/single_screen/` | Single-screen mode: `layout/` (its layout changes), `executable/` (its patches and their C and assembly) |
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
+| `core/gameplay/select_kick/`, `core/gameplay/hold_a/` | Select's kick; holding A |
 | `core/cheats/` | The emulator cheats |
 | `core/game/executable/` | Reading the game file, the executable, versions and their maps, free space, the blocks (compiled into `generated/code_space.json`) |
 | `core/game/files/` | The game's file formats: archives (`.arc`), layouts (`lyt.py`), texts |
