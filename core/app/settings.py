@@ -261,7 +261,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "layered_equipment", "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                   "cheat_aspect_ratio")
+                   "cheat_aspect_allowed", "cheat_aspect_ratio")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only) and a 3DS run takes their defaults (Settings.for_console): the HUD size and the
@@ -269,7 +269,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
 # Single-screen mode moves layouts between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
                  "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                   "cheat_aspect_ratio")
+                 "cheat_aspect_allowed", "cheat_aspect_ratio")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -428,7 +428,8 @@ class Settings:
     cheat_net_fix: bool = False           # the online fix by Klark231
     cheat_insta_kill: bool = False        # debug: the hunter's attack multiplied (curated tuning.json, cheats)
     cheat_raw_unbloat: bool = False       # the menus show weapons' true attack; the damage does not change
-    cheat_aspect_ratio: CheatAspect = CheatAspect.OFF  # the game fits the emulator's picture; experimental
+    cheat_aspect_allowed: bool = False    # the GUI's switch before the ratios, still in testing (presets._expand)
+    cheat_aspect_ratio: CheatAspect = CheatAspect.OFF  # the game fits the emulator's picture
 
     # New game (executable patch, not randomized)
     starting_kit: bool = True  # the developer's kit in the item box (game/data/curated/starting_kit.txt)

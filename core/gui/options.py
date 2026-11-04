@@ -812,18 +812,24 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         ), T("Se recomiendan 30 FPS si tienes un PC de gama baja. Solo funciona en el emulador.",
              "30 FPS is recommended on a low-end PC. It only works in the emulator.")),
         Group(T("Proporción de la imagen", "Aspect ratio"), (
-            Option("cheat_aspect_ratio", T("Proporción (experimental)", "Aspect ratio (experimental)"),
+            Option("cheat_aspect_allowed", T("Permitir otras proporciones", "Allow other aspect ratios"),
+                   T("Activa la lista de proporciones, que aún está en pruebas.",
+                     "Turns on the list of aspect ratios, which is still being tested."),
+                   emulator_only=True),
+            Option("cheat_aspect_ratio", T("Proporción", "Aspect ratio"),
                    T("Ajusta el juego a la forma de la imagen del emulador, para que nada se vea estirado.",
                      "Fits the game to the shape of the emulator's picture, so nothing looks stretched."),
                    choices=(
                        Choice(CheatAspect.OFF, T("5:3, la del juego", "5:3, the game's own")),
                        *(Choice(ratio, T(ratio.value, ratio.value)) for ratio in CheatAspect
                          if ratio is not CheatAspect.OFF),
-                   ), compact=True, emulator_only=True),
-        ), T("El emulador debe mostrar la imagen con esa forma: en Azahar, Single Screen con Stretch. "
-             "Solo funciona en el emulador.",
-             "The emulator must show the picture in that shape: in Azahar, Single Screen with Stretch. "
-             "It only works in the emulator.")),
+                   ), requires="cheat_aspect_allowed", compact=True, emulator_only=True),
+        ), T("Aviso: aún está en pruebas y puede haber menús o indicaciones mal colocados. Por favor, informa de "
+             "cualquier problema que veas. El emulador debe mostrar la imagen con esa forma: en Azahar, Single Screen "
+             "con Stretch. Solo funciona en el emulador.",
+             "Warning: this is still in testing, and some menus or prompts may be out of place. Please report any "
+             "problem you see. The emulator must show the picture in that shape: in Azahar, Single Screen with "
+             "Stretch. It only works in the emulator.")),
         Group(T("Campo de visión", "Field of view"), (
             Option("cheat_fov", T("Campo de visión", "Field of view"),
                    T("El juego usa 50; con un valor más alto se ve más alrededor del cazador.",

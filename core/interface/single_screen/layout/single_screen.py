@@ -186,8 +186,9 @@ class Layer:
 @dataclass(frozen=True)
 class Band:
     """A new sprite, a copy of the layout's sprite `pane`, sized and placed over `box` (left, top, right, bottom:
-    top-screen pixels, 0-400 by 0-240) and tinted `color` (RGBA of its four corners): a strip of one colour made from a
-    sprite the layout has (opaque ones: the texture's alpha stays). `pane` itself stays as it is (`hide` clears it)."""
+    top-screen pixels of the 400 x 240 screen; it may run past it, since a picture of another shape shows more) and
+    tinted `color` (RGBA of its four corners): a strip of one colour made from a sprite the layout has (opaque ones: the
+    texture's alpha stays). `pane` itself stays as it is (`hide` clears it)."""
     pane: str
     box: tuple[float, float, float, float]
     color: tuple[int, int, int, int] = (0, 0, 0, 255)
@@ -320,9 +321,10 @@ def _load_bands(records: object, name: str) -> tuple[Band, ...]:
         width, height = 2 * SCREEN_HALF_WIDTH, 2 * SCREEN_HALF_HEIGHT
         if (not isinstance(box, list) or len(box) != 4
                 or any(isinstance(v, bool) or not isinstance(v, int | float) for v in box)
-                or not 0 <= box[0] < box[2] <= width or not 0 <= box[1] < box[3] <= height):
-            raise ValueError(f"single_screen.json, {where}: box must be [left, top, right, bottom] pixels of the "
-                             f"{width:g} x {height:g} top screen, right and bottom past left and top")
+                or not box[0] < box[2] or not box[1] < box[3]
+                or box[0] >= width or box[2] <= 0 or box[1] >= height or box[3] <= 0):
+            raise ValueError(f"single_screen.json, {where}: box must be [left, top, right, bottom] pixels that meet "
+                             f"the {width:g} x {height:g} top screen, right and bottom past left and top")
         color = record.get("color", [0, 0, 0, 255])
         if not isinstance(color, list) or len(color) != 4:
             raise ValueError(f"single_screen.json, {where}: color must be 4 numbers (RGBA)")
@@ -553,14 +555,17 @@ def _fit(layout: Layout, fits: Iterable[Fit]) -> None:
 def _bands(layout: Layout, bands: Iterable[Band]) -> None:
     """Add each band: a new sprite (`band_name`), a copy of the band's sprite after it under the same parent, sized and
     placed over its box and tinted (see `Band`). A pane of its own, because the game's code may move a named pane after
-    the layout loads (the Meownster trip's set-up widens the cloth's four sprites by their name hashes). The screen's
-    pixels are the layout's reversed: x = 200 - layout x, y = 120 - layout y."""
+    the layout loads (the Meownster trip's set-up widens the cloth's four sprites by their name hashes). It shows the
+    middle of the sprite's picture: at the picture's edge the texture's next pixels blend in, and the scene would show
+    through the band's last pixels. The screen's pixels are the layout's reversed: x = 200 - layout x, y = 120 - layout
+    y."""
     for index, band in enumerate(bands):
         template = layout.find(band.pane)
         if template.kind != PaneKind.SPRITE:
             raise ValueError(f"the band {band.pane} is not a sprite")
+        u, v, width, height = template.region
         pane = layout.insert_sprite(template.parent, template, band_name(band, index), template.position,
-                                    behind=template)
+                                    region=(u + width / 4, v + height / 4, width / 2, height / 2), behind=template)
         left, top, right, bottom = band.box
         _cover(pane, (SCREEN_HALF_WIDTH - right, SCREEN_HALF_HEIGHT - bottom,
                       SCREEN_HALF_WIDTH - left, SCREEN_HALF_HEIGHT - top))

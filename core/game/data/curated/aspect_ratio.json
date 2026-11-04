@@ -1,5 +1,5 @@
 {
-  "description": "The shapes the emulator's picture can have (cheats/aspect_ratio.py). The option cheat_aspect_ratio picks one of these names, or off: the game's own frame, 400 x 240 (5:3), which is what a real 3DS always shows.",
+  "description": "The shapes the emulator's picture can have (cheats/aspect_ratio.py). The option cheat_aspect_ratio picks one of these names, or off: the game's own frame, 400 x 240 (5:3), which is what a real 3DS always shows. anchors: which side of a wider picture each root group of the interface keeps to (interface/hud/anchors.py).",
   "ratios": {
     "value": [
       {"name": "4:3", "width": 4, "height": 3},
@@ -10,5 +10,26 @@
       {"name": "32:9", "width": 32, "height": 9}
     ],
     "description": "Each ratio: its name, its width and height, in the order the program lists them."
+  },
+  "anchors": {
+    "description": "Where the interface goes on a wider picture (interface/hud/anchors.py). A root group goes to the side of the 400 wide frame it lies on. edge_margin: a box this close to both sides crosses the whole frame and stays. half_margin: a box may pass the middle by this much and still lie in its half. dead_zone: a box across the middle whose centre is this close to it stays. keep_centred: root groups that stay (patterns). sides: root groups whose side this says, because the code places them. keep_width: panes that cross the frame but are no backdrop (patterns). stretch_groups: root groups that are a ground made of several sprites, which grow together (patterns). sub_views: a sub-view (the forge's preview) follows the frame around it.",
+    "edge_margin": 2,
+    "half_margin": 4,
+    "dead_zone": 30,
+    "keep_centred": ["ui000_*", "ui005_*", "ui010_*", "ui013_assign", "ui409_*", "ui430_*", "ui50[2-5]_*", "ui7*", "ui9*"],
+    "sides": {
+      "ui408_sitaji": "right",
+      "ui430_l_xmap": "right",
+      "ui430_l_minimap": "right",
+      "ui430_l_cardinfo": "right"
+    },
+    "child_sides": {
+      "ui013_assign_bace_L*": "left",
+      "ui013_assign_bace_R*": "right",
+      "ui013_dora_bace": "right"
+    },
+    "keep_width": ["ui505_card_*"],
+    "stretch_groups": ["ui10[1-5]_back", "ui409_boad_haikei", "ui413_boad_haikei", "ui419_l_bg", "ui495_boad_haikei", "ui496_BG"],
+    "sub_views": true
   }
 }

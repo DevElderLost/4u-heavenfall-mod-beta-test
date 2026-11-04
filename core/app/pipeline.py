@@ -33,6 +33,7 @@ from core.interface.single_screen.executable.single_screen import patch_single_s
 from core.game.executable.versions import VersionMap
 from core.gameplay.hold_a.hold_a import patch_hold_a, supports_hold_a
 from core.gameplay.select_kick.select_kick import patch_select_kick, supports_select_kick
+from core.interface.hud.anchors import interface_anchors, remove_backdrop_files
 from core.interface.hud.build import hud_files, remove_hud_files
 from core.interface.hud.build import hint_files
 from core.interface.hud.code_patch import patch_interface
@@ -101,14 +102,16 @@ def left_out(feature: str, kept: str, why: str) -> str:
 
 
 def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settings, with_code_patch: bool,
-                          single_screen: bool = False) -> tuple[dict[int, int], bytes | None]:
+                          single_screen: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's and the single-screen mode's RomFS files. Both may change the same ARCs, so single-screen mode
     is made on the HUD's copies and everything is written once; files of an earlier run are removed first (they would
     still be loaded). Returns the single-screen mode's draw order offsets and the game GUI engine's table
-    (interface/single_screen/executable/single_screen.patch_single_screen; empty and None without it)."""
+    (interface/single_screen/executable/single_screen.patch_single_screen; empty and None without it), and the aspect
+    ratio's table of the interface's groups (interface/hud/anchors.py; None without it)."""
     output_dir = result.output_dir
     remove_hud_files(output_dir)
     remove_single_screen_files(output_dir)
+    remove_backdrop_files(output_dir)
     # the aspect ratio moves the HUD only with the game's files; it needs no more than the executable to work
     edge = settings.hud_edge if rom is not None else NO_EDGE
     resize_hud = settings.hud_scale != HudScale.FULL or edge != NO_EDGE
@@ -117,21 +120,24 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         hud = dict(hud_files(rom, settings.hud_scale.factor, with_code_patch, target_hint, edge))
     else:
         hud = dict(hint_files(rom)) if target_hint else {}
-    screens, offsets, engine_table = {}, {}, None
+    screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the HUD added (single_screen.py)
-        made = single_screen_romfs(rom, hud)
-        screens, offsets, engine_table = made.files, made.offsets, made.engine_table
-    for path, data in {**hud, **screens}.items():
+        made = single_screen_romfs(rom, hud, edge)
+        screens, offsets, engine_table, engine_groups = made.files, made.offsets, made.engine_table, made.engine_groups
+    written = {**hud, **screens}
+    # after all of them: the backdrops of the files as they are, and the table of each layout's final places
+    backdrops, anchors = interface_anchors(rom, written, edge, engine_groups)
+    for path, data in {**written, **backdrops}.items():
         target = output_dir / "romfs" / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-        if path in hud:
+        if path in hud or path in backdrops:
             result.hud_paths.append(target)
         if path in screens:
             result.single_screen_paths.append(target)
     if resize_hud:
         result.hud_scale = HudScale(settings.hud_scale)
-    return offsets, engine_table
+    return offsets, engine_table, anchors
 
 
 def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | None = None,
@@ -175,8 +181,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     output_dir = mod_folder(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     result = RunResult(output_dir=output_dir, seed=settings.seed, notices=notices, mod_title=game_mod_title(game))
-    screen_offsets, engine_table = write_interface_files(result, RomFS(game), settings, patch_interface_code,
-                                                         single_screen)
+    screen_offsets, engine_table, anchors = write_interface_files(result, RomFS(game), settings, patch_interface_code,
+                                                                  single_screen)
     if not (patch_interface_code or single_screen or cheats or select_kick or hold_a or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
@@ -189,7 +195,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             if hold_a:
                 patched = patch_hold_a(patched)
             if cheats:
-                patched = patch_cheats(patched, settings)
+                patched = patch_cheats(patched, settings, anchors=anchors)
             if patch_interface_code:
                 patched = patch_interface(patched, settings.hud_scale.factor, settings.touchless_target,
                                           settings.touchless_target, settings.hud_edge)

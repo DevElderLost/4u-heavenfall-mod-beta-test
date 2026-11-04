@@ -59,6 +59,8 @@ def main(argv=None) -> int:
         parser.error(f"--cheat-fov must be between {low} and {high}")
     defaults = presets.personal_defaults()
     chosen = {name: value for name, value in vars(args).items() if name in defaults and value is not None}
+    if args.cheat_aspect_ratio:
+        chosen["cheat_aspect_allowed"] = True
     settings = presets.install_settings({**defaults, **chosen})
     try:
         result = run(args.rom, args.out, settings, code_path=args.code)

@@ -113,6 +113,8 @@ def _expand(personal: dict) -> dict:
     for source, targets in install_links().items():
         if source in personal:
             values.update({target: personal[source] for target in targets})
+    if not values.get("cheat_aspect_allowed"):      # the list greys out without its switch, and keeps its value
+        values["cheat_aspect_ratio"] = "off"
     return values
 
 

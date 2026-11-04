@@ -70,6 +70,8 @@ EXEMPT: tuple[Exempt, ...] = (
            "random words that now and then look like a branch or a game address"),
     Exempt("single_screen_label_table", "the minimap's place name: three layout name hashes and four floats, random "
            "words that now and then look like a branch or a game address"),
+    Exempt("aspect_anchors", "the interface's sides on a picture of another shape: layout group name hashes and boxes "
+           "in pixels, random words that now and then look like a branch or a game address"),
     Exempt("game_gui_table", "the game GUI engine's table: group and pane name hashes, floats, counts and offsets from "
            "its own start (no address), random words that now and then look like a branch or a game address"),
 )

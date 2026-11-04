@@ -37,7 +37,7 @@ EXT_START = 0x111E000
 # + the frames table grown to 16 scenes, 16 sets and 160 names (a page) + the ported monsters' severed tail fall (a
 # page: gameplay/tail_fall/tail_fall.py, joined with the game GUI
 # engine) + hold A (a page: gameplay/hold_a/hold_a.py)
-EXT_SIZE = 0xDC000
+EXT_SIZE = 0xDF000
 EXTENDED_SIZE = EXT_START + EXT_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.

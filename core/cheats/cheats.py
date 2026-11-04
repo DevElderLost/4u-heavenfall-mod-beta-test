@@ -138,8 +138,9 @@ def insta_kill_data() -> bytes:
     return struct.pack("<2i", multiplier, cap)
 
 
-def patch_cheats(code: bytes, settings: Any, layout: Layout | None = None) -> bytes:
-    """`code` (the update's executable) with the cheats `settings` turns on; `code` itself when none is."""
+def patch_cheats(code: bytes, settings: Any, layout: Layout | None = None, anchors: bytes | None = None) -> bytes:
+    """`code` (the update's executable) with the cheats `settings` turns on; `code` itself when none is. `anchors`: the
+    aspect ratio's table of the interface's groups (interface/hud/anchors.py)."""
     if not wants_cheats(settings):
         return code
     if not supports_cheats(code):
@@ -169,5 +170,5 @@ def patch_cheats(code: bytes, settings: Any, layout: Layout | None = None) -> by
         layout.place(out, "cheats", runner_data(layout, entries))
         layout.hook(out, FRAME_CALL, "cheats", calls=FRAME_UPDATE)
     if settings.cheat_aspect_ratio.value != "off":
-        return patch_aspect_ratio(bytes(out), settings.cheat_aspect_ratio.value, layout)
+        return patch_aspect_ratio(bytes(out), settings.cheat_aspect_ratio.value, layout, anchors)
     return bytes(out)

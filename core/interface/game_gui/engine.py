@@ -35,6 +35,8 @@ from core.game.files.gui.lyt import (
 )
 from core.interface.game_gui import geometry
 from core.interface.game_gui.config import RAW_BUTTONS, Arrangement, Placement, Screen
+from core.interface.hud.anchors import AnchorRules, blocks_side, edge_move, hud_owned_layouts, load_anchor_rules
+from core.interface.hud.scale import NO_EDGE
 
 BLOCK = "game_gui_engine"
 TABLE = "game_gui_table"
@@ -317,16 +319,34 @@ def _place_values(placement: Placement, box: geometry.Box | None, declared: str)
     return scale, tuple(cx), cy.pop()
 
 
+def _at_its_side(cx: tuple, groups: Iterable[str], placement: Placement, box: geometry.Box, declared: str, scale: float,
+                 edge: tuple[float, float], rules: AnchorRules) -> tuple:
+    """`cx` with the way to the side of a wider interface where the place puts the block, for each own screen from which
+    it is drawn on the top screen (interface/hud/anchors.py). The touch screen keeps its units."""
+    corner = geometry.screen_centre(declared)[0] - box[0]
+    width = scale * (box[2] - box[0])
+    out = list(cx)
+    for n, own in enumerate(OWN_SCREENS):
+        if (placement.screen or own) == "top":
+            left = geometry.screen_centre(own)[0] - corner if placement.x is None else placement.x
+            out[n] += edge_move(blocks_side(groups, left, left + width, rules), edge)
+    return tuple(out)
+
+
 def _identity(placement: Placement) -> bool:
     return placement.x is None and placement.y is None and placement.scale in (None, 1.0)
 
 
 def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tuple[Target, ...]],
-                 layouts: Mapping[str, Layout], own_screens: Mapping[str, str], watch: str | None = None) -> bytes:
+                 layouts: Mapping[str, Layout], own_screens: Mapping[str, str], watch: str | None = None,
+                 edge: tuple[float, float] = NO_EDGE) -> bytes:
     """The engine's table for `mode`'s screens. `targets`: group -> its targets (engine_files; a block without any
     may only change screen, priority and visibility); `layouts`: the layouts as the game has them (the reference
     boxes); `own_screens`: layout name -> the screen the game shows it on ("top" / "bottom"), which the reference box
-    is cut to; `watch`: a group whose + 0x44 the engine's state copies every frame (probes)."""
+    is cut to; `watch`: a group whose + 0x44 the engine's state copies every frame (probes); `edge`: the interface's
+    size against the game's on a picture of another shape: each place on the top screen keeps to its side of it."""
+    rules = None if edge == NO_EDGE else load_anchor_rules()
+    hud_owned = hud_owned_layouts()
     screens = arrangement.screens_of(mode)
     block_ids = list(arrangement.blocks)
     block_index = {block_id: n for n, block_id in enumerate(block_ids)}
@@ -379,6 +399,8 @@ def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tupl
             if block_id not in with_targets and not _identity(placement):
                 raise ValueError(f"{where}, block {block_id}: x, y or scale need its wrapper nulls (no targets)")
         scale, cx, cy = _place_values(placement, box, declared)
+        if rules is not None and box is not None and arrangement.blocks[boxed].layout not in hud_owned:
+            cx = _at_its_side(cx, arrangement.blocks[boxed].groups, placement, box, declared, scale, edge, rules)
         flags = KEEP_VIEW if placement.screen is None else VIEWS[placement.screen]
         if placement.priority is not None:
             flags |= SET_PRIORITY

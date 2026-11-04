@@ -127,6 +127,11 @@ class Pane:
             if self.kind == PaneKind.SPRITE else None
 
     @property
+    def region(self) -> tuple[float, float, float, float] | None:
+        """The part of its texture a sprite shows: u, v, width, height, 0-1."""
+        return struct.unpack_from("<4f", self.layout.data, self.offset + 0x28) if self.kind == PaneKind.SPRITE else None
+
+    @property
     def origin(self) -> int | None:
         """A sprite's (or window's) origin mode: 0 when its x, y is its top-left corner, 4 when it is its centre."""
         return struct.unpack_from("<I", self.layout.data, self.offset + ORIGIN_AT)[0] \

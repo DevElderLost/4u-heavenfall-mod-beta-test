@@ -46,7 +46,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Cheats can also fix the frame rate at 30 or 60 FPS and widen or narrow the camera's view.
 - An online fix can give multiplayer rooms more time to connect.
 - Cheats can also show weapons' true attack instead of the inflated number.
-- Cheats can fit the game to screens from 4:3 to 32:9; still experimental.
+- Cheats can fit the game and its menus to screens from 4:3 to 32:9; still in testing.
 
 ### The program
 - A Windows program, with nothing else to install, puts Heavenfall Beta into Azahar or Citra and can update or remove it.

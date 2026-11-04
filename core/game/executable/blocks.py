@@ -100,7 +100,8 @@ INSTA_KILL = "cheat_insta_kill"
 # The aspect ratios (cheats/aspect_ratio.py): the ratio's 3 factors. A mod without the
 # option carries none of its pages.
 ASPECT_RATIO = "cheat_aspect_ratio"
-ASPECT_DATA_SIZE = 12
+ASPECT_DATA_SIZE = 28
+ASPECT_ANCHORS_SIZE = 0x3000
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -410,6 +411,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext"),
     BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
     BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
+    BlockSpec("aspect_anchors", ASPECT_RATIO, size=ASPECT_ANCHORS_SIZE, region="ext"),
 )
 
 

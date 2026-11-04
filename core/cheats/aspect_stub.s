@@ -1,5 +1,5 @@
 @ The aspect ratio's hooks (cheats/aspect_ratio.py). Each site's instruction becomes a `bl`
-@ to its stub, and lr is free at each: the three functions saved it on entry and none reads it afterwards before writing
+@ to its stub, and lr is free at each: the functions saved it on entry and none reads it afterwards before writing
 @ it. The logic is in aspect_ratio.c.
 @
 @ Every stub keeps what the game's function goes on with:
@@ -12,7 +12,7 @@
     .fpu vfp
     .arm
     .global _start
-    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel
+    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel, aspect_group
 
     .equ SAVED, 88              @ the bytes saved below
 
@@ -58,5 +58,17 @@ aspect_panel:
     mov     r2, r6
     mov     r3, r7
     bl      aspect_panel_place
+    vpop    {d0-d7}
+    pop     {r0-r3, r12, pc}
+
+@ FUN_00ae65f8: vldr s2, [r4, #0x34]. r4 = the group, r5 = the draw's context. s2 is what the function adds to the group's
+@ place; aspect_group_x's answer goes into the saved s2, the third word of d0-d7.
+aspect_group:
+    push    {r0-r3, r12, lr}
+    vpush   {d0-d7}
+    mov     r0, r4
+    mov     r1, r5
+    bl      aspect_group_x
+    str     r0, [sp, #8]
     vpop    {d0-d7}
     pop     {r0-r3, r12, pc}
