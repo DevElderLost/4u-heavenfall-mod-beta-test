@@ -17,7 +17,7 @@ from pathlib import Path
 
 from core import __version__
 from core.app.edition import edition
-from core.install.self_update import LANGUAGES, language
+from core.install.self_update import LANGUAGES, MOD_REBUILT, language
 
 MESSAGES: dict[str, tuple[str, str]] = {
     "nothing": ("No {name} mod is installed in the emulator folders found. Open {app} to install it.",
@@ -35,8 +35,8 @@ MESSAGES: dict[str, tuple[str, str]] = {
     "no_game": ("{folder}: your game file was not found; the mod was left as it is. Open {app} to choose it.",
                 "{folder}: no se ha encontrado tu archivo del juego; el mod se ha dejado como estaba. Abre {app} para "
                 "elegirlo."),
-    "rebuilding": ("{folder}: updating the mod ({old} to {new})...",
-                   "{folder}: actualizando el mod ({old} a {new})..."),
+    "rebuilding": ("{folder}: updating the mod ({old} to {new}). This can take a minute...",
+                   "{folder}: actualizando el mod ({old} a {new}). Puede tardar un minuto..."),
     "progress": ("  {percent} %", "  {percent} %"),
     "rebuilt": ("{folder}: updated.", "{folder}: actualizado."),
     "failed": ("{folder}: the mod could not be updated ({reason}); it was left as it is.",
@@ -56,7 +56,8 @@ class Report:
 
     @property
     def code(self) -> int:
-        return 1 if self.failed else 0
+        """The exit code: 1 if a folder failed, MOD_REBUILT if a mod changed, else 0."""
+        return 1 if self.failed else MOD_REBUILT if self.rebuilt else 0
 
 
 def settings_from_marker(saved: object):
@@ -169,7 +170,7 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
         elif marker.get("kind") != "install":
             tell("randomizer", folder=folder)
             report.left.append(folder)
-        elif marker.get("version") == version:
+        elif marker.get("version") == version and not marker.get("incomplete"):
             tell("current", folder=folder, version=version)
         else:
             rom, mhgen = find_games(folder.name.upper(), preferences, search, current.needs_mhgen)
@@ -197,5 +198,5 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
 
 
 def main() -> int:
-    """`--update-installed`: the exit code is 0 unless a folder that should have been rebuilt failed."""
+    """`--update-installed`: the exit code of `Report.code`."""
     return update_installed().code

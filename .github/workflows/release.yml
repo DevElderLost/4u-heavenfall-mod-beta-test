@@ -28,6 +28,12 @@ jobs:
             requirements.txt
             requirements-build.txt
 
+      - name: A tag must be the program's version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          python -c "import os, sys; from core import __version__ as v; t = os.environ['GITHUB_REF_NAME'].lstrip('v'); sys.exit(0 if t == v else f'tag {t} is not the program version {v}')"
+
       - name: Install the packages
         run: python -m pip install -r requirements.txt -r requirements-build.txt
 
