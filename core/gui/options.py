@@ -16,7 +16,7 @@ from enum import Enum
 from core.app import presets
 from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
-    AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatFps, DuplicateMode, FrenzyChance, Frequency,
+    AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatAspect, CheatFps, DuplicateMode, FrenzyChance, Frequency,
     GlavenusMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode, RewardSource, StatMode,
     StructureMode, SubQuestMode, TextMode,
 )
@@ -811,6 +811,19 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                    ), compact=True, emulator_only=True),
         ), T("Se recomiendan 30 FPS si tienes un PC de gama baja. Solo funciona en el emulador.",
              "30 FPS is recommended on a low-end PC. It only works in the emulator.")),
+        Group(T("Proporción de la imagen", "Aspect ratio"), (
+            Option("cheat_aspect_ratio", T("Proporción (experimental)", "Aspect ratio (experimental)"),
+                   T("Ajusta el juego a la forma de la imagen del emulador, para que nada se vea estirado.",
+                     "Fits the game to the shape of the emulator's picture, so nothing looks stretched."),
+                   choices=(
+                       Choice(CheatAspect.OFF, T("5:3, la del juego", "5:3, the game's own")),
+                       *(Choice(ratio, T(ratio.value, ratio.value)) for ratio in CheatAspect
+                         if ratio is not CheatAspect.OFF),
+                   ), compact=True, emulator_only=True),
+        ), T("El emulador debe mostrar la imagen con esa forma: en Azahar, Single Screen con Stretch. "
+             "Solo funciona en el emulador.",
+             "The emulator must show the picture in that shape: in Azahar, Single Screen with Stretch. "
+             "It only works in the emulator.")),
         Group(T("Campo de visión", "Field of view"), (
             Option("cheat_fov", T("Campo de visión", "Field of view"),
                    T("El juego usa 50; con un valor más alto se ve más alrededor del cazador.",

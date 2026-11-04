@@ -1,6 +1,6 @@
-"""Cheats (options cheat_3d_mode, cheat_no_bloom_dof, cheat_fps, cheat_fov, cheat_net_fix, cheat_raw_unbloat, and the
-debug cheat cheat_insta_kill): the players' Gateway / Citra cheat codes for the update (1.1), as
-executable patches.
+"""Cheats (options cheat_3d_mode, cheat_no_bloom_dof, cheat_fps, cheat_fov, cheat_net_fix, cheat_raw_unbloat,
+cheat_aspect_ratio, and the debug cheat cheat_insta_kill): the players' Gateway / Citra cheat
+codes for the update (1.1), as executable patches. The aspect ratio has its own module (cheats/aspect_ratio.py).
 
 Static ones overwrite a word of the game: the bloom filter's first instruction (a `bx lr`), the three camera field
 of view floats, the three constants of the multiplayer node's waits, and the weapon classes' display multipliers. The
@@ -16,6 +16,7 @@ import struct
 from typing import Any
 
 from core.app.presets import field_range
+from core.cheats.aspect_ratio import patch_aspect_ratio, supports_aspect_ratio
 from core.game.data.tuning import tuning
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
 
@@ -83,7 +84,8 @@ def wants_cheats(settings: Any) -> bool:
     """Some cheat is not at its neutral value."""
     return bool(settings.cheat_3d_mode.value != "off" or settings.cheat_no_bloom_dof
                 or settings.cheat_fps.value != "off" or settings.cheat_net_fix or settings.cheat_fov != GAME_FOV
-                or settings.cheat_insta_kill or settings.cheat_raw_unbloat)
+                or settings.cheat_insta_kill or settings.cheat_raw_unbloat
+                or settings.cheat_aspect_ratio.value != "off")
 
 
 def cheat_entries(settings: Any) -> list[tuple[int, int, int]]:
@@ -111,7 +113,8 @@ def supports_cheats(code: bytes) -> bool:
             and all(_word(code, CLASS_MULTIPLIERS + 4 * i) == original
                     for i, original in enumerate(CLASS_MULTIPLIER_WORDS))
             and bl_target(code, FRAME_CALL) == FRAME_UPDATE
-            and all(bl_target(code, at) == HUNTER_GEAR_STAT for at in ATTACK_CALLS))
+            and all(bl_target(code, at) == HUNTER_GEAR_STAT for at in ATTACK_CALLS)
+            and supports_aspect_ratio(code))
 
 
 def runner_data(layout: Layout, entries: list[tuple[int, int, int]]) -> bytes:
@@ -165,4 +168,6 @@ def patch_cheats(code: bytes, settings: Any, layout: Layout | None = None) -> by
         layout = layout or load_layout()
         layout.place(out, "cheats", runner_data(layout, entries))
         layout.hook(out, FRAME_CALL, "cheats", calls=FRAME_UPDATE)
+    if settings.cheat_aspect_ratio.value != "off":
+        return patch_aspect_ratio(bytes(out), settings.cheat_aspect_ratio.value, layout)
     return bytes(out)

@@ -17,6 +17,8 @@ from dataclasses import asdict, dataclass, field, fields, replace
 from enum import Enum
 from pathlib import Path
 
+from core.cheats.aspect_table import OFF as ASPECT_OFF, load_ratios
+
 
 class StructureMode(str, Enum):
     """Number of waves and of monsters per wave."""
@@ -249,18 +251,25 @@ EQUIPMENT_SWITCHES = ("randomize_recipes", "randomize_weapon_stats", "randomize_
 # Options each player chooses for themselves: they change neither quests nor equipment, so two friends playing the
 # same seed may differ in them (they are left out of the fix checksum, core/app/fix.py). The monster icons only
 # change quest board pictures, which the checksum ignores.
+# The shape of the emulator's picture (core/cheats/aspect_ratio.py): off, or one of the
+# curated ratios. A str enum, as the other cheats' are
+CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(':', '_')}": ratio.name
+                                                         for ratio in load_ratios()}}, type=str)
+
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "select_kick", "hold_a",
                    "layered_equipment", "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
-                   "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat")
+                   "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
+                   "cheat_aspect_ratio")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only) and a 3DS run takes their defaults (Settings.for_console): the HUD size and the
 # touchless target; the ported monsters (Alatreon, Mizutsune, Glavenus) go to a 3DS too; the cheats are emulator only.
 # Single-screen mode moves layouts between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat")
+                 "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
+                   "cheat_aspect_ratio")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -419,6 +428,7 @@ class Settings:
     cheat_net_fix: bool = False           # the online fix by Klark231
     cheat_insta_kill: bool = False        # debug: the hunter's attack multiplied (curated tuning.json, cheats)
     cheat_raw_unbloat: bool = False       # the menus show weapons' true attack; the damage does not change
+    cheat_aspect_ratio: CheatAspect = CheatAspect.OFF  # the game fits the emulator's picture; experimental
 
     # New game (executable patch, not randomized)
     starting_kit: bool = True  # the developer's kit in the item box (game/data/curated/starting_kit.txt)

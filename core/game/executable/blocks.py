@@ -97,6 +97,10 @@ TAIL_FALL = "tail_fall"
 GUI_FRAME_MARKS = "game_gui_recorder"
 # The debug cheat insta kill (cheats/cheats.py): after the recorder's marks, so it moves no other block either
 INSTA_KILL = "cheat_insta_kill"
+# The aspect ratios (cheats/aspect_ratio.py): the ratio's 3 factors. A mod without the
+# option carries none of its pages.
+ASPECT_RATIO = "cheat_aspect_ratio"
+ASPECT_DATA_SIZE = 12
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -117,7 +121,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), CHEATS, MOVE_WATCH, TAIL_FALL,
-                   GUI_FRAME_MARKS, INSTA_KILL)
+                   GUI_FRAME_MARKS, INSTA_KILL, ASPECT_RATIO)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -402,6 +406,10 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # multiplied and capped, and its two words (multiplier, cap) from curated gui_presets.json
     BlockSpec("insta_kill", INSTA_KILL, "cheats/insta_kill.c", region="ext"),
     BlockSpec("insta_kill_data", INSTA_KILL, size=8, region="ext"),
+    # The aspect ratios (cheats/aspect_ratio.py): the hooks' stubs, the logic, the factors
+    BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext"),
+    BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
+    BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
 )
 
 
@@ -415,6 +423,9 @@ def __getattr__(name: str):
 VARIABLES = (
     # single_screen_keyboard.s: the key the virtual finger is on (+0) and whether its lit look is on (+4); in the 8
     # bytes bss_tail's first aligned variable leaves unused (no other room)
+    # The rectangle of the sub-view being opened, moved with the interface (cheats/aspect_ratio.c); FUN_00aee0f0 copies
+    # it
+    VariableSpec("aspect_state", ASPECT_RATIO, 16),
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8, gap=True),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
@@ -1158,6 +1169,7 @@ GAME_SYMBOLS |= {
 GAME_SYMBOLS |= {
     "frame_update": 0x644320,           # FUN_00644320(app): the engine's timing update, once per frame (frame limiter)
     "gx_main": 0x10572CC,               # the variable holding MtGX's draw object
+    "gui_projection": 0xB70FC0,         # FUN_00b70fc0(matrix): the GUI's 2D projection from s0, s1 (aspect_stub.s)
     # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
     "hunter_gear_stat": 0x2F8F34,
 }

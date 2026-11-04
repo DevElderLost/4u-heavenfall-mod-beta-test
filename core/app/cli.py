@@ -20,7 +20,7 @@ from core.app.edition import edition
 from core.game.executable.rebase import RebaseError
 from core.game.executable.versions import UnsupportedVersion
 from core.app.pipeline import run
-from core.app.settings import Cheat3D, CheatFps, HudScale
+from core.app.settings import Cheat3D, CheatAspect, CheatFps, HudScale
 
 
 def main(argv=None) -> int:
@@ -48,6 +48,8 @@ def main(argv=None) -> int:
     parser.add_argument("--cheat-fov", type=int, metavar="DEGREES", help="camera field of view (50: the game's own)")
     parser.add_argument("--cheat-net-fix", action=argparse.BooleanOptionalAction,
                         help="longer waits for the online connection")
+    parser.add_argument("--cheat-aspect-ratio", choices=[value.value for value in CheatAspect],
+                        help="experimental: the shape of the emulator's picture, off (the game's own) or a ratio")
     parser.add_argument("--cheat-raw-unbloat", action=argparse.BooleanOptionalAction,
                         help="menus show weapons' true attack; the damage does not change")
     args = parser.parse_args(argv)
