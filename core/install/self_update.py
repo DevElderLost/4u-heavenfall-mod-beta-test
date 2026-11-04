@@ -53,7 +53,7 @@ DOWNLOADS = "https://github.com/{repository}/releases/download/"
 TIMEOUT = 30                    # seconds without an answer
 CHUNK = 1 << 20
 MAX_JSON = 4 << 20              # the API's answer is a few KB
-MOVE_TRIES, MOVE_WAIT = 40, 0.25    # a move Windows refuses: the tries, and the seconds between them
+MOVE_TRIES, MOVE_WAIT = 120, 0.5    # a move Windows refuses: the tries, and the seconds between them
 OPEN_TRIES = 8                  # the same for the check that the program is closed, before the download
 FETCH_TRIES, RETRY_WAIT = 4, 2.0    # a request lost to the network or a server error: the tries, the seconds between
 CHECK_SECONDS = 120             # how long the new programs may take to answer
@@ -81,6 +81,7 @@ class UpdateError(Exception):
         super().__init__(key)
         self.key = key
         self.params = params
+        self.detail = ""        # what the system answered, for the log
 
 
 # The player sees these, in English or Spanish; {name} is the product's.
@@ -101,7 +102,8 @@ MESSAGES: dict[str, tuple[str, str]] = {
                     "Descargando {name} {latest} ({megabytes} MB)..."),
     "checking": ("Checking the download...", "Comprobando la descarga..."),
     "percent": ("  {percent} %", "  {percent} %"),
-    "installing": ("Replacing the program's files...", "Reemplazando los archivos del programa..."),
+    "installing": ("Replacing the program's files. Windows may hold them for up to a minute...",
+                   "Reemplazando los archivos del programa. Windows puede retenerlos hasta un minuto..."),
     "verifying": ("Checking that the new version starts...", "Comprobando que la versión nueva arranca..."),
     "recovered": ("The last update was cut short, so the previous version of {name} was put back. Run this again to "
                   "update.",
@@ -568,7 +570,9 @@ def replace_files(folder: Path, staging: Path, names: list[str], app: str, check
             _undo(folder, names, existed)
             (folder / JOURNAL).unlink()
         if isinstance(error, OSError):
-            raise UpdateError("locked", app=app) from None
+            locked = UpdateError("locked", app=app)
+            locked.detail = f"{type(error).__name__}: {error}"
+            raise locked from None
         raise
     (folder / JOURNAL).unlink()
     for name in existed:
@@ -827,6 +831,8 @@ def main(argv: list[str] | None = None, *, api_base: str = API, frozen: bool | N
             rebuilt = result == MOD_REBUILT
             code = 0 if rebuilt else result
     except UpdateError as error:
+        if error.detail:
+            _to_log(log_path, error.detail)
         say("failed", reason=message(error.key, lang, **error.params))
         code = 1
     except KeyboardInterrupt:
