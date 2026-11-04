@@ -85,7 +85,7 @@ def wants_cheats(settings: Any) -> bool:
     return bool(settings.cheat_3d_mode.value != "off" or settings.cheat_no_bloom_dof
                 or settings.cheat_fps.value != "off" or settings.cheat_net_fix or settings.cheat_fov != GAME_FOV
                 or settings.cheat_insta_kill or settings.cheat_raw_unbloat
-                or settings.cheat_aspect_ratio.value != "off")
+                or settings.aspect_on)
 
 
 def cheat_entries(settings: Any) -> list[tuple[int, int, int]]:
@@ -169,6 +169,7 @@ def patch_cheats(code: bytes, settings: Any, layout: Layout | None = None, ancho
         layout = layout or load_layout()
         layout.place(out, "cheats", runner_data(layout, entries))
         layout.hook(out, FRAME_CALL, "cheats", calls=FRAME_UPDATE)
-    if settings.cheat_aspect_ratio.value != "off":
-        return patch_aspect_ratio(bytes(out), settings.cheat_aspect_ratio.value, layout, anchors)
+    if settings.aspect_on:
+        return patch_aspect_ratio(bytes(out), settings.cheat_aspect_ratio.value, layout, anchors,
+                                  menu=anchors is not None)
     return bytes(out)

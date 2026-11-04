@@ -8,11 +8,13 @@ curated aspect_ratio.json.
   width: the groups of a tall window lie above and below its middle, and would part.
 * **The table** (`anchor_table`): each group's box as the layout loads it, without its translate. The executable adds
   the translate the game gives the group at draw time and asks the same rule (aspect_ratio.c, `aspect_group_x`), so a
-  group the code moves to the other column changes side. What moves on its own is left out: the HUD's layouts, the
-  minimap's ARCs, the groups the game GUI engine places (it takes the shift in its places,
-  interface/game_gui/engine.py).
+  group the code moves to the other column changes side. What moves on its own is left out: the minimap's ARCs, the
+  groups the game GUI engine places (it takes the shift in its places, interface/game_gui/engine.py). The HUD's groups
+  are in it by their anchors (`hud_entries`): their files move, and the table takes the ratio chosen in the game.
+* **The windows** (`_windows`): what lies inside a group the rule keeps in the middle stays on it, as the buttons of a
+  touch screen's menu on the top screen.
 * **The rows** (`move_child_sides`): a root group that holds rows of both sides, like the town's button hints, cannot
-  take one side whole. The data names its children, which move in the file; the group stays out of the table.
+  take one side whole. The data names its children, which move in the file, from the side the group takes.
 * **The backdrops** (`stretch_backdrops`): a sprite that crosses the whole frame grows from the frame's centre until it
   covers the picture, shown or not as the layout loads, since a fade starts clear. A ground of several sprites, which
   the rule cannot tell from a menu, is named in the data and grows whole.
@@ -33,7 +35,7 @@ from core.game.files.gui.lanl import LANL_TYPE_HASH, Animations, Property, parse
 from core.game.files.gui.lyt import LYT_TYPE_HASH, Layout, Pane, PaneKind, name_hash, parse_lyt
 from core.interface.game_gui import geometry
 from core.interface.hud.build import CODE_PATCH_LAYOUTS, HUD_LAYOUTS, LANGUAGES, MAP_ARC, GameFiles, short_name
-from core.interface.hud.scale import NO_EDGE, SCREEN_HALF_WIDTH
+from core.interface.hud.scale import NO_EDGE, SCREEN_HALF_WIDTH, Anchor, anchor_all
 
 LEFT, CENTRE, RIGHT = -1, 0, 1
 SIDES = {"left": LEFT, "centre": CENTRE, "right": RIGHT}
@@ -41,6 +43,7 @@ FRAME_WIDTH, FRAME_HEIGHT = geometry.SCREEN_SIZES["top"]
 TABLE_LANGUAGE = "eng"      # the groups' names and places are the same in every language
 TABLE_HEADER = struct.Struct("<I")          # the count
 TABLE_ENTRY = struct.Struct("<I2h")         # struct anchor in aspect_ratio.c: name hash, the box's left and right
+HUD_CODES = 16              # aspect_ratio.c: an entry from here on is a HUD group's anchor (`hud_code`)
 # The ARCs under <language>/data/ that hold a sprite across the whole frame (the game's 28 of them); the weapon guide's
 # and the monsters' pages hold none, and the minimap's are moved by the executable
 BACKDROP_ARC = re.compile(r"(core_\w+|loading_\w+|monnyan_core|v\d\da\d\d_map)\.arc")
@@ -55,7 +58,9 @@ class AnchorRules:
     sides: Mapping[str, int]        # root groups whose side the data says, wherever they lie
     keep_width: tuple[str, ...]     # panes that cross the frame but are no backdrop (patterns)
     stretch_groups: tuple[str, ...]  # root groups that are a ground of several sprites, which grow together (patterns)
-    sub_views: bool                 # a sub-view (the forge's preview) follows the frame around it
+    sub_view_margin: float          # a sub-view (the forge's preview) this close to the frame's side goes to it
+    window_width: float             # a group the rule keeps in the middle, this wide, holds what lies inside it
+    window_margin: float            # how far past the window's box a group may reach and still lie inside it
     child_sides: Mapping[str, int] = field(default_factory=dict)  # children of a root group, which move in the file
 
 
@@ -88,12 +93,10 @@ def load_anchor_rules(path: Path = SETTINGS_FILE) -> AnchorRules:
     raw = json.loads(Path(path).read_text(encoding="utf-8")).get("anchors")
     if not isinstance(raw, dict):
         raise ValueError("aspect_ratio.json: anchors must be an object")
-    if not isinstance(raw.get("sub_views"), bool):
-        raise ValueError("aspect_ratio.json: anchors: sub_views must be true or false")
     return AnchorRules(_number(raw, "edge_margin"), _number(raw, "half_margin"), _number(raw, "dead_zone"),
                        _patterns(raw, "keep_centred"), _sides(raw, "sides"),
-                       _patterns(raw, "keep_width"), _patterns(raw, "stretch_groups"), raw["sub_views"],
-                       _sides(raw, "child_sides"))
+                       _patterns(raw, "keep_width"), _patterns(raw, "stretch_groups"), _number(raw, "sub_view_margin"),
+                       _number(raw, "window_width"), _number(raw, "window_margin"), _sides(raw, "child_sides"))
 
 
 def side_of(low: float, high: float, rules: AnchorRules) -> int:
@@ -138,16 +141,48 @@ def hud_owned_layouts() -> set[str]:
             *(name for layouts in CODE_PATCH_LAYOUTS.values() for name in layouts)}
 
 
+def _whole_box(root: Pane) -> geometry.Box | None:
+    """The box of every sprite of a root group, shown or not as the layout loads: a window often starts hidden."""
+    sprites = list(_sprites(root, geometry.Frame().child(root.position)))
+    return geometry.union(_box(*sprite) for sprite in sprites) if sprites else None
+
+
+def _windows(layout: Layout, rules: AnchorRules, skip_groups: Collection[str]) -> list[tuple[Pane, geometry.Box]]:
+    """The root groups the rule keeps in the middle, wide enough to hold others: what is drawn on them must stay on
+    them. Not a ground across the whole frame, which holds a menu's columns; nor a group the data names or the engine
+    moves."""
+    windows = []
+    for root in layout.roots:
+        if root.name in skip_groups or forced_side(root.name, rules) is not None:
+            continue
+        box = _whole_box(root)
+        if box is None or box[2] - box[0] < rules.window_width \
+                or (box[0] <= rules.edge_margin and box[2] >= FRAME_WIDTH - rules.edge_margin):
+            continue
+        if side_of(box[0], box[2], rules) == CENTRE:
+            windows.append((root, box))
+    return windows
+
+
+def _in_a_window(root: Pane, windows: Iterable[tuple[Pane, geometry.Box]], rules: AnchorRules) -> bool:
+    box = _whole_box(root)
+    margin = rules.window_margin
+    return box is not None and any(
+        other is not root and box[0] >= window[0] - margin and box[1] >= window[1] - margin
+        and box[2] <= window[2] + margin and box[3] <= window[3] + margin for other, window in windows)
+
+
 def anchor_entries(layouts: Mapping[str, Layout], rules: AnchorRules,
                    skip_groups: Collection[str] = ()) -> dict[str, tuple[int, int]]:
     """Root group -> what the table says of it: its box's left and right in whole pixels, or the data's side twice (a
-    box is never empty, so the executable can tell). A group that stays whatever the game does is left out, and so is
-    one across the whole frame: a ground, which must not jump if the game slides it."""
+    box is never empty, so the executable can tell). A group that stays whatever the game does is left out, and so are
+    one across the whole frame (a ground, which must not jump if the game slides it) and one inside a window."""
     owned = hud_owned_layouts()
     out: dict[str, tuple[int, int]] = {}
     for name, layout in layouts.items():
         if name in owned:
             continue
+        windows = _windows(layout, rules, skip_groups)
         for root in layout.roots:
             if root.name in skip_groups:
                 continue
@@ -157,9 +192,30 @@ def anchor_entries(layouts: Mapping[str, Layout], rules: AnchorRules,
                     out[root.name] = (forced, forced)
                 continue
             span = group_span(layout, root)
-            if span is not None and not (span[0] <= rules.edge_margin and span[1] >= FRAME_WIDTH - rules.edge_margin):
+            if span is not None and not (span[0] <= rules.edge_margin and span[1] >= FRAME_WIDTH - rules.edge_margin) \
+                    and not _in_a_window(root, windows, rules):
                 low, high = math.floor(span[0]), math.ceil(span[1])
                 out[root.name] = (max(low, -0x8000), min(high, 0x7FFF))
+    return out
+
+
+def hud_code(anchor: Anchor) -> int:
+    """What the table says of a group of the HUD's, twice: its anchor's x and y signs, each + 1, in two bits each."""
+    x, y = anchor.value
+    return HUD_CODES + ((x + 1) << 2 | y + 1)
+
+
+def hud_entries(layouts: Mapping[str, Layout]) -> dict[str, tuple[int, int]]:
+    """Root group -> what the table says of each group of the HUD. Its files are at the sides of the installer's ratio
+    (scale.py); the executable takes it from there to the ratio chosen in the game. What stays in place is left out."""
+    out: dict[str, tuple[int, int]] = {}
+    for by_arc in (HUD_LAYOUTS, CODE_PATCH_LAYOUTS):
+        for by_layout in by_arc.values():
+            for name, spec in by_layout.items():
+                if name in layouts:
+                    anchors = spec if isinstance(spec, Mapping) else anchor_all(layouts[name], spec)
+                    out.update((group, (hud_code(anchor),) * 2) for group, anchor in anchors.items()
+                               if anchor is not Anchor.IN_PLACE)
     return out
 
 
@@ -260,13 +316,16 @@ def stretch_backdrops(layout: Layout, skip_groups: Collection[str], edge: tuple[
 
 def move_child_sides(layout: Layout, edge: tuple[float, float], rules: AnchorRules) -> int:
     """Each child of a root group that `child_sides` names, moved to its side of an interface `edge` times the game's,
-    in place. Returns how many moved. The game's code writes these rows' text and visibility, never their place."""
+    in place, from the side the data gives the group, which the executable moves whole. Returns how many moved. The
+    game's code writes these rows' text and visibility, never their place."""
     moved = 0
     for root in layout.roots:
+        group_side = forced_side(root.name, rules) or CENTRE
         for child in root.children:
-            side = next((side for name, side in rules.child_sides.items() if fnmatchcase(child.name, name)), CENTRE)
-            if side != CENTRE and edge[0] != 1.0:
-                child.position = (child.position[0] + edge_move(side, edge), child.position[1])
+            side = next((side for name, side in rules.child_sides.items() if fnmatchcase(child.name, name)), None)
+            if side is not None and side != group_side and edge[0] != 1.0:
+                way = edge_move(side, edge) - edge_move(group_side, edge)
+                child.position = (child.position[0] + way, child.position[1])
                 moved += 1
     return moved
 
@@ -339,16 +398,14 @@ def run_anchor_table(rom: GameFiles, files: Mapping[str, bytes], rules: AnchorRu
         for entry in parse_arc(files.get(path) or rom.read(path)).entries:
             if entry.type_hash == LYT_TYPE_HASH:
                 layouts.setdefault(short_name(entry.name), parse_lyt(entry.data))
-    return anchor_table(anchor_entries(layouts, rules, skip_groups))
+    return anchor_table({**anchor_entries(layouts, rules, skip_groups), **hud_entries(layouts)})
 
 
 def interface_anchors(rom: GameFiles, files: Mapping[str, bytes], edge: tuple[float, float],
                       skip_groups: Collection[str] = ()) -> tuple[dict[str, bytes], bytes | None]:
     """What a run's interface takes from a picture of another shape: (RomFS path -> ARC with its backdrops grown, over
-    `files`, the run's copies so far; the block `aspect_anchors`). Nothing and None at the game's own shape.
-    `skip_groups`: the root groups the game GUI engine places."""
-    if edge == NO_EDGE:
-        return {}, None
+    `files`, the run's copies so far; the block `aspect_anchors`). At the game's own shape only the block: the list in
+    the game can choose another. `skip_groups`: the root groups the game GUI engine places."""
     rules = load_anchor_rules()
     grown = dict(backdrop_files(rom, files, edge, rules))
     return grown, run_anchor_table(rom, {**files, **grown}, rules, skip_groups)

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 
 from core.interface.game_gui.build import single_screen_build
 from core.interface.hud.build import GameFiles
-from core.interface.hud.scale import NO_EDGE
 from core.interface.single_screen.layout.single_screen import keyboard_backdrop_files, single_screen_files
 from core.interface.single_screen.layout.single_screen_card import card_info_files
 from core.interface.single_screen.layout.single_screen_hint import map_hint_files
@@ -25,7 +24,7 @@ class SingleScreenFiles:
 
 
 def single_screen_romfs(rom: GameFiles, prior: Mapping[str, bytes],
-                        edge: tuple[float, float] = NO_EDGE) -> SingleScreenFiles:
+                        edge: tuple[float, float] | None = None) -> SingleScreenFiles:
     """The mode's files. `prior`: what the run's other interface steps made (HUD, icons, texts, key marks); the mode
     places whole layouts with what they added, so it comes after them. `edge`: the interface's size against the game's
     on a picture of another shape."""

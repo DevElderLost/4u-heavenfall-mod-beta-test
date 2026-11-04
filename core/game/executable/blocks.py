@@ -100,7 +100,13 @@ INSTA_KILL = "cheat_insta_kill"
 # The aspect ratios (cheats/aspect_ratio.py): the ratio's 3 factors. A mod without the
 # option carries none of its pages.
 ASPECT_RATIO = "cheat_aspect_ratio"
-ASPECT_DATA_SIZE = 28
+# The START menu's Mod Settings (interface/mod_settings/mod_settings.py), which only the
+# aspect ratio places today: its list changes the ratio in the game. Its data block (settings_data) holds the curated
+# table, the list's (aspect_list_data) its texts.
+MOD_SETTINGS = "mod_settings"
+MOD_SETTINGS_DATA_SIZE = 156
+ASPECT_LIST_DATA_SIZE = 24
+ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
 
 
@@ -122,7 +128,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), CHEATS, MOVE_WATCH, TAIL_FALL,
-                   GUI_FRAME_MARKS, INSTA_KILL, ASPECT_RATIO)
+                   GUI_FRAME_MARKS, INSTA_KILL, MOD_SETTINGS, ASPECT_RATIO)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -408,6 +414,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("insta_kill", INSTA_KILL, "cheats/insta_kill.c", region="ext"),
     BlockSpec("insta_kill_data", INSTA_KILL, size=8, region="ext"),
     # The aspect ratios (cheats/aspect_ratio.py): the hooks' stubs, the logic, the factors
+    BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext"),
+    BlockSpec("mod_settings_code", MOD_SETTINGS, "interface/mod_settings/mod_settings.c", region="ext",
+              units=("interface/mod_settings/aspect_list.c",)),
+    BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext"),
+    BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext"),
     BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext"),
     BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
     BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
@@ -428,6 +439,9 @@ VARIABLES = (
     # The rectangle of the sub-view being opened, moved with the interface (cheats/aspect_ratio.c); FUN_00aee0f0 copies
     # it
     VariableSpec("aspect_state", ASPECT_RATIO, 16),
+    VariableSpec("aspect_way", ASPECT_RATIO, 4),
+    VariableSpec("mod_settings_state", MOD_SETTINGS, 4),
+    VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8, gap=True),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
@@ -1174,6 +1188,37 @@ GAME_SYMBOLS |= {
     "gui_projection": 0xB70FC0,         # FUN_00b70fc0(matrix): the GUI's 2D projection from s0, s1 (aspect_stub.s)
     # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
     "hunter_gear_stat": 0x2F8F34,
+}
+
+# The START menu's Mod Settings (interface/mod_settings/mod_settings_stub.s, mod_settings.c; docs/interface/
+# mod_settings.md): the game's list widgets and where the hooks go back to. It also uses pane_redraw, facility_help,
+# sound_play, sound_control, game_main, gui_control, text_slot and text_common, declared elsewhere
+GAME_SYMBOLS |= {
+    "start_pick_sound": 0x5F746C,       # FUN_005f6c8c: the decide sound (sound in r5) of an action past its table
+    "start_help_body": 0x60FC30,        # FUN_0060fc2c: after its first instruction
+    "start_subscreen": 0x607910,        # FUN_00607910(menu): the frame of the game's sub-screens
+    "start_list_ui": 0x108F608,         # the object binding the START menu's list widgets (ui020)
+    "start_list_group": 0xD94358,       # FUN_00d94358(binder, group, shown): marks a widget group (+0x50, a bit each)
+    "start_sublist_begin": 0x611B10,    # FUN_00611b10(): what the game's small lists do before opening
+    "start_top_cursor": 0x6201DC,       # FUN_006201dc(shown): the page's cursor runs or stops
+    "start_sublist_open": 0x5E87B4,     # FUN_005e87b4(action, rows): opens the small list beside the line of the action
+    "start_sublist_text": 0x60FBC0,     # FUN_0060fbc0(row, 0, file, message): a row's text
+    "start_sublist_enable": 0x60CAEC,   # FUN_0060caec(row, enabled): 0 greys the row (FUN_005e86b0 undoes it)
+    "start_sublist_cursor": 0x5E84F0,   # FUN_005e84f0(row): moves the cursor and steps its animation, once per frame
+    "start_sublist_close": 0x5E86B0,    # FUN_005e86b0(): closes the small list and restores its colours
+    "start_sublist_end": 0x60F220,      # FUN_0060f220(): after the small list closes
+    "start_step": 0x5E70BC,             # FUN_005e70bc(value, count, keys, minus, plus): steps and wraps, move sound
+    "start_help_show": 0x2A4260,        # FUN_002a4260(1, 0xB): shows the description's frame
+    "gui_ref_next": 0xD03820,           # FUN_00d03820(&next, &ref): the pane ref after a text pane's
+    "gui_anim_bind": 0x585094,          # FUN_00585094(&pane ref, animation, owner, 0): binds a cursor's animation
+    "gui_anim_step": 0xAE1DDC,          # FUN_00ae1ddc(animation, s0 the frame's time)
+    "start_pager_bind": 0x5EDCF4,       # FUN_005edcf4(x, y): binds the big lists' pager, a counted bind
+    "start_pager_release": 0x5EDC88,    # FUN_005edc88(): ends one bind
+    "start_pager_show": 0x5ED704,       # FUN_005ed704(page, pages, 0, 0, 1): one frame of "page/pages"; 1 page, nothing
+    "start_pager_hide": 0x5EDCBC,       # FUN_005edcbc(): hides the pager's panes
+    "text_set": 0xAE4EF0,               # FUN_00ae4ef0(pane, group, text, length, format): 0, 0 blanks a text pane
+    "common_files": 0x109A080,          # the table of the common message files, by file number
+    "message_string": 0xCDFA80,         # FUN_00cdfa80(file's table, message): the string entry of its first node
 }
 
 # The Caravan's quest girl (interface/quest_counter/executable/quest_counter.s)

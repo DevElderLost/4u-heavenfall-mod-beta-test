@@ -12,7 +12,7 @@
     .fpu vfp
     .arm
     .global _start
-    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel, aspect_group
+    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel, aspect_group, aspect_group_height
 
     .equ SAVED, 88              @ the bytes saved below
 
@@ -69,6 +69,17 @@ aspect_group:
     mov     r0, r4
     mov     r1, r5
     bl      aspect_group_x
+    str     r0, [sp, #8]
+    vpop    {d0-d7}
+    pop     {r0-r3, r12, pc}
+
+@ FUN_00ae65f8: vldr s2, [r4, #0x38], the same load's y: the same registers, for aspect_group_y.
+aspect_group_height:
+    push    {r0-r3, r12, lr}
+    vpush   {d0-d7}
+    mov     r0, r4
+    mov     r1, r5
+    bl      aspect_group_y
     str     r0, [sp, #8]
     vpop    {d0-d7}
     pop     {r0-r3, r12, pc}

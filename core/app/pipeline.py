@@ -25,6 +25,8 @@ from core.game.executable.romfs import RomFS
 from core.game.executable.code_bin import is_container
 from core.game.executable import session, titles
 from core.cheats.cheats import patch_cheats, supports_cheats, wants_cheats
+from core.game.files.text.common_texts import remove_common_text_files
+from core.interface.mod_settings.mod_texts import mod_settings_texts
 from core.game.executable.memory_split import patch_memory_split, resource_to_root_mb
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
@@ -110,6 +112,7 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     ratio's table of the interface's groups (interface/hud/anchors.py; None without it)."""
     output_dir = result.output_dir
     remove_hud_files(output_dir)
+    remove_common_text_files(output_dir)
     remove_single_screen_files(output_dir)
     remove_backdrop_files(output_dir)
     # the aspect ratio moves the HUD only with the game's files; it needs no more than the executable to work
@@ -120,13 +123,17 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         hud = dict(hud_files(rom, settings.hud_scale.factor, with_code_patch, target_hint, edge))
     else:
         hud = dict(hint_files(rom)) if target_hint else {}
+    anchored = settings.aspect_on and rom is not None
+    names = {}
+    if anchored:            # the list in the game, on the third page of the START menu
+        names = mod_settings_texts().files(lambda path: hud.get(path) or rom.read(path))
     screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the HUD added (single_screen.py)
-        made = single_screen_romfs(rom, hud, edge)
+        made = single_screen_romfs(rom, {**hud, **names}, edge if anchored else None)
         screens, offsets, engine_table, engine_groups = made.files, made.offsets, made.engine_table, made.engine_groups
-    written = {**hud, **screens}
+    written = {**hud, **names, **screens}
     # after all of them: the backdrops of the files as they are, and the table of each layout's final places
-    backdrops, anchors = interface_anchors(rom, written, edge, engine_groups)
+    backdrops, anchors = interface_anchors(rom, written, edge, engine_groups) if anchored else ({}, None)
     for path, data in {**written, **backdrops}.items():
         target = output_dir / "romfs" / path
         target.parent.mkdir(parents=True, exist_ok=True)

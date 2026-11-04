@@ -37,6 +37,21 @@ def interface_size(name: str) -> tuple[float, float]:
     return 1.0, 1.0
 
 
+# The list in the game has the frame's own shape first: the option's OFF
+GAME_RATIO = Ratio("5:3", 5, 3)
+
+
+def menu_ratios() -> tuple[Ratio, ...]:
+    """The rows of the list in the game (interface/mod_settings), in its order: the byte a character saves counts on it.
+    """
+    return GAME_RATIO, *load_ratios()
+
+
+def ratio_text(ratio: Ratio) -> str:
+    """The key of the ratio's name in the menu's texts (curated mod_settings.json)."""
+    return "aspect_" + ratio.name.replace(":", "_")
+
+
 def load_ratios(path: Path = SETTINGS_FILE) -> tuple[Ratio, ...]:
     """The curated ratios, in the program's order. Refuses no ratios, a name repeated or named OFF, and a width or
     height that is not a whole number above 0."""

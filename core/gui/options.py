@@ -813,8 +813,10 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
              "30 FPS is recommended on a low-end PC. It only works in the emulator.")),
         Group(T("Proporción de la imagen", "Aspect ratio"), (
             Option("cheat_aspect_allowed", T("Permitir otras proporciones", "Allow other aspect ratios"),
-                   T("Activa la lista de proporciones, que aún está en pruebas.",
-                     "Turns on the list of aspect ratios, which is still being tested."),
+                   T("Activa la lista de proporciones, que aún está en pruebas, y su lista dentro del juego: START, "
+                     "tercera página, Ajustes del mod.",
+                     "Turns on the list of aspect ratios, which is still being tested, and its list inside the game: "
+                     "START, third page, Mod Settings."),
                    emulator_only=True),
             Option("cheat_aspect_ratio", T("Proporción", "Aspect ratio"),
                    T("Ajusta el juego a la forma de la imagen del emulador, para que nada se vea estirado.",
@@ -826,10 +828,12 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                    ), requires="cheat_aspect_allowed", compact=True, emulator_only=True),
         ), T("Aviso: aún está en pruebas y puede haber menús o indicaciones mal colocados. Por favor, informa de "
              "cualquier problema que veas. El emulador debe mostrar la imagen con esa forma: en Azahar, Single Screen "
-             "con Stretch. Solo funciona en el emulador.",
+             "con Stretch. Elige aquí la que vayas a usar: dentro del juego, los fondos y algunas filas siguen en la "
+             "de la instalación. Solo funciona en el emulador.",
              "Warning: this is still in testing, and some menus or prompts may be out of place. Please report any "
              "problem you see. The emulator must show the picture in that shape: in Azahar, Single Screen with "
-             "Stretch. It only works in the emulator.")),
+             "Stretch. Choose here the one you will use: inside the game, backgrounds and some rows stay at the "
+             "installed one. It only works in the emulator.")),
         Group(T("Campo de visión", "Field of view"), (
             Option("cheat_fov", T("Campo de visión", "Field of view"),
                    T("El juego usa 50; con un valor más alto se ve más alrededor del cazador.",

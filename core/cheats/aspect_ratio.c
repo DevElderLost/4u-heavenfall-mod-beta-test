@@ -1,9 +1,20 @@
 /* The shape of the emulator's picture (cheats/aspect_ratio.py): what the hooks of
- * aspect_stub.s ask.
+ * aspect_stub.s ask. The ratio is read each time, so a choice in the game's list (interface/mod_settings/aspect_list.c)
+ * shows at once: the byte of the character's save zone, else the installer's.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with aspect_ratio.ld where it places the block).
  */
 
+typedef unsigned int u32;
+typedef unsigned short u16;
+typedef unsigned char u8;
+
+#define MAX_RATIOS 8
+#define SAVE_DATA 0x5C          /* the save object's data starts here */
+#define ZONE_WORDS 12           /* the save zone's size (curated mod_settings.json) */
+#define ZONE_VERSION 4          /* its u16 */
+#define ZONE_ASPECT 9           /* its u8: 0 the installer's ratio, else its place + 1 */
+#define HUD_CODES 16            /* interface/hud/anchors.py hud_code: an entry from here on is the HUD's */
 #define BOTTOM_SCREEN_VIEW 7    /* FUN_00aeee7c's view that draws on the bottom screen */
 #define CAMERA_ASPECT 0x38      /* the camera's aspect, which uMhCamera's projection reads */
 #define VIEW_SHORT_SIDE 240.0f  /* the whole top screen's view, turned as the hardware has it: the screen's height */
@@ -14,6 +25,7 @@
 #define GROUP_X 0x28            /* a GUI group's place */
 #define GROUP_Y 0x2C
 #define GROUP_SECOND_X 0x34     /* the second translate FUN_00ae65f8 adds to the place */
+#define GROUP_SECOND_Y 0x38
 #define CONTEXT_VIEW 0x1BC      /* the draw's context: eye | view << 1 */
 #define TOP_SCREEN_VIEW 0
 #define FRAME_WIDTH 400.0f
@@ -21,16 +33,26 @@
 #define SIDE_CENTRE 0
 #define SIDE_RIGHT 1
 
-struct aspect_data {            /* aspect_ratio.py aspect_data */
+struct ratio {
     float view;                 /* a 3D view's aspect is multiplied by this */
     float gui_width, gui_height; /* the interface's units are multiplied by these */
+};
+
+struct aspect_data {            /* aspect_ratio.py aspect_data */
+    u32 zone_at;                /* the save zone in the save data */
+    u32 magic;                  /* what marks it written */
+    u8 fallback;                /* the installer's ratio, by place: what the files were fitted to */
+    u8 count;
+    u16 version;                /* the zone's */
     float edge_margin, half_margin, dead_zone; /* interface/hud/anchors.py AnchorRules */
-    int sub_views;              /* a sub-view follows the frame around it */
+    float sub_view_margin;      /* a sub-view this close to the frame's side goes to it, with its frame */
+    struct ratio ratios[MAX_RATIOS];
 };
 
 struct anchor {                 /* interface/hud/anchors.py anchor_table */
     unsigned hash;              /* the root group's name */
-    short low, high;            /* its box in the frame's pixels at a translate of 0; twice one number: that side */
+    short low, high;            /* its box in the frame's pixels at a translate of 0; twice one number: that side, or
+                                   from HUD_CODES on the HUD's anchor, whose files are fitted to the installer's ratio */
 };
 
 struct anchors {
@@ -45,11 +67,70 @@ struct rect {                   /* a sub-view's, in the top screen's pixels */
 extern const struct aspect_data aspect_data;
 extern const struct anchors aspect_anchors;
 extern struct rect aspect_state;
+extern float aspect_way;        /* what game_gui_engine.c adds to a place at the side: the way past the installer's */
+extern u32 save_control;        /* the variable holding the save object */
+
+/* The save zone of the character in play, 0 without a save */
+static u8 *save_zone(void)
+{
+    return save_control != 0 ? (u8 *)save_control + SAVE_DATA + aspect_data.zone_at : 0;
+}
+
+int aspect_saved(void)
+{
+    return save_zone() != 0;
+}
+
+int aspect_ratios(void)
+{
+    return aspect_data.count;
+}
+
+/* The ratio in use, by place */
+int aspect_selected(void)
+{
+    const u8 *zone = save_zone();
+
+    if (zone != 0 && *(const u32 *)zone == aspect_data.magic) {
+        int chosen = zone[ZONE_ASPECT];
+
+        if (chosen != 0 && chosen <= aspect_data.count)
+            return chosen - 1;
+    }
+    return aspect_data.fallback;
+}
+
+/* The game's list: this character's ratio from now on, the next frame's picture. A new character's zone is zeros */
+void aspect_choose(int place)
+{
+    u8 *zone = save_zone();
+    int word;
+
+    if (zone == 0)
+        return;
+    if (*(u32 *)zone != aspect_data.magic) {
+        for (word = 0; word < ZONE_WORDS; word++)
+            ((u32 *)zone)[word] = 0;
+        *(u32 *)zone = aspect_data.magic;
+        *(u16 *)(zone + ZONE_VERSION) = aspect_data.version;
+    }
+    zone[ZONE_ASPECT] = place + 1;
+}
+
+static const struct ratio *in_use(void)
+{
+    return &aspect_data.ratios[aspect_selected()];
+}
+
+static const struct ratio *installed(void)
+{
+    return &aspect_data.ratios[aspect_data.fallback];
+}
 
 /* FUN_00aeee7c's store of a view's aspect */
 void aspect_store(float aspect, int view, char *camera)
 {
-    *(float *)(camera + CAMERA_ASPECT) = view == BOTTOM_SCREEN_VIEW ? aspect : aspect * aspect_data.view;
+    *(float *)(camera + CAMERA_ASPECT) = view == BOTTOM_SCREEN_VIEW ? aspect : aspect * in_use()->view;
 }
 
 /* sizes: the s0, s1 FUN_00b70fc0 will get, the sides of the view's rectangle: s0 the screen's height, s1 its width. Only the
@@ -57,8 +138,11 @@ void aspect_store(float aspect, int view, char *camera)
 void aspect_gui_sizes(float *sizes)
 {
     if (sizes[0] == VIEW_SHORT_SIDE && sizes[1] == VIEW_LONG_SIDE) {
-        sizes[0] *= aspect_data.gui_height;
-        sizes[1] *= aspect_data.gui_width;
+        const struct ratio *ratio = in_use();
+
+        sizes[0] *= ratio->gui_height;
+        sizes[1] *= ratio->gui_width;
+        aspect_way = CENTRE_X * (ratio->gui_width - installed()->gui_width);
     }
 }
 
@@ -67,8 +151,10 @@ void aspect_gui_sizes(float *sizes)
 void aspect_panel_place(float x, float y, char *group, int kind)
 {
     if (kind == PANEL_MINIMAP) {
-        x -= CENTRE_X * (aspect_data.gui_width - 1.0f);
-        y += CENTRE_Y * (aspect_data.gui_height - 1.0f);
+        const struct ratio *ratio = in_use();
+
+        x -= CENTRE_X * (ratio->gui_width - 1.0f);
+        y += CENTRE_Y * (ratio->gui_height - 1.0f);
     }
     *(float *)(group + GROUP_X) = x;
     *(float *)(group + GROUP_Y) = y;
@@ -111,7 +197,8 @@ static const struct anchor *find_anchor(unsigned hash)
 
 /* FUN_00ae65f8's load of a group's second translate, which it adds to the group's place as it draws the group: that
  * translate, with the group's way to its side of the wider interface. A layout's x grows to the left, a pixel's to the
- * right. The side counts where the game has the group now, so a group the code moves to the other column follows it. */
+ * right. The side counts where the game has the group now, so a group the code moves to the other column follows it. The
+ * HUD's files are at their sides of the installer's ratio: it takes the way from there. */
 float aspect_group_x(const char *group, const char *context)
 {
     float second = *(const float *)(group + GROUP_SECOND_X);
@@ -123,6 +210,9 @@ float aspect_group_x(const char *group, const char *context)
     anchor = find_anchor(*(const unsigned *)group);
     if (!anchor)
         return second;
+    if (anchor->low == anchor->high && anchor->low >= HUD_CODES)
+        return second + (float)(((anchor->low - HUD_CODES) >> 2) - 1) * CENTRE_X
+            * (in_use()->gui_width - installed()->gui_width);
     if (anchor->low == anchor->high) {
         side = anchor->low;
     } else {
@@ -130,7 +220,23 @@ float aspect_group_x(const char *group, const char *context)
 
         side = side_of((float)anchor->low - translate, (float)anchor->high - translate);
     }
-    return second - (float)side * CENTRE_X * (aspect_data.gui_width - 1.0f);
+    return second - (float)side * CENTRE_X * (in_use()->gui_width - 1.0f);
+}
+
+/* The same load of the second translate's y: only the HUD keeps to the top and the bottom of a taller interface. A layout's
+ * y grows upwards. */
+float aspect_group_y(const char *group, const char *context)
+{
+    float second = *(const float *)(group + GROUP_SECOND_Y);
+    const struct anchor *anchor;
+
+    if (((*(const unsigned *)(context + CONTEXT_VIEW) >> 1) & 0x1F) != TOP_SCREEN_VIEW)
+        return second;
+    anchor = find_anchor(*(const unsigned *)group);
+    if (!anchor || anchor->low != anchor->high || anchor->low < HUD_CODES)
+        return second;
+    return second + (float)(((anchor->low - HUD_CODES) & 3) - 1) * CENTRE_Y
+        * (in_use()->gui_height - installed()->gui_height);
 }
 
 static int moved(float at, int centre, float factor)
@@ -142,13 +248,14 @@ static int moved(float at, int centre, float factor)
  * the frame around it went to its side. The game's own stays as it is: it may be a constant. */
 const struct rect *aspect_rect(const struct rect *rect)
 {
-    float shift = 0.0f;
+    const struct ratio *ratio = in_use();
+    int left = (float)rect->left <= aspect_data.sub_view_margin;
+    int right = (float)rect->right >= FRAME_WIDTH - aspect_data.sub_view_margin;
+    float shift = (float)(right - left) * CENTRE_X * (ratio->gui_width - 1.0f);
 
-    if (aspect_data.sub_views)
-        shift = (float)side_of((float)rect->left, (float)rect->right) * CENTRE_X * (aspect_data.gui_width - 1.0f);
-    aspect_state.left = moved((float)rect->left + shift, CENTRE_X, aspect_data.gui_width);
-    aspect_state.top = moved((float)rect->top, CENTRE_Y, aspect_data.gui_height);
-    aspect_state.right = moved((float)rect->right + shift, CENTRE_X, aspect_data.gui_width);
-    aspect_state.bottom = moved((float)rect->bottom, CENTRE_Y, aspect_data.gui_height);
+    aspect_state.left = moved((float)rect->left + shift, CENTRE_X, ratio->gui_width);
+    aspect_state.top = moved((float)rect->top, CENTRE_Y, ratio->gui_height);
+    aspect_state.right = moved((float)rect->right + shift, CENTRE_X, ratio->gui_width);
+    aspect_state.bottom = moved((float)rect->bottom, CENTRE_Y, ratio->gui_height);
     return &aspect_state;
 }

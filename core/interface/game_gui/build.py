@@ -17,7 +17,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.interface.hud.build import LANGUAGES
-from core.interface.hud.scale import NO_EDGE
 from core.interface.single_screen.layout.single_screen import ARCS, LOADING_ARCS, SETTINGS_FILE, WEAPON_ARCS
 from core.interface.game_gui import engine
 from core.interface.game_gui.config import Arrangement, load_arrangement
@@ -111,7 +110,7 @@ def check_handover(arrangement: Arrangement, path: Path = SETTINGS_FILE) -> None
 def single_screen_build(read: Callable[[str], bytes], files: Mapping[str, bytes] | None = None,
                         arrangement: Arrangement | None = None, fixes=None, paths: tuple[str, ...] | None = None,
                         screens: Mapping[str, str] | None = None, settings_path: Path = SETTINGS_FILE,
-                        edge: tuple[float, float] = NO_EDGE) -> Build:
+                        edge: tuple[float, float] | None = None) -> Build:
     """The engine's files and table for single-screen mode. `read(path)`: the game's bytes; `files`: the run's copies
     so far (taken first). The arrangement, ARC paths and layout screens are the curated ones by default, the fixes the
     arrangement's. `edge`: the interface's size against the game's on a picture of another shape. Raises ValueError for

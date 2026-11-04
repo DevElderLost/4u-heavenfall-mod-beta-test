@@ -35,8 +35,9 @@ from core.game.files.gui.lyt import (
 )
 from core.interface.game_gui import geometry
 from core.interface.game_gui.config import RAW_BUTTONS, Arrangement, Placement, Screen
-from core.interface.hud.anchors import AnchorRules, blocks_side, edge_move, hud_owned_layouts, load_anchor_rules
-from core.interface.hud.scale import NO_EDGE
+from core.interface.hud.anchors import (
+    CENTRE, LEFT, RIGHT, AnchorRules, blocks_side, edge_move, hud_owned_layouts, load_anchor_rules,
+)
 
 BLOCK = "game_gui_engine"
 TABLE = "game_gui_table"
@@ -53,6 +54,7 @@ PART_SUFFIX = "_ggp"                  # a null a part block's panes (or what fol
 MAGIC = 0x31454747                    # "GGE1": a table without it leaves the game alone
 VIEWS = {"top": 0, "bottom": 7}       # a root group's view bits for each screen (geometry.RUNTIME_SCREENS)
 OWN_SCREENS = ("top", "bottom")       # cx[0], cx[1] of a place: the group's own screen at run time
+SIDE_FLAGS = {LEFT: 0x08, RIGHT: 0x80}  # the side of a wider interface a place keeps to (game_gui_engine.c PLACE_LEFT)
 MAX_NAMES = 4096                      # game_gui_engine.c MAX_NAMES (the shown names' bits on its stack)
 NO_INDEX = 0xFFFF
 # ... the watched hash, then the photo section's offset and count, the photo mode's two pad masks
@@ -320,17 +322,18 @@ def _place_values(placement: Placement, box: geometry.Box | None, declared: str)
 
 
 def _at_its_side(cx: tuple, groups: Iterable[str], placement: Placement, box: geometry.Box, declared: str, scale: float,
-                 edge: tuple[float, float], rules: AnchorRules) -> tuple:
+                 edge: tuple[float, float], rules: AnchorRules) -> tuple[tuple, int]:
     """`cx` with the way to the side of a wider interface where the place puts the block, for each own screen from which
-    it is drawn on the top screen (interface/hud/anchors.py). The touch screen keeps its units."""
+    it is drawn on the top screen (interface/hud/anchors.py), and that side. The touch screen keeps its units."""
     corner = geometry.screen_centre(declared)[0] - box[0]
     width = scale * (box[2] - box[0])
-    out = list(cx)
+    out, kept = list(cx), CENTRE
     for n, own in enumerate(OWN_SCREENS):
         if (placement.screen or own) == "top":
             left = geometry.screen_centre(own)[0] - corner if placement.x is None else placement.x
-            out[n] += edge_move(blocks_side(groups, left, left + width, rules), edge)
-    return tuple(out)
+            kept = blocks_side(groups, left, left + width, rules)
+            out[n] += edge_move(kept, edge)
+    return tuple(out), kept
 
 
 def _identity(placement: Placement) -> bool:
@@ -339,13 +342,13 @@ def _identity(placement: Placement) -> bool:
 
 def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tuple[Target, ...]],
                  layouts: Mapping[str, Layout], own_screens: Mapping[str, str], watch: str | None = None,
-                 edge: tuple[float, float] = NO_EDGE) -> bytes:
+                 edge: tuple[float, float] | None = None) -> bytes:
     """The engine's table for `mode`'s screens. `targets`: group -> its targets (engine_files; a block without any
     may only change screen, priority and visibility); `layouts`: the layouts as the game has them (the reference
     boxes); `own_screens`: layout name -> the screen the game shows it on ("top" / "bottom"), which the reference box
     is cut to; `watch`: a group whose + 0x44 the engine's state copies every frame (probes); `edge`: the interface's
     size against the game's on a picture of another shape: each place on the top screen keeps to its side of it."""
-    rules = None if edge == NO_EDGE else load_anchor_rules()
+    rules = None if edge is None else load_anchor_rules()
     hud_owned = hud_owned_layouts()
     screens = arrangement.screens_of(mode)
     block_ids = list(arrangement.blocks)
@@ -399,9 +402,10 @@ def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tupl
             if block_id not in with_targets and not _identity(placement):
                 raise ValueError(f"{where}, block {block_id}: x, y or scale need its wrapper nulls (no targets)")
         scale, cx, cy = _place_values(placement, box, declared)
+        side = CENTRE
         if rules is not None and box is not None and arrangement.blocks[boxed].layout not in hud_owned:
-            cx = _at_its_side(cx, arrangement.blocks[boxed].groups, placement, box, declared, scale, edge, rules)
-        flags = KEEP_VIEW if placement.screen is None else VIEWS[placement.screen]
+            cx, side = _at_its_side(cx, arrangement.blocks[boxed].groups, placement, box, declared, scale, edge, rules)
+        flags = (KEEP_VIEW if placement.screen is None else VIEWS[placement.screen]) | SIDE_FLAGS.get(side, 0)
         if placement.priority is not None:
             flags |= SET_PRIORITY
         if placement.hidden:

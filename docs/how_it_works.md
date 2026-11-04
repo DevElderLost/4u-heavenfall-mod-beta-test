@@ -155,7 +155,8 @@ overwrite, so block `cheats` (`cheats/cheats.s`) writes them every frame. At its
 nothing at all. The aspect ratio (`cheats/aspect_ratio.py`, still in testing, behind the switch `cheat_aspect_allowed`) is not one of
 them: it hooks the 3D views' aspect, the interface's projection and the sub-views' rectangles, so nothing looks stretched on a wider or
 narrower picture. The HUD keeps to the picture's edges; every other group of the interface goes to its side from a table built in each
-run (`interface/hud/anchors.py`), and the backdrops grow to cover the picture.
+run (`interface/hud/anchors.py`), and the backdrops grow to cover the picture. Its list in the game, a third page of the START menu
+(`interface/mod_settings/`), keeps the choice in the character's save; every hook reads it each time.
 
 ## The interface tools
 

@@ -18,18 +18,25 @@
     "dead_zone": 30,
     "keep_centred": ["ui000_*", "ui005_*", "ui010_*", "ui013_assign", "ui409_*", "ui430_*", "ui50[2-5]_*", "ui7*", "ui9*"],
     "sides": {
+      "ui036_yazi02": "right",
+      "ui401_koumoku00": "right",
       "ui408_sitaji": "right",
       "ui430_l_xmap": "right",
       "ui430_l_minimap": "right",
-      "ui430_l_cardinfo": "right"
+      "ui430_l_cardinfo": "right",
+      "ui804_title": "left"
     },
     "child_sides": {
       "ui013_assign_bace_L*": "left",
       "ui013_assign_bace_R*": "right",
-      "ui013_dora_bace": "right"
+      "ui013_dora_bace": "right",
+      "ui401_preview_box": "left",
+      "ui401_m_hint": "left"
     },
     "keep_width": ["ui505_card_*"],
     "stretch_groups": ["ui10[1-5]_back", "ui409_boad_haikei", "ui413_boad_haikei", "ui419_l_bg", "ui495_boad_haikei", "ui496_BG"],
-    "sub_views": true
+    "sub_view_margin": 30,
+    "window_width": 200,
+    "window_margin": 8
   }
 }

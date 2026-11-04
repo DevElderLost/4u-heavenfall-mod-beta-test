@@ -47,6 +47,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - An online fix can give multiplayer rooms more time to connect.
 - Cheats can also show weapons' true attack instead of the inflated number.
 - Cheats can fit the game and its menus to screens from 4:3 to 32:9; still in testing.
+- The START menu's Mod Settings can change that screen shape during play, for each character.
 
 ### The program
 - A Windows program, with nothing else to install, puts Heavenfall Beta into Azahar or Citra and can update or remove it.

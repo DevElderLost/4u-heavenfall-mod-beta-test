@@ -58,7 +58,7 @@ You choose your options in a small program, press one button, and it installs th
 
 - Disable 3D, glow and distant blur for a sharper image. These cheats are enabled by default.
 - Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
-- Still in testing, also disabled by default: turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). Please report any problem you see.
+- Still in testing, also disabled by default: turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). You can also change it during play: START, third page, Mod Settings. Please report any problem you see.
 
 The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 

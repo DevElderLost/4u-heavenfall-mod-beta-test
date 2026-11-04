@@ -1,0 +1,40 @@
+{
+  "description": "The START menu's third page (interface/mod_settings/mod_settings.py). Each name below is a key of menu_texts: the text, in the game's five languages.",
+  "line": {
+    "value": {"name": "mod_settings", "help": "mod_settings_help"},
+    "description": "The first row of the third page and the description shown while the cursor is on it. The page's other rows are the game's \"- - - - -\" line."
+  },
+  "entries": {
+    "value": [
+      {"name": "aspect_ratio", "help": "aspect_ratio_help", "opens": {"title": "aspect_ratio", "screen": "aspect_list"}}
+    ],
+    "description": "The small list that Mod Settings opens, in order, 1 to 5 rows (the game's small list has 5). Each row has its name, its description, and what A opens: another small list ({\"entries\": [rows]}, whose B comes back to this row), or a screen of the code ({\"title\": a text, \"screen\": aspect_list}). All the lists together may have 4 lists and 12 rows (the code's data block)."
+  },
+  "pager_place": {
+    "value": [310, 22],
+    "description": "Where a big list's page number goes, x and y in the top screen's layout: the place the game gives its own big lists."
+  },
+  "save_zone": {
+    "value": {"offset": 74976, "magic": "RADL", "version": 1},
+    "description": "Where a character keeps the mod's choices: 48 bytes at this offset of the save data (0x124E0; the data starts 0x5C into the save object and the file holds its first 0x12600 bytes), which no code of the game reads. A character without the magic has none yet. The aspect ratio is its byte 9."
+  },
+  "menu_texts": {
+    "value": [
+      {"key": "mod_settings", "eng": "Mod Settings", "fre": "Options du mod", "spa": "Ajustes del mod", "ger": "Mod-Einstellungen", "ita": "Opzioni mod"},
+      {"key": "mod_settings_help", "eng": "Settings added by the mod.", "fre": "Options ajoutées par le mod.", "spa": "Ajustes que añade el mod.", "ger": "Einstellungen, die der Mod hinzufügt.", "ita": "Impostazioni aggiunte dal mod."},
+      {"key": "aspect_ratio", "eng": "Aspect Ratio", "fre": "Format d'image", "ger": "Seitenverhältnis", "ita": "Proporzioni", "spa": "Proporción"},
+      {"key": "aspect_ratio_help", "eng": "The shape of the picture.", "fre": "La forme de l'image.", "ger": "Die Form des Bildes.", "ita": "La forma dell'immagine.", "spa": "La forma de la imagen."},
+      {"key": "aspect_help", "eng": "A: use this shape of picture.", "fre": "A : utiliser cette forme d'image.", "ger": "A: Diese Form des Bildes nutzen.", "ita": "A: usa questa forma d'immagine.", "spa": "A: usa esta forma de imagen."},
+      {"key": "aspect_row", "eng": "{slot}", "fre": "{slot}", "ger": "{slot}", "ita": "{slot}", "spa": "{slot}"},
+      {"key": "aspect_marked", "eng": "{slot} ←", "fre": "{slot} ←", "ger": "{slot} ←", "ita": "{slot} ←", "spa": "{slot} ←"},
+      {"key": "aspect_5_3", "eng": "5:3 (original)", "fre": "5:3 (d'origine)", "ger": "5:3 (Original)", "ita": "5:3 (originale)", "spa": "5:3 (original)"},
+      {"key": "aspect_4_3", "eng": "4:3", "fre": "4:3", "ger": "4:3", "ita": "4:3", "spa": "4:3"},
+      {"key": "aspect_16_10", "eng": "16:10", "fre": "16:10", "ger": "16:10", "ita": "16:10", "spa": "16:10"},
+      {"key": "aspect_16_9", "eng": "16:9", "fre": "16:9", "ger": "16:9", "ita": "16:9", "spa": "16:9"},
+      {"key": "aspect_20_9", "eng": "20:9", "fre": "20:9", "ger": "20:9", "ita": "20:9", "spa": "20:9"},
+      {"key": "aspect_21_9", "eng": "21:9", "fre": "21:9", "ger": "21:9", "ita": "21:9", "spa": "21:9"},
+      {"key": "aspect_32_9", "eng": "32:9", "fre": "32:9", "ger": "32:9", "ita": "32:9", "spa": "32:9"}
+    ],
+    "description": "The lines and descriptions of the menu, in the five languages, appended to each language's Menu file: the game finds a text by its index, the file's message count plus its place here, so a new text goes at the end. {slot} is filled by the code, in a row with the ratio's name."
+  }
+}

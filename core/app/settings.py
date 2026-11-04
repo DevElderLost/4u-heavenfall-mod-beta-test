@@ -471,6 +471,11 @@ class Settings:
         return replace(self, **{name: getattr(defaults, name) for name in EMULATOR_ONLY})
 
     @property
+    def aspect_on(self) -> bool:
+        """The mod can change the picture's shape: the hooks and the list in the game, even at the game's own shape."""
+        return self.cheat_aspect_allowed or self.cheat_aspect_ratio.value != ASPECT_OFF
+
+    @property
     def hud_edge(self) -> tuple[float, float]:
         """The interface's width and height against the game's (cheat_aspect_ratio): the HUD keeps to the picture's
         edges."""
