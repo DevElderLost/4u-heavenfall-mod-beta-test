@@ -57,7 +57,7 @@ You choose your options in a small program, press one button, and it installs th
 **Built-in cheats**
 
 - Disable 3D, glow and distant blur for a sharper image. These cheats are enabled by default.
-- Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, and longer wait times when joining online rooms.
+- Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
 
 The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 

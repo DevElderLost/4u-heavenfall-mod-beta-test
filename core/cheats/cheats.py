@@ -1,9 +1,10 @@
-"""Cheats (options cheat_3d_mode, cheat_no_bloom_dof, cheat_fps, cheat_fov, cheat_net_fix, and the debug cheat
-cheat_insta_kill): the players' Gateway / Citra cheat codes for the update (1.1), as executable
-patches.
+"""Cheats (options cheat_3d_mode, cheat_no_bloom_dof, cheat_fps, cheat_fov, cheat_net_fix, cheat_raw_unbloat, and the
+debug cheat cheat_insta_kill): the players' Gateway / Citra cheat codes for the update (1.1), as
+executable patches.
 
 Static ones overwrite a word of the game: the bloom filter's first instruction (a `bx lr`), the three camera field
-of view floats, and the three constants of the multiplayer node's waits. The ones the game rewrites (3D, frame rate,
+of view floats, the three constants of the multiplayer node's waits, and the weapon classes' display multipliers. The
+ones the game rewrites (3D, frame rate,
 the camera's field of view) are written every frame by the block `cheats` (cheats/cheats.s), which the
 application's update calls first of all: for each entry of its table, when the object a variable holds exists, a
 value goes at an offset of it. Insta kill sends two calls of the hunter's attack to the block `insta_kill`
@@ -33,6 +34,13 @@ GAME_FOV = 50                  # the game's own: cheat_fov at this value writes 
 NET_SITES = ((0x533F40, 0xE3520078, 0xE3520EFA),    # cmp r2, #120    -> cmp r2, #4000
              (0x534B54, 0xE3A0000A, 0xE3A00FFA),    # mov r0, #10     -> mov r0, #1000
              (0x5356DC, 0xE3A0000A, 0xE3A00FFA))
+
+# The weapon classes' multipliers of the attack the menus show, in percent: a table of u32 that FUN_0026e33c and
+# FUN_0027335c alone read (value x entry / 100). No code of a hit reaches them. Entry 15 is FUN_0026e33c's own case
+# of class 12. 100 shows the weapon's true attack.
+CLASS_MULTIPLIERS = 0xED24A0
+CLASS_MULTIPLIER_WORDS = (480, 140, 520, 230, 150, 130, 130, 330, 540, 230, 120, 140, 520, 310, 360, 170)
+NO_MULTIPLIER = 100
 
 # Per-frame: the application's update (FUN_00af52a0) calls the engine's timing update first (a bl, hooked)
 FRAME_CALL = 0xAF52E4
@@ -75,7 +83,7 @@ def wants_cheats(settings: Any) -> bool:
     """Some cheat is not at its neutral value."""
     return bool(settings.cheat_3d_mode.value != "off" or settings.cheat_no_bloom_dof
                 or settings.cheat_fps.value != "off" or settings.cheat_net_fix or settings.cheat_fov != GAME_FOV
-                or settings.cheat_insta_kill)
+                or settings.cheat_insta_kill or settings.cheat_raw_unbloat)
 
 
 def cheat_entries(settings: Any) -> list[tuple[int, int, int]]:
@@ -100,6 +108,8 @@ def supports_cheats(code: bytes) -> bool:
     return (_word(code, BLOOM_FILTER) == BLOOM_ORIGINAL
             and all(_word(code, at) == original for at, original in FOV_SITES)
             and all(_word(code, at) == original for at, original, _ in NET_SITES)
+            and all(_word(code, CLASS_MULTIPLIERS + 4 * i) == original
+                    for i, original in enumerate(CLASS_MULTIPLIER_WORDS))
             and bl_target(code, FRAME_CALL) == FRAME_UPDATE
             and all(bl_target(code, at) == HUNTER_GEAR_STAT for at in ATTACK_CALLS))
 
@@ -141,6 +151,9 @@ def patch_cheats(code: bytes, settings: Any, layout: Layout | None = None) -> by
     if settings.cheat_net_fix:
         for at, _, patched in NET_SITES:
             struct.pack_into("<I", out, at - BASE_ADDRESS, patched)
+    if settings.cheat_raw_unbloat:
+        for i in range(len(CLASS_MULTIPLIER_WORDS)):
+            struct.pack_into("<I", out, CLASS_MULTIPLIERS + 4 * i - BASE_ADDRESS, NO_MULTIPLIER)
     if settings.cheat_insta_kill:
         layout = layout or load_layout()
         layout.place(out, INSTA_KILL)

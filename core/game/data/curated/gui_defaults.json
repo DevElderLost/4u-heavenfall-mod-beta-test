@@ -8,5 +8,6 @@
   "cheat_no_bloom_dof": true,
   "cheat_fps": "off",
   "cheat_fov": 50,
-  "cheat_net_fix": false
+  "cheat_net_fix": false,
+  "cheat_raw_unbloat": false
 }

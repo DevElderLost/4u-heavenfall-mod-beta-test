@@ -48,6 +48,8 @@ def main(argv=None) -> int:
     parser.add_argument("--cheat-fov", type=int, metavar="DEGREES", help="camera field of view (50: the game's own)")
     parser.add_argument("--cheat-net-fix", action=argparse.BooleanOptionalAction,
                         help="longer waits for the online connection")
+    parser.add_argument("--cheat-raw-unbloat", action=argparse.BooleanOptionalAction,
+                        help="menus show weapons' true attack; the damage does not change")
     args = parser.parse_args(argv)
 
     low, high = presets.field_range("cheat_fov")

@@ -825,6 +825,15 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "emulator's online rooms do not fail on a slow connection."),
                    emulator_only=True),
         ), T("Truco de Klark231. Solo funciona en el emulador.", "Cheat by Klark231. It only works in the emulator.")),
+        Group(T("Armas", "Weapons"), (
+            Option("cheat_raw_unbloat", T("Ataque real de las armas", "Weapons' true attack"),
+                   T("Los menús muestran el ataque real de cada arma, sin el multiplicador que el juego le aplica "
+                     "según su tipo.",
+                     "Menus show each weapon's true attack, without the multiplier the game applies by weapon "
+                     "type."),
+                   emulator_only=True),
+        ), T("Solo cambian los números que se ven, no el daño. Solo funciona en el emulador.",
+             "Only the numbers shown change, not the damage. It only works in the emulator.")),
         Group(T("Depuración", "Debug"), (
             Option("cheat_insta_kill", T("Muerte instantánea", "Insta kill"),
                    T("El ataque del cazador se multiplica: cada golpe derriba a un monstruo al instante.",

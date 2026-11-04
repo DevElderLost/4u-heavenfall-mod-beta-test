@@ -148,9 +148,9 @@ nothing is confirmed by accident.
 
 ## The cheats
 
-Five well-known cheat codes, built into the executable so they work without the emulator's cheat list
+Six well-known cheat codes, built into the executable so they work without the emulator's cheat list
 (`cheats/cheats.py`): 3D off (with or without the game's dot pattern), no bloom or depth of field, a fixed frame rate,
-the camera's field of view and longer online waits. Some are bytes changed once; the others are values the game would
+the camera's field of view, longer online waits and weapons' true attack in the menus. Some are bytes changed once; the others are values the game would
 overwrite, so block `cheats` (`cheats/cheats.s`) writes them every frame. At its neutral value an option changes
 nothing at all.
 

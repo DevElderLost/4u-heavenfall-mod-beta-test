@@ -45,6 +45,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - 3D is off and glow and distant blur are gone by default, for a sharper picture.
 - Cheats can also fix the frame rate at 30 or 60 FPS and widen or narrow the camera's view.
 - An online fix can give multiplayer rooms more time to connect.
+- Cheats can also show weapons' true attack instead of the inflated number.
 
 ### The program
 - A Windows program, with nothing else to install, puts Heavenfall Beta into Azahar or Citra and can update or remove it.
