@@ -38,7 +38,6 @@ MESSAGES: dict[str, tuple[str, str]] = {
     "rebuilding": ("{folder}: updating the mod ({old} to {new})...",
                    "{folder}: actualizando el mod ({old} a {new})..."),
     "progress": ("  {percent} %", "  {percent} %"),
-    "stage": ("  {stage}", "  {stage}"),
     "rebuilt": ("{folder}: updated.", "{folder}: actualizado."),
     "failed": ("{folder}: the mod could not be updated ({reason}); it was left as it is.",
                "{folder}: no se pudo actualizar el mod ({reason}); se ha dejado como estaba."),
@@ -182,8 +181,7 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
             tell("rebuilding", folder=folder, old=marker.get("version") or "?", new=version)
             try:
                 result = build(rom, mhgen, settings, build_dir=build_dir, kind="install",
-                               progress=_every_tenth(lambda percent: tell("progress", percent=percent)),
-                               stage=lambda stage: tell("stage", stage=stage))
+                               progress=_every_tenth(lambda percent: tell("progress", percent=percent)))
                 code = result.checksum.code if result.checksum else ""
                 install(result.output_dir, folder, "install", seed=result.seed, checksum=code,
                         settings=settings.to_dict(), title=result.mod_title)

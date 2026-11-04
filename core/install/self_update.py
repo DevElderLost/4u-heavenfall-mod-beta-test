@@ -22,6 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -37,6 +38,7 @@ DOWNLOADS = "https://github.com/{repository}/releases/download/"
 TIMEOUT = 30                    # seconds without an answer
 CHUNK = 1 << 20
 MAX_JSON = 4 << 20              # the API's answer is a few KB
+MOVE_TRIES, MOVE_WAIT = 40, 0.25    # a move Windows refuses: the tries, and the seconds between them
 OLD = ".old"                    # what a replaced file is called until the update ends (and after, while it is running)
 STAGING = ".update_new"         # the new files, beside the program, until they are put in place
 INTERNAL = "_internal"
@@ -364,6 +366,19 @@ def cleanup_leftovers(folder: Path, product: Edition) -> None:
             pass
 
 
+def _move(source: Path, target: Path) -> None:
+    """`os.replace`, waiting out a passing hold: a virus scanner or the search indexer keeps newly written files open
+    for a moment, and Windows then refuses to rename them or the folder they are in."""
+    for attempt in range(MOVE_TRIES):
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if attempt == MOVE_TRIES - 1:
+                raise
+            time.sleep(MOVE_WAIT)
+
+
 def replace_files(folder: Path, staging: Path, names: list[str], app: str) -> None:
     """Move `staging/<name>` to `folder/<name>` for each name, the old file kept as `<name>.old` until all are in
     place. Any failure puts every old file back and raises UpdateError("locked"): nothing is half replaced."""
@@ -374,10 +389,10 @@ def replace_files(folder: Path, staging: Path, names: list[str], app: str) -> No
             old = folder / (name + OLD)
             _remove(old)
             if (folder / name).exists():
-                os.replace(folder / name, old)
+                _move(folder / name, old)
                 kept.append(name)
         for name in names:
-            os.replace(staging / name, folder / name)
+            _move(staging / name, folder / name)
             placed.append(name)
     except OSError:
         for name in reversed(placed):
@@ -387,7 +402,7 @@ def replace_files(folder: Path, staging: Path, names: list[str], app: str) -> No
                 pass
         for name in reversed(kept):
             try:
-                os.replace(folder / (name + OLD), folder / name)
+                _move(folder / (name + OLD), folder / name)
             except OSError:
                 pass
         raise UpdateError("locked", app=app) from None
