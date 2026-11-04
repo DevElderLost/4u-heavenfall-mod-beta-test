@@ -164,6 +164,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # Holding A repeats it (gameplay/hold_a/hold_a.py): three entries, one for the hunter's
     # input and one for each panel that takes items one at a time
     BlockSpec("hold_a", "hold_a", "gameplay/hold_a/hold_a.c", region="ext"),
+    # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): two entries, one for the
+    # SDK's pad step and one for the Game Menu's per-frame logic
+    BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext"),
     # The cheats' per-frame writes (cheats/cheats.py): the code and its table of (object, offset,
     # value)
     BlockSpec("cheats", CHEATS, "cheats/cheats.s", region="ext"),
@@ -446,6 +449,7 @@ VARIABLES = (
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
     VariableSpec("fast_gathering_state", "fast_gathering", 4),  # fast_gathering.s: the mPlayerSpeed it last wrote
+    VariableSpec("select_kick_state", "select_kick", 4),     # select_kick.c: Select held (1), seen by the menu (2)
     # bubbleblight.s: the local hunter's bubbles (+0 state, +4 timer, +8 unused) and bubble_bind.s' slide velocity
     # (x, z) of the large bubbles at +8 / +12 (`bubble_state + 8`): one variable, because bss_tail had 4 bytes left
     VariableSpec("bubble_state", BUBBLEBLIGHT, 16),
@@ -1252,4 +1256,12 @@ GAME_SYMBOLS |= {
     "hunter_item_mode": 0xB28F54,       # FUN_00b28f54(hunter): item mode (L held), called by the hunter's input update
     "result_scene": 0xACCD24,           # FUN_00accd24(scene, ?, ?): the quest result scene, once per frame
     "claim_scene": 0x5E5CB8,            # FUN_005e5cb8(panel): the Wyporium's claim items panel, once per frame
+}
+
+# Select and Start follow the game's option START (gameplay/select_kick/select_kick.c): the SDK's Select-to-Start step,
+# the settings byte reader and the Game Menu's object
+GAME_SYMBOLS |= {
+    "sdk_select_to_start": 0x571E58,    # FUN_00571e58(status): Select becomes Start in the 3DS pad status
+    "game_setting": 0x2B02FC,           # FUN_002b02fc(settings, index): the settings byte `index`
+    "start_menu": 0x108B9BC,            # the Game Menu's object (FUN_0012580c returns it)
 }

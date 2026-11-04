@@ -43,7 +43,8 @@ You choose your options in a small program, press one button, and it installs th
 
 **Kick on Select**
 
-- Select kicks, and only Start opens the menu. You can turn this off in Options.
+- Select kicks, and only Start opens the menu.
+- If you set the game's own **START** option to **Kick** (Options, page 2), they swap in quests: Start kicks, and Select opens and closes the menu.
 
 **Holding A**
 
@@ -112,6 +113,7 @@ python -m core.gui
 ## Removing or updating the mod
 
 - **To uninstall:** Click **Uninstall** on the Install page. This restores the game to its original state. The program only removes the files it installed.
+- **To update:** Close the program and open `HeavenfallBeta-update.exe`, in the same folder. It downloads the latest version, replaces the program and rebuilds the mod you installed with the same options. Then restart emulation. It never touches a mod it did not install. If your folder doesn't have that file, download the latest release as in step 1 of the installation.
 - **To change your options:** Change them on the Options page and click **Update** on the Install page (or **Apply now** on the Options page).
 - **If you used the web installer:** To uninstall, delete the mod's folder from `load/mods/`. To change your options or update, delete it too, then make the mod again and move in the new folder: old files left behind would still be loaded.
 

@@ -47,7 +47,7 @@ install: copied into <emulator>/load/mods/<title>/   (0004000000126100 European,
      (below);
    * writes the interface files: the smaller HUD (`interface/hud/`), then single-screen mode's layouts
      (`interface/single_screen/run.py`), which are made last because they place whole layouts, with what the HUD step changed;
-   * patches the executable in this order: the memory split, Select's kick, holding A, the cheats, the HUD and lock-on
+   * patches the executable in this order: the memory split, Select and Start, holding A, the cheats, the HUD and lock-on
      code, single-screen mode;
    * carries every patch back onto the player's own executable and writes it with its header.
 4. **The copy** (`core/install/deploy.py`): the new files go into a folder beside the target first and replace
@@ -131,12 +131,18 @@ Holding L and pressing D-pad up locks on to a large monster, as a tap on the tou
 D-pad up; block `target_button` then makes the game's own target test switch the target, sound included. The target's
 face shows on the top screen (blocks `face_*`, `target_face.c`). Patches: `interface/hud/code_patch.py`, `patch_interface`.
 
-## Select's kick
+## Select and Start
 
-The game turns a held Select into Start, so both open the menu and no button kicks. Four words change that
-(`gameplay/select_kick/select_kick.py`): the call that turns Select into Start becomes a `nop`, the raw pad read passes
-Select beside Start, and the empty entry of the pad's table whose game bit is the kick takes Select. Start keeps the menu,
-and the game's own option "START kicks" is untouched.
+The game turns a held Select into Start, so both open the menu and no button kicks. The game's own option "START"
+(page 2 of its Options: Menu or Kick) now says what Select does, with nothing to set in the program. With Menu, the
+game's default, only Start opens the menu and Select kicks (the touch screen's Special Attack). With Kick, in a quest
+Start kicks and Select opens and closes the menu; in a town both open it. At the title Select does nothing. Block
+`select_kick`
+(`gameplay/select_kick/select_kick.c`, patch in `select_kick.py`) takes over two calls of the game: the pad step's call
+that turns Select into Start, which the block makes only in a town with the option at Kick, and the menu's read of the
+option that stops
+Start from opening the menu in a quest, which lets a Select press through when the option is Kick. The touch screen's
+kick and Start in the menus are untouched.
 
 ## Holding A
 
@@ -175,7 +181,7 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/single_screen/` | Single-screen mode: `layout/` (its layout changes), `executable/` (its patches and their C and assembly) |
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
-| `core/gameplay/select_kick/`, `core/gameplay/hold_a/` | Select's kick; holding A |
+| `core/gameplay/select_kick/`, `core/gameplay/hold_a/` | Select and Start; holding A |
 | `core/cheats/` | The emulator cheats |
 | `core/game/executable/` | Reading the game file, the executable, versions and their maps, free space, the blocks (compiled into `generated/code_space.json`) |
 | `core/game/files/` | The game's file formats: archives (`.arc`), layouts (`lyt.py`), texts |

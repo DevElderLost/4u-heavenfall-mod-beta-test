@@ -1,5 +1,5 @@
 # Builds Heavenfall Beta for Windows and attaches HeavenfallBeta-windows.zip to the GitHub release of the tag.
-# Push a tag to release (docs/develop/development.md, "Publishing a release"):  git tag v0.1.2 && git push origin v0.1.2
+# Push a tag to release (docs/develop/development.md, "Publishing a release"):  git tag v0.1.3 && git push origin v0.1.3
 # Run by hand (Actions > Release > Run workflow) to only build: the zip is then an artifact of the run.
 name: Release
 

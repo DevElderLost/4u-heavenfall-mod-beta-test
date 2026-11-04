@@ -32,6 +32,8 @@ class Edition:
     tools_language: str         # the developer tools' texts (the recorder, tools/ui/ui.py), of TOOLS_LANGUAGES
     user_folder: str            # under the home folder: the GUI's preferences, its log and the builds
     marker: str                 # the file that marks our mod in a mod folder (install/deploy.py)
+    repository: str             # "<owner>/<name>" on GitHub: where its releases are published (install/self_update.py)
+    updater_name: str           # the updater beside the program, <updater_name>.exe (tools/release/exe/)
     # The names this product used before, which players' disks may still hold (empty for an edition that never had any)
     legacy_user_folders: tuple[str, ...] = ()       # copied into user_folder once (migrate_legacy_user_folder)
     legacy_markers: tuple[str, ...] = ()            # a mod folder marked with one is still ours (install/deploy.py)

@@ -1,83 +1,57 @@
-"""Select kicks, Start opens the menu (option select_kick).
+"""Select and Start follow the game's own option "START".
 
-The game gives Select no button of its own: the SDK's pad step (FUN_00485708) turns a held SELECT into START in the
-3DS pad status (FUN_00571e58), so Select opens the Game Menu like Start. Four words of the update's executable give
-Select the kick instead, the button the touch panel's "Special Attack" presses:
+The game's option (page 2 of the Options, "Set whether START is used to kick or open the menu."; settings index 0x11,
+0 Menu and 1 Kick) decides, always on:
 
-* `SDK_FIX_CALL`, in FUN_00485708: the call of FUN_00571e58 becomes a `nop`, so SELECT stays HID bit 4;
-* `RAW_READ_TEST` / `RAW_READ_SET`, in FUN_005b8460 (the raw pad read, which maps HID bits to the pad object's raw
-  word at +0x8C): `tst r0, #8` / `orrne r4, r4, #8` (START) become `and ip, r0, #0xC` / `orr r4, r4, ip`, so SELECT is
-  raw bit 4 beside START's raw 8 (ip is free there and the next instruction sets the flags again);
-* `RAW_MASKS` entry 13, in the table of FUN_00694ccc (the pad update, raw word -> the game layout at +0x30C): the mask
-  0, which no button could set, becomes 4. Its game bit is 0x1, which the hunter's input (FUN_00b169bc) reads as the
-  kick.
+* Menu (the game's default): only Start opens the Game Menu, Select kicks;
+* Kick: in a quest Start kicks (the game's own path) and Select opens and closes the Game Menu; in a town both open it.
 
-Start keeps raw 8 and the game layout's 0x8000 (the Game Menu). The game's own option "START kicks" (settings index
-0x11) is untouched. Update's executable only; every word is checked first.
+At the title or with no save loaded Select does nothing. The touch panel's kick is unchanged. Two calls of the update's
+executable go through the block `select_kick` (gameplay/select_kick/select_kick.c):
+
+* `SDK_FIX_CALL`, in FUN_00485708 (the SDK's pad step): the conditional `bl` of FUN_00571e58 (Select becomes Start in
+  the 3DS pad status). The block makes that call only in a town with the option at Kick; otherwise it presses the kick
+  or notes Select for the menu;
+* `OPTION_CALL`, in FUN_005ecf60 (the Game Menu's per-frame logic): the `bl` of FUN_002b02fc (the settings byte that
+  stops Start from opening the menu in a quest). The block lets a Select press through when the option is Kick.
+
+Update's executable only; each call is checked first.
 """
 
 import struct
 
-from core.game.executable.code_space import BASE_ADDRESS, COND_ALWAYS, COND_EQ, CodeSpaceError, branch_word
+from core.game.executable.code_space import (
+    BASE_ADDRESS, COND_EQ, CodeSpaceError, Layout, bl_target, branch_word, load_layout,
+)
 
-SDK_FIX = 0x571E58                  # FUN_00571e58(status): SELECT -> START in the pad status
-SDK_FIX_CALL = 0x4857F0             # in FUN_00485708: bleq FUN_00571e58
-RAW_READ_TEST = 0x5B84F0            # in FUN_005b8460: tst r0, #8
-RAW_READ_SET = 0x5B84F4             # orrne r4, r4, #8
-RAW_MASKS = 0xFB8260                # FUN_00694ccc's table: 16 raw masks, each giving the game bit of the table after it
-RAW_MASK_ENTRY = 13                 # the entry whose game bit is 0x1 (kick) and whose mask is 0
-SELECT_RAW_BIT = 0x4                # HID SELECT (4) in the raw word
-RAW_MASK_AT = RAW_MASKS + 4 * RAW_MASK_ENTRY
+BLOCK = "select_kick"
 
-NOP = 0xE320F000
-# ARM instructions built from their fields
-R0, R4, IP = 0, 4, 12
-START_BITS = 0x8
-SELECT_AND_START = SELECT_RAW_BIT | START_BITS
+SDK_FIX = 0x571E58                  # FUN_00571e58(status): Select -> Start in the 3DS pad status
+SDK_FIX_CALL = 0x4857F0             # in FUN_00485708: the call of FUN_00571e58, taken when the SDK's own step ran
+OPTION_READ = 0x2B02FC              # FUN_002b02fc(settings, index): the settings byte `index`
+OPTION_CALL = 0x5ED0D0              # in FUN_005ecf60: the call of FUN_002b02fc(settings, 0x11)
 
-
-def and_imm(rd: int, rn: int, imm: int) -> int:
-    return COND_ALWAYS << 28 | 0x2000000 | rn << 16 | rd << 12 | imm
-
-
-def orr_reg(rd: int, rn: int, rm: int) -> int:
-    return COND_ALWAYS << 28 | 0x1800000 | rn << 16 | rd << 12 | rm
-
-
-# the update's words (retail), checked on the EUR and USA base games through the version maps
-RETAIL = {
-    SDK_FIX_CALL: int.from_bytes(branch_word(SDK_FIX_CALL, SDK_FIX, link=True, cond=COND_EQ), "little"),
-    RAW_READ_TEST: 0xE3100008,      # tst r0, #8
-    RAW_READ_SET: 0x13844008,       # orrne r4, r4, #8
-    RAW_MASK_AT: 0,
-}
-PATCHED = {
-    SDK_FIX_CALL: NOP,
-    RAW_READ_TEST: and_imm(IP, R0, SELECT_AND_START),
-    RAW_READ_SET: orr_reg(R4, R4, IP),
-    RAW_MASK_AT: SELECT_RAW_BIT,
-}
-
-
-def _word(code: bytes, address: int) -> int:
-    return struct.unpack_from("<I", code, address - BASE_ADDRESS)[0]
+SDK_ORIGINAL = branch_word(SDK_FIX_CALL, SDK_FIX, link=True, cond=COND_EQ)    # the update's word at SDK_FIX_CALL
 
 
 def supports_select_kick(code: bytes) -> bool:
-    """True if every word the patch changes is the game's own (the canonical executable, not yet patched)."""
+    """True if both calls are where the update's executable has them (not yet patched)."""
     try:
-        return all(_word(code, address) == word for address, word in RETAIL.items())
+        sdk = struct.unpack_from("<4s", code, SDK_FIX_CALL - BASE_ADDRESS)[0]
+        return sdk == SDK_ORIGINAL and bl_target(code, OPTION_CALL) == OPTION_READ
     except struct.error:
         return False
 
 
-def patch_select_kick(code: bytes) -> bytes:
-    """`code` where Select is the kick and only Start opens the Game Menu."""
+def patch_select_kick(code: bytes, layout: Layout | None = None) -> bytes:
+    """`code` (the update's executable) where Select and Start follow the game's option START."""
     if not supports_select_kick(code):
-        raise CodeSpaceError("select kick: the words at "
-                             f"{SDK_FIX_CALL:#x} / {RAW_READ_TEST:#x} / {RAW_MASK_AT:#x} are not the update's "
+        raise CodeSpaceError("select kick: the calls at "
+                             f"{SDK_FIX_CALL:#x} / {OPTION_CALL:#x} are not the update's "
                              "(another executable, or already patched)")
+    layout = layout or load_layout()
     out = bytearray(code)
-    for address, word in PATCHED.items():
-        struct.pack_into("<I", out, address - BASE_ADDRESS, word)
+    layout.place(out, BLOCK)
+    layout.hook(out, SDK_FIX_CALL, layout.symbol(BLOCK, "select_kick_step"), original=SDK_ORIGINAL, cond=COND_EQ)
+    layout.hook(out, OPTION_CALL, layout.symbol(BLOCK, "select_kick_gate"), calls=OPTION_READ)
     return bytes(out)

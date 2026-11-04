@@ -25,8 +25,8 @@ from core.app.settings import Cheat3D, CheatAspect, CheatFps, HudScale
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="core", description=f"{edition().window_title}: the mod in a folder")
-    parser.add_argument("--rom", required=True, type=Path, help="your decrypted game file; never modified")
-    parser.add_argument("--out", required=True, type=Path, help="output (mod) folder")
+    parser.add_argument("--rom", type=Path, help="your decrypted game file; never modified (required)")
+    parser.add_argument("--out", type=Path, help="output (mod) folder (required)")
     parser.add_argument("--code", type=Path,
                         help="advanced: the executable to build from (a code.bin or game file of any version with a "
                              "map); taken from --rom by default")
@@ -34,8 +34,6 @@ def main(argv=None) -> int:
                         help="the touch screen's menus on the top screen, for the emulator's single screen view")
     parser.add_argument("--lock-on", dest="touchless_target", action=argparse.BooleanOptionalAction,
                         help="L + D-pad up locks on to a large monster or switches to the other one")
-    parser.add_argument("--select-kick", action=argparse.BooleanOptionalAction,
-                        help="Select kicks, and only Start opens the menu")
     parser.add_argument("--hold-a", action=argparse.BooleanOptionalAction,
                         help="holding A repeats picking up and gathering and moves on through reward panels")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")
@@ -52,7 +50,15 @@ def main(argv=None) -> int:
                         help="experimental: the shape of the emulator's picture, off (the game's own) or a ratio")
     parser.add_argument("--cheat-raw-unbloat", action=argparse.BooleanOptionalAction,
                         help="menus show weapons' true attack; the damage does not change")
+    parser.add_argument("--update-installed", action="store_true",
+                        help="rebuild the mod installed in the emulators' folders after the program was updated "
+                             "(what the updater runs; needs nothing else)")
     args = parser.parse_args(argv)
+    if args.update_installed:
+        from core.install.update_mod import main as update_installed
+        return update_installed()
+    if args.rom is None or args.out is None:
+        parser.error("the following arguments are required: --rom, --out")
 
     low, high = presets.field_range("cheat_fov")
     if args.cheat_fov is not None and not low <= args.cheat_fov <= high:

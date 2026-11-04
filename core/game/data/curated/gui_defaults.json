@@ -1,7 +1,6 @@
 {
   "hud_scale": "70",
   "touchless_target": true,
-  "select_kick": true,
   "hold_a": true,
   "single_screen": true,
   "cheat_3d_mode": "dither_off",

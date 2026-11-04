@@ -1,1 +1,1 @@
-"""Select kicks, Start opens the menu."""
+"""Select and Start follow the game's own option START."""

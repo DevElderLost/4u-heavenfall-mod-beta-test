@@ -4,7 +4,7 @@
  "ranges": {"cheat_fov": [30, 90]},
  "install": {
   "fixed": {"randomize_quests": false, "randomize_equipment": false},
-  "options": ["hud_scale", "touchless_target", "select_kick", "hold_a", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "cheat_aspect_allowed", "cheat_aspect_ratio"],
+  "options": ["hud_scale", "touchless_target", "hold_a", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "cheat_aspect_allowed", "cheat_aspect_ratio"],
   "links": {}
  },
  "randomizer": {"fixed": {}, "legacy_choices": {}}

@@ -2,7 +2,7 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
-## Unreleased
+## 0.1.3
 
 ### One screen
 - Hunters who chose the other touch layout get the one that keeps the map on top.
@@ -12,7 +12,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The town map no longer stays in front of the fade to black when something loads.
 
 ### Hunting
-- Select kicks, and only Start opens the menu; you can turn it off.
+- Select kicks and only Start opens the menu; with the game's START option at Kick, they swap.
 - Holding A repeats picking up and gathering; in quest rewards and the Wyporium, A moves to the next item.
 - The Wystone's timer bar shrinks with the HUD size.
 
@@ -23,6 +23,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### The program
 - The mod can be made in a browser on Android or PC, with nothing to install.
+- An update program beside HeavenfallBeta brings the program and your installed mod to the latest version.
 
 ## 0.1.2
 

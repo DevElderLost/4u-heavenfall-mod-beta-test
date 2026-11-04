@@ -720,15 +720,6 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      f"{_GATHER_PERCENT}% speed. It stacks with the Speed Gatherer skill. Walking, fighting and "
                      "everything else keep their normal speed.")),
         ), T("Solo afecta a tu cazador.", "Only your own hunter is affected.")),
-        Group(T("Patada", "Kick"), (
-            Option("select_kick", T("Patada con SELECT", "Kick with SELECT"),
-                   T("SELECT da la patada, el ataque especial del panel táctil, y solo START abre el menú del "
-                     "juego. Sin esta opción, SELECT abre el menú igual que START y no hay botón de patada. La "
-                     "opción propia del juego «Botón START» sigue como esté.",
-                     "SELECT kicks, the touch panel's special attack, and only START opens the Game Menu. "
-                     "Without it, SELECT opens the menu like START and there is no kick button. The game's own "
-                     "option for the START button stays as it is.")),
-        ), T("Sirve para jugar sin la pantalla táctil.", "Meant for playing without the touch screen.")),
         Group(T("Botón A", "A button"), (
             Option("hold_a", T("Mantener A para repetirlo", "Hold A to repeat it"),
                    T("Con el arma guardada, mantener pulsado A repite la pulsación: recoger, recolectar, picar y "

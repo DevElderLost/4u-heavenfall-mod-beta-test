@@ -1,5 +1,5 @@
 {
-  "description": "Which product this checkout builds (core/app/edition.py): Heavenfall Beta, the single-screen module of Heavenfall. Its names in the program and the Windows build, its pages and platforms, the developer tools' language, the preferences folder and the mod folder's marker, and the names it used before (none).",
+  "description": "Which product this checkout builds (core/app/edition.py): Heavenfall Beta, the single-screen module of Heavenfall. Its names in the program and the Windows build, its pages and platforms, the developer tools' language, the preferences folder, the mod folder's marker, the GitHub repository its releases are published in, the name of its updater, and the names it used before (none).",
   "name": "Heavenfall Beta",
   "window_title": "Heavenfall Beta: Monster Hunter 4 Ultimate on one screen",
   "app_name": "HeavenfallBeta",
@@ -12,6 +12,8 @@
   "tools_language": "en",
   "user_folder": ".heavenfall_beta",
   "marker": "heavenfall_beta_mod.json",
+  "repository": "popzol/4u-heavenfall-mod-beta",
+  "updater_name": "HeavenfallBeta-update",
   "legacy_user_folders": [],
   "legacy_markers": [],
   "legacy_build_markers": []
