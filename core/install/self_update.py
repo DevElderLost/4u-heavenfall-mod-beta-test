@@ -7,11 +7,14 @@ program's files and starts the new command line to rebuild the installed mod (`i
 Standard library only, and only the light modules of the package (the edition file, the saved language, the version):
 the updater is a small program of its own with no Qt and no game data. Nothing here changes the URL it asks: the API's
 address is a parameter only the tests change, and `main` accepts a download only from the repository's own releases.
+Everything is imported before the update starts: a one-file program reads its modules from its own .exe, whose name
+holds the new updater once the files are replaced.
 """
 
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import json
 import os
@@ -131,7 +134,6 @@ def _system_locales() -> list[str]:
     tags: list[str] = []
     if sys.platform == "win32":
         try:
-            import ctypes
             buffer = ctypes.create_unicode_buffer(85)
             if ctypes.windll.kernel32.GetUserDefaultLocaleName(buffer, len(buffer)):
                 tags.append(buffer.value)
@@ -442,7 +444,6 @@ def _child_environment() -> dict[str, str]:
     """The environment of a program this one-file bundle starts: PyInstaller's bootloader then treats it as a program of
     its own, and the DLL folder it set for this process (which children inherit) is cleared."""
     if sys.platform == "win32":
-        import ctypes
         ctypes.windll.kernel32.SetDllDirectoryW(None)
     return {**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"}
 
