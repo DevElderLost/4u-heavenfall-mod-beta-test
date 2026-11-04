@@ -12,7 +12,7 @@
     .fpu vfp
     .arm
     .global _start
-    .global aspect_view, aspect_gui, aspect_sub_view
+    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel
 
     .equ SAVED, 88              @ the bytes saved below
 
@@ -47,5 +47,16 @@ aspect_sub_view:
     mov     r0, r2
     bl      aspect_rect
     str     r0, [sp, #SAVED + 4]
+    vpop    {d0-d7}
+    pop     {r0-r3, r12, pc}
+
+@ FUN_00b972d8: strd r0, r1, [r6, #0x28]. r0, r1 = the place on the top screen, r6 = the group, r7 = the panel kind.
+@ aspect_panel_place does the store.
+aspect_panel:
+    push    {r0-r3, r12, lr}
+    vpush   {d0-d7}
+    mov     r2, r6
+    mov     r3, r7
+    bl      aspect_panel_place
     vpop    {d0-d7}
     pop     {r0-r3, r12, pc}

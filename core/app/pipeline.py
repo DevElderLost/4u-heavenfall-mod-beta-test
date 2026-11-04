@@ -36,6 +36,7 @@ from core.gameplay.select_kick.select_kick import patch_select_kick, supports_se
 from core.interface.hud.build import hud_files, remove_hud_files
 from core.interface.hud.build import hint_files
 from core.interface.hud.code_patch import patch_interface
+from core.interface.hud.scale import NO_EDGE
 from core.interface.single_screen.layout.single_screen import remove_single_screen_files
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
@@ -108,10 +109,12 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     output_dir = result.output_dir
     remove_hud_files(output_dir)
     remove_single_screen_files(output_dir)
-    resize_hud = settings.hud_scale != HudScale.FULL
+    # the aspect ratio moves the HUD only with the game's files; it needs no more than the executable to work
+    edge = settings.hud_edge if rom is not None else NO_EDGE
+    resize_hud = settings.hud_scale != HudScale.FULL or edge != NO_EDGE
     target_hint = settings.touchless_target and rom is not None  # the L + D-pad up glyph in the item selector
     if resize_hud:
-        hud = dict(hud_files(rom, settings.hud_scale.factor, with_code_patch, target_hint))
+        hud = dict(hud_files(rom, settings.hud_scale.factor, with_code_patch, target_hint, edge))
     else:
         hud = dict(hint_files(rom)) if target_hint else {}
     screens, offsets, engine_table = {}, {}, None
@@ -189,7 +192,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_cheats(patched, settings)
             if patch_interface_code:
                 patched = patch_interface(patched, settings.hud_scale.factor, settings.touchless_target,
-                                          settings.touchless_target)
+                                          settings.touchless_target, settings.hud_edge)
                 result.interface_patched = True
             if single_screen:
                 patched = patch_single_screen(patched, screen_offsets, engine_table=engine_table)

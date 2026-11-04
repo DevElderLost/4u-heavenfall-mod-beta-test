@@ -10,6 +10,9 @@
 #define VIEW_LONG_SIDE 400.0f   /* and its width; the bottom screen's is 320 */
 #define CENTRE_X 200
 #define CENTRE_Y 120
+#define PANEL_MINIMAP 5         /* FUN_00b972d8's panel kind of every map layout and icon */
+#define GROUP_X 0x28            /* a GUI group's place */
+#define GROUP_Y 0x2C
 
 struct aspect_data {            /* aspect_ratio.py aspect_data */
     float view;                 /* a 3D view's aspect is multiplied by this */
@@ -37,6 +40,18 @@ void aspect_gui_sizes(float *sizes)
         sizes[0] *= aspect_data.gui_height;
         sizes[1] *= aspect_data.gui_width;
     }
+}
+
+/* FUN_00b972d8's store of a panel's place on the top screen. The minimap goes to its corner, the top right, of the wider
+ * interface: a layout's x grows to the left and its y upwards. */
+void aspect_panel_place(float x, float y, char *group, int kind)
+{
+    if (kind == PANEL_MINIMAP) {
+        x -= CENTRE_X * (aspect_data.gui_width - 1.0f);
+        y += CENTRE_Y * (aspect_data.gui_height - 1.0f);
+    }
+    *(float *)(group + GROUP_X) = x;
+    *(float *)(group + GROUP_Y) = y;
 }
 
 static int moved(int at, int centre, float factor)

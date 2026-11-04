@@ -29,6 +29,14 @@ class Ratio:
         return view, max(1.0, view), max(1.0, 1.0 / view)
 
 
+def interface_size(name: str) -> tuple[float, float]:
+    """The width and the height of the interface's units (Ratio.factors) of the option's value `name`: 1, 1 for OFF."""
+    for ratio in load_ratios():
+        if ratio.name == name:
+            return ratio.factors()[1:]
+    return 1.0, 1.0
+
+
 def load_ratios(path: Path = SETTINGS_FILE) -> tuple[Ratio, ...]:
     """The curated ratios, in the program's order. Refuses no ratios, a name repeated or named OFF, and a width or
     height that is not a whole number above 0."""

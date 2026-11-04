@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass, field, fields, replace
 from enum import Enum
 from pathlib import Path
 
-from core.cheats.aspect_table import OFF as ASPECT_OFF, load_ratios
+from core.cheats.aspect_table import OFF as ASPECT_OFF, interface_size, load_ratios
 
 
 class StructureMode(str, Enum):
@@ -468,6 +468,12 @@ class Settings:
         """These settings for a real 3DS: every EMULATOR_ONLY setting at its default."""
         defaults = Settings()
         return replace(self, **{name: getattr(defaults, name) for name in EMULATOR_ONLY})
+
+    @property
+    def hud_edge(self) -> tuple[float, float]:
+        """The interface's width and height against the game's (cheat_aspect_ratio): the HUD keeps to the picture's
+        edges."""
+        return interface_size(self.cheat_aspect_ratio.value)
 
     @property
     def patches_interface_code(self) -> bool:

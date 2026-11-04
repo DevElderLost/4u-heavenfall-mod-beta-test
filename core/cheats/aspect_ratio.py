@@ -9,7 +9,10 @@ stretched:
   which gives the whole top screen more units on the side the frame has room on, so the interface fits undistorted,
   centred;
 - FUN_00c042ec, which opens a sub-view (the forge's preview): the store of its rectangle's pointer (RECT_SITE) goes
-  through the stub, which passes a copy moved with the interface, so the picture stays in its frame.
+  through the stub, which passes a copy moved with the interface, so the picture stays in its frame;
+- FUN_00b972d8, which places a HUD panel: its store of the place on the top screen (PANEL_SITE) goes through the stub,
+  which moves the minimap's panel (every map layout and icon) to its corner of the picture. The touch screen's place is
+  another store, which stays. The rest of the HUD moves in its files (interface/hud/scale.py, `edge`).
 
 Each check of a site is of the update's word; carried to the base games by the version maps.
 """
@@ -27,6 +30,7 @@ VIEW_SITE, VIEW_WORD = 0xAEEFD0, 0xED860A0E     # FUN_00aeee7c: vstr s0, [r6, #0
 GUI_CALLS = (0xAF3EB4, 0xAF41F4)                # FUN_00af3db0: bl FUN_00b70fc0
 GUI_PROJECTION = 0xB70FC0
 RECT_SITE, RECT_WORD = 0xC0430C, 0xE58D2004     # FUN_00c042ec: str r2, [sp, #4]
+PANEL_SITE, PANEL_WORD = 0xB97478, 0xE1C602F8   # FUN_00b972d8: strd r0, r1, [r6, #0x28]
 
 
 def aspect_data(name: str) -> bytes:
@@ -44,7 +48,7 @@ def aspect_data(name: str) -> bytes:
 def supports_aspect_ratio(code: bytes) -> bool:
     """`code` has what the option changes (the update's executable, canonical, not patched yet)."""
     word = lambda at: struct.unpack_from("<I", code, at - BASE_ADDRESS)[0]  # noqa: E731
-    return word(VIEW_SITE) == VIEW_WORD and word(RECT_SITE) == RECT_WORD and \
+    return word(VIEW_SITE) == VIEW_WORD and word(RECT_SITE) == RECT_WORD and word(PANEL_SITE) == PANEL_WORD and \
         all(bl_target(code, at) == GUI_PROJECTION for at in GUI_CALLS)
 
 
@@ -62,4 +66,5 @@ def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None) -> 
     for at in GUI_CALLS:
         layout.hook(out, at, layout.symbol(STUB, "aspect_gui"))
     layout.hook(out, RECT_SITE, layout.symbol(STUB, "aspect_sub_view"))
+    layout.hook(out, PANEL_SITE, layout.symbol(STUB, "aspect_panel"))
     return bytes(out)

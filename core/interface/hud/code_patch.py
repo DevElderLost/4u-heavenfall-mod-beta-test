@@ -51,6 +51,7 @@ from collections.abc import Iterable
 
 from core.game.data.tuning import tuning
 from core.game.files.gui.lyt import name_hash
+from core.interface.hud.scale import NO_EDGE, Anchor, edge_shift
 from core.game.executable.code_space import (
     BASE_ADDRESS, COND_EQ, CodeSpaceError, Layout, bl_target, encode_bl, encode_branch, load_layout,
 )
@@ -244,8 +245,9 @@ def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: 
     return bytes(out)
 
 
-def face_params(factor: float) -> tuple[float, float, float]:
-    """Top-screen position (layout coordinates) and scale of the target face for a HUD `factor`.
+def face_params(factor: float, edge: tuple[float, float] = NO_EDGE) -> tuple[float, float, float]:
+    """Top-screen position (layout coordinates) and scale of the target face for a HUD `factor`, keeping to the item
+    selector when the interface is `edge` times the game's (scale.py).
 
     Like the item selector (which shrinks towards the bottom-right corner), the face keeps its
     distances to that corner times `factor`: the one-monster face (ui601_icon00, 40 x 40 pixels at
@@ -260,10 +262,12 @@ def face_params(factor: float) -> tuple[float, float, float]:
     icon_y = -120 + (ITEM_ICON_Y + 120) * factor
     x = 200 - right + (half - (120 - 40)) * scale
     y = icon_y - 86 * scale
-    return x, y, scale
+    shift = edge_shift(Anchor.BOTTOM_RIGHT, edge)
+    return x + shift[0], y + shift[1], scale
 
 
-def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = None) -> bytes:
+def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = None,
+                      edge: tuple[float, float] = NO_EDGE) -> bytes:
     """`code` showing the target camera panel's monster face on the top screen too.
 
     asm/face_loader.s loads ui601 a second time, on the top screen, at the GUI manager slots
@@ -281,7 +285,7 @@ def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = 
         raise CodePatchError("unexpected quest layout list: not the update's executable")
     for name in ("face_loader", "face_free", "face_show", "target_face"):
         layout.place(out, name)
-    layout.place(out, "face_params", struct.pack("<4f", *face_params(factor), DEAD_SHADE))
+    layout.place(out, "face_params", struct.pack("<4f", *face_params(factor, edge), DEAD_SHADE))
     layout.hook(out, LOADER_HOOK, "face_loader", original=LOADER_HOOK_ORIGINAL)
     layout.hook(out, FREE_HOOK, "face_free", original=FREE_HOOK_ORIGINAL)
     layout.hook(out, SHOW_HOOK, "face_show", original=SHOW_HOOK_ORIGINAL, link=False)
@@ -289,13 +293,14 @@ def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = 
     return bytes(out)
 
 
-def patch_interface(code: bytes, factor: float, target_switch: bool = False, target_face: bool = False) -> bytes:
+def patch_interface(code: bytes, factor: float, target_switch: bool = False, target_face: bool = False,
+                    edge: tuple[float, float] = NO_EDGE) -> bytes:
     """Every interface patch the randomizer's settings ask for: the HUD size (below 1), L + D-pad up, the target
-    face."""
+    face (`edge`: the interface's size against the game's, scale.py)."""
     if factor < 1:
         code = patch_hud(code, factor)
     if target_switch:
         code = patch_target_button(code)
     if target_face:
-        code = patch_target_face(code, factor)
+        code = patch_target_face(code, factor, edge=edge)
     return code

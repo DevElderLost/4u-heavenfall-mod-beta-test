@@ -153,7 +153,8 @@ Six well-known cheat codes, built into the executable so they work without the e
 the camera's field of view, longer online waits and weapons' true attack in the menus. Some are bytes changed once; the others are values the game would
 overwrite, so block `cheats` (`cheats/cheats.s`) writes them every frame. At its neutral value an option changes
 nothing at all. The aspect ratio (`cheats/aspect_ratio.py`, experimental) is not one of them: it hooks the 3D views' aspect,
-the interface's projection and the sub-views' rectangles, so nothing looks stretched on a wider or narrower picture.
+the interface's projection and the sub-views' rectangles, so nothing looks stretched on a wider or narrower picture, and
+the HUD keeps to the picture's edges.
 
 ## The interface tools
 
