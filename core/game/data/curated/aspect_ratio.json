@@ -12,7 +12,7 @@
     "description": "Each ratio: its name, its width and height, in the order the program lists them."
   },
   "anchors": {
-    "description": "Where the interface goes on a wider picture (interface/hud/anchors.py). A root group goes to the side of the 400 wide frame it lies on. edge_margin: a box this close to both sides crosses the whole frame and stays. half_margin: a box may pass the middle by this much and still lie in its half. dead_zone: a box across the middle whose centre is this close to it stays. keep_centred: root groups that stay (patterns). sides: root groups whose side this says, because the code places them. keep_width: panes that cross the frame but are no backdrop (patterns). stretch_groups: root groups that are a ground made of several sprites, which grow together (patterns). sub_views: a sub-view (the forge's preview) follows the frame around it.",
+    "description": "Where the interface goes on a wider picture (interface/hud/anchors.py). A root group goes to the side of the 400 wide frame it lies on. follow_nulls: root groups the game moves by writing their first nulls, not their translate, which go by where those nulls are in play. edge_margin: a box this close to both sides crosses the whole frame and stays. half_margin: a box may pass the middle by this much and still lie in its half. dead_zone: a box across the middle whose centre is this close to it stays. keep_centred: root groups that stay (patterns). sides: root groups whose side this says, because the code places them. keep_width: panes that cross the frame but are no backdrop (patterns). stretch_groups: root groups that are a ground made of several sprites, which grow together (patterns). sub_views: a sub-view (the forge's preview) follows the frame around it.",
     "edge_margin": 2,
     "half_margin": 4,
     "dead_zone": 30,
@@ -33,6 +33,7 @@
       "ui401_preview_box": "left",
       "ui401_m_hint": "left"
     },
+    "follow_nulls": ["ui026_yazi*"],
     "keep_width": ["ui505_card_*"],
     "stretch_groups": ["ui10[1-5]_back", "ui409_boad_haikei", "ui413_boad_haikei", "ui419_l_bg", "ui495_boad_haikei", "ui496_BG"],
     "sub_view_margin": 30,

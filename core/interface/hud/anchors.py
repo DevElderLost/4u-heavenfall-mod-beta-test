@@ -11,6 +11,8 @@ curated aspect_ratio.json.
   group the code moves to the other column changes side. What moves on its own is left out: the minimap's ARCs, the
   groups the game GUI engine places (it takes the shift in its places, interface/game_gui/engine.py). The HUD's groups
   are in it by their anchors (`hud_entries`): their files move, and the table takes the ratio chosen in the game.
+  A group the code moves by writing its first nulls keeps its translate at 0: the data names it (`follow_nulls`), its
+  entry says so, and the executable reads those nulls (the list arrows, which serve a list on either side).
 * **The windows** (`_windows`): what lies inside a group the rule keeps in the middle stays on it, as the buttons of a
   touch screen's menu on the top screen.
 * **The rows** (`move_child_sides`): a root group that holds rows of both sides, like the town's button hints, cannot
@@ -62,6 +64,7 @@ class AnchorRules:
     window_width: float             # a group the rule keeps in the middle, this wide, holds what lies inside it
     window_margin: float            # how far past the window's box a group may reach and still lie inside it
     child_sides: Mapping[str, int] = field(default_factory=dict)  # children of a root group, which move in the file
+    follow_nulls: tuple[str, ...] = ()  # root groups the code moves by writing their first nulls (patterns)
 
 
 def _number(raw: dict, key: str) -> float:
@@ -96,7 +99,8 @@ def load_anchor_rules(path: Path = SETTINGS_FILE) -> AnchorRules:
     return AnchorRules(_number(raw, "edge_margin"), _number(raw, "half_margin"), _number(raw, "dead_zone"),
                        _patterns(raw, "keep_centred"), _sides(raw, "sides"),
                        _patterns(raw, "keep_width"), _patterns(raw, "stretch_groups"), _number(raw, "sub_view_margin"),
-                       _number(raw, "window_width"), _number(raw, "window_margin"), _sides(raw, "child_sides"))
+                       _number(raw, "window_width"), _number(raw, "window_margin"), _sides(raw, "child_sides"),
+                       _patterns(raw, "follow_nulls"))
 
 
 def side_of(low: float, high: float, rules: AnchorRules) -> int:
@@ -147,6 +151,16 @@ def _whole_box(root: Pane) -> geometry.Box | None:
     return geometry.union(_box(*sprite) for sprite in sprites) if sprites else None
 
 
+def _box_under_first_nulls(root: Pane) -> geometry.Box | None:
+    """The box of what lies under a root group's first nulls (each the first child of the one above), with them at 0 and
+    at their full size: the executable adds where the game has them."""
+    pane = root
+    while pane.children and pane.children[0].kind == PaneKind.NULL:
+        pane = pane.children[0]
+    sprites = list(_sprites(pane, geometry.Frame()))
+    return geometry.union(_box(*sprite) for sprite in sprites) if sprites else None
+
+
 def _windows(layout: Layout, rules: AnchorRules, skip_groups: Collection[str]) -> list[tuple[Pane, geometry.Box]]:
     """The root groups the rule keeps in the middle, wide enough to hold others: what is drawn on them must stay on
     them. Not a ground across the whole frame, which holds a menu's columns; nor a group the data names or the engine
@@ -175,8 +189,9 @@ def _in_a_window(root: Pane, windows: Iterable[tuple[Pane, geometry.Box]], rules
 def anchor_entries(layouts: Mapping[str, Layout], rules: AnchorRules,
                    skip_groups: Collection[str] = ()) -> dict[str, tuple[int, int]]:
     """Root group -> what the table says of it: its box's left and right in whole pixels, or the data's side twice (a
-    box is never empty, so the executable can tell). A group that stays whatever the game does is left out, and so are
-    one across the whole frame (a ground, which must not jump if the game slides it) and one inside a window."""
+    box is never empty, so the executable can tell), or for a group of `follow_nulls` the box under its first nulls with
+    the numbers swapped. A group that stays whatever the game does is left out, and so are one across the whole frame (a
+    ground, which must not jump if the game slides it) and one inside a window."""
     owned = hud_owned_layouts()
     out: dict[str, tuple[int, int]] = {}
     for name, layout in layouts.items():
@@ -190,6 +205,11 @@ def anchor_entries(layouts: Mapping[str, Layout], rules: AnchorRules,
             if forced is not None:
                 if forced != CENTRE:
                     out[root.name] = (forced, forced)
+                continue
+            if any(fnmatchcase(root.name, pattern) for pattern in rules.follow_nulls):
+                box = _box_under_first_nulls(root)
+                if box is not None:
+                    out[root.name] = (min(math.ceil(box[2]), 0x7FFF), max(math.floor(box[0]), -0x8000))
                 continue
             span = group_span(layout, root)
             if span is not None and not (span[0] <= rules.edge_margin and span[1] >= FRAME_WIDTH - rules.edge_margin) \

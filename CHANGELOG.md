@@ -7,11 +7,19 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### One screen
 - Hunters who chose the other touch layout get the one that keeps the map on top.
 - The world map and menus stay in place when the touch bar is at the bottom.
+- Registering an equipment set shows the list, skills and pieces, with the yes / no box in sight.
+- When creating a Gathering Hall, pinned papers and seals no longer cover the labels and buttons.
+- The town map no longer stays in front of the fade to black when something loads.
 
 ### Hunting
 - Select kicks, and only Start opens the menu; you can turn it off.
 - Holding A repeats picking up and gathering; in quest rewards and the Wyporium, A moves to the next item.
 - The Wystone's timer bar shrinks with the HUD size.
+
+### Cheats
+- Cheats can also show weapons' true attack instead of the inflated number.
+- Cheats can fit the game and its menus to screens from 4:3 to 32:9; still in testing.
+- The START menu's Mod Settings can change that screen shape during play, for each character.
 
 ### The program
 - The mod can be made in a browser on Android or PC, with nothing to install.
@@ -45,9 +53,6 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - 3D is off and glow and distant blur are gone by default, for a sharper picture.
 - Cheats can also fix the frame rate at 30 or 60 FPS and widen or narrow the camera's view.
 - An online fix can give multiplayer rooms more time to connect.
-- Cheats can also show weapons' true attack instead of the inflated number.
-- Cheats can fit the game and its menus to screens from 4:3 to 32:9; still in testing.
-- The START menu's Mod Settings can change that screen shape during play, for each character.
 
 ### The program
 - A Windows program, with nothing else to install, puts Heavenfall Beta into Azahar or Citra and can update or remove it.

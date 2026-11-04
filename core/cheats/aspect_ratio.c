@@ -26,6 +26,12 @@ typedef unsigned char u8;
 #define GROUP_Y 0x2C
 #define GROUP_SECOND_X 0x34     /* the second translate FUN_00ae65f8 adds to the place */
 #define GROUP_SECOND_Y 0x38
+#define GROUP_FIRST_PANE 0x08
+#define PANE_DATA 0x08          /* a run-time pane: its data, which holds a null's place first */
+#define PANE_KIND 0x10
+#define PANE_FIRST_CHILD 0x20
+#define KIND_NULL 1
+#define NULL_SCALE_X 0x10
 #define CONTEXT_VIEW 0x1BC      /* the draw's context: eye | view << 1 */
 #define TOP_SCREEN_VIEW 0
 #define FRAME_WIDTH 400.0f
@@ -195,6 +201,24 @@ static const struct anchor *find_anchor(unsigned hash)
     return 0;
 }
 
+/* The side of a group the code moves by writing its first nulls (interface/hud/anchors.py follow_nulls): `low` and
+ * `high` are the box under them with them at 0, `x` the group's translate. The walk stops at the first pane that is no
+ * null, whose data has another shape. */
+static int side_under_nulls(const char *group, float x, float low, float high)
+{
+    const char *pane = *(const char *const *)(group + GROUP_FIRST_PANE);
+    float scale = 1.0f;
+
+    while (pane != 0 && pane[PANE_KIND] == KIND_NULL) {
+        const char *data = *(const char *const *)(pane + PANE_DATA);
+
+        x += scale * *(const float *)data;
+        scale *= *(const float *)(data + NULL_SCALE_X);
+        pane = *(const char *const *)(pane + PANE_FIRST_CHILD);
+    }
+    return side_of(CENTRE_X - x - scale * (CENTRE_X - low), CENTRE_X - x - scale * (CENTRE_X - high));
+}
+
 /* FUN_00ae65f8's load of a group's second translate, which it adds to the group's place as it draws the group: that
  * translate, with the group's way to its side of the wider interface. A layout's x grows to the left, a pixel's to the
  * right. The side counts where the game has the group now, so a group the code moves to the other column follows it. The
@@ -218,7 +242,9 @@ float aspect_group_x(const char *group, const char *context)
     } else {
         float translate = *(const float *)(group + GROUP_X) + second;
 
-        side = side_of((float)anchor->low - translate, (float)anchor->high - translate);
+        side = anchor->low > anchor->high
+            ? side_under_nulls(group, translate, (float)anchor->high, (float)anchor->low)
+            : side_of((float)anchor->low - translate, (float)anchor->high - translate);
     }
     return second - (float)side * CENTRE_X * (in_use()->gui_width - 1.0f);
 }

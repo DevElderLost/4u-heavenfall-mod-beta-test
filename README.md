@@ -135,7 +135,7 @@ No. Heavenfall Beta changes how the game is displayed for single-screen emulatio
 
 **Should I use these cheats or my emulator's?**
 
-I recommend using the cheats included with Heavenfall Beta. If you do, make sure to disable any equivalent cheats in your emulator to avoid applying the same cheat twice. You can enable or disable Heavenfall Beta's cheats on the Options page.
+Use the cheats available in the installer, emulator cheats will create bugs or crash the game
 
 **I found a bug.**
 
