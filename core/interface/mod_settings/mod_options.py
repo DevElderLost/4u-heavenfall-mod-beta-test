@@ -73,10 +73,10 @@ def _words(code: bytes | bytearray, at: int) -> int:
 
 
 def load_options(path: Path = SETTINGS_FILE) -> list[dict]:
-    """The curated options: {"key", "name", "help", "values": [{"name", "setting", "payload": [u32, u32]}]}, in the
-    order of the file. Refuses an option the code has no number for, a repeated one, a list of values that is empty or
-    longer than MAX_VALUES, a value with more than PAYLOAD_WORDS numbers or both kinds of them, and a text that is no
-    menu text."""
+    """The curated options: {"key", "name", "help", "title", "values": [{"name", "setting", "payload": [u32, u32]}]},
+    in the order of the file (the title is the name, for a row without one of its own). Refuses an option the code has
+    no number for, a repeated one, a list of values that is empty or longer than MAX_VALUES, a value with more than
+    PAYLOAD_WORDS numbers or both kinds of them, and a text that is no menu text."""
     raw = json.loads(Path(path).read_text(encoding="utf-8")).get("options")
     entries = raw.get("value") if isinstance(raw, dict) else None
     if not isinstance(entries, list):
@@ -90,10 +90,11 @@ def load_options(path: Path = SETTINGS_FILE) -> list[dict]:
         values = entry.get("values")
         if not isinstance(values, list) or not 1 <= len(values) <= MAX_VALUES:
             raise ModOptionsError(f"mod_settings.json: {key} must have 1 to {MAX_VALUES} values")
-        for text in (entry.get("name"), entry.get("help"), *(value.get("name") for value in values)):
+        title = entry.get("title", entry.get("name"))
+        for text in (entry.get("name"), entry.get("help"), title, *(value.get("name") for value in values)):
             if text not in known:
                 raise ModOptionsError(f"mod_settings.json: {key}: no menu text {text!r}")
-        options.append({"key": key, "name": entry["name"], "help": entry["help"],
+        options.append({"key": key, "name": entry["name"], "help": entry["help"], "title": title,
                         "values": [{"name": value["name"], "setting": value["setting"], "payload": _payload(key, value)}
                                    for value in values]})
     return options

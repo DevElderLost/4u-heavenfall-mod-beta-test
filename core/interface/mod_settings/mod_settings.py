@@ -133,7 +133,7 @@ def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None 
                 raise ModSettingsError(f"mod_settings.json: no option {entry['option']!r}")
             if available is not None and option["key"] not in available:
                 return None
-            return {"name": message(option["name"]), "help": message(option["help"]), "title": message(option["name"]),
+            return {"name": message(option["name"]), "help": message(option["help"]), "title": message(option["title"]),
                     "screen": SCREENS.index("option_list"), "option": OPTION_IDS[option["key"]]}
         if entry.get("aspect") and not aspect:
             return None

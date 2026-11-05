@@ -22,7 +22,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The cheats can also be changed in the game: START menu, third page, Mod Settings.
 - Each character keeps its own choices; one with none yet starts with what the Options page says.
 - Cheats can also show weapons' true attack instead of the inflated number.
-- Cheats can fit the game and its menus to screens from 4:3 to 32:9; still in testing.
+- Cheats can fit the game and its menus to screens from 4:3 to 32:9; experimental.
 - The START menu's Mod Settings can change that screen shape during play, for each character.
 
 ### The program

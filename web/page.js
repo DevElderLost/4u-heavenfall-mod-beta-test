@@ -412,7 +412,8 @@ function drawGroup(group) {
   // a group named as its first option would show the same words twice
   const title = group.title === group.options[0].label ? null
     : element("p", { className: "group-title", textContent: group.title });
-  return element("div", { className: "group" }, title, helpOf(group.description), hint,
+  const warning = group.warning ? element("p", { className: "warning", textContent: group.warning }) : null;
+  return element("div", { className: "group" }, title, warning, helpOf(group.description), hint,
     ...group.options.map(drawOption));
 }
 

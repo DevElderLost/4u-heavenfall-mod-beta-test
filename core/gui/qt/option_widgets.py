@@ -399,6 +399,8 @@ class SettingsForm(QWidget):
         layout.setContentsMargins(16, 12, 16, 14)
         layout.setSpacing(10)
         layout.addWidget(_label(group.title, "subtitle"))
+        if group.warning is not EMPTY and group.warning.es:
+            layout.addWidget(_label(group.warning, "warning"))
         if group.description is not EMPTY and group.description.es:
             layout.addWidget(_label(group.description, "muted"))
         if group.hint:

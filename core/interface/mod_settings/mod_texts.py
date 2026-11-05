@@ -16,6 +16,7 @@ from core.game.files.text.common_texts import LANGUAGES, CommonTexts
 from core.game.files.text.lmd import SLOT_MARK
 
 SETTINGS_FILE = CURATED_DIR / "mod_settings.json"
+HELP_LINES = 2           # what the description panel shows
 MENU_STEM = "Menu"          # the message file (core_common's file 3) the START menu's lines are in
 MENU_MESSAGES = 929         # the messages `Menu_<lang>` has in the game, in every language
 
@@ -26,8 +27,8 @@ class ModTextError(ValueError):
 
 def load_texts(path: Path = SETTINGS_FILE) -> list[tuple[str, dict[str, str]]]:
     """The curated texts in message order: (key, {language: text}). Refuses an entry without a key or with a repeated
-    one, a language missing or unknown, a text that is empty, has a line break (a line and a description are one line
-    each) or more than one string slot (the code fills only the first)."""
+    one, a language missing or unknown, a text that is empty, has a line break (a row holds one line, a description
+    `HELP_LINES`) or more than one string slot (the code fills only the first)."""
     raw = json.loads(Path(path).read_text(encoding="utf-8")).get("menu_texts")
     entries = raw.get("value") if isinstance(raw, dict) else None
     if not isinstance(entries, list) or not entries:
@@ -42,8 +43,9 @@ def load_texts(path: Path = SETTINGS_FILE) -> list[tuple[str, dict[str, str]]]:
             raise ModTextError(f"mod_settings.json: menu_texts {key} must have exactly the texts {LANGUAGES}")
         for lang in LANGUAGES:
             text = entry[lang]
-            if not isinstance(text, str) or not text.strip() or "\n" in text or "\r" in text:
-                raise ModTextError(f"mod_settings.json: menu_texts {key} {lang} must be one line of text")
+            lines = HELP_LINES if key.endswith("_help") else 1
+            if not isinstance(text, str) or not text.strip() or text.count("\n") >= lines or "\r" in text:
+                raise ModTextError(f"mod_settings.json: menu_texts {key} {lang} must be text of up to {lines} line(s)")
             if text.count(SLOT_MARK) > 1:
                 raise ModTextError(f"mod_settings.json: menu_texts {key} {lang} has more than one {SLOT_MARK}")
         texts.append((key, {lang: entry[lang] for lang in LANGUAGES}))

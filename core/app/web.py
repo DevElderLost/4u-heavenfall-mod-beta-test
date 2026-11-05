@@ -37,6 +37,7 @@ def options(language: str) -> list[dict]:
     defaults = presets.personal_defaults()
     return [{"title": section.title(language),
              "groups": [{"title": group.title(language), "description": group.description(language),
+                         "warning": group.warning(language),
                          "hint": group.hint and {"fields": list(group.hint.fields), "on": group.hint.on(language),
                                                  "off": group.hint.off(language)},
                          "options": [_texts(option, defaults, language) for option in group.options]}
