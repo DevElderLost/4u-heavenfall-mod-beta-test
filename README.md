@@ -127,6 +127,10 @@ python -m core.gui
 
 ## Questions and problems
 
+**My antivirus says the program is a trojan.**
+
+Some antivirus programs have wrongly flagged it (for example as "Bearfoo"), which can happen with new, unsigned programs. To check that your download is the official one, open PowerShell in the folder with the zip and run `Get-FileHash HeavenfallBeta-windows.zip`. Compare the long code it prints with the `sha256` shown beside that file on the [Releases page](../../releases/latest); capital letters don't matter. If they match, you have the exact file published here, built by GitHub from this repository's public code. If they differ, delete it and download it again from that page.
+
 **Does this modify my game file?**
 
 No. The program only reads your game file and installs the mod in a separate folder inside your emulator's mod directory.
