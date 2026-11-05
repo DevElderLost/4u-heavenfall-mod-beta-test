@@ -258,14 +258,19 @@ void mod_menu_pick(char *menu)
     open_list();
 }
 
-/* FUN_0060d058, on every close of the menu: the pager's bind ends here when the player left without going back */
-void mod_menu_closed(void)
+static void pager_release(void)
 {
-    mod_settings_state.open = 0;
     if (mod_settings_state.pager) {
         start_pager_release();
         mod_settings_state.pager = 0;
     }
+}
+
+/* FUN_0060d058, on every close of the menu: the pager's bind ends here when the player left without going back */
+void mod_menu_closed(void)
+{
+    mod_settings_state.open = 0;
+    pager_release();
 }
 
 /* ---- the big list, for the screen an entry opens */
@@ -298,7 +303,7 @@ void mod_list_close(void)
 {
     show_screen_groups(start_list_ui, 0);
     start_pager_hide();
-    mod_menu_closed();
+    pager_release();
 }
 
 void mod_list_title(int message)
