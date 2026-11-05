@@ -86,7 +86,6 @@ BUBBLEBLIGHT = "bubbleblight"
 # mods of the first two keep every address, items and gear included (checked file by file at seed 1234). The cheats'
 # block (cheats/cheats.py) goes last of all, so it moves nothing either, and the area move watchdog's after it
 # (monsters/routes/patch.py), whose mods are the ones with routes or a ported monster.
-CHEATS = "cheats"
 MOVE_WATCH = "area_move_watch"
 # The ported monsters' severed tail thrown and cooled as in MH Generations (gameplay/tail_fall/tail_fall.py), after
 # everything else
@@ -100,12 +99,15 @@ INSTA_KILL = "cheat_insta_kill"
 # The aspect ratios (cheats/aspect_ratio.py): the ratio's 3 factors. A mod without the
 # option carries none of its pages.
 ASPECT_RATIO = "cheat_aspect_ratio"
-# The START menu's Mod Settings (interface/mod_settings/mod_settings.py), which only the
-# aspect ratio places today: its list changes the ratio in the game. Its data block (settings_data) holds the curated
-# table, the list's (aspect_list_data) its texts.
+# The START menu's Mod Settings (interface/mod_settings/mod_settings.py), which every
+# mod made from the executable carries: the options a player changes during play and the aspect ratio's list. Its
+# data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
+# options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 156
+MOD_SETTINGS_DATA_SIZE = 228
 ASPECT_LIST_DATA_SIZE = 24
+MOD_OPTIONS_DATA_SIZE = 16 + 12 * 164
+MOD_RAW_TABLE_SIZE = 64
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
 
@@ -127,7 +129,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import ANIMATION_SIZE as TAIL_FALL_ANIMATION_SIZE
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
-                   FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), CHEATS, MOVE_WATCH, TAIL_FALL,
+                   FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, MOD_SETTINGS, ASPECT_RATIO)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
@@ -167,9 +169,6 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): two entries, one for the
     # SDK's pad step and one for the Game Menu's per-frame logic
     BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext"),
-    # The cheats' per-frame writes (cheats/cheats.py): the code and its table of (object, offset,
-    # value)
-    BlockSpec("cheats", CHEATS, "cheats/cheats.s", region="ext"),
     # The virtual map of monster_routes (monsters/routes/patch.py): its hooks, its
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
@@ -419,8 +418,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # The aspect ratios (cheats/aspect_ratio.py): the hooks' stubs, the logic, the factors
     BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext"),
     BlockSpec("mod_settings_code", MOD_SETTINGS, "interface/mod_settings/mod_settings.c", region="ext",
-              units=("interface/mod_settings/aspect_list.c",)),
+              units=("interface/mod_settings/aspect_list.c", "interface/mod_settings/mod_options.c",
+                     "interface/mod_settings/option_list.c")),
     BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext"),
+    BlockSpec("mod_options_stub", MOD_SETTINGS, "interface/mod_settings/mod_options_stub.s", region="ext"),
+    BlockSpec("mod_options_data", MOD_SETTINGS, size=MOD_OPTIONS_DATA_SIZE, region="ext"),
+    BlockSpec("mod_raw_table", MOD_SETTINGS, size=MOD_RAW_TABLE_SIZE, region="ext"),
     BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext"),
     BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext"),
     BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
@@ -443,8 +446,10 @@ VARIABLES = (
     # it
     VariableSpec("aspect_state", ASPECT_RATIO, 16),
     VariableSpec("aspect_way", ASPECT_RATIO, 4),
-    VariableSpec("mod_settings_state", MOD_SETTINGS, 4),
+    VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
+    VariableSpec("option_list_state", MOD_SETTINGS, 4),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 64),
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8, gap=True),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
@@ -1192,6 +1197,20 @@ GAME_SYMBOLS |= {
     "gui_projection": 0xB70FC0,         # FUN_00b70fc0(matrix): the GUI's 2D projection from s0, s1 (aspect_stub.s)
     # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
     "hunter_gear_stat": 0x2F8F34,
+}
+
+# The options a player changes during play (interface/mod_settings/mod_options.c, mod_options_stub.s): where each hook
+# goes back to (the instruction after the one it replaced), the bloom pass's body, and the weapon classes' table
+GAME_SYMBOLS |= {
+    "bloom_body": 0x2BC25C,             # FUN_002bc258 after its first instruction (push {r4-r11, lr})
+    "fov_reset_return": 0xBFF448,       # FUN_00bff28c after its two loads of the field of view
+    "fov_other_return": 0xC06C8C,       # FUN_00c06a14 after its load of the field of view
+    "net_waits_return": 0x533F44,       # FUN_00533e6c after `cmp r2, #120`
+    "net_polls_a_return": 0x534B58,     # FUN_005348a8 after `mov r0, #10`
+    "net_polls_b_return": 0x5356E0,     # FUN_00535480 after `mov r0, #10`
+    "raw_a_return": 0x26E394,           # FUN_0026e33c after its load of the weapon classes' table
+    "raw_b_return": 0x27336C,           # FUN_0027335c after its load of the table
+    "class_multipliers": 0xED24A0,      # the weapon classes' display multipliers, in percent (16 words)
 }
 
 # The START menu's Mod Settings (interface/mod_settings/mod_settings_stub.s, mod_settings.c; docs/interface/

@@ -15,7 +15,8 @@
                      "unless": ["ui470_base"]},
  "help_top": {"group": "ui006_help00", "also": ["ui006_help01"], "quest_scenes": [1, 5],
                "places": [
-                {"name": "hunter search", "when": ["ui060_bg"], "unless": [], "shift": [-104.75, 2],
+                {"name": "mod settings", "when": [], "when_flags": ["mod_settings.open"], "unless": [], "shift": [-182, 6], "quest": true},
+   {"name": "hunter search", "when": ["ui060_bg"], "unless": [], "shift": [-104.75, 2],
                  "groups": {"ui006_button00": [-78.5, 2.5], "ui006_button01": [-78.5, 2.5]}},
                 {"name": "world map and hall creation",
                  "when": ["ui430_l_kyoten", "ui430_l_botan", "ui430_l_botan_3", "ui430_l_tansaku", "ui490_l_item",

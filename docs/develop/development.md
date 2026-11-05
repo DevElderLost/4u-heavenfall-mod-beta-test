@@ -91,7 +91,9 @@ The tool needs only the standard library. What runs where:
 | `core/app/web.py` | What the page asks of Python: the options, the check of the game, the mod as a zip. The run is the program's own |
 | `core/app/pipeline.py` and what it imports | The build: it must keep working without threads, subprocesses or native code other than `zstandard` |
 
-The options come from the program's own list (`core/gui/options.py`), so a new option appears on the page by itself.
+The options come from the program's own list (`core/gui/options.py`), so a new option appears on the page by itself. One
+the player also changes during play is listed as `in_game` in `core/game/data/curated/gui_presets.json`: it is a row of the
+game's START menu too, and the build writes the value chosen into the mod, as what a character with no choice starts with.
 
 The workflow in `.github/workflows/pages.yml` publishes the site on GitHub Pages for every tag, or by hand (Actions >
 Web page > Run workflow). The repository's Settings > Pages > Source must be "GitHub Actions".

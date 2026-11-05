@@ -22,8 +22,9 @@
 @ The modes after the first are decided by one scan of the GUI manager's group list (manager = *(gui + 0x100), list =
 @ *(manager + 0x154), 0x600 pointers): each shown group (bit 0x400 of group + 0x44) is looked up by its name hash in
 @ scan_table (hash, bits; a 0 hash ends it, the patcher's: at most 128 names), the bits of what is shown are or'd, plus
-@ flag_mask when the byte layered_preview + 9 (the layered selector's frame is open) is set; the places and the modes
-@ are decided from that mask alone.
+@ flag_mask when the byte layered_preview + 9 (the layered selector's frame is open) is set, and open_mask without the
+@ stay bit when the byte mod_settings_state + MOD_SETTINGS_OPEN is (the START menu's Mod Settings is open, which has a
+@ place of its own, in a quest too); the places and the modes are decided from that mask alone.
 @ The owner is the static object prompt_owner: +0x00..+0x24 the groups (in the order of the binder table
 @ prompt_binder_table, 12-byte entries, name hash first), +0x1F8 + 2 * slot the button kinds, +0x21F set once they are bound. A group is
 @ moved only when its hash is its table entry's and its screen differs, the binder's way: bits 14-17 of group + 0x44
@@ -52,6 +53,7 @@
     .equ BIT_STAY, 2                  @ scan_table: a group that keeps the panel on the touch screen
     .equ BIT_NO_MENU, 0x40000000      @ scan_table: a group of creation_prompt.unless (no creation menu while shown)
     .equ NO_PANEL, 0x80000000         @ help_places: bit 31 of a place's unless word: the place leaves the panel down
+    .equ MOD_SETTINGS_OPEN, 5         @ struct mod_settings_state (mod_settings.c checks it)
     .equ PLACE_SIZE, 16
     .equ EXTRA_SIZE, 16
 
@@ -197,6 +199,12 @@ flag:
     cmp     r0, #0
     ldrne   r0, flag_mask
     orrne   r9, r9, r0
+    ldr     r0, =mod_settings_state + MOD_SETTINGS_OPEN
+    ldrb    r0, [r0]
+    cmp     r0, #0
+    ldrne   r0, open_mask
+    orrne   r9, r9, r0
+    bicne   r9, r9, #BIT_STAY
     tst     r9, #BIT_MENU
     beq     not_menu
     tst     r9, #BIT_NO_MENU          @ the Palico board's base: its clothes chooser is the creation's ui415
@@ -296,6 +304,9 @@ help_mask:
     .global flag_mask
 flag_mask:
     .word   0                         @ the patcher's: the scan bits the layered selector's flag sets
+    .global open_mask
+open_mask:
+    .word   0                         @ the patcher's: the scan bits an open Mod Settings sets
     .global help_count
 help_count:
     .word   0                         @ the patcher's: how many places help_places holds

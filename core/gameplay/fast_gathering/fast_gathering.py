@@ -52,13 +52,18 @@ def fast_gathering_data(layout: Layout, speed: float = GATHER_SPEED) -> bytes:
     return bytes(data)
 
 
-def patch_fast_gathering(code: bytes, layout: Layout | None = None, speed: float = GATHER_SPEED) -> bytes:
-    """`code` (the update's executable) where the local hunter's gathering actions are `speed` times faster."""
+def patch_fast_gathering(code: bytes, layout: Layout | None = None, speed: float = GATHER_SPEED,
+                         gated: bool = False) -> bytes:
+    """`code` (the update's executable) where the local hunter's gathering actions are `speed` times faster. `gated`:
+    each call goes through the gate of the START menu's options (interface/mod_settings/mod_options_stub.s), which makes
+    the game's own call while the option is off."""
     if not supports_fast_gathering(code):
         raise CodeSpaceError("unexpected calls in the hunter's update: fast gathering needs the update's executable")
     layout = layout or load_layout()
     out = bytearray(code)
     layout.place(out, "fast_gathering", fast_gathering_data(layout, speed))
-    layout.hook(out, MOTION_SPEED_CALL, "fast_gathering", calls=MOTION_SPEED)
-    layout.hook(out, TIMER_CALL, layout.symbol("fast_gathering", "timer"), calls=HAS_SKILL)
+    gate = lambda label: layout.symbol("mod_options_stub", label)  # noqa: E731
+    layout.hook(out, MOTION_SPEED_CALL, gate("gate_fast_motion") if gated else "fast_gathering", calls=MOTION_SPEED)
+    layout.hook(out, TIMER_CALL, gate("gate_fast_timer") if gated else layout.symbol("fast_gathering", "timer"),
+                calls=HAS_SKILL)
     return bytes(out)

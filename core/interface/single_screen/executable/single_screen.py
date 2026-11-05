@@ -197,19 +197,22 @@ EXTRA_SIZE = 16                      # an extra's record: place index, ui006 tab
 BIT_MENU, BIT_STAY = 1, 2            # a creation menu group, a group that keeps the panel on the touch screen
 BIT_NO_MENU = 1 << 30                # a group of creation_prompt.unless: no creation menu while it is shown
 NO_PANEL = 1 << 31                   # in a place's unless word (never a scan bit): the place leaves the panel down
-HELP_FLAGS = ("layered_preview.shown",)    # the one variable flag the block reads (layered_preview + 9)
+HELP_FLAGS = ("layered_preview.shown",)    # the variable flag a place's unless may read (layered_preview + 9)
+HELP_WHEN_FLAGS = ("mod_settings.open",)   # the variable flag a place's when may read (mod_settings_state + the next)
+MOD_SETTINGS_OPEN = 5                # struct mod_settings_state's `open`: the START menu's Mod Settings is open
 GAME_MODES = 32                      # the game modes (the game control's byte +0x2B) quest_kinds has a bit for
 
 
 def place_masks(places) -> list[tuple[int, int]]:
     """Each place's (when mask, unless mask), in order: a scan bit of its own for a non-empty `when` (a group in it),
     another for a non-empty `unless` (a group in it, or a flag), 0 for an empty list (the block takes a when of 0 as
-    always and an unless of 0 as never). The bits are PLACE_BITS, one each; CodeSpaceError when they run out."""
+    always and an unless of 0 as never). A when that waits for a flag has a bit too. The bits are PLACE_BITS, one each;
+    CodeSpaceError when they run out."""
     free = iter(PLACE_BITS)
     out = []
     for place in places:
         try:
-            when = 1 << next(free) if place.when else 0
+            when = 1 << next(free) if place.when or place.when_flags else 0
             unless = 1 << next(free) if place.unless or place.flags else 0
         except StopIteration:
             raise CodeSpaceError(f"help_top: the places' when and unless lists need more than the "
@@ -226,7 +229,8 @@ class HelpPlace:
     panel while this place is chosen, each at its own shift (name, (dx, dy)); every other group stays down. `panel`
     false: the place leaves the description panel itself down (a menu whose own panels fill the strips: only its
     `groups` come up). `quest`: the place may be taken in a quest (a game mode of HelpTop.quest_scenes); every other
-    place is skipped there."""
+    place is skipped there. `when_flags`: the place is taken while the flag is set, whatever keeps the panel on the
+    touch screen otherwise (HelpTop.stay_bottom)."""
     name: str
     when: tuple[str, ...]
     unless: tuple[str, ...]
@@ -235,6 +239,7 @@ class HelpPlace:
     groups: tuple[tuple[str, tuple[float, float]], ...] = ()
     panel: bool = True
     quest: bool = False
+    when_flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -284,10 +289,10 @@ def help_top(path: Path = SETTINGS_FILE) -> HelpTop:
         raise ValueError(f"{where}, places: a list")
     for item in record["places"]:
         if not isinstance(item, dict) or not {"name", "when", "unless", "shift"} <= set(item) <= {
-                "name", "when", "unless", "unless_flags", "shift", "groups", "panel", "quest"} or not isinstance(
-                item["name"], str):
-            raise ValueError(f"{where}, places: name, when, unless and shift (and unless_flags, groups, panel, quest) "
-                             f"each")
+                "name", "when", "when_flags", "unless", "unless_flags", "shift", "groups", "panel",
+                "quest"} or not isinstance(item["name"], str):
+            raise ValueError(f"{where}, places: name, when, unless and shift (and when_flags, unless_flags, groups, "
+                             f"panel, quest) each")
         at = f"{where}, place {item['name']}"
         if not isinstance(item.get("panel", True), bool):
             raise ValueError(f"{at}, panel: true or false")
@@ -302,7 +307,7 @@ def help_top(path: Path = SETTINGS_FILE) -> HelpTop:
                                 _shift(item["shift"], f"{at}, shift"),
                                 tuple((name, _shift(value, f"{at}, groups, {name}"))
                                       for name, value in groups.items()), item.get("panel", True),
-                                item.get("quest", False)))
+                                item.get("quest", False), _strings(item.get("when_flags", []), f"{at}, when_flags")))
     return HelpTop(group, _strings(record.get("also", []), f"{where}, also"), tuple(places),
                    _strings(record["stay_bottom"], f"{where}, stay_bottom"), tuple(modes))
 
@@ -312,7 +317,8 @@ class HelpTables:
     """What the block's tables hold: the scan table (name hash, bits; a 0 hash ends it), the places' records, how many
     there are, which ui006 table entries are the panel (bit n: entry n), the bits the variable flag sets and the extra
     table (place index, ui006 table index, x, y per record) with its count; the quest words: bit n of `quest_kinds` for
-    game mode n a quest, bit i of `quest_places` for place i one a quest may take."""
+    game mode n a quest, bit i of `quest_places` for place i one a quest may take; the bits an open Mod Settings
+    sets."""
     scan: bytes
     places: bytes
     count: int
@@ -322,6 +328,7 @@ class HelpTables:
     extra_count: int = 0
     quest_kinds: int = 0
     quest_places: int = 0
+    open_mask: int = 0
 
 
 def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> HelpTables:
@@ -342,7 +349,7 @@ def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> Hel
         bits[name_hash(name)] = bits.get(name_hash(name), 0) | BIT_NO_MENU
     for name in top.stay_bottom:
         bits[name_hash(name)] = bits.get(name_hash(name), 0) | BIT_STAY
-    records, extras, flag_mask = [], [], 0
+    records, extras, flag_mask, open_mask = [], [], 0, 0
     masks = place_masks(top.places)
     for index, place in enumerate(top.places):
         seen = set()
@@ -363,6 +370,11 @@ def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> Hel
             if flag not in HELP_FLAGS:
                 raise CodeSpaceError(f"help_top, place {place.name}: no flag {flag!r} (the block reads {HELP_FLAGS})")
             flag_mask |= unless
+        for flag in place.when_flags:
+            if flag not in HELP_WHEN_FLAGS:
+                raise CodeSpaceError(f"help_top, place {place.name}: no flag {flag!r} (the block reads "
+                                     f"{HELP_WHEN_FLAGS})")
+            open_mask |= when
         # 0.0 - n: no negative zero for a shift of 0 (the block compares the floats' bits to the group's)
         records.append(struct.pack("<IIff", when, unless | (0 if place.panel else NO_PANEL),
                                    0.0 - place.shift[0], 0.0 - place.shift[1]))
@@ -374,7 +386,7 @@ def help_tables(code: bytes, top: HelpTop, menu: creation.CreationPrompt) -> Hel
     return HelpTables(scan.ljust(8 * (HELP_SCAN + 1), b"\0"), b"".join(records).ljust(PLACE_SIZE * HELP_PLACES, b"\0"),
                       len(records), help_mask, flag_mask, b"".join(extras).ljust(EXTRA_SIZE * HELP_EXTRAS, b"\0"),
                       len(extras), sum(1 << mode for mode in set(top.quest_scenes)),
-                      sum(1 << index for index, place in enumerate(top.places) if place.quest))
+                      sum(1 << index for index, place in enumerate(top.places) if place.quest), open_mask)
 
 
 def prompt_stay_mask(code: bytes, names) -> int:
@@ -492,6 +504,7 @@ def patch_prompt_screen(code: bytes, stay_bottom=(), layout: Layout | None = Non
     put("stay_mask", struct.pack("<I", prompt_stay_mask(code, stay_bottom)))
     put("help_mask", struct.pack("<I", tables.help_mask))
     put("flag_mask", struct.pack("<I", tables.flag_mask))
+    put("open_mask", struct.pack("<I", tables.open_mask))
     put("help_count", struct.pack("<I", tables.count))
     put("menu_shift", shift)
     put("help_places", tables.places)

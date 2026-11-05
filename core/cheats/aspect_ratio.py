@@ -63,12 +63,13 @@ def aspect_data(name: str, rules: AnchorRules | None = None) -> bytes:
     return data.ljust(ASPECT_DATA_SIZE, b"\0")
 
 
-def supports_aspect_ratio(code: bytes) -> bool:
-    """`code` has what the option changes (the update's executable, canonical, not patched yet)."""
+def supports_aspect_ratio(code: bytes, menu: bool = True) -> bool:
+    """`code` has what the option changes (the update's executable, canonical, not patched yet). `menu`: and the
+    START menu's words the list in the game replaces (the page that holds it is installed by another patch when not)."""
     word = lambda at: struct.unpack_from("<I", code, at - BASE_ADDRESS)[0]  # noqa: E731
     return word(VIEW_SITE) == VIEW_WORD and word(RECT_SITE) == RECT_WORD and word(PANEL_SITE) == PANEL_WORD and \
         word(GROUP_SITE) == GROUP_WORD and word(GROUP_Y_SITE) == GROUP_Y_WORD and \
-        all(bl_target(code, at) == GUI_PROJECTION for at in GUI_CALLS) and supports_mod_settings(code)
+        all(bl_target(code, at) == GUI_PROJECTION for at in GUI_CALLS) and (supports_mod_settings(code) or not menu)
 
 
 def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None, anchors: bytes | None = None,
@@ -77,7 +78,7 @@ def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None, anc
     `anchors`: the block `aspect_anchors` (interface/hud/anchors.py; none: no group moves), `rules`: the anchors' (the
     curated ones), `menu`: the list in the game, whose texts come in the game's files. Refuses an executable where any
     site is not the game's word."""
-    if not supports_aspect_ratio(code):
+    if not supports_aspect_ratio(code, menu):
         raise CodeSpaceError("the aspect ratio's sites are not the update's words: already patched or another game")
     layout = layout or load_layout()
     out = bytearray(patch_mod_settings(code, layout) if menu else code)

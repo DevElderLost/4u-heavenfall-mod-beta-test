@@ -57,7 +57,8 @@ from core.game.executable.code_space import (
 )
 
 __all__ = ["BASE_ADDRESS", "CodePatchError", "bl_target", "encode_bl", "encode_branch", "face_params",
-           "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_sharpness_slide",
+           "patch_hud", "patch_interface", "supports_target_switch", "patch_minimap_icons", "patch_mount_gauge",
+           "patch_sharpness_slide",
            "patch_talk_size", "patch_target_button", "patch_target_face", "talk_size_data"]
 
 CodePatchError = CodeSpaceError
@@ -220,9 +221,19 @@ def patch_hud(code: bytes, factor: float, layout: Layout | None = None) -> bytes
     return patch_talk_size(code, factor, layout)
 
 
-def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True) -> bytes:
+def supports_target_switch(code: bytes) -> bool:
+    """`code` has what the L + D-pad up switch replaces: the panel's button test and the call of the D-pad actions."""
+    start = _offset(TARGET_TEST)
+    return code[start:start + len(TARGET_TEST_ORIGINAL)] == TARGET_TEST_ORIGINAL and \
+        bl_target(code, DPAD_HOOK) == DPAD_ACTIONS
+
+
+def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True,
+                        gated: bool = False) -> bytes:
     """`code` where L + D-pad up switches the large-monster target, like a tap on the target camera
-    panel, and where the D-pad does not move the camera while L is held (asm/dpad_filter.s).
+    panel, and where the D-pad does not move the camera while L is held (asm/dpad_filter.s). `gated`: the filter's
+    call goes through the gate of the START menu's options (interface/mod_settings/mod_options_stub.s), which makes
+    the game's own call while the option is off.
 
     `layout` may have a diagnostic routine as its target_button block (research/probes/hud_probe.py
     --target-asm); it must return r0 != 0 to switch, like the original test. `with_filter=False`
@@ -235,7 +246,8 @@ def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: 
         raise CodePatchError(f"unexpected instructions at {TARGET_TEST:#x}: not the update's executable")
     if with_filter:
         layout.place(out, "dpad_filter")
-        layout.hook(out, DPAD_HOOK, "dpad_filter", calls=DPAD_ACTIONS)
+        layout.hook(out, DPAD_HOOK, layout.symbol("mod_options_stub", "gate_lock") if gated else "dpad_filter",
+                    calls=DPAD_ACTIONS)
     layout.place(out, "target_button")
     routine = layout.address("target_button")
     out[test] = (encode_branch(TARGET_TEST, routine, link=True)
@@ -294,13 +306,14 @@ def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = 
 
 
 def patch_interface(code: bytes, factor: float, target_switch: bool = False, target_face: bool = False,
-                    edge: tuple[float, float] = NO_EDGE) -> bytes:
+                    edge: tuple[float, float] = NO_EDGE, gated: bool = False) -> bytes:
     """Every interface patch the randomizer's settings ask for: the HUD size (below 1), L + D-pad up, the target
-    face (`edge`: the interface's size against the game's, scale.py)."""
+    face (`edge`: the interface's size against the game's, scale.py). `gated`: the switch is a choice of the START
+    menu's options (patch_target_button)."""
     if factor < 1:
         code = patch_hud(code, factor)
     if target_switch:
-        code = patch_target_button(code)
+        code = patch_target_button(code, gated=gated)
     if target_face:
         code = patch_target_face(code, factor, edge=edge)
     return code

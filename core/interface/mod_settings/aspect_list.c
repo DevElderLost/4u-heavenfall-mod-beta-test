@@ -9,7 +9,6 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define SCREEN_RATIOS 0         /* mod_settings.py SCREENS */
 #define PAGE_ROWS 8             /* mod_settings.py LIST_ROWS */
 #define KEY_UP 1
 #define KEY_DOWN 2
@@ -57,10 +56,10 @@ static void draw_rows(void)
             mod_list_blank(row);
 }
 
-/* A on the row that opens a screen: 0 without a save, and nothing has opened */
-int mod_screen_open(int screen, int title)
+/* A on the row that opens the list: 0 without a save, and nothing has opened */
+int aspect_screen_open(int title)
 {
-    if (screen != SCREEN_RATIOS || !aspect_saved())
+    if (!aspect_saved())
         return 0;
     mod_list_open();
     aspect_list_state.row = aspect_selected();
@@ -72,7 +71,7 @@ int mod_screen_open(int screen, int title)
 }
 
 /* Each frame of the screen: 1 goes back to the small list */
-int mod_screen_frame(u32 pressed, u32 keys)
+int aspect_screen_frame(u32 pressed, u32 keys)
 {
     if (!aspect_saved() || (pressed & KEY_B))
         return 1;

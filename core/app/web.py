@@ -26,7 +26,7 @@ def _texts(option, defaults: dict, language: str) -> dict:
                 "choices": [{"value": choice.value.value, "label": choice.label(language),
                              "help": choice.tooltip(language)} for choice in option.choices if not choice.legacy]}
     if option.maximum > option.minimum:
-        return {**drawn, "kind": "number", "minimum": option.minimum, "maximum": option.maximum}
+        return {**drawn, "kind": "number", "minimum": option.minimum, "maximum": option.maximum, "step": option.step}
     return {**drawn, "kind": "bool"}
 
 
@@ -70,7 +70,8 @@ def write_zip(folder: Path, title: str, target: Path) -> int:
 
 def build(game: str | Path, target: str | Path, personal: dict, language: str,
           stage: Callable[[str], None] | None = None) -> dict:
-    """The mod of the player's game, with `personal` (installer options; a missing one keeps its default), as the zip
+    """The mod of the player's game, with `personal` (installer options; a missing one keeps its default, and what is no
+    installer option, as something an older page saved, is ignored), as the zip
     `target`. `stage` is told pipeline.STAGES and then ZIP_STAGE. Returns `ok`, and either `problem` or the zip's
     `title`, `zip_name`, `files`, the `notices` of features left out and the game's `version`."""
     from core.app.pipeline import run
@@ -79,9 +80,11 @@ def build(game: str | Path, target: str | Path, personal: dict, language: str,
     from core.game.executable.versions import UnsupportedVersion
     from core.gui.strings import describe_problem
     announce = stage or (lambda _name: None)
+    defaults = presets.personal_defaults()
+    chosen = {name: value for name, value in dict(personal).items() if name in defaults}
     with tempfile.TemporaryDirectory() as temporary:
         try:
-            settings = presets.install_settings({**presets.personal_defaults(), **dict(personal)})
+            settings = presets.install_settings({**defaults, **chosen})
             result = run(Path(game), Path(temporary) / "mod", settings, stage=announce)
         except (UnsupportedVersion, RebaseError, ValueError) as error:     # not a game the mod can be built for
             return {"ok": False, "problem": describe_problem(str(error), language)}

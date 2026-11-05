@@ -3,8 +3,10 @@
     python -m core --rom game.3ds --out mod_folder [options]
 
 Without options it builds what the program's Options page starts with (game/data/curated/gui_defaults.json):
-single-screen mode, the lock-on with L, Select's kick, holding A, the HUD at 70 % and the cheats' defaults; each option
-below changes one of them.
+single-screen mode, the lock-on with L, holding A, fast text, the HUD at 70 % and the cheats' defaults; each option
+below changes one of them. Every mod also has Select's kick and the game's START menu page Mod Settings, where the
+player changes the cheats, the lock-on, holding A and fast text during play: what is chosen here is what a character
+with no choice of its own gets.
 The game is your decrypted base game, European or American (.3ds, .cia, .zcci, .zcia...), never modified; the update is
 not needed. The output folder is a mod folder: copy its contents into the emulator's load/mods/<title>/
 (0004000000126100 for the European game, 0004000000126300 for the American one).
@@ -36,6 +38,8 @@ def main(argv=None) -> int:
                         help="L + D-pad up locks on to a large monster or switches to the other one")
     parser.add_argument("--hold-a", action=argparse.BooleanOptionalAction,
                         help="holding A repeats picking up and gathering and moves on through reward panels")
+    parser.add_argument("--fast-text", action=argparse.BooleanOptionalAction,
+                        help="holding B runs through the conversations at high speed")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")
     parser.add_argument("--cheat-3d-mode", choices=[value.value for value in Cheat3D],
                         help="3D: off (the game's own), dither_off or dither_on (3D forced off)")

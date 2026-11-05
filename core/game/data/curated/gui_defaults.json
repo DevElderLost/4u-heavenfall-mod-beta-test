@@ -2,6 +2,7 @@
   "hud_scale": "70",
   "touchless_target": true,
   "hold_a": true,
+  "fast_text": true,
   "single_screen": true,
   "cheat_3d_mode": "dither_off",
   "cheat_no_bloom_dof": true,

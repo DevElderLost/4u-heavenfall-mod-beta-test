@@ -40,6 +40,7 @@ You choose your options in a small program, press one button, and it installs th
 **Locking on with L**
 
 - Hold L and press Up on the D-pad to lock on to a large monster or switch between targets. The target monster's face is displayed on the top screen.
+- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
 
 **Kick on Select**
 
@@ -50,6 +51,12 @@ You choose your options in a small program, press one button, and it installs th
 
 - Holding A with your weapon sheathed keeps picking up, gathering and carving, without pressing it again.
 - In quest rewards and the Wyporium's Claim Items, A takes an item and moves to the next one, and holding it keeps going.
+- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
+
+**Faster text**
+
+- Hold B to speed through conversations.
+- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
 
 **A smaller HUD**
 
@@ -57,7 +64,8 @@ You choose your options in a small program, press one button, and it installs th
 
 **Built-in cheats**
 
-- Disable 3D, glow and distant blur for a sharper image. These cheats are enabled by default.
+- Choose them on the **Options** page, and change them during play, for each character: START, third page, Mod Settings.
+- 3D, glow and distant blur are off by default for a sharper image.
 - Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
 - Still in testing, also disabled by default: turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). You can also change it during play: START, third page, Mod Settings. Please report any problem you see.
 
@@ -83,7 +91,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 **4. Check the destination.** The program automatically detects your Azahar or Citra installation. If it can't find it, click **Choose folder…** and select your emulator's folder.
 
-**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, controls, HUD size and cheats. Hover over any option to see what it does.
+**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, HUD size, the aspect ratio, the cheats, the lock-on with L, holding A and fast text. Hover over any option to see what it does. The last four are what each character starts with, and they also change inside the game: START, third page, Mod Settings.
 
 **6. Click Install.** Installation may take a few moments. If the emulator was running the game, restart emulation for the changes to take effect. If the Install button is disabled, the message below it explains what's missing.
 
@@ -137,7 +145,7 @@ No. Heavenfall Beta changes how the game is displayed for single-screen emulatio
 
 **Should I use these cheats or my emulator's?**
 
-Use the cheats available in the installer, emulator cheats will create bugs or crash the game
+Use the mod's cheats (START, third page, Mod Settings); emulator cheats will create bugs or crash the game
 
 **I found a bug.**
 

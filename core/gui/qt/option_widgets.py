@@ -474,6 +474,7 @@ class SettingsForm(QWidget):
     def _spin(self, option: Option, field: str) -> QSpinBox:
         spin = QSpinBox()
         spin.setRange(option.minimum, option.maximum)
+        spin.setSingleStep(option.step)
         spin.setValue(int(self.store[field]))
         spin.valueChanged.connect(lambda v, f=field: self._edit(f, v))
         spin.setFixedWidth(84)

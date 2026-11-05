@@ -37,18 +37,20 @@ install: copied into <emulator>/load/mods/<title>/   (0004000000126100 European,
 ## One install, step by step
 
 1. **The window** (`core/gui/qt/`): the Install page finds the game and the emulator, the Options page holds
-   the options. The options themselves are described in `core/gui/options.py` (texts in English and Spanish);
-   which ones Heavenfall Beta shows and their starting values are data: `core/game/data/curated/gui_presets.json` and
-   `gui_defaults.json`.
+   the options chosen at install. The options themselves are described in `core/gui/options.py` (texts in English and
+   Spanish); which ones Heavenfall Beta shows, which the game's START menu holds too (`in_game`) and their starting
+   values are data: `core/game/data/curated/gui_presets.json` and `gui_defaults.json`.
 2. **The build** (`core/install/build.py`): checks that the file is MH4U (European or American, not the
    update) and calls `pipeline.run` into a build folder under `~/.heavenfall_beta/build/`.
 3. **The run** (`core/app/pipeline.py`):
    * reads the executable from the game file (`game/executable/player_code.py`) and lays it out as the *canonical* executable
      (below);
-   * writes the interface files: the smaller HUD (`interface/hud/`), then single-screen mode's layouts
-     (`interface/single_screen/run.py`), which are made last because they place whole layouts, with what the HUD step changed;
-   * patches the executable in this order: the memory split, Select and Start, holding A, the cheats, the HUD and lock-on
-     code, single-screen mode;
+   * writes the interface files: the smaller HUD (`interface/hud/`), the texts of the START menu's page, then
+     single-screen mode's layouts (`interface/single_screen/run.py`), which are made last because they place whole layouts,
+     with what the other steps changed;
+   * patches the executable in this order: the memory split, Select and Start, the START menu's page with the options it
+     holds (and their defaults for a character with no choice), the aspect ratio, the HUD and lock-on code, single-screen
+     mode;
    * carries every patch back onto the player's own executable and writes it with its header.
 4. **The copy** (`core/install/deploy.py`): the new files go into a folder beside the target first and replace
    the previous install in one step; anything this program did not install is never touched without asking.
@@ -124,6 +126,17 @@ things the game places from its code (the minimap's icons, the mount gauge) need
 (`interface/hud/code_patch.py`, blocks `minimap_wrapper` and `minimap_zoom`: the latter for the minimap zoomed on the
 current area and the Everwood's whole map).
 
+## The START menu's page: Mod Settings
+
+A third page in the game's START menu (`interface/mod_settings/`) holds what a player changes during play: the cheats, the
+lock-on with L, holding A and fast text. The list is data (`core/game/data/curated/mod_settings.json`); each option has a list of values
+and a byte in the character's save, so every character keeps its own choices. A block runs once a frame and acts on them
+(`mod_options.c`), and the options that hook the game go through a gate that makes the game's own call when the option is
+off (`mod_options_stub.s`). A character with no choice yet, the title screen and character creation take the value chosen on
+the program's Options page (it starts at `gui_defaults.json`'s), written into the mod by the run (`mod_options.py`). In
+single-screen mode the page's description panel stands at the bottom left, in a quest too: a place of `help_top` that waits for
+the byte `mod_settings_state` + 5, up only while the page is open.
+
 ## Locking on with L
 
 Holding L and pressing D-pad up locks on to a large monster, as a tap on the touch screen's target panel does: block
@@ -154,11 +167,12 @@ nothing is confirmed by accident.
 
 ## The cheats
 
-Six well-known cheat codes, built into the executable so they work without the emulator's cheat list
-(`cheats/cheats.py`): 3D off (with or without the game's dot pattern), no bloom or depth of field, a fixed frame rate,
-the camera's field of view, longer online waits and weapons' true attack in the menus. Some are bytes changed once; the others are values the game would
-overwrite, so block `cheats` (`cheats/cheats.s`) writes them every frame. At its neutral value an option changes
-nothing at all. The aspect ratio (`cheats/aspect_ratio.py`, still in testing, behind the switch `cheat_aspect_allowed`) is not one of
+Six well-known cheat codes, built into the executable so they work without the emulator's cheat list, chosen on the START
+menu's page (`interface/mod_settings/mod_options.py`, above): 3D off (with or without the game's dot pattern), no bloom or
+depth of field, a fixed frame rate, the camera's field of view, longer online waits and weapons' true attack in the menus. The
+values the game would overwrite are written every frame; the others are read from the mod's variable where the game reads
+them, or go through a gate. At its neutral value an option leaves the game as it is. The aspect ratio
+(`cheats/aspect_ratio.py`, still in testing, behind the switch `cheat_aspect_allowed` on the Options page) is not one of
 them: it hooks the 3D views' aspect, the interface's projection and the sub-views' rectangles, so nothing looks stretched on a wider or
 narrower picture. The HUD keeps to the picture's edges; every other group of the interface goes to its side from a table built in each
 run (`interface/hud/anchors.py`), and the backdrops grow to cover the picture. Its list in the game, a third page of the START menu
@@ -182,7 +196,8 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
 | `core/gameplay/select_kick/`, `core/gameplay/hold_a/` | Select and Start; holding A |
-| `core/cheats/` | The emulator cheats |
+| `core/interface/mod_settings/` | The START menu's page, its options and their values |
+| `core/cheats/` | The aspect ratio |
 | `core/game/executable/` | Reading the game file, the executable, versions and their maps, free space, the blocks (compiled into `generated/code_space.json`) |
 | `core/game/files/` | The game's file formats: archives (`.arc`), layouts (`lyt.py`), texts |
 | `core/gui/` | The window (PySide6) and its texts |

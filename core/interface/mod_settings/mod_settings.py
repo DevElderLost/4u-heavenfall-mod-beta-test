@@ -27,6 +27,7 @@ row or a new level costs only data. Message indices come from `mod_texts`.
 
 import json
 import struct
+from collections.abc import Collection
 from pathlib import Path
 
 from core.cheats.aspect_table import menu_ratios, ratio_text
@@ -44,11 +45,12 @@ VARIABLES = ("mod_settings_state", "aspect_list_state")
 ACTION = 0x14                   # the line's action: the game's table of actions (FUN_005f6c8c) ends at 0x13
 KIND = 0x2F                     # the menu's sub-screen kind (+0xA) while the list is open: no reader of +0xA knows it
 MAX_ROWS = 5                    # the rows of the game's small list (FUN_0060caec, FUN_005e87b4)
-MAX_LISTS = 4                   # the small lists the data block has room for (mod_settings.c)
-MAX_TABLE = 12                  # their rows, together
+MAX_LISTS = 6                   # the small lists the data block has room for (mod_settings.c)
+MAX_TABLE = 16                  # their rows, together
 NO_LIST = 0xFF                  # in a list: it has no parent; in an entry: it opens a screen
-# The screens an entry can open, by their number in aspect_list.c
-SCREENS = ("aspect_list",)
+# The screens an entry can open, by their number in mod_settings.c: the aspect ratios (aspect_list.c) and an
+# option's values (option_list.c)
+SCREENS = ("aspect_list", "option_list")
 LIST_TEXTS = ("aspect_help", "aspect_row", "aspect_marked")      # struct aspect_list_data's, before the ratios' names
 LIST_ROWS = 8                   # a page of the game's big list
 LINES_PER_PAGE = 8              # the lines of a page's table (FUN_005e8050)
@@ -100,14 +102,19 @@ def load_zone(path: Path = SETTINGS_FILE) -> dict:
     return {"offset": zone["offset"], "magic": magic.encode("ascii"), "version": zone["version"]}
 
 
-def load_settings(path: Path = SETTINGS_FILE) -> dict:
+def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None = None, aspect: bool = True) -> dict:
     """The curated table with each text as its message index: {"line": {"name", "help"}, "pager": (x, y), "entries":
-    [row]}, where a row is {"name", "help", "title", "screen"} when it opens a screen and {"name", "help", "entries":
-    [row]} when it opens another small list. Refuses a list with no row or more than the small list has rows, a screen
-    the code does not have, a place that is not two whole numbers, a text that is not one of its menu_texts, and more
-    lists or rows than the data block holds."""
+    [row]}, where a row is {"name", "help", "title", "screen"} (and "option", the option's number, on the screen of its
+    values) when it opens a screen and {"name", "help", "entries": [row]} when it opens another small list. `available`:
+    the options the player's game can have (none: all); `aspect`: the aspect ratio's switch is on. A row of an option
+    that is not available, the aspect ratio's row without its switch, and a list left with no row, are left out.
+    Refuses a list with more than the small list has rows, a screen the code does not have, a place that is not two
+    whole numbers, a text that is not one of its menu_texts, and more lists or rows than the data block holds."""
+    from core.interface.mod_settings.mod_options import OPTION_IDS, load_options
+
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
     known = message_indices()
+    options = {option["key"]: option for option in load_options(path)}
 
     def message(key: object) -> int:
         if key not in known:
@@ -117,13 +124,24 @@ def load_settings(path: Path = SETTINGS_FILE) -> dict:
     def small_list(entries: object) -> list[dict]:
         if not isinstance(entries, list) or not 1 <= len(entries) <= MAX_ROWS:
             raise ModSettingsError(f"mod_settings.json: entries must list 1 to {MAX_ROWS} rows")
-        return [row(entry) for entry in entries]
+        return [made for made in (row(entry) for entry in entries) if made is not None]
 
-    def row(entry: dict) -> dict:
+    def row(entry: dict) -> dict | None:
+        if "option" in entry:
+            option = options.get(entry["option"])
+            if option is None:
+                raise ModSettingsError(f"mod_settings.json: no option {entry['option']!r}")
+            if available is not None and option["key"] not in available:
+                return None
+            return {"name": message(option["name"]), "help": message(option["help"]), "title": message(option["name"]),
+                    "screen": SCREENS.index("option_list"), "option": OPTION_IDS[option["key"]]}
+        if entry.get("aspect") and not aspect:
+            return None
         opens = entry["opens"]
         texts = {"name": message(entry["name"]), "help": message(entry["help"])}
         if "entries" in opens:
-            return {**texts, "entries": small_list(opens["entries"])}
+            inner = small_list(opens["entries"])
+            return {**texts, "entries": inner} if inner else None
         if opens.get("screen") not in SCREENS:
             raise ModSettingsError(f"mod_settings.json: {entry['name']} opens the screen {opens.get('screen')!r}, "
                                    f"one of {SCREENS} is needed")
@@ -143,8 +161,8 @@ def load_settings(path: Path = SETTINGS_FILE) -> dict:
 
 def _flat_table(settings: dict) -> tuple[list[tuple], list[tuple]]:
     """The lists, top one first, as (first row, rows, parent list, its row), and their rows as (name, help, title, list,
-    screen): `list` is the list a row opens, NO_LIST for one that opens the screen `screen`. Refuses a table past
-    MAX_LISTS or MAX_TABLE."""
+    screen, option): `list` is the list a row opens, NO_LIST for one that opens the screen `screen` (of the option
+    `option`, on the screen of its values). Refuses a table past MAX_LISTS or MAX_TABLE."""
     queue, lists, table = [(settings["entries"], NO_LIST, 0)], [], []
     for rows, parent, parent_row in queue:          # the queue grows from inside the loop
         index = len(lists)
@@ -152,9 +170,9 @@ def _flat_table(settings: dict) -> tuple[list[tuple], list[tuple]]:
         for at, row in enumerate(rows):
             if "entries" in row:
                 queue.append((row["entries"], index, at))
-                table.append((row["name"], row["help"], 0, len(queue) - 1, 0))
+                table.append((row["name"], row["help"], 0, len(queue) - 1, 0, 0))
             else:
-                table.append((row["name"], row["help"], row["title"], NO_LIST, row["screen"]))
+                table.append((row["name"], row["help"], row["title"], NO_LIST, row["screen"], row.get("option", 0)))
     if len(lists) > MAX_LISTS:
         raise ModSettingsError(f"mod_settings.json: {len(lists)} lists, the data block has room for {MAX_LISTS}")
     if len(table) > MAX_TABLE:
@@ -166,7 +184,7 @@ def settings_data(settings: dict | None = None) -> bytes:
     """The block `mod_settings_data` (struct mod_settings_data in mod_settings.c): the page's line table, 8 of (u16
     file, u16 message), the first the line's and the rest the placeholder; the line's help, the placeholder and the file
     (u16 each); the pager's place (s16 x, y); MAX_LISTS of (u8 first row, rows, parent list, its row); MAX_TABLE of (u16
-    name, help, title, u8 list, screen). What is unused stays zero."""
+    name, help, title, u8 list, screen, option, 0). What is unused stays zero."""
     settings = settings or load_settings()
     lists, table = _flat_table(settings)
     data = struct.pack("<2H", MENU_FILE, settings["line"]["name"])
@@ -174,7 +192,7 @@ def settings_data(settings: dict | None = None) -> bytes:
     data += struct.pack("<3H", settings["line"]["help"], PLACEHOLDER_MESSAGE, MENU_FILE)
     data += struct.pack("<2h", *settings["pager"])
     data += b"".join(struct.pack("<4B", *entry) for entry in lists).ljust(4 * MAX_LISTS, b"\0")
-    data += b"".join(struct.pack("<3H2B", *entry) for entry in table).ljust(8 * MAX_TABLE, b"\0")
+    data += b"".join(struct.pack("<3H3BB", *entry, 0) for entry in table).ljust(10 * MAX_TABLE, b"\0")
     if len(data) > MOD_SETTINGS_DATA_SIZE:
         raise ModSettingsError(f"mod_settings_data holds {MOD_SETTINGS_DATA_SIZE} bytes, the table makes {len(data)}")
     return data.ljust(MOD_SETTINGS_DATA_SIZE, b"\0")

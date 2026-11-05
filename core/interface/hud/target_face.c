@@ -59,6 +59,9 @@ struct params {
 };
 extern const struct params face_params; /* the face_params block, filled by code_patch.py */
 
+extern const u32 mod_options_state[];   /* interface/mod_settings/mod_options.c */
+#define HIDE_FACE mod_options_state[13] /* its hide_face: the START menu's lock-on is off */
+
 /* Compiled as Thumb (game/executable/blocks.py): game functions are ARM code at absolute addresses, so they are
  * called through a register (long_call: ldr + blx), which switches to ARM. */
 #define GAME __attribute__((long_call))
@@ -248,7 +251,7 @@ __attribute__((noinline)) static void update(void)
         copies[i] = from && copy && W(copy, 0) == W(from, 0) ? copy : 0;
     }
     u32 panel00 = BINDER[0], panel01 = BINDER[1], target00 = BINDER[2];
-    int face_visible = copies[0] && (visible(panel00) || visible(panel01)) && visible(HUD_REF);
+    int face_visible = copies[0] && !HIDE_FACE && (visible(panel00) || visible(panel01)) && visible(HUD_REF);
     show(copies[1], 0);
     show(copies[0], face_visible);
     show(copies[2], face_visible && visible(target00));

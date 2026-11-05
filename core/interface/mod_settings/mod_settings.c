@@ -30,9 +30,11 @@ typedef short s16;
 
 #define ACTION 0x14             /* mod_settings.py ACTION */
 #define KIND 0x2F               /* mod_settings.py KIND */
-#define MAX_LISTS 4             /* mod_settings.py MAX_LISTS */
-#define MAX_TABLE 12            /* mod_settings.py MAX_TABLE */
+#define MAX_LISTS 6             /* mod_settings.py MAX_LISTS */
+#define MAX_TABLE 16            /* mod_settings.py MAX_TABLE */
 #define NO_LIST 0xFF            /* mod_settings.py NO_LIST */
+#define SCREEN_ASPECT 0         /* mod_settings.py SCREENS */
+#define SCREEN_OPTION 1
 #define NO_ACTION 0xFF          /* FUN_00600658: a line with no action, the error sound on A */
 #define PAGE 2                  /* the third page, +0x11 */
 
@@ -95,6 +97,8 @@ struct mod_entry {
     u16 title;                  /* its screen's title */
     u8 list;                    /* the list it opens, NO_LIST for a screen */
     u8 screen;
+    u8 arg;                     /* the screen's option */
+    u8 pad;
 };
 
 struct mod_list {
@@ -119,7 +123,11 @@ struct mod_settings_state {
     u8 cursor;                  /* the row the list is on */
     u8 pager;                   /* 1 while our bind of the pager stands */
     u8 list;                    /* the list on the screen, or under the screen */
+    u8 screen;                  /* the screen open */
+    u8 open;                    /* 1 from the pick until the player leaves: single_screen_prompt.s reads it */
+    u8 pad[2];
 };
+_Static_assert(__builtin_offsetof(struct mod_settings_state, open) == 5, "single_screen.py MOD_SETTINGS_OPEN");
 
 extern const struct mod_settings_data mod_settings_data;
 extern struct mod_settings_state mod_settings_state;
@@ -155,8 +163,10 @@ void start_pager_release(void);                                 /* FUN_005edc88 
 void start_pager_show(int page, int pages, int a, int b, int c);        /* FUN_005ed704 */
 void start_pager_hide(void);                                    /* FUN_005edcbc */
 
-int mod_screen_open(int screen, int title);                     /* aspect_list.c */
-int mod_screen_frame(u32 pressed, u32 keys);                    /* aspect_list.c */
+int aspect_screen_open(int title);                              /* aspect_list.c */
+int aspect_screen_frame(u32 pressed, u32 keys);                  /* aspect_list.c */
+int option_screen_open(int option, int title);                  /* option_list.c */
+int option_screen_frame(u32 pressed, u32 keys);                 /* option_list.c */
 
 static u32 word_at(const char *object, int at)
 {
@@ -236,6 +246,7 @@ static void open_list(void)
 /* A on the page's row, in the list's frame (FUN_005f6c8c): its sound comes after this, in the game's code */
 void mod_menu_pick(char *menu)
 {
+    mod_settings_state.open = 1;
     menu[M_STATE] = 1;
     menu[M_SUBSTATE] = 0;
     menu[M_KIND] = KIND;
@@ -250,6 +261,7 @@ void mod_menu_pick(char *menu)
 /* FUN_0060d058, on every close of the menu: the pager's bind ends here when the player left without going back */
 void mod_menu_closed(void)
 {
+    mod_settings_state.open = 0;
     if (mod_settings_state.pager) {
         start_pager_release();
         mod_settings_state.pager = 0;
@@ -390,7 +402,11 @@ void mod_list_frame(int row_on_page, int page, int pages)
 
 static int screen_frame(char *menu, u32 pressed)
 {
-    if (mod_screen_frame(pressed, pressed | (word_at(menu, M_REPEAT) & KEYS_REPEAT))) {
+    u32 keys = pressed | (word_at(menu, M_REPEAT) & KEYS_REPEAT);
+    int back = mod_settings_state.screen == SCREEN_OPTION ? option_screen_frame(pressed, keys)
+                                                          : aspect_screen_frame(pressed, keys);
+
+    if (back) {
         mod_list_close();
         play(SOUND_CANCEL);
         mod_settings_state.level = LEVEL_LIST;
@@ -418,6 +434,7 @@ static int list_frame(char *menu, u32 pressed)
             go_to_list(current_list()->parent, current_list()->parent_row);
             return 0;
         }
+        mod_settings_state.open = 0;
         start_sublist_close();
         start_top_cursor(1);
         start_sublist_end();
@@ -431,8 +448,16 @@ static int list_frame(char *menu, u32 pressed)
             go_to_list(entry->list, 0);
             return 0;
         }
-        if (mod_screen_open(entry->screen, entry->title)) {
+        int opened = 0;
+
+        if (entry->screen == SCREEN_ASPECT)
+            opened = aspect_screen_open(entry->title);
+        else if (entry->screen == SCREEN_OPTION)
+            opened = option_screen_open(entry->arg, entry->title);
+
+        if (opened) {
             play(SOUND_DECIDE);
+            mod_settings_state.screen = entry->screen;
             mod_settings_state.level = LEVEL_SCREEN;
             return 0;
         }

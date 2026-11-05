@@ -1,9 +1,9 @@
 """End-to-end run of Heavenfall Beta: the player's game -> a Citra/Azahar mod folder.
 
-Heavenfall Beta puts the touch screen's menus on the top screen (single-screen mode, with the lock-on with L),
-shrinks the HUD and applies five cheats, all for the emulator (docs/how_it_works.md). Input: the player's decrypted
-base game, European or American; the executable and the interface's files are read from it in memory, and the update is
-never needed.
+Heavenfall Beta puts the touch screen's menus on the top screen (single-screen mode), shrinks the HUD and adds a page to
+the game's START menu, Mod Settings, where the player changes the cheats, the lock-on with L and holding A during play,
+all for the emulator (docs/how_it_works.md). Input: the player's decrypted base game, European or American; the
+executable and the interface's files are read from it in memory, and the update is never needed.
 
 Output (copy its contents into the emulator's load/mods/<title>/: 0004000000126100 European, 0004000000126300
 American; the program does it for the player):
@@ -26,6 +26,7 @@ from core.game.executable.code_bin import is_container
 from core.game.executable import session, titles
 from core.cheats.cheats import patch_cheats, supports_cheats, wants_cheats
 from core.game.files.text.common_texts import remove_common_text_files
+from core.interface.mod_settings.mod_options import available_options, patch_mod_options, supports_mod_options
 from core.interface.mod_settings.mod_texts import mod_settings_texts
 from core.game.executable.memory_split import patch_memory_split, resource_to_root_mb
 from core.game.executable.output import remove_exefs, write_exefs
@@ -33,7 +34,6 @@ from core.game.executable.player_code import open_code
 from core.game.executable.rebase import feature_gaps
 from core.interface.single_screen.executable.single_screen import patch_single_screen, supports_single_screen
 from core.game.executable.versions import VersionMap
-from core.gameplay.hold_a.hold_a import patch_hold_a, supports_hold_a
 from core.gameplay.select_kick.select_kick import patch_select_kick, supports_select_kick
 from core.interface.hud.anchors import interface_anchors, remove_backdrop_files
 from core.interface.hud.build import hud_files, remove_hud_files
@@ -104,12 +104,14 @@ def left_out(feature: str, kept: str, why: str) -> str:
 
 
 def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settings, with_code_patch: bool,
-                          single_screen: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
-    """The HUD size's and the single-screen mode's RomFS files. Both may change the same ARCs, so single-screen mode
-    is made on the HUD's copies and everything is written once; files of an earlier run are removed first (they would
-    still be loaded). Returns the single-screen mode's draw order offsets and the game GUI engine's table
-    (interface/single_screen/executable/single_screen.patch_single_screen; empty and None without it), and the aspect
-    ratio's table of the interface's groups (interface/hud/anchors.py; None without it)."""
+                          single_screen: bool = False, menu_texts: bool = False,
+                          target_switch: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
+    """The HUD size's, the START menu page's (`menu_texts`) and the single-screen mode's RomFS files. They may change
+    the same ARCs, so single-screen mode is made on the others' copies and everything is written once; files of an
+    earlier run are removed first (they would still be loaded). `target_switch`: the lock-on with L is in the mod, so
+    the item selector shows its hint. Returns the single-screen mode's draw order offsets and the game GUI engine's
+    table (interface/single_screen/executable/single_screen.patch_single_screen; empty and None without it), and the
+    aspect ratio's table of the interface's groups (interface/hud/anchors.py; None without it)."""
     output_dir = result.output_dir
     remove_hud_files(output_dir)
     remove_common_text_files(output_dir)
@@ -118,14 +120,14 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     # the aspect ratio moves the HUD only with the game's files; it needs no more than the executable to work
     edge = settings.hud_edge if rom is not None else NO_EDGE
     resize_hud = settings.hud_scale != HudScale.FULL or edge != NO_EDGE
-    target_hint = settings.touchless_target and rom is not None  # the L + D-pad up glyph in the item selector
+    target_hint = target_switch and rom is not None  # the L + D-pad up glyph in the item selector
     if resize_hud:
         hud = dict(hud_files(rom, settings.hud_scale.factor, with_code_patch, target_hint, edge))
     else:
         hud = dict(hint_files(rom)) if target_hint else {}
     anchored = settings.aspect_on and rom is not None
     names = {}
-    if anchored:            # the list in the game, on the third page of the START menu
+    if menu_texts and rom is not None:      # the START menu's third page: the options and the aspect ratio's list
         names = mod_settings_texts().files(lambda path: hud.get(path) or rom.read(path))
     screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the HUD added (single_screen.py)
@@ -168,31 +170,37 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     player = open_code(code_path or game, game)
     code = player.image
     notices = version_notices(player.version)
-    patch_interface_code = settings.patches_interface_code
+    # The options a player changes in the game (the START menu's Mod Settings, interface/mod_settings/mod_options.py):
+    # every mod carries them, with the Settings values as the defaults of a character with no choice. The page needs the
+    # executable's extension (the exheader)
+    in_menu = player.exheader is not None and supports_mod_options(code)
+    menu_options = available_options(code, settings) if in_menu else []
+    if not in_menu:
+        notices.append(left_out("Mod Settings", "the cheats, the lock-on with L and holding A are left out",
+                                NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
+    in_menu = in_menu and bool(menu_options or settings.aspect_on)
+    target_switch = "touchless_target" in menu_options
+    patch_interface_code = settings.hud_scale != HudScale.FULL or target_switch
     # the touch screen's menus on the top screen (interface/single_screen/executable/single_screen.py, single_screen.py)
     single_screen = settings.single_screen and supports_single_screen(code)
     if settings.single_screen and not single_screen:
         notices.append(left_out("single screen", "the touch screen's menus stay on it", NOT_AVAILABLE))
     cheats = wants_cheats(settings) and supports_cheats(code)
     if wants_cheats(settings) and not cheats:
-        notices.append(left_out("cheats", "the game keeps its picture, camera, frame rate and online waits",
-                                NOT_AVAILABLE))
+        notices.append(left_out("cheats", "the game keeps its picture's shape", NOT_AVAILABLE))
     # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): no option of the program
     select_start = supports_select_kick(code)
     if not select_start:
         notices.append(left_out("Select and Start", "Select opens the menu like Start and there is no kick button",
                                 NOT_AVAILABLE))
-    hold_a = settings.hold_a and supports_hold_a(code)
-    if settings.hold_a and not hold_a:
-        notices.append(left_out("hold A", "A must be pressed again for each action", NOT_AVAILABLE))
 
     announce("write")
     output_dir = mod_folder(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     result = RunResult(output_dir=output_dir, seed=settings.seed, notices=notices, mod_title=game_mod_title(game))
     screen_offsets, engine_table, anchors = write_interface_files(result, RomFS(game), settings, patch_interface_code,
-                                                                  single_screen)
-    if not (patch_interface_code or single_screen or cheats or select_start or hold_a or probe is not None):
+                                                                  single_screen, in_menu, target_switch)
+    if not (patch_interface_code or single_screen or cheats or select_start or in_menu or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
         notes = session.Session()   # what the patchers write that depends on where the game's code sits
@@ -201,13 +209,13 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             patched = patch_memory_split(code, resource_to_root_mb())
             if select_start:
                 patched = patch_select_kick(patched)
-            if hold_a:
-                patched = patch_hold_a(patched)
+            if in_menu:
+                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on)
             if cheats:
                 patched = patch_cheats(patched, settings, anchors=anchors)
             if patch_interface_code:
-                patched = patch_interface(patched, settings.hud_scale.factor, settings.touchless_target,
-                                          settings.touchless_target, settings.hud_edge)
+                patched = patch_interface(patched, settings.hud_scale.factor, target_switch, target_switch,
+                                          settings.hud_edge, gated=target_switch)
                 result.interface_patched = True
             if single_screen:
                 patched = patch_single_screen(patched, screen_offsets, engine_table=engine_table)
