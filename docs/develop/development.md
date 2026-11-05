@@ -96,7 +96,8 @@ the player also changes during play is listed as `in_game` in `core/game/data/cu
 game's START menu too, and the build writes the value chosen into the mod, as what a character with no choice starts with.
 
 The workflow in `.github/workflows/pages.yml` publishes the site on GitHub Pages for every tag, or by hand (Actions >
-Web page > Run workflow). The repository's Settings > Pages > Source must be "GitHub Actions".
+Web page > Run workflow, on `main`). The repository's Settings > Pages > Source must be "GitHub Actions", and
+Settings > Environments > github-pages must allow the tags `v*`: without that rule GitHub refuses a tag's deploy.
 
 ## The compiled code
 
