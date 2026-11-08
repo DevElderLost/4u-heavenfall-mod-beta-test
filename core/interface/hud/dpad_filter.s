@@ -18,7 +18,7 @@
 
     .arch armv6k
     .arm
-    .global _start
+    .global _start, dpad_filter_entry
 
     .equ DPAD_ACTIONS, dpad_actions   @ FUN_00b3cc64(hunter)
     .equ SETTINGS_POINTER, game_control
@@ -33,6 +33,7 @@
     .equ DPAD_UP, 0x2000
 
 _start:
+dpad_filter_entry:
     push    {r4-r8, lr}
     mov     r4, r0
     ldr     r5, [r0, #PLAYER]

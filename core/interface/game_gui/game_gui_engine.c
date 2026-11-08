@@ -79,8 +79,10 @@ typedef unsigned char u8;
 #define NO_BLOCK 0xFFFFu
 #define WRAPPER 0xFFFFu              /* a target's `direct`: the build's wrapper null */
 
-#define PLACE_VIEW 0x0Fu             /* place flags: the view to draw in (0 top, 7 touch) ... */
+#define PLACE_VIEW 0x07u             /* place flags: the view to draw in (0 top, 7 touch) ... */
 #define PLACE_KEEP_VIEW 0x10u        /* ... or the group's own */
+#define PLACE_LEFT 0x08u             /* on the top screen it keeps to this side of a wider interface: aspect_way moves it */
+#define PLACE_RIGHT 0x80u
 #define PLACE_PRIORITY 0x20u         /* the place sets the priority */
 #define PLACE_HIDDEN 0x40u           /* the block is not drawn */
 
@@ -111,6 +113,7 @@ struct photo { u32 on, muted; };       /* the mode is on; the raw pad bits it hi
 extern const u8 game_gui_table[];                      /* the block game_gui_table, the build's */
 extern struct state game_gui_state;                    /* .bss */
 extern struct photo game_gui_photo;                    /* .bss */
+extern float aspect_way;                               /* .bss, cheats/aspect_ratio.c: 0 without the aspect ratio */
 extern u8 *pad_control;                                /* the pad object (its variable) */
 extern u8 *sunit;                                      /* the game's sUnit (the units' move lines) */
 extern const u8 ulayout_vtable[], ulayout_monnyan_vtable[], uswkbd_layout_vtable[], ulayout_scheduler_vtable[],
@@ -304,13 +307,24 @@ static u32 part_shown(const struct name *n, u32 screen)
 }
 
 /* A target pane of `group` (a null): its position and scale; `hide` collapses it (scale 0: nothing under it draws). */
+/* How far a place at a side goes from where its numbers put it: they are for the installer's aspect ratio, the game's list
+ * can have chosen another (cheats/aspect_ratio.c). Only on the top screen, as engine.py's _at_its_side. */
+static float side_way(const struct place *p, u32 own)
+{
+    if (!(p->flags & (PLACE_LEFT | PLACE_RIGHT)))
+        return 0.0f;
+    if ((p->flags & PLACE_KEEP_VIEW) ? own != 0 : (p->flags & PLACE_VIEW) != 0)
+        return 0.0f;
+    return p->flags & PLACE_LEFT ? aspect_way : -aspect_way;
+}
+
 static void write_target(u8 *group, u8 *pane, const struct place *p, const struct direct *d, u32 own, u32 hide)
 {
     u8 *data = P(pane, 0x08);
     if (!data)
         return;
     float s = p->scale, k = s - 1.0f;
-    float x = p->cx[own] + k * F(group, 0x28), y = p->cy + k * F(group, 0x2C), sx = s, sy = s;
+    float x = p->cx[own] + side_way(p, own) + k * F(group, 0x28), y = p->cy + k * F(group, 0x2C), sx = s, sy = s;
     if (d) {
         x += s * d->qx;
         y += s * d->qy;

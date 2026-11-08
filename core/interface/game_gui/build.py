@@ -82,6 +82,7 @@ LAYOUT_SCREENS = {
 class Build:
     files: dict[str, bytes] = field(default_factory=dict)   # RomFS path -> ARC (fixed and wrapped)
     table: bytes | None = None                               # the engine's table; None: no engine
+    groups: frozenset[str] = frozenset()                     # the root groups the engine places
 
 
 def arc_paths() -> tuple[str, ...]:
@@ -108,11 +109,12 @@ def check_handover(arrangement: Arrangement, path: Path = SETTINGS_FILE) -> None
 
 def single_screen_build(read: Callable[[str], bytes], files: Mapping[str, bytes] | None = None,
                         arrangement: Arrangement | None = None, fixes=None, paths: tuple[str, ...] | None = None,
-                        screens: Mapping[str, str] | None = None, settings_path: Path = SETTINGS_FILE) -> Build:
+                        screens: Mapping[str, str] | None = None, settings_path: Path = SETTINGS_FILE,
+                        edge: tuple[float, float] | None = None) -> Build:
     """The engine's files and table for single-screen mode. `read(path)`: the game's bytes; `files`: the run's copies
     so far (taken first). The arrangement, ARC paths and layout screens are the curated ones by default, the fixes the
-    arrangement's. Raises ValueError for a layout placed twice, a fix or block whose layout no ARC holds, or a layout
-    without its screen."""
+    arrangement's. `edge`: the interface's size against the game's on a picture of another shape. Raises ValueError for
+    a layout placed twice, a fix or block whose layout no ARC holds, or a layout without its screen."""
     files = files or {}
     arrangement = load_arrangement() if arrangement is None else arrangement
     layouts = arranged_layouts(arrangement)
@@ -139,6 +141,7 @@ def single_screen_build(read: Callable[[str], bytes], files: Mapping[str, bytes]
         raise ValueError(f"arranged layouts in none of the ARCs: {', '.join(missing)}")
     if set(fixes) - set(found):
         raise ValueError(f"fixes.json: {', '.join(sorted(set(fixes) - set(found)))} in none of the ARCs")
-    table = engine.engine_table(arrangement, MODE, targets, found, screens)
+    table = engine.engine_table(arrangement, MODE, targets, found, screens, edge=edge)
     out = {path: wrapped.get(path, data) for path, data in fixed.items()}
-    return Build({path: data for path, data in out.items() if data != before[path]}, table)
+    return Build({path: data for path, data in out.items() if data != before[path]}, table,
+                 frozenset(group for groups in engine.wanted_groups(arrangement).values() for group in groups))

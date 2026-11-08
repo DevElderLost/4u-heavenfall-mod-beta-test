@@ -2,7 +2,7 @@
 
 Only the logo and Qt-drawn shapes are used (no art, no game assets, no downloads). Widgets pick a style with
 dynamic properties: `role="nav"` (sidebar button), `role="segment"` (segmented choice), `role="primary"` (main
-action), `role="title"` / `"subtitle"` / `"muted"` (labels) and `QFrame#card` (a rounded panel).
+action), `role="title"` / `"subtitle"` / `"muted"` / `"warning"` (labels) and `QFrame#card` (a rounded panel).
 """
 
 # Sampled from assets/logo.png: gold (216, 168, 24), orange (192, 96, 0), cream (240, 240, 216), violet (128, 80, 160).
@@ -36,6 +36,8 @@ QToolTip {{ background: {CARD_HOVER}; color: {TEXT}; border: 1px solid {VIOLET};
 QLabel[role="title"] {{ font-size: 18pt; font-weight: 600; color: {GOLD}; }}
 QLabel[role="subtitle"] {{ font-size: 12pt; font-weight: 600; color: {TEXT}; }}
 QLabel[role="muted"] {{ color: {MUTED}; }}
+QLabel[role="warning"] {{ background: {DANGER}; color: white; font-size: 12pt; font-weight: 700; padding: 10px 12px;
+    border-radius: 8px; }}
 QLabel:disabled {{ color: {DISABLED}; }}
 
 QFrame#card {{ background: {CARD}; border: 1px solid {BORDER}; border-radius: {RADIUS}px; }}

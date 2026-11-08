@@ -1,5 +1,6 @@
 # Publishes the web page on GitHub Pages (docs/develop/development.md, "The web page"): for a tag, with the release, or
-# by hand (Actions > Web page > Run workflow). Settings > Pages > Source must be "GitHub Actions".
+# by hand (Actions > Web page > Run workflow). Settings > Pages > Source must be "GitHub Actions", and for a tag
+# Settings > Environments > github-pages must allow the tags v*.
 name: Web page
 
 on:

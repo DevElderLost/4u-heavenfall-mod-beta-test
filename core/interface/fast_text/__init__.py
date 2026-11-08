@@ -1,0 +1,1 @@
+"""Text that types faster."""

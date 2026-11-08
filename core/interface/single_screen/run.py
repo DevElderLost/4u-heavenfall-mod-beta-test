@@ -20,11 +20,14 @@ class SingleScreenFiles:
     # the draw order offsets (interface/single_screen/executable/single_screen.patch_single_screen)
     offsets: dict[int, int]
     engine_table: bytes | None      # the game GUI engine's table of the arranged screens (None: nothing arranged)
+    engine_groups: frozenset[str] = frozenset()     # the root groups the engine places
 
 
-def single_screen_romfs(rom: GameFiles, prior: Mapping[str, bytes]) -> SingleScreenFiles:
+def single_screen_romfs(rom: GameFiles, prior: Mapping[str, bytes],
+                        edge: tuple[float, float] | None = None) -> SingleScreenFiles:
     """The mode's files. `prior`: what the run's other interface steps made (HUD, icons, texts, key marks); the mode
-    places whole layouts with what they added, so it comes after them."""
+    places whole layouts with what they added, so it comes after them. `edge`: the interface's size against the game's
+    on a picture of another shape."""
     screens, offsets = single_screen_files(rom, prior)
     screens |= keyboard_backdrop_files(rom)     # the name keyboard's own background, as wide as the screen
     # the "[X] Map" hint, a group in the placed world map layout (interface/single_screen/layout/single_screen_hint.py)
@@ -38,6 +41,6 @@ def single_screen_romfs(rom: GameFiles, prior: Mapping[str, bytes]) -> SingleScr
     # the hall's member list laid out as the players' box (interface/single_screen/layout/single_screen_players.py)
     screens |= players_files(rom, {**prior, **screens})
     # last: the arranged screens' layouts fixed and wrapped for the game GUI engine (interface/game_gui/build.py)
-    arranged = single_screen_build(rom.read, {**prior, **screens})
+    arranged = single_screen_build(rom.read, {**prior, **screens}, edge=edge)
     screens |= arranged.files
-    return SingleScreenFiles(screens, offsets, arranged.table)
+    return SingleScreenFiles(screens, offsets, arranged.table, arranged.groups)

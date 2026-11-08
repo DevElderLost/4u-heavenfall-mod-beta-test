@@ -21,7 +21,8 @@ const TEXTS = {
     gameBad: "✗ {problem}",
     optionsTitle: "2. Opciones",
     optionsHelp: "Las opciones por defecto valen para casi todo el mundo: pantalla única, HUD al 70 % e imagen más "
-      + "nítida.",
+      + "nítida. Los trucos, fijar monstruos con L y mantener A también se cambian dentro del juego: menú START, "
+      + "tercera página, Ajustes del mod.",
     optionsShow: "Ver y cambiar opciones",
     reset: "Restablecer",
     buildTitle: "3. Crea el mod",
@@ -105,7 +106,9 @@ const TEXTS = {
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
     gameBad: "✗ {problem}",
     optionsTitle: "2. Options",
-    optionsHelp: "The default options suit most players: single screen, the HUD at 70% and a sharper picture.",
+    optionsHelp: "The default options suit most players: single screen, the HUD at 70% and a sharper picture. The "
+      + "cheats, the lock-on with L and holding A can also be changed inside the game: START menu, third page, "
+      + "Mod Settings.",
     optionsShow: "See and change options",
     reset: "Reset",
     buildTitle: "3. Make the mod",
@@ -384,7 +387,7 @@ function drawRadios(option) {
 
 function drawNumber(option) {
   const input = element("input", { type: "range", id: `option-${option.field}`, min: option.minimum,
-                                   max: option.maximum, step: 1, value: page.values[option.field] });
+                                   max: option.maximum, step: option.step, value: page.values[option.field] });
   const shown = element("output", { textContent: page.values[option.field] });
   input.addEventListener("input", () => {
     shown.textContent = input.value;
@@ -409,7 +412,8 @@ function drawGroup(group) {
   // a group named as its first option would show the same words twice
   const title = group.title === group.options[0].label ? null
     : element("p", { className: "group-title", textContent: group.title });
-  return element("div", { className: "group" }, title, helpOf(group.description), hint,
+  const warning = group.warning ? element("p", { className: "warning", textContent: group.warning }) : null;
+  return element("div", { className: "group" }, title, warning, helpOf(group.description), hint,
     ...group.options.map(drawOption));
 }
 

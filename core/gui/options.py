@@ -16,7 +16,7 @@ from enum import Enum
 from core.app import presets
 from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
-    AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatFps, DuplicateMode, FrenzyChance, Frequency,
+    AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatAspect, CheatFps, DuplicateMode, FrenzyChance, Frequency,
     GlavenusMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode, RewardSource, StatMode,
     StructureMode, SubQuestMode, TextMode,
 )
@@ -25,6 +25,13 @@ from core.gui.i18n import EMPTY, T
 # shown in the fast gathering option (gameplay/fast_gathering/fast_gathering.py)
 _GATHER_PERCENT = round(GATHER_SPEED * 100)
 _FOV_MIN, _FOV_MAX = presets.field_range("cheat_fov")  # curated/gui_presets.json, "ranges"
+_FOV_STEP = presets.field_step("cheat_fov")             # the values of its list in the game's menu
+# What every group of options the game's START menu holds too says (curated/gui_presets.json, "in_game")
+_ALSO_IN_GAME_ES = ("Es el valor con el que empieza cada personaje; dentro del juego se cambia en el menú START, "
+                    "tercera página, Ajustes del mod.")
+_ALSO_IN_GAME_EN = ("This is what each character starts with. In the game, change it in the START menu: third page, "
+                    "Mod Settings.")
+_ALSO_IN_GAME = T(_ALSO_IN_GAME_ES, _ALSO_IN_GAME_EN)
 
 
 @dataclass(frozen=True)
@@ -43,6 +50,7 @@ class Option:
     choices: tuple[Choice, ...] = ()  # radio buttons for enum fields
     minimum: int = 0                 # stepper for int fields
     maximum: int = 0
+    step: int = 1
     requires: str | None = None      # Settings field that must be on (bool) or not on its first choice (enum)
     also_with: str | None = None     # a bool Settings field that enables it too, whatever `requires` and its area
     compact: bool = False            # enum shown as a labelled drop-down instead of radio buttons
@@ -66,6 +74,7 @@ class Group:
     options: tuple[Option, ...]
     description: T = EMPTY
     hint: Hint | None = None
+    warning: T = EMPTY               # drawn as a loud band above the options, whatever they hold
 
 
 @dataclass(frozen=True)
@@ -632,9 +641,9 @@ EQUIPMENT_SECTIONS: tuple[Section, ...] = (
 INTERFACE_SECTIONS: tuple[Section, ...] = (
     Section(T("HUD", "HUD"), (
         Group(T("Tamaño del HUD", "HUD size"), (
-            Option("hud_scale", T("Tamaño", "Size"),
+            Option("hud_scale", T("Tamaño", "HUD size"),
                    T("Tamaño de lo que se dibuja sobre el juego en la pantalla superior.",
-                     "Size of what is drawn over the game on the top screen."),
+                     "How big the HUD is drawn over the game on the top screen."),
                    choices=(
                        Choice(HudScale.FULL, T("100 % (original)", "100% (original)")),
                        Choice(HudScale.P90, T("90 %", "90%")),
@@ -649,44 +658,41 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
              "Meant for playing on a monitor. Each element shrinks towards its corner: clock, health, stamina, "
              "sharpness and weapon gauges, party list, item selector, minimap, mount gauge and the prompts over "
              "the characters. It only works in the emulator.")),
-        Group(T("Objetivo", "Target"), (
-            Option("touchless_target", T("Fijar monstruos sin pantalla táctil", "Lock on to monsters without the "
-                                          "touch screen"),
+        Group(T("Objetivo", "Target Cam"), (
+            Option("touchless_target", T("Fijar monstruos sin pantalla táctil",
+                                         "Lock on with L + D-pad Up, without the touch screen"),
                    T("Mantén pulsado L (modo objetos) y pulsa arriba en la cruceta: se fija el monstruo grande o "
                      "se cambia al otro, igual que al tocar el panel de la cámara de objetivo. El selector de "
                      "objetos muestra un icono de la cruceta mientras tanto, y con L pulsado la cruceta deja de "
                      "mover la cámara (el C-stick sigue moviéndola). La cara del monstruo fijado se ve también en "
                      "la pantalla superior, a la izquierda del selector de objetos, con su marca de fijado.",
-                     "Hold L (item mode) and press D-pad up: it locks the large monster or switches to the other "
-                     "one, like a tap on the target camera panel. The item selector shows a D-pad hint while L is "
-                     "held, and the D-pad no longer moves the camera then (the C-stick still does). The locked "
-                     "monster's face is also shown on the top screen, left of the item selector, with its lock "
-                     "mark."), emulator_only=True),
+                     "Hold L and press D-pad Up to lock on to a large monster or switch to the other one, like "
+                     "tapping the Target Cam panel. While L is held, the item selector shows a D-pad hint and the "
+                     "D-pad stops moving the camera (the C-stick still moves it). The locked monster's face also "
+                     "appears on the top screen, left of the item selector."), emulator_only=True),
         ), T("Pensado para jugar solo con la pantalla superior (por ejemplo, en un monitor). Necesita el panel de "
              "la cámara de objetivo puesto en la pantalla táctil, y solo funciona una vez que el monstruo ya se ha "
-             "encontrado (como el panel). Desactivada, el juego no se toca.",
-             "Meant for playing with the top screen only (e.g. on a monitor). It needs the target camera panel on "
-             "the touch screen, and only works once the monster has been found (like the panel). Switched off, "
-             "the game is left untouched.")),
+             f"encontrado (como el panel). {_ALSO_IN_GAME_ES}",
+             "Meant for playing with the top screen only (e.g. on a monitor). The Target Cam panel must be on the "
+             f"touch screen, and the monster must have been found first, as with the panel. {_ALSO_IN_GAME_EN}")),
         Group(T("Pantalla única", "Single screen"), (
-            Option("single_screen", T("Modo pantalla única", "Single Screen mode"),
+            Option("single_screen", T("Modo pantalla única",
+                                      "Single Screen mode: touch screen menus on the top screen"),
                    T("Lo que la pantalla táctil muestra y hace falta para jugar se ve en la pantalla superior: la "
                      "lista de misiones (a la izquierda de la misión elegida, con su contador de páginas), los "
                      "ingredientes de la Cantina (junto a sus efectos), las preguntas de sí / no (como la de la "
                      "Herrería al fabricar) y el menú del título con las partidas guardadas. La pantalla táctil "
                      "sigue funcionando igual.",
-                     "What the touch screen shows and play needs is shown on the top screen: the quest list (left "
-                     "of the chosen quest, with its page counter), the Canteen's ingredients (beside their "
-                     "effects), the yes / no questions (such as the Smithy's after forging) and the title menu "
-                     "with the saved games. The touch screen still works as before."), emulator_only=True),
+                     "What you need from the touch screen appears on the top screen: the quest list (left of the "
+                     "chosen quest, with its page counter), the Canteen's ingredients (beside their effects), yes "
+                     "/ no questions (such as the Smithy's after forging) and the title menu with your saved "
+                     "games. The touch screen still works as before."), emulator_only=True),
         ), T("Para jugar viendo solo la pantalla superior del emulador (por ejemplo, en un monitor): los menús de "
              "la pantalla táctil que hacen falta pasan a la pantalla superior: la lista de misiones, los "
              "ingredientes de la Cantina, las preguntas de sí / no y el menú del título. La pantalla táctil sigue "
              "funcionando igual. Solo funciona en el emulador; desactivado, el juego no se toca.",
-             "For playing with only the emulator's top screen shown (e.g. on a monitor): the touch screen's menus "
-             "that play needs move to the top screen: the quest list, the Canteen's ingredients, the yes / no "
-             "questions and the title menu. The touch screen still works as before. It only works in the "
-             "emulator; switched off, the game is left untouched.")),
+             "For playing with only the emulator's top screen visible (e.g. on a monitor). It only works in the "
+             "emulator; when off, the game is left untouched.")),
         Group(T("Iconos", "Icons"), (
             Option("new_monster_icons", T("Iconos propios, sin «?»", "Icons of their own, no \"?\""),
                    T("Los Fatalis (negro, carmesí y blanco) y Gogmazios reciben un icono propio en lugar de «?» "
@@ -701,25 +707,37 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
     )),
     Section(T("Texto", "Text"), (
         Group(T("Conversaciones", "Conversations"), (
-            Option("fast_text", T("Pasar el texto rápido con B", "Fast text with B"),
+            Option("fast_text", T("Pasar el texto rápido con B", "Hold B to speed through conversations"),
                    T("Mientras mantienes pulsado B, el texto de las conversaciones aparece de golpe y pasa solo de "
                      "página muy deprisa. Se detiene en las preguntas y los menús, que se siguen eligiendo a mano. "
                      "Suelta B para leer con normalidad.",
-                     "While you hold B, conversation text appears at once and turns its pages by itself, very "
-                     "fast. It stops at questions and menus, which you still choose by hand. Let go of B to read "
+                     "While you hold B, conversation text appears at once and its pages turn by themselves, very "
+                     "fast. It stops at questions and menus, which you still answer yourself. Let go of B to read "
                      "normally.")),
-        )),
+        ), _ALSO_IN_GAME),
     )),
     Section(T("Acciones", "Actions"), (
         Group(T("Recolección", "Gathering"), (
-            Option("fast_gathering", T(f"Recolectar al {_GATHER_PERCENT} %", f"Gather at {_GATHER_PERCENT}%"),
+            Option("fast_gathering", T(f"Recolectar al {_GATHER_PERCENT} %",
+                                       f"Gather, mine and carve at {_GATHER_PERCENT}% speed"),
                    T(f"Recolectar, picar mineral y huesos, cazar insectos, tallar monstruos y pescar van al "
                      f"{_GATHER_PERCENT} % de velocidad. Se suma a la habilidad Recolección rápida. Andar, luchar "
                      "y lo demás van a su velocidad normal.",
                      f"Gathering, mining ore and bones, catching bugs, carving monsters and fishing run at "
                      f"{_GATHER_PERCENT}% speed. It stacks with the Speed Gatherer skill. Walking, fighting and "
                      "everything else keep their normal speed.")),
-        ), T("Solo afecta a tu cazador.", "Only your own hunter is affected.")),
+        ), T(f"Solo afecta a tu cazador. {_ALSO_IN_GAME_ES}", f"Only your own hunter is affected. {_ALSO_IN_GAME_EN}")),
+        Group(T("Botón A", "A button"), (
+            Option("hold_a", T("Mantener A para repetirlo", "Hold A to gather and claim rewards"),
+                   T("Con el arma guardada, mantener pulsado A repite la pulsación: recoger, recolectar, picar y "
+                     "tallar sin machacar el botón. En las recompensas de la misión y en la pantalla de objetos del "
+                     "Wyporio, una pulsación de A coge el objeto y el cursor pasa solo al siguiente; si mantienes "
+                     "A, sigue cogiendo. Los menús de cambiar o salir siguen pidiendo una pulsación.",
+                     "With your weapon sheathed, holding A keeps picking up, gathering, mining and carving, so you "
+                     "don't have to mash the button. In the quest rewards and the Wyporium's item screen, one press "
+                     "takes an item and the cursor moves to the next; hold A to keep taking. The swap and exit "
+                     "menus still need a press each.")),
+        ), _ALSO_IN_GAME),
     )),
     Section(T("Música", "Music"), (
         Group(T("Monster Hunter World", "Monster Hunter World"), (
@@ -758,14 +776,14 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         )),
     )),
     Section(T("Trucos", "Cheats"), (
-        Group(T("3D", "3D"), (
-            Option("cheat_3d_mode", T("3D", "3D"),
+        Group(T("3D", "3D and picture"), (
+            Option("cheat_3d_mode", T("3D", "Stereoscopic 3D"),
                    T("Apaga el 3D estereoscópico del juego. El tramado es el patrón de puntos con el que el juego "
                      "dibuja transparencias y sombreados.",
                      "Turns the game's stereoscopic 3D off. Dithering is the pattern of dots the game uses to draw "
                      "transparency and shading."),
                    choices=(
-                       Choice(Cheat3D.OFF, T("Sin cambios", "Unchanged"),
+                       Choice(Cheat3D.OFF, T("Sin cambios", "Game default"),
                               T("El 3D del juego, tal como es.", "The game's own 3D.")),
                        Choice(Cheat3D.DITHER_OFF, T("3D desactivado, sin tramado", "3D off, no dithering"),
                               T("Imagen limpia, sin el patrón de puntos.", "A clean image, without the dot pattern.")),
@@ -773,38 +791,77 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                               T("Deja el patrón de puntos del juego.", "Keeps the game's dot pattern.")),
                    ), emulator_only=True),
             Option("cheat_no_bloom_dof", T("Sin bloom ni desenfoque de profundidad",
-                                           "No bloom or depth of field"),
+                                           "Remove bloom and depth-of-field blur"),
                    T("Quita el resplandor y el desenfoque de lo que queda lejos: la imagen se ve más nítida.",
-                     "Removes the glow and the blur of distant things: the picture looks sharper."),
+                     "Removes the glow and the blur on distant things, so the picture looks sharper."),
                    emulator_only=True),
-        ), T("Trucos de imagen. Solo funcionan en el emulador.", "Picture cheats. They only work in the emulator.")),
+        ), T(f"Trucos de imagen. Solo funcionan en el emulador. {_ALSO_IN_GAME_ES}",
+             f"Picture cheats. They only work in the emulator. {_ALSO_IN_GAME_EN}")),
         Group(T("Imágenes por segundo", "Frame rate"), (
-            Option("cheat_fps", T("FPS", "FPS"),
+            Option("cheat_fps", T("FPS", "Frame rate (FPS)"),
                    T("El juego va siempre a las imágenes por segundo que elijas.",
-                     "The game always runs at the frames per second you choose."),
+                     "Runs the game at a fixed frame rate."),
                    choices=(
-                       Choice(CheatFps.GAME, T("Las del juego", "The game's own")),
+                       Choice(CheatFps.GAME, T("Las del juego", "Game default")),
                        Choice(CheatFps.F30, T("30 FPS", "30 FPS"),
                               T("Recomendado si tu PC es de gama baja.", "Recommended on a low-end PC.")),
                        *(Choice(rate, T(f"{rate.value} FPS", f"{rate.value} FPS"))
                          for rate in CheatFps if rate.rate > 30),
                    ), compact=True, emulator_only=True),
-        ), T("Se recomiendan 30 FPS si tienes un PC de gama baja. Solo funciona en el emulador.",
-             "30 FPS is recommended on a low-end PC. It only works in the emulator.")),
+        ), T(f"Se recomiendan 30 FPS si tienes un PC de gama baja. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
+             f"30 FPS is recommended on a low-end PC. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
+        Group(T("Proporción de la imagen (EXPERIMENTAL)", "Aspect ratio (EXPERIMENTAL)"), (
+            Option("cheat_aspect_allowed", T("Permitir otras proporciones (EXPERIMENTAL)",
+                                             "Allow other aspect ratios (EXPERIMENTAL)"),
+                   T("Activa la lista de proporciones, que es experimental, y su lista dentro del juego: menú START, "
+                     "tercera página, Ajustes del mod.",
+                     "Turns on the list of aspect ratios, which is experimental, and its list inside the game: START "
+                     "menu, third page, Mod Settings."),
+                   emulator_only=True),
+            Option("cheat_aspect_ratio", T("Proporción", "Aspect ratio"),
+                   T("Ajusta el juego a la forma de la imagen del emulador, para que nada se vea estirado.",
+                     "Fits the game to the shape of the emulator's picture, so nothing looks stretched."),
+                   choices=(
+                       Choice(CheatAspect.OFF, T("5:3, la del juego", "5:3, the game's own")),
+                       *(Choice(ratio, T(ratio.value, ratio.value)) for ratio in CheatAspect
+                         if ratio is not CheatAspect.OFF),
+                   ), requires="cheat_aspect_allowed", compact=True, emulator_only=True),
+        ), T("El emulador debe mostrar la imagen con esa forma: en Azahar, Single Screen con Stretch. Elige aquí la "
+             "que vayas a usar: dentro del juego, los fondos y algunas filas siguen en la de la instalación. Solo "
+             "funciona en el emulador.",
+             "The emulator must show the picture in that shape: in Azahar, Single Screen with Stretch. Choose here the "
+             "one you will use: inside the game, backgrounds and some rows stay at the installed one. It only works "
+             "in the emulator."),
+              warning=T("⚠ EXPERIMENTAL: las proporciones distintas de 5:3 aún están en pruebas. Menús, indicaciones y "
+                        "fondos pueden verse descolocados o estirados. Por favor, informa de cualquier problema que "
+                        "veas.",
+                        "⚠ EXPERIMENTAL: aspect ratios other than 5:3 are still being tested. Menus, prompts and "
+                        "backgrounds may be out of place or stretched. Please report any problem you see.")),
         Group(T("Campo de visión", "Field of view"), (
             Option("cheat_fov", T("Campo de visión", "Field of view"),
                    T("El juego usa 50; con un valor más alto se ve más alrededor del cazador.",
-                     "The game uses 50; a higher value shows more around the hunter."),
-                   minimum=_FOV_MIN, maximum=_FOV_MAX, emulator_only=True),
-        ), T("Truco de mikewii7. Solo funciona en el emulador.", "Cheat by mikewii7. It only works in the emulator.")),
+                     "The game uses 50; a higher value shows more around your hunter."),
+                   minimum=_FOV_MIN, maximum=_FOV_MAX, step=_FOV_STEP, emulator_only=True),
+        ), T(f"Truco de mikewii7. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
+             f"Cheat by mikewii7. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
         Group(T("Juego en línea", "Online"), (
-            Option("cheat_net_fix", T("Arreglo de red", "Net fix"),
+            Option("cheat_net_fix", T("Arreglo de red", "Online room connection fix"),
                    T("Al crear una sala o unirte a una, la conexión espera mucho más antes de rendirse, para que "
                      "las salas en línea del emulador no fallen por una conexión lenta.",
                      "When you host or join a room, the connection waits much longer before giving up, so the "
                      "emulator's online rooms do not fail on a slow connection."),
                    emulator_only=True),
-        ), T("Truco de Klark231. Solo funciona en el emulador.", "Cheat by Klark231. It only works in the emulator.")),
+        ), T(f"Truco de Klark231. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
+             f"Cheat by Klark231. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
+        Group(T("Armas", "Weapons"), (
+            Option("cheat_raw_unbloat", T("Ataque real de las armas", "Show weapons' true attack in menus"),
+                   T("Los menús muestran el ataque real de cada arma, sin el multiplicador que el juego le aplica "
+                     "según su tipo.",
+                     "Menus show each weapon's true attack, without the multiplier the game applies to each weapon "
+                     "type."),
+                   emulator_only=True),
+        ), T(f"Solo cambian los números que se ven, no el daño. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
+             f"Only the numbers shown change, not the damage. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
         Group(T("Depuración", "Debug"), (
             Option("cheat_insta_kill", T("Muerte instantánea", "Insta kill"),
                    T("El ataque del cazador se multiplica: cada golpe derriba a un monstruo al instante.",

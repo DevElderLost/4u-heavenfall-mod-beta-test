@@ -51,12 +51,14 @@ from collections.abc import Iterable
 
 from core.game.data.tuning import tuning
 from core.game.files.gui.lyt import name_hash
+from core.interface.hud.scale import NO_EDGE, Anchor, edge_shift
 from core.game.executable.code_space import (
     BASE_ADDRESS, COND_EQ, CodeSpaceError, Layout, bl_target, encode_bl, encode_branch, load_layout,
 )
 
 __all__ = ["BASE_ADDRESS", "CodePatchError", "bl_target", "encode_bl", "encode_branch", "face_params",
-           "patch_hud", "patch_interface", "patch_minimap_icons", "patch_mount_gauge", "patch_sharpness_slide",
+           "patch_hud", "patch_interface", "supports_target_switch", "patch_minimap_icons", "patch_mount_gauge",
+           "patch_sharpness_slide",
            "patch_talk_size", "patch_target_button", "patch_target_face", "talk_size_data"]
 
 CodePatchError = CodeSpaceError
@@ -219,9 +221,19 @@ def patch_hud(code: bytes, factor: float, layout: Layout | None = None) -> bytes
     return patch_talk_size(code, factor, layout)
 
 
-def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True) -> bytes:
+def supports_target_switch(code: bytes) -> bool:
+    """`code` has what the L + D-pad up switch replaces: the panel's button test and the call of the D-pad actions."""
+    start = _offset(TARGET_TEST)
+    return code[start:start + len(TARGET_TEST_ORIGINAL)] == TARGET_TEST_ORIGINAL and \
+        bl_target(code, DPAD_HOOK) == DPAD_ACTIONS
+
+
+def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: bool = True,
+                        gated: bool = False) -> bytes:
     """`code` where L + D-pad up switches the large-monster target, like a tap on the target camera
-    panel, and where the D-pad does not move the camera while L is held (asm/dpad_filter.s).
+    panel, and where the D-pad does not move the camera while L is held (asm/dpad_filter.s). `gated`: the filter's
+    call goes through the gate of the START menu's options (interface/mod_settings/mod_options_stub.s), which makes
+    the game's own call while the option is off.
 
     `layout` may have a diagnostic routine as its target_button block (research/probes/hud_probe.py
     --target-asm); it must return r0 != 0 to switch, like the original test. `with_filter=False`
@@ -234,7 +246,8 @@ def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: 
         raise CodePatchError(f"unexpected instructions at {TARGET_TEST:#x}: not the update's executable")
     if with_filter:
         layout.place(out, "dpad_filter")
-        layout.hook(out, DPAD_HOOK, "dpad_filter", calls=DPAD_ACTIONS)
+        layout.hook(out, DPAD_HOOK, layout.symbol("mod_options_stub", "gate_lock") if gated else "dpad_filter",
+                    calls=DPAD_ACTIONS)
     layout.place(out, "target_button")
     routine = layout.address("target_button")
     out[test] = (encode_branch(TARGET_TEST, routine, link=True)
@@ -244,8 +257,9 @@ def patch_target_button(code: bytes, layout: Layout | None = None, with_filter: 
     return bytes(out)
 
 
-def face_params(factor: float) -> tuple[float, float, float]:
-    """Top-screen position (layout coordinates) and scale of the target face for a HUD `factor`.
+def face_params(factor: float, edge: tuple[float, float] = NO_EDGE) -> tuple[float, float, float]:
+    """Top-screen position (layout coordinates) and scale of the target face for a HUD `factor`, keeping to the item
+    selector when the interface is `edge` times the game's (scale.py).
 
     Like the item selector (which shrinks towards the bottom-right corner), the face keeps its
     distances to that corner times `factor`: the one-monster face (ui601_icon00, 40 x 40 pixels at
@@ -260,10 +274,12 @@ def face_params(factor: float) -> tuple[float, float, float]:
     icon_y = -120 + (ITEM_ICON_Y + 120) * factor
     x = 200 - right + (half - (120 - 40)) * scale
     y = icon_y - 86 * scale
-    return x, y, scale
+    shift = edge_shift(Anchor.BOTTOM_RIGHT, edge)
+    return x + shift[0], y + shift[1], scale
 
 
-def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = None) -> bytes:
+def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = None,
+                      edge: tuple[float, float] = NO_EDGE) -> bytes:
     """`code` showing the target camera panel's monster face on the top screen too.
 
     asm/face_loader.s loads ui601 a second time, on the top screen, at the GUI manager slots
@@ -281,7 +297,7 @@ def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = 
         raise CodePatchError("unexpected quest layout list: not the update's executable")
     for name in ("face_loader", "face_free", "face_show", "target_face"):
         layout.place(out, name)
-    layout.place(out, "face_params", struct.pack("<4f", *face_params(factor), DEAD_SHADE))
+    layout.place(out, "face_params", struct.pack("<4f", *face_params(factor, edge), DEAD_SHADE))
     layout.hook(out, LOADER_HOOK, "face_loader", original=LOADER_HOOK_ORIGINAL)
     layout.hook(out, FREE_HOOK, "face_free", original=FREE_HOOK_ORIGINAL)
     layout.hook(out, SHOW_HOOK, "face_show", original=SHOW_HOOK_ORIGINAL, link=False)
@@ -289,13 +305,15 @@ def patch_target_face(code: bytes, factor: float = 1.0, layout: Layout | None = 
     return bytes(out)
 
 
-def patch_interface(code: bytes, factor: float, target_switch: bool = False, target_face: bool = False) -> bytes:
+def patch_interface(code: bytes, factor: float, target_switch: bool = False, target_face: bool = False,
+                    edge: tuple[float, float] = NO_EDGE, gated: bool = False) -> bytes:
     """Every interface patch the randomizer's settings ask for: the HUD size (below 1), L + D-pad up, the target
-    face."""
+    face (`edge`: the interface's size against the game's, scale.py). `gated`: the switch is a choice of the START
+    menu's options (patch_target_button)."""
     if factor < 1:
         code = patch_hud(code, factor)
     if target_switch:
-        code = patch_target_button(code)
+        code = patch_target_button(code, gated=gated)
     if target_face:
-        code = patch_target_face(code, factor)
+        code = patch_target_face(code, factor, edge=edge)
     return code

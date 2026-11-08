@@ -399,6 +399,8 @@ class SettingsForm(QWidget):
         layout.setContentsMargins(16, 12, 16, 14)
         layout.setSpacing(10)
         layout.addWidget(_label(group.title, "subtitle"))
+        if group.warning is not EMPTY and group.warning.es:
+            layout.addWidget(_label(group.warning, "warning"))
         if group.description is not EMPTY and group.description.es:
             layout.addWidget(_label(group.description, "muted"))
         if group.hint:
@@ -474,6 +476,7 @@ class SettingsForm(QWidget):
     def _spin(self, option: Option, field: str) -> QSpinBox:
         spin = QSpinBox()
         spin.setRange(option.minimum, option.maximum)
+        spin.setSingleStep(option.step)
         spin.setValue(int(self.store[field]))
         spin.valueChanged.connect(lambda v, f=field: self._edit(f, v))
         spin.setFixedWidth(84)

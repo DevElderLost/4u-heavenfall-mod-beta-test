@@ -1,10 +1,12 @@
 {
- "description": "Heavenfall Beta's GUI presets (presets.py): which settings are the program's options (the Options page) and what a run fixes without a widget. Their starting values are in gui_defaults.json. Keys are fields of core/app/settings.py; Heavenfall Beta has no randomizer, so its part is empty.",
+ "description": "Heavenfall Beta's GUI presets (presets.py): which settings are the program's options (the Options page), which the START menu's Mod Settings page holds too (in_game: the value installed is what a character with no choice yet gets), how far apart a number's values are (steps) and what a run fixes without a widget. Their starting values are in gui_defaults.json. Keys are fields of core/app/settings.py; Heavenfall Beta has no randomizer, so its part is empty.",
  "fixed": {},
  "ranges": {"cheat_fov": [30, 90]},
+ "steps": {"cheat_fov": 5},
+ "in_game": ["cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "touchless_target", "hold_a", "fast_text"],
  "install": {
   "fixed": {"randomize_quests": false, "randomize_equipment": false},
-  "options": ["hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix"],
+  "options": ["hud_scale", "touchless_target", "hold_a", "fast_text", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "cheat_aspect_allowed", "cheat_aspect_ratio"],
   "links": {}
  },
  "randomizer": {"fixed": {}, "legacy_choices": {}}

@@ -86,7 +86,6 @@ BUBBLEBLIGHT = "bubbleblight"
 # mods of the first two keep every address, items and gear included (checked file by file at seed 1234). The cheats'
 # block (cheats/cheats.py) goes last of all, so it moves nothing either, and the area move watchdog's after it
 # (monsters/routes/patch.py), whose mods are the ones with routes or a ported monster.
-CHEATS = "cheats"
 MOVE_WATCH = "area_move_watch"
 # The ported monsters' severed tail thrown and cooled as in MH Generations (gameplay/tail_fall/tail_fall.py), after
 # everything else
@@ -97,6 +96,20 @@ TAIL_FALL = "tail_fall"
 GUI_FRAME_MARKS = "game_gui_recorder"
 # The debug cheat insta kill (cheats/cheats.py): after the recorder's marks, so it moves no other block either
 INSTA_KILL = "cheat_insta_kill"
+# The aspect ratios (cheats/aspect_ratio.py): the ratio's 3 factors. A mod without the
+# option carries none of its pages.
+ASPECT_RATIO = "cheat_aspect_ratio"
+# The START menu's Mod Settings (interface/mod_settings/mod_settings.py), which every
+# mod made from the executable carries: the options a player changes during play and the aspect ratio's list. Its
+# data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
+# options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
+MOD_SETTINGS = "mod_settings"
+MOD_SETTINGS_DATA_SIZE = 228
+ASPECT_LIST_DATA_SIZE = 24
+MOD_OPTIONS_DATA_SIZE = 16 + 12 * 164
+MOD_RAW_TABLE_SIZE = 64
+ASPECT_DATA_SIZE = 124
+ASPECT_ANCHORS_SIZE = 0x3000
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -116,8 +129,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import ANIMATION_SIZE as TAIL_FALL_ANIMATION_SIZE
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
-                   FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), CHEATS, MOVE_WATCH, TAIL_FALL,
-                   GUI_FRAME_MARKS, INSTA_KILL)
+                   FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
+                   GUI_FRAME_MARKS, INSTA_KILL, MOD_SETTINGS, ASPECT_RATIO)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -150,9 +163,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # In the extension, so the older blocks keep their places.
     BlockSpec("fast_text", "fast_text", "interface/fast_text/fast_text.s", region="ext"),
     BlockSpec("fast_gathering", "fast_gathering", "gameplay/fast_gathering/fast_gathering.s", region="ext"),
-    # The cheats' per-frame writes (cheats/cheats.py): the code and its table of (object, offset,
-    # value)
-    BlockSpec("cheats", CHEATS, "cheats/cheats.s", region="ext"),
+    # Holding A repeats it (gameplay/hold_a/hold_a.py): three entries, one for the hunter's
+    # input and one for each panel that takes items one at a time
+    BlockSpec("hold_a", "hold_a", "gameplay/hold_a/hold_a.c", region="ext"),
+    # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): two entries, one for the
+    # SDK's pad step and one for the Game Menu's per-frame logic
+    BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext"),
     # The virtual map of monster_routes (monsters/routes/patch.py): its hooks, its
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
@@ -220,6 +236,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # ... and the Canteen's pay buttons driven with left / right: the pay choice's cursor step takes the pad's left and
     # right as up and down
     BlockSpec("single_screen_pay", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_pay.s",
+              region="ext"),
+    # ... and the touch-panel layout B on every save (interface/single_screen/executable/single_screen_layout.py): the
+    # quest HUD's load of the saved panels asks
+    # this block for the record, which writes layout B first when the record is not B
+    BlockSpec("single_screen_panels", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_panels.c",
               region="ext"),
     # ... and the creation's Aceptar / Atrás buttons driven with left / right: the menu cursor's call on the main pages
     # takes the pad's left and right as down and up on
@@ -394,6 +415,20 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # multiplied and capped, and its two words (multiplier, cap) from curated gui_presets.json
     BlockSpec("insta_kill", INSTA_KILL, "cheats/insta_kill.c", region="ext"),
     BlockSpec("insta_kill_data", INSTA_KILL, size=8, region="ext"),
+    # The aspect ratios (cheats/aspect_ratio.py): the hooks' stubs, the logic, the factors
+    BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext"),
+    BlockSpec("mod_settings_code", MOD_SETTINGS, "interface/mod_settings/mod_settings.c", region="ext",
+              units=("interface/mod_settings/aspect_list.c", "interface/mod_settings/mod_options.c",
+                     "interface/mod_settings/option_list.c")),
+    BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext"),
+    BlockSpec("mod_options_stub", MOD_SETTINGS, "interface/mod_settings/mod_options_stub.s", region="ext"),
+    BlockSpec("mod_options_data", MOD_SETTINGS, size=MOD_OPTIONS_DATA_SIZE, region="ext"),
+    BlockSpec("mod_raw_table", MOD_SETTINGS, size=MOD_RAW_TABLE_SIZE, region="ext"),
+    BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext"),
+    BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext"),
+    BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
+    BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
+    BlockSpec("aspect_anchors", ASPECT_RATIO, size=ASPECT_ANCHORS_SIZE, region="ext"),
 )
 
 
@@ -407,10 +442,19 @@ def __getattr__(name: str):
 VARIABLES = (
     # single_screen_keyboard.s: the key the virtual finger is on (+0) and whether its lit look is on (+4); in the 8
     # bytes bss_tail's first aligned variable leaves unused (no other room)
+    # The rectangle of the sub-view being opened, moved with the interface (cheats/aspect_ratio.c); FUN_00aee0f0 copies
+    # it
+    VariableSpec("aspect_state", ASPECT_RATIO, 16),
+    VariableSpec("aspect_way", ASPECT_RATIO, 4),
+    VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
+    VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
+    VariableSpec("option_list_state", MOD_SETTINGS, 4),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 64),
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8, gap=True),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
     VariableSpec("fast_gathering_state", "fast_gathering", 4),  # fast_gathering.s: the mPlayerSpeed it last wrote
+    VariableSpec("select_kick_state", "select_kick", 4),     # select_kick.c: Select held (1), seen by the menu (2)
     # bubbleblight.s: the local hunter's bubbles (+0 state, +4 timer, +8 unused) and bubble_bind.s' slide velocity
     # (x, z) of the large bubbles at +8 / +12 (`bubble_state + 8`): one variable, because bss_tail had 4 bytes left
     VariableSpec("bubble_state", BUBBLEBLIGHT, 16),
@@ -1100,8 +1144,15 @@ GAME_SYMBOLS |= {
 # The players' box (interface/single_screen/executable/single_screen_players.c)
 GAME_SYMBOLS |= {
     "members_refresh": 0xA6EEA0,        # FUN_00a6eea0(scene): fills the member list's four cards (hub state 0x14)
-    "group_depth": 0x28BEAC,            # FUN_0028beac(group, 0xff): a group's stereo depth (the game's own when 0xff)
+    "group_depth": 0x28BEAC,            # FUN_0028beac(group, 0xff): a group's shift for the touch bar (0xff: its place)
     "online_mode": 0x2B1040,            # FUN_002b1040(): the session's mode, 0 none, 1 local room, 2 online
+}
+
+# The touch-panel layout B on every save (interface/single_screen/executable/single_screen_panels.c): the saved panel
+# record and the game's own write of layout A or B
+GAME_SYMBOLS |= {
+    "panel_record": 0xC1CC9C,           # FUN_00c1cc9c(save, index): the saved touch-panel record (16 bytes each from 0)
+    "panel_layout_write": 0xC26754,     # FUN_00c26754(save, layout): record 0 as layout A (0) or B (1); r4 = layout
 }
 
 # The town minimap in a Gathering Hall (interface/single_screen/executable/single_screen_minimap_hall.c): what the hub
@@ -1143,8 +1194,54 @@ GAME_SYMBOLS |= {
 GAME_SYMBOLS |= {
     "frame_update": 0x644320,           # FUN_00644320(app): the engine's timing update, once per frame (frame limiter)
     "gx_main": 0x10572CC,               # the variable holding MtGX's draw object
+    "gui_projection": 0xB70FC0,         # FUN_00b70fc0(matrix): the GUI's 2D projection from s0, s1 (aspect_stub.s)
     # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
     "hunter_gear_stat": 0x2F8F34,
+}
+
+# The options a player changes during play (interface/mod_settings/mod_options.c, mod_options_stub.s): where each hook
+# goes back to (the instruction after the one it replaced), the bloom pass's body, and the weapon classes' table
+GAME_SYMBOLS |= {
+    "bloom_body": 0x2BC25C,             # FUN_002bc258 after its first instruction (push {r4-r11, lr})
+    "fov_reset_return": 0xBFF448,       # FUN_00bff28c after its two loads of the field of view
+    "fov_other_return": 0xC06C8C,       # FUN_00c06a14 after its load of the field of view
+    "net_waits_return": 0x533F44,       # FUN_00533e6c after `cmp r2, #120`
+    "net_polls_a_return": 0x534B58,     # FUN_005348a8 after `mov r0, #10`
+    "net_polls_b_return": 0x5356E0,     # FUN_00535480 after `mov r0, #10`
+    "raw_a_return": 0x26E394,           # FUN_0026e33c after its load of the weapon classes' table
+    "raw_b_return": 0x27336C,           # FUN_0027335c after its load of the table
+    "class_multipliers": 0xED24A0,      # the weapon classes' display multipliers, in percent (16 words)
+}
+
+# The START menu's Mod Settings (interface/mod_settings/mod_settings_stub.s, mod_settings.c; docs/interface/
+# mod_settings.md): the game's list widgets and where the hooks go back to. It also uses pane_redraw, facility_help,
+# sound_play, sound_control, game_main, gui_control, text_slot and text_common, declared elsewhere
+GAME_SYMBOLS |= {
+    "start_pick_sound": 0x5F746C,       # FUN_005f6c8c: the decide sound (sound in r5) of an action past its table
+    "start_help_body": 0x60FC30,        # FUN_0060fc2c: after its first instruction
+    "start_subscreen": 0x607910,        # FUN_00607910(menu): the frame of the game's sub-screens
+    "start_list_ui": 0x108F608,         # the object binding the START menu's list widgets (ui020)
+    "start_list_group": 0xD94358,       # FUN_00d94358(binder, group, shown): marks a widget group (+0x50, a bit each)
+    "start_sublist_begin": 0x611B10,    # FUN_00611b10(): what the game's small lists do before opening
+    "start_top_cursor": 0x6201DC,       # FUN_006201dc(shown): the page's cursor runs or stops
+    "start_sublist_open": 0x5E87B4,     # FUN_005e87b4(action, rows): opens the small list beside the line of the action
+    "start_sublist_text": 0x60FBC0,     # FUN_0060fbc0(row, 0, file, message): a row's text
+    "start_sublist_enable": 0x60CAEC,   # FUN_0060caec(row, enabled): 0 greys the row (FUN_005e86b0 undoes it)
+    "start_sublist_cursor": 0x5E84F0,   # FUN_005e84f0(row): moves the cursor and steps its animation, once per frame
+    "start_sublist_close": 0x5E86B0,    # FUN_005e86b0(): closes the small list and restores its colours
+    "start_sublist_end": 0x60F220,      # FUN_0060f220(): after the small list closes
+    "start_step": 0x5E70BC,             # FUN_005e70bc(value, count, keys, minus, plus): steps and wraps, move sound
+    "start_help_show": 0x2A4260,        # FUN_002a4260(1, 0xB): shows the description's frame
+    "gui_ref_next": 0xD03820,           # FUN_00d03820(&next, &ref): the pane ref after a text pane's
+    "gui_anim_bind": 0x585094,          # FUN_00585094(&pane ref, animation, owner, 0): binds a cursor's animation
+    "gui_anim_step": 0xAE1DDC,          # FUN_00ae1ddc(animation, s0 the frame's time)
+    "start_pager_bind": 0x5EDCF4,       # FUN_005edcf4(x, y): binds the big lists' pager, a counted bind
+    "start_pager_release": 0x5EDC88,    # FUN_005edc88(): ends one bind
+    "start_pager_show": 0x5ED704,       # FUN_005ed704(page, pages, 0, 0, 1): one frame of "page/pages"; 1 page, nothing
+    "start_pager_hide": 0x5EDCBC,       # FUN_005edcbc(): hides the pager's panes
+    "text_set": 0xAE4EF0,               # FUN_00ae4ef0(pane, group, text, length, format): 0, 0 blanks a text pane
+    "common_files": 0x109A080,          # the table of the common message files, by file number
+    "message_string": 0xCDFA80,         # FUN_00cdfa80(file's table, message): the string entry of its first node
 }
 
 # The Caravan's quest girl (interface/quest_counter/executable/quest_counter.s)
@@ -1170,4 +1267,20 @@ GAME_SYMBOLS |= {
     "piece_step": 0xC2D364,             # FUN_00c2d364(piece, monster, flag): the cut piece's state machine
     "piece_angles": 0xB059F0,           # FUN_00b059f0(unit): the unit's quaternion (+0x50) from its angles (+0xD20)
     "piece_record": 0x94C45C,           # FUN_0094c45c(monster, flag): the piece's record in the monster's emd, or 0
+}
+
+# Holding A repeats it (gameplay/hold_a/hold_a.c): the hunter's item mode call, the quest
+# result scene and the Wyporium's claim panel (hunter_is_local, above, tells the hunter this console plays)
+GAME_SYMBOLS |= {
+    "hunter_item_mode": 0xB28F54,       # FUN_00b28f54(hunter): item mode (L held), called by the hunter's input update
+    "result_scene": 0xACCD24,           # FUN_00accd24(scene, ?, ?): the quest result scene, once per frame
+    "claim_scene": 0x5E5CB8,            # FUN_005e5cb8(panel): the Wyporium's claim items panel, once per frame
+}
+
+# Select and Start follow the game's option START (gameplay/select_kick/select_kick.c): the SDK's Select-to-Start step,
+# the settings byte reader and the Game Menu's object
+GAME_SYMBOLS |= {
+    "sdk_select_to_start": 0x571E58,    # FUN_00571e58(status): Select becomes Start in the 3DS pad status
+    "game_setting": 0x2B02FC,           # FUN_002b02fc(settings, index): the settings byte `index`
+    "start_menu": 0x108B9BC,            # the Game Menu's object (FUN_0012580c returns it)
 }

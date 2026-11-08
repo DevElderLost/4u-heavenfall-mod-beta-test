@@ -12,6 +12,10 @@ the top screen and both axes reversed: screen = (200 - x, 120 - y) (confirmed in
 * sizes, font sizes and text spacing: * factor. Scale fields are left alone;
 * animation keys of x / y (same rule as the pane) and width / height.
 
+`edge` is the interface's width and height against the game's, when the picture has another shape
+(cheats/aspect_ratio.py): the panes right under a root group and their x / y keys also move by edge_shift, so the group
+keeps to its corner of the picture instead of the middle of the wider interface.
+
 `unscaled` names nulls whose subtree keeps the file's numbers instead: the null takes the scale (its own scale times
 `factor`, the engine multiplies its children's positions and sizes by it) and nothing under it is changed, tracks
 included. For code that writes positions under that null in the layout's own units: what it writes is scaled by the
@@ -26,6 +30,7 @@ from core.game.files.gui.lyt import Layout, Pane, PaneKind, name_hash
 
 SCREEN_HALF_WIDTH = 200.0
 SCREEN_HALF_HEIGHT = 120.0
+NO_EDGE = (1.0, 1.0)        # the interface at the game's own size
 
 
 class Anchor(Enum):
@@ -56,16 +61,26 @@ def anchor_point(anchor: AnchorSpec) -> tuple[float, float] | None:
     return anchor.point if isinstance(anchor, Anchor) else (float(anchor[0]), float(anchor[1]))
 
 
+def edge_shift(anchor: AnchorSpec, edge: tuple[float, float]) -> tuple[float, float]:
+    """How far a group anchored at a side of the screen moves to stay at that side of an interface `edge` = (width,
+    height) times the game's, in layout coordinates. A group in place (the code places it) or anchored at any other
+    point does not move."""
+    if not isinstance(anchor, Anchor) or anchor.value is None:
+        return 0.0, 0.0
+    return anchor.value[0] * SCREEN_HALF_WIDTH * (edge[0] - 1), anchor.value[1] * SCREEN_HALF_HEIGHT * (edge[1] - 1)
+
+
 def _scaled(pair: tuple[float, float], factor: float) -> tuple[float, float]:
     return pair[0] * factor, pair[1] * factor
 
 
-def _scale_pane(pane: Pane, factor: float, anchor: tuple[float, float] | None) -> None:
+def _scale_pane(pane: Pane, factor: float, anchor: tuple[float, float] | None, shift: tuple[float, float]) -> None:
     x, y = pane.position
     if pane.depth != 1:
         pane.position = (x * factor, y * factor)
     elif anchor is not None:
-        pane.position = (anchor[0] + (x - anchor[0]) * factor, anchor[1] + (y - anchor[1]) * factor)
+        pane.position = (anchor[0] + (x - anchor[0]) * factor + shift[0],
+                         anchor[1] + (y - anchor[1]) * factor + shift[1])
     if pane.size is not None:
         pane.size = _scaled(pane.size, factor)
     if pane.kind == PaneKind.TEXT:
@@ -93,21 +108,24 @@ def _check_unscaled(layout: Layout, names: Collection[str]) -> None:
 
 
 def scale_hud(layout: Layout, animations: Iterable[Animations], factor: float,
-              anchors: Mapping[str, AnchorSpec], unscaled: Collection[str] = ()) -> int:
+              anchors: Mapping[str, AnchorSpec], unscaled: Collection[str] = (),
+              edge: tuple[float, float] = NO_EDGE) -> int:
     """Scale the root groups named in `anchors` (and their animation tracks). Returns the tracks changed.
 
     `animations` can include files for other layouts: only tracks of the scaled groups are touched. `unscaled`: names
     of nulls that take the scale themselves and leave what is under them as the file has it (see the module's text);
-    the animations of such a null may not change its scale."""
+    the animations of such a null may not change its scale. `edge`: the interface's size against the game's (see the
+    module's text)."""
     unknown = set(anchors) - {group.name for group in layout.roots}
     if unknown:
         raise KeyError(f"no root group named {', '.join(sorted(unknown))}")
     _check_unscaled(layout, unscaled)
-    targets: dict[int, tuple[dict[int, Pane], tuple[float, float] | None]] = {}
+    targets: dict[int, tuple[dict[int, Pane], tuple[float, float] | None, tuple[float, float]]] = {}
     for group in layout.roots:
         if group.name not in anchors:
             continue
         point = anchor_point(anchors[group.name])
+        shift = edge_shift(anchors[group.name], edge)
         group.position = _scaled(group.position, factor)
         panes: dict[int, Pane] = {}
         for pane in group.walk():
@@ -115,10 +133,10 @@ def scale_hud(layout: Layout, animations: Iterable[Animations], factor: float,
                 continue            # the null above it scales it
             panes.setdefault(name_hash(pane.name), pane)
             if pane is not group:
-                _scale_pane(pane, factor, point)
+                _scale_pane(pane, factor, point, shift)
             if pane.name in unscaled:
                 pane.scale = _scaled(pane.scale, factor)
-        targets[name_hash(group.name)] = (panes, point)
+        targets[name_hash(group.name)] = (panes, point, shift)
 
     changed = 0
     for file in animations:
@@ -130,11 +148,12 @@ def scale_hud(layout: Layout, animations: Iterable[Animations], factor: float,
             if pane.name in unscaled and track.prop in (Property.SCALE_X, Property.SCALE_Y):
                 raise ValueError(f"unscaled: an animation changes the scale of {pane.name}")
             if track.prop in (Property.X, Property.Y):
-                point = target[1]
+                point, shift = target[1:]
+                axis = 0 if track.prop == Property.X else 1
                 if pane.depth != 1:
                     track.transform(factor)
                 elif point is not None:
-                    track.transform(factor, point[0 if track.prop == Property.X else 1] * (1 - factor))
+                    track.transform(factor, point[axis] * (1 - factor) + shift[axis])
                 else:
                     continue  # stays in place, like the pane
             elif track.prop in (Property.WIDTH, Property.HEIGHT):

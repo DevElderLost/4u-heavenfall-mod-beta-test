@@ -41,7 +41,7 @@ pip install -r requirements.txt -r requirements-build.txt
 python tools/release/build_exe.py
 ```
 
-makes `work/exe/dist/HeavenfallBeta/` (`HeavenfallBeta.exe`, `heavenfall-beta-cli.exe` and their files) and `work/exe/dist/HeavenfallBeta-windows.zip`,
+makes `work/exe/dist/HeavenfallBeta/` (`HeavenfallBeta.exe`, `heavenfall-beta-cli.exe`, `HeavenfallBeta-update.exe` and their files) and `work/exe/dist/HeavenfallBeta-windows.zip`,
 then checks the finished folder. `--work DIR` builds elsewhere; `--no-zip` skips the zip.
 
 ## Publishing a release
@@ -49,14 +49,25 @@ then checks the finished folder. `--work DIR` builds elsewhere; `--no-zip` skips
 Push a tag that starts with `v`:
 
 ```
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 The workflow in `.github/workflows/release.yml` lints the code, builds `HeavenfallBeta-windows.zip` on Windows and attaches
 it to the release of that tag (creating the release when there is none). Running the workflow by hand (Actions >
 Release > Run workflow) only builds, and keeps the zip as an artifact of the run. Keep the version in
 `pyproject.toml` and `core/__init__.py` equal to the tag.
+
+## The updater
+
+`HeavenfallBeta-update.exe` sits beside the program in the zip. Opening it asks this repository's latest release
+(`repository` in `core/game/data/curated/edition.json`); when it is newer than the program it downloads the zip, checks
+its size and SHA-256 against the ones GitHub lists, replaces the program's files (all or none: a program that is open is
+left as it is, with a message) and rebuilds the mod installed in each emulator folder with the options it was installed
+with (`heavenfall-beta-cli.exe --update-installed`). `--check` only prints the latest published version, `--program-only`
+leaves the installed mod alone, `--version` prints its own. A folder that holds no Beta mod is never touched. The code is
+`core/install/self_update.py` (standard library only) and `core/install/update_mod.py`.
+A release therefore needs: a tag equal to the version in `core/__init__.py`, and the zip built by the workflow attached to it.
 
 ## The web page
 
@@ -80,10 +91,13 @@ The tool needs only the standard library. What runs where:
 | `core/app/web.py` | What the page asks of Python: the options, the check of the game, the mod as a zip. The run is the program's own |
 | `core/app/pipeline.py` and what it imports | The build: it must keep working without threads, subprocesses or native code other than `zstandard` |
 
-The options come from the program's own list (`core/gui/options.py`), so a new option appears on the page by itself.
+The options come from the program's own list (`core/gui/options.py`), so a new option appears on the page by itself. One
+the player also changes during play is listed as `in_game` in `core/game/data/curated/gui_presets.json`: it is a row of the
+game's START menu too, and the build writes the value chosen into the mod, as what a character with no choice starts with.
 
 The workflow in `.github/workflows/pages.yml` publishes the site on GitHub Pages for every tag, or by hand (Actions >
-Web page > Run workflow). The repository's Settings > Pages > Source must be "GitHub Actions".
+Web page > Run workflow, on `main`). The repository's Settings > Pages > Source must be "GitHub Actions", and
+Settings > Environments > github-pages must allow the tags `v*`: without that rule GitHub refuses a tag's deploy.
 
 ## The compiled code
 

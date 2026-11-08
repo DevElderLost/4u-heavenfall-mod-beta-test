@@ -28,12 +28,18 @@ def load_presets() -> dict:
     data = json.loads(PRESETS_PATH.read_text(encoding="utf-8"))
     data["defaults"] = json.loads(DEFAULTS_PATH.read_text(encoding="utf-8"))
     names = {f.name for f in fields(Settings)}
+    data.setdefault("in_game", [])
     missing = set(data["install"]["options"]) - set(data["defaults"])
     if missing:
         raise ValueError(f"gui_defaults.json: no value for the installer options {sorted(missing)}")
+    if not set(data["in_game"]) <= set(data["install"]["options"]):
+        raise ValueError("gui_presets.json: an option of the START menu's page (in_game) is no installer option")
     for name, bounds in data["ranges"].items():
         if name not in names or len(bounds) != 2 or bounds[0] > bounds[1]:
             raise ValueError(f"gui_presets.json, ranges: {name}")
+    for name, step in data.setdefault("steps", {}).items():
+        if name not in data["ranges"] or step < 1:
+            raise ValueError(f"gui_presets.json, steps: {name}")
     parts = _sections(data)
     for name, values in parts.items():
         unknown = set(values) - names
@@ -55,14 +61,16 @@ def load_presets() -> dict:
 
 
 def _sections(data: dict) -> dict[str, dict]:
-    defaults, options = data["defaults"], data["install"]["options"]
+    defaults, options, in_game = data["defaults"], data["install"]["options"], data["in_game"]
     return {"common": data["fixed"], "install_fixed": data["install"]["fixed"],
-            "install_options": {k: defaults[k] for k in options}, "randomizer_fixed": data["randomizer"]["fixed"],
+            "install_options": {k: defaults[k] for k in options}, "in_game": {k: defaults[k] for k in in_game},
+            "randomizer_fixed": data["randomizer"]["fixed"],
             "randomizer_defaults": {k: v for k, v in defaults.items() if k not in options}}
 
 
 def section(name: str) -> dict:
-    """One flat part of the file: common, install_fixed, install_options, randomizer_fixed, randomizer_defaults."""
+    """One flat part of the file: common, install_fixed, install_options, in_game, randomizer_fixed,
+    randomizer_defaults."""
     return dict(_sections(load_presets())[name])
 
 
@@ -71,6 +79,12 @@ def fixed_fields(kind: str) -> set[str]:
     if kind not in KINDS:
         raise ValueError(f"unknown kind {kind!r}")
     return set(section("common")) | set(section(f"{kind}_fixed"))
+
+
+def in_game_fields() -> list[str]:
+    """The options the START menu's Mod Settings page holds in this edition, in the file's order (gui_presets.json
+    `in_game`). They are installer options too: the value installed is what a character with no choice gets."""
+    return list(load_presets()["in_game"])
 
 
 def install_links() -> dict[str, list[str]]:
@@ -95,6 +109,12 @@ def field_range(field: str) -> tuple[int, int]:
     return int(low), int(high)
 
 
+def field_step(name: str) -> int:
+    """How far apart a number field's values are (gui_presets.json `steps`; 1 unless it says otherwise): the values of
+    its list in the game's menu."""
+    return load_presets()["steps"].get(name, 1)
+
+
 def legacy_choices() -> dict[str, list[str]]:
     """Per randomizer enum field, the values shown only while a loaded game has them (last in its choices)."""
     return {k: list(v) for k, v in load_presets()["randomizer"]["legacy_choices"].items()}
@@ -113,6 +133,8 @@ def _expand(personal: dict) -> dict:
     for source, targets in install_links().items():
         if source in personal:
             values.update({target: personal[source] for target in targets})
+    if not values.get("cheat_aspect_allowed"):      # the list greys out without its switch, and keeps its value
+        values["cheat_aspect_ratio"] = "off"
     return values
 
 

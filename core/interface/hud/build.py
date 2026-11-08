@@ -13,7 +13,7 @@ from core.game.files.arc import parse_arc, write_arc
 from core.interface.hud.hint import GLYPH_ARCS, add_glyph, add_hint
 from core.game.files.gui.lanl import LANL_TYPE_HASH, parse_lanl
 from core.game.files.gui.lyt import LYT_TYPE_HASH, parse_lyt
-from core.interface.hud.scale import Anchor, AnchorSpec, anchor_all, anchor_point, scale_hud
+from core.interface.hud.scale import NO_EDGE, Anchor, AnchorSpec, anchor_all, anchor_point, scale_hud
 
 LANGUAGES = ("eng", "fre", "ger", "ita", "spa")
 QUEST_ARC = "core_quest.arc"
@@ -54,6 +54,14 @@ HUD_WRAPPED: dict[str, dict[str, tuple[str, ...]]] = {
     },
 }
 FRAME_SUFFIX = "_frame"
+# ARC in <lang>/data/ -> layout -> nulls of the file that take the factor as their scale while what is under them keeps
+# the file's numbers (scale_hud's `unscaled`), for panes whose size the code writes every frame in the file's units:
+# the item selector's icons, whose timer bar (the Wystone's) gets its height from the code.
+HUD_SCALED_NULLS: dict[str, dict[str, tuple[str, ...]]] = {
+    "core_quest.arc": {
+        "ui205": tuple(f"ui205_icon0{i}" for i in range(5)),
+    },
+}
 # One per area and language (164 each). The code moves the whole map layout; it is drawn as if the map's
 # 128x128 frame started at the screen's top-left corner, so its top-right corner is at (72, 120).
 # Only together with the executable patch (code_patch.patch_hud): the code places the map icons.
@@ -105,10 +113,14 @@ def quest_frames(factor: float) -> list[tuple[str, str, float, float, float]]:
 
 def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, AnchorSpec]], factor: float,
               wrapped: Mapping[str, Collection[str]] | None = None,
-              in_quest: Mapping[str, Mapping[str, AnchorSpec]] | None = None) -> bytes:
+              in_quest: Mapping[str, Mapping[str, AnchorSpec]] | None = None,
+              scaled_nulls: Mapping[str, Collection[str]] | None = None,
+              edge: tuple[float, float] = NO_EDGE) -> bytes:
     """The ARC with the given layouts scaled, together with every animation of the ARC that moves them. `wrapped`:
     layout -> root groups (HUD_WRAPPED) that scale as one null instead of pane by pane. `in_quest`: layout -> root
-    groups (HUD_IN_QUEST) left at full size under one null each, which the executable scales in a quest."""
+    groups (HUD_IN_QUEST) left at full size under one null each, which the executable scales in a quest.
+    `scaled_nulls`: layout -> nulls of the file (HUD_SCALED_NULLS) that take the factor as their scale and leave what
+    is under them as the file has it. `edge`: the interface's size against the game's (scale.py)."""
     arc = parse_arc(raw)
     entries = {short_name(e.name): e for e in arc.entries if e.type_hash == LYT_TYPE_HASH}
     animation_entries = [e for e in arc.entries if e.type_hash == LANL_TYPE_HASH]
@@ -126,7 +138,7 @@ def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, Anchor
             for group in (wrapped or {}).get(name, ()):
                 frames.append(group + FRAME_SUFFIX)
                 layout.wrap_children(layout.find(group), frames[-1], layout.plain_null())
-            scale_hud(layout, animations, factor, anchors, frames)
+            scale_hud(layout, animations, factor, anchors, [*frames, *(scaled_nulls or {}).get(name, ())], edge)
         entries[name].data = layout.to_bytes()
     for entry, file in zip(animation_entries, animations):
         entry.data = file.to_bytes()
@@ -152,14 +164,18 @@ def hint_files(rom: GameFiles) -> Iterator[tuple[str, bytes]]:
 
 
 def hud_files(rom: GameFiles, factor: float,
-              with_code_patch: bool = False, target_hint: bool = False) -> Iterator[tuple[str, bytes]]:
+              with_code_patch: bool = False, target_hint: bool = False,
+              edge: tuple[float, float] = NO_EDGE) -> Iterator[tuple[str, bytes]]:
     """(RomFS path, new ARC) of every file of the HUD size mod, for the 5 languages, all from the base game's
     copies (`rom`: the mod runs the base game's code and ships its data).
     `with_code_patch` adds the minimap and the mount gauge: only together with code_patch.patch_hud in the
     executable. `target_hint` adds the target switch hint to the item selector, which then shrinks with it, and
-    the other copies of its texture."""
+    the other copies of its texture. `edge` keeps the HUD at the edges of a picture of another shape, at any `factor`.
+    At full size nothing needs that patch: the mount gauge moves, the map and the talk windows stay the game's (the
+    executable moves the map, cheats/aspect_ratio.py)."""
+    smaller = factor < 1
     map_paths = [p for p in rom.walk() if p.split("/")[0] in LANGUAGES
-                 and MAP_ARC.fullmatch(p.split("/")[-1])] if with_code_patch else []
+                 and MAP_ARC.fullmatch(p.split("/")[-1])] if with_code_patch and smaller else []
     if target_hint:
         yield from glyph_files(rom)
     for lang in LANGUAGES:
@@ -168,8 +184,10 @@ def hud_files(rom: GameFiles, factor: float,
             raw = rom.read(path)
             if target_hint and arc_name == QUEST_ARC:
                 raw = add_hint(raw)
-            yield path, scale_arc(raw, layouts_of(arc_name, with_code_patch), factor, HUD_WRAPPED.get(arc_name),
-                                  HUD_IN_QUEST.get(arc_name) if with_code_patch else None)
+            yield path, scale_arc(raw, layouts_of(arc_name, with_code_patch or not smaller), factor,
+                                  HUD_WRAPPED.get(arc_name),
+                                  HUD_IN_QUEST.get(arc_name) if with_code_patch and smaller else None,
+                                  HUD_SCALED_NULLS.get(arc_name), edge)
         for path in map_paths:
             if path.startswith(lang + "/"):
                 raw = rom.read(path)

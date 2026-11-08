@@ -40,6 +40,23 @@ You choose your options in a small program, press one button, and it installs th
 **Locking on with L**
 
 - Hold L and press Up on the D-pad to lock on to a large monster or switch between targets. The target monster's face is displayed on the top screen.
+- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
+
+**Kick on Select**
+
+- Select kicks, and only Start opens the menu.
+- If you set the game's own **START** option to **Kick** (Options, page 2), they swap in quests: Start kicks, and Select opens and closes the menu.
+
+**Holding A**
+
+- Holding A with your weapon sheathed keeps picking up, gathering and carving, without pressing it again.
+- In quest rewards and the Wyporium's Claim Items, A takes an item and moves to the next one, and holding it keeps going.
+- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
+
+**Faster text**
+
+- Hold B to speed through conversations.
+- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
 
 **A smaller HUD**
 
@@ -47,8 +64,10 @@ You choose your options in a small program, press one button, and it installs th
 
 **Built-in cheats**
 
-- Disable 3D, glow and distant blur for a sharper image. These cheats are enabled by default.
-- Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, and longer wait times when joining online rooms.
+- Choose them on the **Options** page, and change them during play, for each character: START, third page, Mod Settings.
+- 3D, glow and distant blur are off by default for a sharper image.
+- Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
+- **⚠️ EXPERIMENTAL, expect problems:** turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. It is disabled by default, and menus, prompts or backgrounds may be out of place or stretched. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). You can also change it during play: START, third page, Mod Settings. Please report any problem you see.
 
 The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
@@ -72,7 +91,7 @@ The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
 
 **4. Check the destination.** The program automatically detects your Azahar or Citra installation. If it can't find it, click **Choose folder…** and select your emulator's folder.
 
-**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, HUD size and cheats. Hover over any option to see what it does.
+**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, HUD size, the aspect ratio, the cheats, the lock-on with L, holding A and fast text. Hover over any option to see what it does. The last four are what each character starts with, and they also change inside the game: START, third page, Mod Settings.
 
 **6. Click Install.** Installation may take a few moments. If the emulator was running the game, restart emulation for the changes to take effect. If the Install button is disabled, the message below it explains what's missing.
 
@@ -102,10 +121,15 @@ python -m core.gui
 ## Removing or updating the mod
 
 - **To uninstall:** Click **Uninstall** on the Install page. This restores the game to its original state. The program only removes the files it installed.
+- **To update:** Close the program and open `HeavenfallBeta-update.exe`, in the same folder. It downloads the latest version, replaces the program and rebuilds the mod you installed with the same options. Then restart emulation. It never touches a mod it did not install. If your folder doesn't have that file, download the latest release as in step 1 of the installation.
 - **To change your options:** Change them on the Options page and click **Update** on the Install page (or **Apply now** on the Options page).
 - **If you used the web installer:** To uninstall, delete the mod's folder from `load/mods/`. To change your options or update, delete it too, then make the mod again and move in the new folder: old files left behind would still be loaded.
 
 ## Questions and problems
+
+**My antivirus says the program is a trojan.**
+
+Some antivirus programs have wrongly flagged it (for example as "Bearfoo"), which can happen with new, unsigned programs. To check that your download is the official one, open PowerShell in the folder with the zip and run `Get-FileHash HeavenfallBeta-windows.zip`. Compare the long code it prints with the `sha256` shown beside that file on the [Releases page](../../releases/latest); capital letters don't matter. If they match, you have the exact file published here, built by GitHub from this repository's public code. If they differ, delete it and download it again from that page.
 
 **Does this modify my game file?**
 
@@ -125,7 +149,7 @@ No. Heavenfall Beta changes how the game is displayed for single-screen emulatio
 
 **Should I use these cheats or my emulator's?**
 
-I recommend using the cheats included with Heavenfall Beta. If you do, make sure to disable any equivalent cheats in your emulator to avoid applying the same cheat twice. You can enable or disable Heavenfall Beta's cheats on the Options page.
+Use the mod's cheats (START, third page, Mod Settings); emulator cheats will create bugs or crash the game
 
 **I found a bug.**
 

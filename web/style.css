@@ -97,6 +97,15 @@ summary { min-height: 32px; cursor: pointer; }
 .group:first-of-type { border-top: 0; }
 .group-title { margin: 0; font-weight: 600; }
 .help { margin: 2px 0 8px; color: var(--muted); font-size: .875rem; }
+.warning {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #d9534f;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
 
 .option { margin: 10px 0; }
 .option.off { opacity: .45; }

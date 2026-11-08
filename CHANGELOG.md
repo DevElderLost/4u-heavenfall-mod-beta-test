@@ -2,11 +2,33 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
-## Unreleased
+## 0.1.3
+
+### One screen
+- Hunters who chose the other touch layout get the one that keeps the map on top.
+- The world map and menus stay in place when the touch bar is at the bottom.
+- Registering an equipment set shows the list, skills and pieces, with the yes / no box in sight.
+- When creating a Gathering Hall, pinned papers and seals no longer cover the labels and buttons.
+- The town map no longer stays in front of the fade to black when something loads.
+
+### Hunting
+- Select kicks and only Start opens the menu; with the game's START option at Kick, they swap.
+- Holding A repeats picking up and gathering; in quest rewards and the Wyporium, A moves to the next item.
+- Holding B speeds through conversation text.
+- Mod Settings can turn off the lock-on with L, holding A and fast text.
+- The Wystone's timer bar shrinks with the HUD size.
+
+### Cheats
+- The cheats can also be changed in the game: START menu, third page, Mod Settings.
+- Each character keeps its own choices; one with none yet starts with what the Options page says.
+- Cheats can also show weapons' true attack instead of the inflated number.
+- Cheats can fit the game and its menus to screens from 4:3 to 32:9; experimental.
+- The START menu's Mod Settings can change that screen shape during play, for each character.
 
 ### The program
 - The mod can be made in a browser on Android or PC, with nothing to install.
 - On Android 11 and newer the app can use "All files access": the game is read where it is, the mod is written as plain files, and installing again only writes the files that changed.
+- An update program beside HeavenfallBeta brings the program and your installed mod to the latest version.
 
 ## 0.1.2
 

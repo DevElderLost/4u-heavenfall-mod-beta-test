@@ -4,11 +4,14 @@ its own).
 
     python tools/release/build_exe.py [--work DIR] [--no-zip] [--no-check]
 
+The folder also holds <updater>.exe (install/self_update.py), a single-file console program that brings the program and
+the installed mod to the latest published release; it bundles only the edition file and the standard library.
+
 Needs PyInstaller (requirements-build.txt) and the packages of requirements.txt. PyInstaller reads
 tools/release/heavenfall.spec, which takes every list from this module. Output, under DIR (default <main
 checkout>/work/exe):
 
-    dist/<app>/                <app>.exe, <cli>.exe and _internal/ (Python, Qt, core and its data)
+    dist/<app>/                <app>.exe, <cli>.exe, <updater>.exe and _internal/ (Python, Qt, core and its data)
     dist/<app>-windows.zip     the same folder zipped: what the GitHub release carries (docs/develop/development.md)
 
 Inside the bundle the package sits where it does in the checkout (`_internal/core/...`), so every module
@@ -42,6 +45,7 @@ LOGO = PACKAGE / "gui" / "qt" / "assets" / "logo.png"
 
 APP_NAME = edition().app_name
 CLI_NAME = edition().cli_name       # "heavenfall-cli"
+UPDATER_NAME = edition().updater_name   # "Heavenfall-update": beside the app in the zip, single file
 ZIP_NAME = edition().zip_name
 ICON_ENV = "HEAVENFALL_ICON"       # the .ico `main` makes for the spec
 
@@ -82,6 +86,13 @@ TOOLS_ONLY = ("core.interface.game_gui.check", "core.interface.game_gui.edit", "
               "core.interface.game_gui.gallery", "core.interface.game_gui.render")
 # The command line has no Qt.
 CLI_EXCLUDES = ("PySide6", "shiboken6")
+# The updater (tools/release/exe/heavenfall_update.py) is one file with the standard library and these modules of the
+# package: tests/tools/release/test_packaging.py checks that it imports nothing else of `core`.
+UPDATER_SCRIPT = "heavenfall_update.py"
+UPDATER_MODULES = ("core.install.self_update", "core.app.edition", "core.app.i18n", "core.game.data.paths",
+                   "core.gui.i18n", "core.gui.preferences")
+UPDATER_DATA = "game/data/curated/edition.json"             # the one data file it reads
+UPDATER_EXCLUDES = (*EXCLUDES, *CLI_EXCLUDES, "sqlite3", "unittest")
 # Files of the Qt that PyInstaller collects and the app never loads (it is a Widgets app on the raster painter that
 # shows PNGs and its own texts): matched against the file's place in the bundle, `PySide6/...`. Without them the
 # folder is about 50 MB smaller.
@@ -119,6 +130,12 @@ def data_files() -> list[tuple[str, str]]:
     files = [(str(source), folder) for source, folder in resource_files()]
     files += [(str(ROOT / name), ".") for name in ROOT_RESOURCES if (ROOT / name).is_file()]
     return files
+
+
+def updater_data_files() -> list[tuple[str, str]]:
+    """The updater's `datas`: the edition file, where `core/app/edition.py` looks for it."""
+    source = PACKAGE / UPDATER_DATA
+    return [(str(source), source.parent.relative_to(ROOT).as_posix())]
 
 
 def package_modules(gui: bool = True) -> list[str]:
@@ -201,13 +218,17 @@ def build(work: Path) -> Path:
     folder = work / "dist" / APP_NAME
     if not (folder / f"{APP_NAME}.exe").is_file():
         raise SystemExit(f"PyInstaller did not make {folder / (APP_NAME + '.exe')}")
+    updater = work / "dist" / f"{UPDATER_NAME}.exe"
+    if not updater.is_file():
+        raise SystemExit(f"PyInstaller did not make {updater}")
+    shutil.move(str(updater), folder / updater.name)
     for source, target in NOTICES:
         shutil.copyfile(ROOT / source, folder / target)
     return folder
 
 
 def check(folder: Path) -> None:
-    """Every resource is in the bundle, and the command line starts."""
+    """Every resource is in the bundle, and the command line and the updater start."""
     inner = folder / "_internal"
     missing = [str(Path(dest) / Path(src).name) for src, dest in data_files()
                if not (inner / dest / Path(src).name).is_file()]

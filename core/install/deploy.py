@@ -95,11 +95,14 @@ def _retrying(action: Callable[[], None], seconds: float = 3.0) -> None:
 
 
 def write_marker(folder: Path, kind: str, files: list[str], seed: str = "", checksum: str = "",
-                 settings: dict | None = None) -> None:
+                 settings: dict | None = None, version: str = __version__, incomplete: bool = False) -> None:
     """Write `folder`'s marker (atomically): the last thing an install does. An old marker of the folder is removed
-    once the new one is in place (it lists the same files, which the new one holds)."""
-    data = {"kind": kind, "seed": seed, "checksum": checksum, "version": __version__,
+    once the new one is in place (it lists the same files, which the new one holds). `incomplete`: files are moving;
+    if the install stops here the updater rebuilds the mod, whatever `version` says."""
+    data = {"kind": kind, "seed": seed, "checksum": checksum, "version": version,
             "settings": settings or {}, "files": sorted(set(files) - {MARKER, *LEGACY_MARKERS})}
+    if incomplete:
+        data["incomplete"] = True
     temp = Path(folder) / (MARKER + ".tmp")
     temp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     _retrying(lambda: os.replace(temp, Path(folder) / MARKER))
@@ -139,6 +142,17 @@ def _remove_files(folder: Path, rels: list[str]) -> None:
         _prune(path.parent, folder)
 
 
+def _put_back(target: Path, aside: Path, moved: list[str], placed: list[str]) -> None:
+    """Undo an install that failed while files moved: the new files go, the old ones come back from `aside`."""
+    for rel in placed:
+        if (target / rel).is_file():
+            (target / rel).unlink()
+        _prune((target / rel).parent, target)
+    for rel in moved:
+        (target / rel).parent.mkdir(parents=True, exist_ok=True)
+        os.replace(aside / rel, target / rel)
+
+
 def tree_files(root: Path, *subpaths: str) -> list[tuple[Path, str]]:
     """(file, path relative to `root`) of every file under the given sub-paths of `root`, sorted."""
     out = []
@@ -155,8 +169,9 @@ def deploy_files(plan: list[tuple[Path, str]], target: Path, kind: str, seed: st
                  settings: dict | None = None, replace_unknown: bool = False, progress: Progress | None = None,
                  stage: Stage | None = None, title: str | None = None) -> None:
     """Install `plan` ((source, relative path) pairs) as the mod in `target`. Files are copied to a temp folder
-    beside `target` first; the previous install's files go only after every copy succeeded; the marker is last.
-    `title`: the build's own title, which `target` must be named after (`assert_safe`)."""
+    beside `target` first; the previous install's files move aside only after every copy succeeded, and come back if a
+    new one cannot go in; the marker is last. `title`: the build's own title, which `target` must be named after
+    (`assert_safe`)."""
     progress = progress or (lambda done, total: None)
     stage = stage or (lambda text: None)
     target = Path(target)
@@ -171,8 +186,11 @@ def deploy_files(plan: list[tuple[Path, str]], target: Path, kind: str, seed: st
     rels = [rel for _, rel in plan]
     total = 2 * len(plan)
     temp = target.parent / (target.name + ".heavenfall_new")
+    aside = target.parent / (target.name + ".heavenfall_old")
     if temp.exists():
         shutil.rmtree(temp)
+    if aside.exists():
+        shutil.rmtree(aside)
     temp.mkdir(parents=True)
     try:
         stage("Copying files")
@@ -187,18 +205,36 @@ def deploy_files(plan: list[tuple[Path, str]], target: Path, kind: str, seed: st
             write_marker(temp, kind, rels, seed, checksum, settings)
             os.replace(temp, target)
         else:
-            write_marker(target, old.get("kind", kind), old_files + rels, old.get("seed", ""),
-                         old.get("checksum", ""), old.get("settings"))  # the union, until the new marker
-            _remove_files(target, old_files)
-            for done, rel in enumerate(rels, len(plan) + 1):
-                (target / rel).parent.mkdir(parents=True, exist_ok=True)
-                os.replace(temp / rel, target / rel)
-                progress(done, total)
+            old_marker = (old.get("kind", kind), old_files, old.get("seed", ""), old.get("checksum", ""),
+                          old.get("settings"))
+            old_version = str(old.get("version", ""))
+            write_marker(target, old_marker[0], old_files + rels, *old_marker[2:], version=old_version,
+                         incomplete=True)  # the union, until the new marker
+            moved, placed = [], []
+            try:
+                for rel in old_files:
+                    path = target / rel
+                    if path.is_file() or path.is_symlink():
+                        (aside / rel).parent.mkdir(parents=True, exist_ok=True)
+                        _retrying(lambda source=path, to=aside / rel: os.replace(source, to))
+                        moved.append(rel)
+                for done, rel in enumerate(rels, len(plan) + 1):
+                    (target / rel).parent.mkdir(parents=True, exist_ok=True)
+                    _retrying(lambda source=temp / rel, to=target / rel: os.replace(source, to))
+                    placed.append(rel)
+                    progress(done, total)
+            except BaseException:
+                _put_back(target, aside, moved, placed)
+                write_marker(target, *old_marker, version=old_version, incomplete=bool(old.get("incomplete")))
+                raise
+            for rel in old_files:
+                _prune((target / rel).parent, target)
             write_marker(target, kind, rels, seed, checksum, settings)
         progress(total, total)
     finally:
-        if temp.exists():
-            shutil.rmtree(temp, ignore_errors=True)
+        for folder in (temp, aside):
+            if folder.exists():
+                shutil.rmtree(folder, ignore_errors=True)
 
 
 def top_files(build_dir: Path, kind: str) -> list[tuple[Path, str]]:

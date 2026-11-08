@@ -17,6 +17,8 @@ from dataclasses import asdict, dataclass, field, fields, replace
 from enum import Enum
 from pathlib import Path
 
+from core.cheats.aspect_table import OFF as ASPECT_OFF, interface_size, load_ratios
+
 
 class StructureMode(str, Enum):
     """Number of waves and of monsters per wave."""
@@ -249,18 +251,26 @@ EQUIPMENT_SWITCHES = ("randomize_recipes", "randomize_weapon_stats", "randomize_
 # Options each player chooses for themselves: they change neither quests nor equipment, so two friends playing the
 # same seed may differ in them (they are left out of the fix checksum, core/app/fix.py). The monster icons only
 # change quest board pictures, which the checksum ignores.
+# The shape of the emulator's picture (core/cheats/aspect_ratio.py): off, or one of the
+# curated ratios. A str enum, as the other cheats' are
+CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(':', '_')}": ratio.name
+                                                         for ratio in load_ratios()}}, type=str)
+
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
-                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "layered_equipment",
-                   "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode", "cheat_no_bloom_dof",
-                   "cheat_fps",
-                   "cheat_fov", "cheat_net_fix", "cheat_insta_kill")
+                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a",
+                   "layered_equipment", "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode",
+                   "cheat_no_bloom_dof", "cheat_fps",
+                   "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
+                   "cheat_aspect_allowed", "cheat_aspect_ratio")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
-# (gui/options.py, Option.emulator_only) and a 3DS run takes their defaults (Settings.for_console): the HUD size and the
-# touchless target; the ported monsters (Alatreon, Mizutsune, Glavenus) go to a 3DS too; the cheats are emulator only.
-# Single-screen mode moves layouts between the screens, which only the emulator's single screen view needs.
+# (gui/options.py, Option.emulator_only), a 3DS run takes their defaults (Settings.for_console) and the START menu's
+# page has no row for them (mod_options.available_options): the HUD size and the touchless target; the ported monsters
+# (Alatreon, Mizutsune, Glavenus) go to a 3DS too; the cheats are emulator only. Single-screen mode moves layouts
+# between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_fov", "cheat_net_fix", "cheat_insta_kill")
+                 "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
+                 "cheat_aspect_allowed", "cheat_aspect_ratio")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -391,6 +401,10 @@ class Settings:
     # Gathering, mining, bug catching, carving and fishing GATHER_SPEED times faster, on top of the Speed Gatherer
     # skill (core/gameplay/fast_gathering/fast_gathering.py)
     fast_gathering: bool = False
+    # Holding A repeats it: in a quest with the weapon sheathed (picking up, gathering, mining, carving), and in the
+    # quest rewards and the Wyporium's claim items panel, where A takes an item and the cursor goes on to the next
+    # (core/gameplay/hold_a/hold_a.py)
+    hold_a: bool = False
     # "Layered Equipment" at the Smithy: choose the look of each armor part and weapon class over what is worn
     # (core/equipment/layered/layered_equipment.py)
     layered_equipment: bool = False
@@ -411,6 +425,9 @@ class Settings:
     cheat_fov: int = 50                   # the camera's field of view in degrees; 50 is the game's own (untouched)
     cheat_net_fix: bool = False           # the online fix by Klark231
     cheat_insta_kill: bool = False        # debug: the hunter's attack multiplied (curated tuning.json, cheats)
+    cheat_raw_unbloat: bool = False       # the menus show weapons' true attack; the damage does not change
+    cheat_aspect_allowed: bool = False    # the GUI's switch before the ratios, still in testing (presets._expand)
+    cheat_aspect_ratio: CheatAspect = CheatAspect.OFF  # the game fits the emulator's picture
 
     # New game (executable patch, not randomized)
     starting_kit: bool = True  # the developer's kit in the item box (game/data/curated/starting_kit.txt)
@@ -450,6 +467,17 @@ class Settings:
         """These settings for a real 3DS: every EMULATOR_ONLY setting at its default."""
         defaults = Settings()
         return replace(self, **{name: getattr(defaults, name) for name in EMULATOR_ONLY})
+
+    @property
+    def aspect_on(self) -> bool:
+        """The mod can change the picture's shape: the hooks and the list in the game, even at the game's own shape."""
+        return self.cheat_aspect_allowed or self.cheat_aspect_ratio.value != ASPECT_OFF
+
+    @property
+    def hud_edge(self) -> tuple[float, float]:
+        """The interface's width and height against the game's (cheat_aspect_ratio): the HUD keeps to the picture's
+        edges."""
+        return interface_size(self.cheat_aspect_ratio.value)
 
     @property
     def patches_interface_code(self) -> bool:
