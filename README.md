@@ -9,7 +9,7 @@ Heavenfall Beta moves the menus of the bottom screen to the top screen, locks on
 ## Links
 
 - **Downloads:** https://github.com/popzol/4u-heavenfall-mod-beta/releases/latest
-- **Web installer**, with nothing to install: https://popzol.github.io/4u-heavenfall-mod-beta/
+- **Web installer:** https://popzol.github.io/4u-heavenfall-mod-beta/
 - **Discord server**, for help, bug reports, feedback and news: https://discord.gg/qQwPRc8CDF
 
 ## Install it
@@ -52,6 +52,6 @@ The full list is in **[what the mod adds](docs/features.md)**, and every change 
 - **Developed by:** popzol and BlitzWOLF.
 - **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The visual and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
 - **Game data reference:** [Kiranico](https://mh4u.kiranico.com/).
-- **Linux start script:** based on the one hndll56 contributed.
+- **Linux start script:** based hndll56 contributions.
 
 **License:** [GNU General Public License v3.0 or later](LICENSE). Monster Hunter is a trademark of Capcom. This is an unofficial fan project, not affiliated with or endorsed by Capcom.
