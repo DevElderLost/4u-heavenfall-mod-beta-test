@@ -53,10 +53,11 @@ jobs:
 
   console:
     # The 3DS launcher: built in devkitPro's devkitARM container, with every console patch set of console/ (with and without MH XX) beside it.
+    # The container is the last one with libctru 2.6: the launcher's AM calls are 2.6's, and 2.7 renamed them.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container:
-      image: devkitpro/devkitarm:20260610@sha256:116afba8df8453961de2936ffab20dd441edf4d682856c1ec8b0e53d7ed0bbf5
+      image: devkitpro/devkitarm:20251231@sha256:0e0a00e966f32121297ad8ebceabf5e9ca0a408f3c020fdf21384e03b499f3a0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -82,7 +83,8 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends curl ca-certificates unzip python3
-          dkp-pacman -S --noconfirm 3ds-curl 3ds-mbedtls 3ds-zlib
+          dkp-pacman -Sy --noconfirm 3ds-curl 3ds-mbedtls 3ds-zlib
+          dkp-pacman -Q libctru | grep -q ' 2\.6\.' || { echo "the launcher needs libctru 2.6:"; dkp-pacman -Q libctru; exit 1; }
           mkdir -p "$HOME/bin" /tmp/tools
           cd /tmp/tools
           curl -fsSL -o makerom.zip https://github.com/3DSGuy/Project_CTR/releases/download/makerom-v0.19.0/makerom-v0.19.0-ubuntu_x86_64.zip
