@@ -78,13 +78,44 @@ jobs:
           done
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Tools (portlibs, makerom and bannertool at pinned versions)
+      - name: Portlibs, and libctru 2.6 (the AM calls the launcher makes)
         shell: bash
         run: |
-          apt-get update
-          apt-get install -y --no-install-recommends curl ca-certificates unzip python3
           dkp-pacman -Sy --noconfirm 3ds-curl 3ds-mbedtls 3ds-zlib
           dkp-pacman -Q libctru | grep -q ' 2\.6\.' || { echo "the launcher needs libctru 2.6:"; dkp-pacman -Q libctru; exit 1; }
+
+      - name: Build the launcher (the .3dsx, and the .elf and romfs the CIA is packed from)
+        shell: bash
+        run: make -C tools/build/installer_3ds VERSION="$VERSION"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: launcher-build
+          path: |
+            tools/build/installer_3ds/heavenfall_launcher.elf
+            tools/build/installer_3ds/heavenfall_launcher.3dsx
+            tools/build/installer_3ds/romfs/gfx/
+          if-no-files-found: error
+
+  cia:
+    # The launcher's CIA, packed from the container's build on the runner: makerom and bannertool need glibc 2.38, newer
+    # than the container's.
+    needs: console
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: launcher-build
+          path: tools/build/installer_3ds
+
+      - name: Tools (makerom and bannertool at pinned versions)
+        shell: bash
+        run: |
           mkdir -p "$HOME/bin" /tmp/tools
           cd /tmp/tools
           curl -fsSL -o makerom.zip https://github.com/3DSGuy/Project_CTR/releases/download/makerom-v0.19.0/makerom-v0.19.0-ubuntu_x86_64.zip
@@ -95,12 +126,12 @@ jobs:
           tar xzf bannertool.tar.gz --strip-components=1 -C "$HOME/bin" bannertool-1.2.3-linux/bannertool
           chmod +x "$HOME/bin/makerom" "$HOME/bin/bannertool"
 
-      - name: Build the launcher (.cia and .3dsx)
+      - name: Pack the launcher's CIA (.cia and .3dsx, with the patch sets)
         shell: bash
         run: |
           export PATH="$HOME/bin:$PATH"
-          make -C tools/build/installer_3ds VERSION="$VERSION"
-          make -C tools/build/installer_3ds VERSION="$VERSION" PYTHON=python3 cia   # cia_version.py: the release's version in the CIA
+          version=$(sed -n 's/^__version__ = "\(.*\)".*/\1/p' core/__init__.py)
+          make -C tools/build/installer_3ds VERSION="$version" PYTHON=python3 cia-pack   # cia_version.py: the release's version in the CIA
           mkdir -p dist
           cp tools/build/installer_3ds/heavenfall_launcher.cia dist/HeavenfallBeta-3ds.cia
           cp tools/build/installer_3ds/heavenfall_launcher.3dsx dist/HeavenfallBeta-3ds.3dsx
@@ -113,7 +144,7 @@ jobs:
           if-no-files-found: error
 
   attach:
-    needs: [windows, console]
+    needs: [windows, cia]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 10

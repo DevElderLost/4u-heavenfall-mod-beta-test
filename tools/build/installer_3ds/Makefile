@@ -2,12 +2,16 @@
 .SUFFIXES:
 #---------------------------------------------------------------------------------
 
+# `make cia-pack` only packs a built app with makerom and bannertool: it needs no devkitARM (the release packs on a
+# newer system than the container that builds; both tools need glibc 2.38)
+ifneq ($(MAKECMDGOALS),cia-pack)
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
 
 TOPDIR ?= $(CURDIR)
 include $(DEVKITARM)/3ds_rules
+endif
 
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
@@ -183,7 +187,7 @@ ifneq ($(ROMFS),)
 	export _3DSXFLAGS += --romfs=$(CURDIR)/$(ROMFS)
 endif
 
-.PHONY: all clean cia
+.PHONY: all clean cia cia-pack
 
 #---------------------------------------------------------------------------------
 all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
@@ -191,6 +195,11 @@ all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
 
 # The installed form: the banner and the icon from assets/, the spec in launcher.rsf, the romfs inside the CIA too.
 cia: all
+	@$(MAKE) --no-print-directory cia-pack
+
+# The CIA from the built app (.elf and the romfs with its logo), with no build step of its own
+cia-pack:
+	@mkdir -p $(BUILD)
 	$(BANNERTOOL) makebanner -i assets/banner.png -a assets/silence.wav -o $(BUILD)/banner.bnr
 	$(BANNERTOOL) makesmdh -s "$(APP_TITLE)" -l "$(APP_DESCRIPTION)" -p "$(APP_AUTHOR)" -i assets/icon.png -o $(BUILD)/icon.icn
 	$(MAKEROM) -f cia -o $(TARGET).cia -target t -exefslogo -elf $(TARGET).elf -rsf launcher.rsf -icon $(BUILD)/icon.icn \
