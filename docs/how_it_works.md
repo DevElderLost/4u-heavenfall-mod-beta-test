@@ -158,9 +158,10 @@ The game turns a held Select into Start, so both open the menu and no button kic
 game's default, only Start opens the menu and Select kicks (the touch screen's Special Attack). With Kick, in a quest
 Start kicks and Select opens and closes the menu; in a town both open it. At the title Select does nothing. Block
 `select_kick`
-(`gameplay/select_kick/select_kick.c`, patch in `select_kick.py`) takes over two calls of the game: the pad step's call
-that turns Select into Start, which the block makes only in a town with the option at Kick, and the menu's read of the
-option that stops
+(`gameplay/select_kick/select_kick.c`, patch in `select_kick.py`) takes over three calls of the game: the pad step's two
+calls that turn Select into Start, one on each of its paths (with an extra pad answering, the New 3DS's ZL, ZR and
+C-stick or a Circle Pad Pro, and without one, an Old 3DS alone or a New 3DS with its C-stick off), which the block makes only in a town with the option at
+Kick, and the menu's read of the option that stops
 Start from opening the menu in a quest, which lets a Select press through when the option is Kick. The touch screen's
 kick and Start in the menus are untouched.
 
