@@ -39,16 +39,22 @@ install: copied into <emulator>/load/mods/<title>/   (0004000000126100 European,
 1. **The window** (`core/gui/qt/`): the Install page finds the game and the emulator, the Options page holds
    the options chosen at install. The options themselves are described in `core/gui/options.py` (texts in English and
    Spanish); which ones Heavenfall Beta shows, which the game's START menu holds too (`in_game`) and their starting
-   values are data: `core/game/data/curated/gui_presets.json` and `gui_defaults.json`.
+   values are data: `core/game/data/curated/gui_presets.json` and `gui_defaults.json`. Its `install.modules` makes the
+   page's three tabs, one per module (single screen, Layered Gear, quality of life), each starting with its switch:
+   every other option of the tab is greyed out while the switch is off.
 2. **The build** (`core/install/build.py`): checks that the file is MH4U (European or American, not the
    update) and calls `pipeline.run` into a build folder under `~/.heavenfall_beta/build/`.
 3. **The run** (`core/app/pipeline.py`):
+   * gives every field of a module that is off its `Settings` default, the game's own (`presets.apply_modules`), and
+     leaves that module's rows out of the START menu's page; Select and Start belong to the single-screen module and the
+     Rare Materials Exchange to Layered Gear's;
    * reads the executable from the game file (`game/executable/player_code.py`) and lays it out as the *canonical* executable
      (below);
    * writes the interface files: the smaller HUD (`interface/hud/`), the texts of the START menu's page, then
      single-screen mode's layouts (`interface/single_screen/run.py`), which are made last because they place whole layouts,
      with what the other steps changed;
-   * patches the executable in this order: the memory split, Select and Start, the START menu's page with the options it
+   * patches the executable in this order: Layered Gear's new items (in every run, its module on or off), the memory
+     split, Select and Start, the START menu's page with the options it
      holds (and their defaults for a character with no choice), the aspect ratio, the HUD and lock-on code, single-screen
      mode;
    * carries every patch back onto the player's own executable and writes it with its header.
@@ -129,11 +135,12 @@ current area and the Everwood's whole map).
 ## The START menu's page: Mod Settings
 
 A third page in the game's START menu (`interface/mod_settings/`) holds what a player changes during play: the cheats, the
-lock-on with L, holding A and fast text. The list is data (`core/game/data/curated/mod_settings.json`); each option has a list of values
+lock-on with L, holding A, fast text, the camera's turn speed and the equipment at every item box. The list is data (`core/game/data/curated/mod_settings.json`); each option has a list of values
 and a byte in the character's save, so every character keeps its own choices. A block runs once a frame and acts on them
 (`mod_options.c`), and the options that hook the game go through a gate that makes the game's own call when the option is
 off (`mod_options_stub.s`). A character with no choice yet, the title screen and character creation take the value chosen on
-the program's Options page (it starts at `gui_defaults.json`'s), written into the mod by the run (`mod_options.py`). In
+the program's Options page (it starts at `gui_defaults.json`'s), written into the mod by the run (`mod_options.py`); an
+option with a `default` of its own in that file (skipping the death camera) is the page's only, with that value. In
 single-screen mode the page's description panel stands at the bottom left, in a quest too: a place of `help_top` that waits for
 the byte `mod_settings_state` + 5, up only while the page is open.
 
@@ -157,6 +164,14 @@ option that stops
 Start from opening the menu in a quest, which lets a Select press through when the option is Kick. The touch screen's
 kick and Start in the menus are untouched.
 
+## Skipping the death camera
+
+When the last monster falls, the camera manager plays its death camera (a camera sequence of kind 0xD) and calls
+FUN_00c03d70 once a frame while it plays; a 0 from that call makes the manager end the camera itself. Block
+`death_camera_skip` (`gameplay/death_camera_skip/death_camera_skip.c`, patch in `death_camera_skip.py`) takes that call
+through the Mod Settings gate: with the option on (the default) it answers 0 when Start was pressed. While the camera plays
+it also sets `death_camera_skip_state`, which `select_kick`'s menu gate counts down, so that press does not open the menu.
+
 ## Holding A
 
 Block `hold_a` (`gameplay/hold_a/hold_a.c`, patch in `hold_a.py`) hooks three calls of the game. In a quest, with the
@@ -164,6 +179,35 @@ weapon sheathed and the circle pad at rest, holding A presses it again at the ga
 rewards and the Wyporium's Claim Items, holding A does the same, and after a cell empties the cursor moves to the next
 one with an item. A change of step (a full pouch, a question) leaves the cursor where it is and asks for a new press, so
 nothing is confirmed by accident.
+
+## Layered Gear and the Wyporium
+
+Layered Gear (`equipment/layered/`) adds the Smithy's Layered Equipment line: the forge-style screens, the look lists of
+the game's own gear, the prices and the rule that decides which looks show. SELECT on the Armor screen opens a colour
+window built on the item box's Armor Pigment (its palette, its colour scale and its words), free and shown on the model
+as the cursor moves. The entry's last line, Relics, opens the same Weapons and Armor screens listing the relics alone,
+every one of the ranks open, for sale (`equipment/layered/relic_prices.py`, `core/game/data/curated/layered_relics.json`):
+a numbered relic whose first look of the same name is a normal look costs exactly that look, a relic of a monster (or of
+a family of monsters) what their dearest look of the same kind costs at its rank (of the other kind when they have none
+of its kind; a price of its own rank, curated, when they have none of its rank), one of no monster its rank's ore, a
+crystal or a bone and four times its tier's zenny; a relic the hunter has had is bought already. The Rare Materials Exchange
+(`gameplay/wyporium/rare_exchange.py`) adds a line and two screens to the Wyporium. Both write texts into the game's
+archives and add code to the executable. Given Monster Hunter XX's decrypted game, a run also converts the models of XX's
+weapons and armor into a pack of archives (`equipment/mhgen/`), adds the Layered Gear looks that use them and adds the
+trades of the rare materials of XX's monsters that MH4U lacks to the Wyporium's list (`gameplay/wyporium/trades.py`).
+Without it the run has only MH4U's looks and the exchange. Those materials and Foreign Scrap are new items
+(`equipment/layered/xx_materials.py`, their records committed in `core/game/data/curated/xx_item_records.json`) that every
+run defines, Layered Gear's module on or off and XX's game given or not: a save that holds one keeps reading it, never
+the junk record of an id past the game's table.
+
+A look shows its own piece's colour (MH4U's default dye of that piece, or XX's colour tables for XX's looks), not the
+dye of the real armor worn under it, unless the player picks a colour for that part; the game's part colour function
+is hooked for it (`layered_part_dye` in `equipment/layered/layered_selector.c`).
+
+In local play each player's looks travel in a message of their own (`equipment/layered/layered_online.c`), sent with
+the game's own gear and join messages; an unmodded game drops it unread. The other players' hunters and Felynes wear
+those looks, and their colours, in the hall and in quests; a game that lacks any of a player's looks shows that
+player's real gear.
 
 ## The cheats
 
@@ -195,9 +239,10 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/single_screen/` | Single-screen mode: `layout/` (its layout changes), `executable/` (its patches and their C and assembly) |
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
-| `core/gameplay/select_kick/`, `core/gameplay/hold_a/` | Select and Start; holding A |
+| `core/gameplay/select_kick/`, `core/gameplay/hold_a/`, `core/gameplay/death_camera_skip/` | Select and Start; holding A; skipping the death camera |
 | `core/interface/mod_settings/` | The START menu's page, its options and their values |
-| `core/cheats/` | The aspect ratio |
+| `core/equipment/layered/`, `core/equipment/mhgen/`, `core/gameplay/wyporium/` | Layered Gear, the models of MH XX's looks, the Wyporium's trades and exchange |
+| `core/cheats/` | The emulator cheats and the aspect ratio |
 | `core/game/executable/` | Reading the game file, the executable, versions and their maps, free space, the blocks (compiled into `generated/code_space.json`) |
 | `core/game/files/` | The game's file formats: archives (`.arc`), layouts (`lyt.py`), texts |
 | `core/gui/` | The window (PySide6) and its texts |

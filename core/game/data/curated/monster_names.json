@@ -1,0 +1,515 @@
+{
+ "description": "Monster names in the five languages of the quest text (en, fr, es, de, it). verified=true: extracted automatically from the main objectives of the retail quests; verified=false: written or corrected by hand, please confirm in-game. Apex monsters keep their base species name, as the game does. aliases: other names the retail quest texts use for the monster (matched when replacing names). 127 is Great Maccao, ported from MH XX: his names are monsterName entry 70 of MH Generations Ultimate, which MH Generations repeats (XX has only Japanese text). Alatreon, Mizutsune and Glavenus keep their one name in code (monsters/porting/spec.py). ecology: the hunting log's ecology text of a ported monster that XX cannot give (message 82 of HN_MonsterListMsg in MH Generations and MH Generations Ultimate, the game's own text), by id and language.",
+ "names": {
+  "1": {"en": "Rathian", "fr": "Rathian", "es": "Rathian", "de": "Rathian", "it": "Rathian", "verified": true},
+  "2": {"en": "Rathalos", "fr": "Rathalos", "es": "Rathalos", "de": "Rathalos", "it": "Rathalos", "verified": true},
+  "3": {
+   "en": "Pink Rathian",
+   "fr": "Rathian sakura",
+   "es": "Rathian rosa",
+   "de": "Rosa Rathian",
+   "it": "Rathian rosa",
+   "verified": true
+  },
+  "4": {
+   "en": "Azure Rathalos",
+   "fr": "Rathalos azur",
+   "es": "Rathalos celeste",
+   "de": "Azurner Rathalos",
+   "it": "Rathalos azzurro",
+   "verified": false
+  },
+  "5": {
+   "en": "Gold Rathian",
+   "fr": "Rathian d'or",
+   "es": "Rathian dorada",
+   "de": "Goldene Rathian",
+   "it": "Rathian dorata",
+   "verified": true
+  },
+  "6": {
+   "en": "Silver Rathalos",
+   "fr": "Rathalos d'argent",
+   "es": "Rathalos plateado",
+   "de": "Silberner Rathalos",
+   "it": "Rathalos argentato",
+   "verified": false
+  },
+  "7": {
+   "en": "Yian Kut-Ku",
+   "fr": "Yian Kut-Ku",
+   "es": "Yian Kut-Ku",
+   "de": "Yian Kut-Ku",
+   "it": "Yian Kut-Ku",
+   "verified": true
+  },
+  "8": {
+   "en": "Blue Yian Kut-Ku",
+   "fr": "Yian Kut-Ku bleu",
+   "es": "Yian Kut-Ku azul",
+   "de": "Blauer Yian Kut-Ku",
+   "it": "Yian Kut-Ku blu",
+   "verified": false
+  },
+  "9": {"en": "Gypceros", "fr": "Gypceros", "es": "Gypceros", "de": "Gypceros", "it": "Gypceros", "verified": true},
+  "10": {
+   "en": "Purple Gypceros",
+   "fr": "Gypceros améthyste",
+   "es": "Gypceros morado",
+   "de": "Lila Gypceros",
+   "it": "Gypceros viola",
+   "verified": false
+  },
+  "11": {"en": "Tigrex", "fr": "Tigrex", "es": "Tigrex", "de": "Tigrex", "it": "Tigrex", "verified": true},
+  "12": {
+   "en": "Brute Tigrex",
+   "fr": "Tigrex berserk",
+   "es": "Tigrex pardo",
+   "de": "Brachial-Tigrex",
+   "it": "Tigrex brutale",
+   "verified": true
+  },
+  "13": {"en": "Gendrome", "fr": "Gendrome", "es": "Gendrome", "de": "Gendrome", "it": "Gendrome", "verified": true},
+  "14": {"en": "Iodrome", "fr": "Iodrome", "es": "Iodrome", "de": "Iodrome", "it": "Iodrome", "verified": true},
+  "15": {
+   "en": "Great Jaggi",
+   "fr": "Grand Jaggi",
+   "es": "Gran Jaggi",
+   "de": "Großjaggi",
+   "it": "Gran Jaggi",
+   "verified": true
+  },
+  "16": {
+   "en": "Velocidrome",
+   "fr": "Velocidrome",
+   "es": "Velocidrome",
+   "de": "Velocidrome",
+   "it": "Velocidrome",
+   "verified": false
+  },
+  "17": {
+   "en": "Congalala",
+   "fr": "Congalala",
+   "es": "Congalala",
+   "de": "Congalala",
+   "it": "Congalala",
+   "verified": true
+  },
+  "18": {
+   "en": "Emerald Congalala",
+   "fr": "Congalala émeraude",
+   "es": "Congalala esmeralda",
+   "de": "Smaragd-Congalala",
+   "it": "Congalala smeraldo",
+   "verified": true
+  },
+  "19": {"en": "Rajang", "fr": "Rajang", "es": "Rajang", "de": "Rajang", "it": "Rajang", "verified": true},
+  "20": {
+   "en": "Kecha Wacha",
+   "fr": "Kecha Wacha",
+   "es": "Kecha Wacha",
+   "de": "Kecha Wacha",
+   "it": "Kecha Wacha",
+   "verified": true
+  },
+  "21": {
+   "en": "Tetsucabra",
+   "fr": "Tetsucabra",
+   "es": "Tetsucabra",
+   "de": "Tetsucabra",
+   "it": "Tetsucabra",
+   "verified": true
+  },
+  "22": {"en": "Zamtrios", "fr": "Zamtrios", "es": "Zamtrios", "de": "Zamtrios", "it": "Zamtrios", "verified": true},
+  "23": {"en": "Najarala", "fr": "Najarala", "es": "Najarala", "de": "Najarala", "it": "Najarala", "verified": true},
+  "24": {
+   "en": "Dalamadur",
+   "fr": "Dalamadur",
+   "es": "Dalamadur",
+   "de": "Dalamadur",
+   "it": "Dalamadur",
+   "verified": false
+  },
+  "25": {"en": "Seltas", "fr": "Seltas", "es": "Seltas", "de": "Seltas", "it": "Seltas", "verified": true},
+  "26": {
+   "en": "Seltas Queen",
+   "fr": "Reine Seltas",
+   "es": "Seltas reina",
+   "de": "Seltas-Königin",
+   "it": "Seltas regina",
+   "verified": true
+  },
+  "27": {
+   "en": "Nerscylla",
+   "fr": "Nerscylla",
+   "es": "Nerscylla",
+   "de": "Nerscylla",
+   "it": "Nerscylla",
+   "verified": true
+  },
+  "28": {
+   "en": "Gore Magala",
+   "fr": "Gore Magala",
+   "es": "Gore Magala",
+   "de": "Gore Magala",
+   "it": "Gore Magala",
+   "verified": true
+  },
+  "29": {
+   "en": "Shagaru Magala",
+   "fr": "Shagaru Magala",
+   "es": "Shagaru Magala",
+   "de": "Shagaru Magala",
+   "it": "Shagaru Magala",
+   "verified": true
+  },
+  "30": {
+   "en": "Yian Garuga",
+   "fr": "Yian Garuga",
+   "es": "Yian Garuga",
+   "de": "Yian Garuga",
+   "it": "Yian Garuga",
+   "verified": false
+  },
+  "31": {
+   "en": "Kushala Daora",
+   "fr": "Kushala Daora",
+   "es": "Kushala Daora",
+   "de": "Kushala Daora",
+   "it": "Kushala Daora",
+   "verified": false
+  },
+  "32": {"en": "Teostra", "fr": "Teostra", "es": "Teostra", "de": "Teostra", "it": "Teostra", "verified": false},
+  "33": {"en": "Akantor", "fr": "Akantor", "es": "Akantor", "de": "Akantor", "it": "Akantor", "verified": true},
+  "34": {"en": "Kirin", "fr": "Kirin", "es": "Kirin", "de": "Kirin", "it": "Kirin", "verified": false},
+  "35": {
+   "en": "Oroshi Kirin",
+   "fr": "Oroshi Kirin",
+   "es": "Oroshi Kirin",
+   "de": "Oroshi Kirin",
+   "it": "Oroshi Kirin",
+   "verified": false
+  },
+  "36": {"en": "Khezu", "fr": "Khezu", "es": "Khezu", "de": "Khezu", "it": "Khezu", "verified": true},
+  "37": {
+   "en": "Red Khezu",
+   "fr": "Khezu grenat",
+   "es": "Khezu rojo",
+   "de": "Roter Khezu",
+   "it": "Khezu rosso",
+   "verified": false
+  },
+  "38": {"en": "Basarios", "fr": "Basarios", "es": "Basarios", "de": "Basarios", "it": "Basarios", "verified": false},
+  "39": {
+   "en": "Ruby Basarios",
+   "fr": "Basarios rubis",
+   "es": "Basarios rubí",
+   "de": "Rubin-Basarios",
+   "it": "Basarios rubino",
+   "verified": false
+  },
+  "40": {"en": "Gravios", "fr": "Gravios", "es": "Gravios", "de": "Gravios", "it": "Gravios", "verified": true},
+  "41": {
+   "en": "Black Gravios",
+   "fr": "Gravios onyx",
+   "es": "Gravios negro",
+   "de": "Schwarzer Gravios",
+   "it": "Gravios nero",
+   "verified": false
+  },
+  "42": {"en": "Deviljho", "fr": "Deviljho", "es": "Deviljho", "de": "Dämonjho", "it": "Deviljho", "verified": true},
+  "43": {
+   "en": "Savage Deviljho",
+   "fr": "Deviljho féroce",
+   "es": "Deviljho salvaje",
+   "de": "Wilder Dämonjho",
+   "it": "Deviljho selvaggio",
+   "verified": false
+  },
+  "44": {
+   "en": "Brachydios",
+   "fr": "Brachydios",
+   "es": "Brachydios",
+   "de": "Brachydios",
+   "it": "Brachydios",
+   "verified": true
+  },
+  "45": {
+   "en": "Furious Rajang",
+   "fr": "Rajang furieux",
+   "es": "Rajang furioso",
+   "de": "Wütender Rajang",
+   "it": "Rajang furioso",
+   "verified": false,
+   "aliases": {"en": ["Rajang"], "fr": ["Rajang"], "es": ["Rajang"], "de": ["Rajang"], "it": ["Rajang"]}
+  },
+  "46": {
+   "en": "Dah'ren Mohran",
+   "fr": "Dah'ren Mohran",
+   "es": "Dah'ren Mohran",
+   "de": "Dah'ren Mohran",
+   "it": "Dah'ren Mohran",
+   "verified": false
+  },
+  "47": {"en": "Lagombi", "fr": "Lagombi", "es": "Lagombi", "de": "Lagombi", "it": "Lagombi", "verified": true},
+  "48": {"en": "Zinogre", "fr": "Zinogre", "es": "Zinogre", "de": "Zinogre", "it": "Zinogre", "verified": true},
+  "49": {
+   "en": "Stygian Zinogre",
+   "fr": "Zinogre stygien",
+   "es": "Zinogre estigio",
+   "de": "Höllen-Zinogre",
+   "it": "Zinogre stigeo",
+   "verified": true
+  },
+  "77": {"en": "Fatalis", "fr": "Fatalis", "es": "Fatalis", "de": "Fatalis", "it": "Fatalis", "verified": false},
+  "78": {
+   "en": "Crimson Fatalis",
+   "fr": "Fatalis pourpre",
+   "es": "Fatalis carmesí",
+   "de": "Purpur-Fatalis",
+   "it": "Fatalis cremisi",
+   "verified": false
+  },
+  "79": {
+   "en": "White Fatalis",
+   "fr": "Fatalis blanc",
+   "es": "Fatalis blanco",
+   "de": "Weißer Fatalis",
+   "it": "Fatalis bianco",
+   "verified": false
+  },
+  "80": {
+   "en": "Molten Tigrex",
+   "fr": "Tigrex magma",
+   "es": "Tigrex ígneo",
+   "de": "Magma-Tigrex",
+   "it": "Tigrex lavico",
+   "verified": true
+  },
+  "82": {
+   "en": "Rusted Kushala Daora",
+   "fr": "Kushala Daora rouillé",
+   "es": "Kushala Daora oxidado",
+   "de": "Rostiger Kushala Daora",
+   "it": "Kushala Daora arrugginito",
+   "verified": false
+  },
+  "88": {"en": "Seregios", "fr": "Seregios", "es": "Seregios", "de": "Seregios", "it": "Seregios", "verified": true},
+  "89": {
+   "en": "Gogmazios",
+   "fr": "Gogmazios",
+   "es": "Gogmazios",
+   "de": "Gogmazios",
+   "it": "Gogmazios",
+   "verified": true
+  },
+  "90": {
+   "en": "Ash Kecha Wacha",
+   "fr": "Kecha Wacha blanc",
+   "es": "Kecha Wacha índigo",
+   "de": "Grauer Kecha Wacha",
+   "it": "Kecha Wacha cinereo",
+   "verified": false
+  },
+  "91": {
+   "en": "Berserk Tetsucabra",
+   "fr": "Tetsucabra féroce",
+   "es": "Tetsucabra berserker",
+   "de": "Berserker-Tetsucabra",
+   "it": "Tetsucabra brutale",
+   "verified": true
+  },
+  "92": {
+   "en": "Tigerstripe Zamtrios",
+   "fr": "Zamtrios tigré",
+   "es": "Zamtrios tigre",
+   "de": "Gestreifter Zamtrios",
+   "it": "Zamtrios tigrato",
+   "verified": false
+  },
+  "93": {
+   "en": "Tidal Najarala",
+   "fr": "Najarala du déluge",
+   "es": "Najarala abisal",
+   "de": "Gezeiten-Najarala",
+   "it": "Najarala abissale",
+   "verified": true
+  },
+  "94": {
+   "en": "Desert Seltas",
+   "fr": "Seltas du désert",
+   "es": "Seltas sílice",
+   "de": "Wüsten-Seltas",
+   "it": "Seltas del deserto",
+   "verified": true
+  },
+  "95": {
+   "en": "Desert Seltas Queen",
+   "fr": "Reine Seltas du désert",
+   "es": "Seltas sílice reina",
+   "de": "Wüsten-Seltas-Königin",
+   "it": "Seltas regina del deserto",
+   "verified": true
+  },
+  "96": {
+   "en": "Shrouded Nerscylla",
+   "fr": "Nerscylla spectrale",
+   "es": "Nerscylla sombrío",
+   "de": "Getarnter Nerscylla",
+   "it": "Nerscylla ombroso",
+   "verified": false
+  },
+  "97": {
+   "en": "Chaotic Gore Magala",
+   "fr": "Gore Magala chaotique",
+   "es": "Gore Magala caótico",
+   "de": "Chaos-Gore Magala",
+   "it": "Gore Magala caotico",
+   "verified": false,
+   "aliases": {
+    "en": ["Gore Magala"],
+    "fr": ["Gore Magala"],
+    "es": ["Gore Magala"],
+    "de": ["Gore Magala"],
+    "it": ["Gore Magala"]
+   }
+  },
+  "98": {
+   "en": "Raging Brachydios",
+   "fr": "Brachydios enragé",
+   "es": "Brachydios furioso",
+   "de": "Rasender Brachydios",
+   "it": "Brachydios furioso",
+   "verified": false,
+   "aliases": {
+    "en": ["Brachydios"],
+    "fr": ["Brachydios"],
+    "es": ["Brachydios"],
+    "de": ["Brachydios"],
+    "it": ["Brachydios"]
+   }
+  },
+  "99": {"en": "Diablos", "fr": "Diablos", "es": "Diablos", "de": "Diablos", "it": "Diablos", "verified": true},
+  "100": {
+   "en": "Black Diablos",
+   "fr": "Diablos noire",
+   "es": "Diablos negro",
+   "de": "Schwarze Diablos",
+   "it": "Diablos nera",
+   "verified": true
+  },
+  "101": {"en": "Monoblos", "fr": "Monoblos", "es": "Monoblos", "de": "Monoblos", "it": "Monoblos", "verified": false},
+  "102": {
+   "en": "White Monoblos",
+   "fr": "Monoblos blanc",
+   "es": "Monoblos blanco",
+   "de": "Weißer Monoblos",
+   "it": "Monoblos bianco",
+   "verified": false
+  },
+  "103": {
+   "en": "Chameleos",
+   "fr": "Chameleos",
+   "es": "Chameleos",
+   "de": "Chameleos",
+   "it": "Chameleos",
+   "verified": true
+  },
+  "105": {
+   "en": "Cephadrome",
+   "fr": "Cephadrome",
+   "es": "Cephadrome",
+   "de": "Cephadrome",
+   "it": "Cephadrome",
+   "verified": false
+  },
+  "107": {
+   "en": "Daimyo Hermitaur",
+   "fr": "Hermitaur Daimyo",
+   "es": "Daimyo Hermitaur",
+   "de": "Daimyo Hermitaur",
+   "it": "Daimyo Hermitaur",
+   "verified": true
+  },
+  "108": {
+   "en": "Plum Daimyo Hermitaur",
+   "fr": "Hermitaur Daimyo prune",
+   "es": "Daimyo Hermitaur morado",
+   "de": "Pflaumen-Daimyo Hermitaur",
+   "it": "Daimyo Hermitaur viola",
+   "verified": false
+  },
+  "110": {
+   "en": "Shah Dalamadur",
+   "fr": "Shah Dalamadur",
+   "es": "Zar Dalamadur",
+   "de": "Shah Dalamadur",
+   "it": "Shah Dalamadur",
+   "verified": true
+  },
+  "112": {"en": "Rajang", "fr": "Rajang", "es": "Rajang", "de": "Rajang", "it": "Rajang", "verified": true},
+  "113": {"en": "Deviljho", "fr": "Deviljho", "es": "Deviljho", "de": "Dämonjho", "it": "Deviljho", "verified": true},
+  "114": {"en": "Zinogre", "fr": "Zinogre", "es": "Zinogre", "de": "Zinogre", "it": "Zinogre", "verified": true},
+  "115": {"en": "Gravios", "fr": "Gravios", "es": "Gravios", "de": "Gravios", "it": "Gravios", "verified": true},
+  "116": {"en": "Ukanlos", "fr": "Ukanlos", "es": "Ukanlos", "de": "Ukanlos", "it": "Ukanlos", "verified": true},
+  "117": {
+   "en": "Crimson Fatalis",
+   "fr": "Fatalis pourpre",
+   "es": "Fatalis carmesí",
+   "de": "Purpur-Fatalis",
+   "it": "Fatalis cremisi",
+   "verified": false
+  },
+  "119": {"en": "Diablos", "fr": "Diablos", "es": "Diablos", "de": "Diablos", "it": "Diablos", "verified": true},
+  "120": {
+   "en": "Tidal Najarala",
+   "fr": "Najarala du déluge",
+   "es": "Najarala abisal",
+   "de": "Gezeiten-Najarala",
+   "it": "Najarala abissale",
+   "verified": true
+  },
+  "121": {"en": "Tigrex", "fr": "Tigrex", "es": "Tigrex", "de": "Tigrex", "it": "Tigrex", "verified": true},
+  "122": {"en": "Seregios", "fr": "Seregios", "es": "Seregios", "de": "Seregios", "it": "Seregios", "verified": true},
+  "127": {"en": "Great Maccao", "fr": "Grand Maccao", "es": "Gran Maccao", "de": "Groß-Maccao", "it": "Gran Maccao", "verified": true},
+  "128": {"en": "Maccao", "fr": "Maccao", "es": "Maccao", "de": "Maccao", "it": "Maccao", "verified": true},
+  "129": {"en": "Valstrax", "fr": "Valstrax", "es": "Valstrax", "de": "Valstrax", "it": "Valstrax", "verified": true}
+ },
+ "ecology": {
+  "124": {
+   "en": "Blazing black dragons, so named\r\nfor resembling both lightning and\r\ndarkness. They mercilessly tear\r\napart whoever touches their sharp\r\nscales. Elementally unstable,\r\ntheir actions can affect the very\r\nweather. Living natural disasters.",
+   "fr": "Dragon noir violent rappelant à la fois\r\nl'éclair et les ténèbres, il met en pièces\r\nquiconque ose approcher ses écailles\r\npointues. Élémentairement instable,\r\nses actions affectent le climat. C'est\r\nune catastrophe naturelle ambulante.",
+   "de": "Als grellschwarzer Drache bekannt,\r\nda er sowohl wie Blitze als auch\r\nwie Dunkelheit erscheint.\r\nRücksichtslos zerreißt er jeden,\r\nder seine scharfen Schuppen berührt.\r\nElementar unstabil, können seine\r\nAktionen das Wetter beeinflussen.\r\nEine lebende Naturkatastrophe.",
+   "it": "Questi disastri naturali viventi sono\r\ndetti \"draghi folgore nera\" perché\r\nricordano sia il fulmine che le\r\ntenebre. Squartano chiunque tocchi\r\nle loro squame affilate. Hanno una\r\nnatura elementale instabile e\r\npossono cambiare le condizioni\r\natmosferiche.",
+   "es": "Llameantes dragones negros, llamados\r\nasí por ser una mezcla de rayos y\r\noscuridad. Destrozarán a cualquiera\r\nque toque sus afiladas escamas. Sus\r\nacciones afectan incluso al clima.\r\nSon desastres naturales vivientes."
+  },
+  "125": {
+   "en": "A specially evolved Leviathan with\r\na sleek, lithe body, Mizutsune can\r\nsecrete a peculiar fluid that covers\r\nits foes in immobilizing bubbles.\r\nOnce its foe's movement is\r\nimpaired, it closes in with spry,\r\ndance-like movements.",
+   "fr": "Un léviathan évolué avec un corps\r\nagile et élégant. Mizutsune peut\r\nsécréter un fluide particulier qui\r\nrecouvre ses proies de bulles\r\nimmobilisantes. Une fois sa victime\r\naffaiblie, il s'en rapproche par des\r\nmouvements semblables à une danse.",
+   "de": "Ein seltsam entwickelter Leviathan\r\nmit einem biegsamen Körper. Er kann\r\neine Flüssigkeit abgeben, die\r\nWidersacher in Blasen hüllt und\r\nderen Bewegung einschränkt.\r\nEinmal bewegungsunfähig, gibt der\r\nMizutsune ihnen mit tanzartigem\r\nElan das Letzte.",
+   "it": "Un Leviathan evoluto con un elegante\r\ncorpo sinuoso. Mizutsune è in grado\r\ndi secernere un liquido speciale che\r\ncopre i nemici in bolle immobilizzanti.\r\nUna volta immobilizzati, si avvicina\r\ncon agili ed eleganti movimenti.",
+   "es": "Un leviatán evolucionado con un\r\nflexible y alisado cuerpo. El Mizutsune\r\nsegrega un peculiar fluido que cubre\r\na sus enemigos con una especie de\r\nburbujas inmovilizadoras. Una vez\r\nque la víctima está incapacitada,\r\nse acerca a ella danzando."
+  },
+  "126": {
+   "en": "A brute wyvern that can bring its\r\nmighty tail down on foes like a\r\nmassive sword, decimating them\r\nin an explosion of flames created\r\nfrom the volatile components found\r\nin its scales. If its tail dulls from\r\naccumulated soot, a Glavenus will\r\nuse its fangs to resharpen it.",
+   "fr": "Wyverne brute capable d'utiliser\r\nsa queue comme une épée, décimant\r\nses ennemis dans une explosion de\r\nflammes générée par les éléments\r\nvolatils contenus dans ses écailles.\r\nSi sa queue s'émousse après\r\nune série d'attaques, le Glavenus\r\nutilise alors ses griffes pour l'affûter.",
+   "de": "Ein Kampfwyvern, der seinen Schwanz\r\nwie ein gewaltiges Schwert einsetzt\r\nund Gegner in lodernden Explosionen\r\ntötet, die durch die flammbaren Stoffe\r\nin seinen Schuppen entstehen. Wenn\r\nsein Schwanz durch angesammelten\r\nRuß abstumpft, schärft er ihn mit\r\nseinen Reißzähnen wieder.",
+   "it": "Un wyvern brutale che usa la sua\r\npossente coda come una spada\r\ncontro i nemici, abbattendoli\r\nin un'esplosione di fiamme create\r\ndalle sostanze delle sue squame.\r\nSe la coda perde il filo per la\r\nfuliggine accumulata, il Glavenus\r\nusa le sue zanne per riaffilarla.",
+   "es": "Wyvern de gran tamaño que suele\r\naplastar a sus enemigos con su\r\ngigantesca cola como si fuera una\r\nmaza, obliterándolos en un estallido\r\nde llamas creado por sus escamas.\r\nSi su cola se atenúa por el exceso\r\nde hollín, el Glavenus usará sus\r\ncolmillos para volver a afilarla."
+  },
+  "127": {
+   "en": "Leader of the pack-hunting Maccao,\r\nthe Great Maccao is easily spotted\r\nby its large size and feather-like\r\nyellow crest. It can balance on its\r\ntail and spring forward for a deadly\r\nstrike, but, when weakened, its\r\nlesser Maccao cousins are quick\r\nto turn tail and run.",
+   "fr": "Chef des Maccao, le Grand Maccao\r\nest aisément reconnaissable à sa\r\ngrande crête jaune. Il peut se tenir\r\nen équilibre sur sa queue et bondir\r\nen avant pour délivrer un coup fatal.\r\nLorsqu'il est affaibli, les Maccao qui\r\nl'accompagnent sont les premiers à\r\ndétaler.",
+   "es": "Líder de los grupos de Maccao,\r\nel Gran Maccao es reconocible\r\npor su gran tamaño y por su\r\nemplumada cresta amarilla.\r\nSuele ayudarse de la cola para\r\nimpulsarse y atacar, pero si lo\r\ndebilitas sus primos Maccao\r\npondrán pies en polvorosa.",
+   "de": "Der Anführer der im Rudel jagenden\r\nMaccao. Der Groß-Maccao kann leicht\r\ndurch seine Größe und federartigen\r\nKamm erkannt werden. Auf dem\r\nSchwanz balancierend wagt er gern\r\neinen Sprungangriff. Aber wenn er\r\ngeschwächt ist, macht sich sein\r\nRudel schnell auf die Flucht.",
+   "it": "Leader dei branchi di Maccao, il Gran\r\nMaccao viene facilmente individuato\r\nper le grandi dimensioni della cresta\r\ngialla simile a delle piume. Può restare\r\nin equilibrio sulla coda e slanciarsi\r\nin avanti per un attacco letale, ma\r\nse indebolito, i suoi fratelli minori\r\niniziano a fuggire."
+  },
+  "129": {
+   "en": "An elder dragon that soars at very high\r\naltitudes far from human habitation. Its flaming\r\nred wings are often the only visible sign of it,\r\ngiving rise to its nickname, the Argent Comet.\r\nThose wings aren't just for flying, though, and\r\nare easily used to stab, rend and blow away\r\nits enemies. Occasionally, one can find the\r\nscorched shells it has left behind.",
+   "fr": "Dragon ancien planant dans le ciel lointain\r\nau-dessus de la terre des hommes. On le\r\nsurnomme la \"comète d'argent\" en raison de la\r\ntraînée incandescente qu'il laisse dans le ciel.\r\nSes ailes ne lui servent pas qu'à voler, mais\r\naussi à déchirer, à transpercer ou à projeter\r\nses proies. Il arrive par ailleurs de trouver\r\nses mues calcinées tombées au sol.",
+   "es": "Un dragón venerable que rehúye a\r\nlos humanos y vuela a gran altitud.\r\nDeja un rastro incandescente cuando\r\nsurca los cielos, por lo que se le conoce\r\ncomo \"El cometa plateado\". Sus alas\r\ndespedazan a sus víctimas con facilidad.\r\nNo es raro toparse con restos calcinados\r\nde sus escamas.",
+   "de": "Ein Drachenältester, der angetrieben von\r\nseinem Atem wie ein roter Komet über den\r\nHimmel zieht, weshalb er den Beinamen\r\n\"der Silberne Komet\" trägt. Seine Flügel\r\nverwendet er auch zum Durchstoßen,\r\nZerfetzen oder Wegschleudern von Feinden.\r\nSelten kann man einen Verkokelten Panzer\r\nfinden, der von ihm abgefallen ist.",
+   "it": "Drago anziano che solcava i cieli di\r\nterre lontane. Volava ad alta velocità\r\ne il battito delle sue ali lasciava una scia\r\nsimile a una cometa. Per questo, è noto\r\nanche con il nome di  \"cometa d'argento\".\r\nLe sue ali sono molto versatili e cambiano\r\nposizione a seconda della situazione.\r\nA volte lasciano cadere scaglie bollenti."
+  }
+ }
+}

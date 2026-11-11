@@ -5,7 +5,9 @@ How to run Heavenfall Beta from its code, build the Windows program and publish 
 
 ## Running from the code
 
-You need Python 3.10 or newer (the pinned packages are tested on 3.13).
+You need Python 3.12 or newer (the pinned numpy needs it; the packages are tested on 3.13). On Linux or macOS,
+`sh run.sh` makes a `.venv` with the program's packages from `requirements.txt` (PySide6, numpy, zstandard) and opens
+the program; a run whose install failed starts over.
 
 ```
 pip install -r requirements.txt
@@ -49,12 +51,14 @@ then checks the finished folder. `--work DIR` builds elsewhere; `--no-zip` skips
 Push a tag that starts with `v`:
 
 ```
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-The workflow in `.github/workflows/release.yml` lints the code, builds `HeavenfallBeta-windows.zip` on Windows and attaches
-it to the release of that tag (creating the release when there is none). Running the workflow by hand (Actions >
+The workflow in `.github/workflows/release.yml` lints the code, builds `HeavenfallBeta-windows.zip` on Windows and the 3DS
+launcher, and, once both builds succeed, attaches their files to the release of that tag (creating the release when there
+is none). The builds run with a read-only token that is not kept on disk; only the small job `attach`, which runs no
+package or build tool, can write the release. Running the workflow by hand (Actions >
 Release > Run workflow) only builds, and keeps the zip as an artifact of the run. Keep the version in
 `pyproject.toml` and `core/__init__.py` equal to the tag.
 

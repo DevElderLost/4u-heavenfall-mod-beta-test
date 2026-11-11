@@ -13,6 +13,8 @@ nothing looks stretched:
 - FUN_00b972d8, which places a HUD panel: its store of the place on the top screen (PANEL_SITE) goes through the stub,
   which moves the minimap's panel (every map layout and icon) to its corner of the picture. The touch screen's place is
   another store, which stays. The rest of the HUD moves in its files (interface/hud/scale.py, `edge`);
+- FUN_00b94854, which shows the target marker (ui211_target) each frame: the priority it gives the group (MARKER_SITE)
+  goes above the item bar's, which the wide picture moves out to the corner the marker can lie at;
 - FUN_00ae65f8, which gives the GPU a group's place as it draws it: its load of the group's second translate
   (GROUP_SITE, GROUP_Y_SITE) goes through the stub, which adds the way to the group's side of the wider interface, from
   the table of interface/hud/anchors.py. So menus keep to the picture's sides whatever the game writes to their panes.
@@ -27,6 +29,7 @@ Each check of a site is of the update's word; carried to the base games by the v
 import struct
 
 from core.cheats.aspect_table import OFF, menu_ratios
+from core.game.data.tuning import tuning
 from core.game.executable.blocks import ASPECT_ANCHORS_SIZE, ASPECT_DATA_SIZE
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
 from core.interface.hud.anchors import AnchorRules, anchor_table, load_anchor_rules
@@ -42,6 +45,8 @@ RECT_SITE, RECT_WORD = 0xC0430C, 0xE58D2004     # FUN_00c042ec: str r2, [sp, #4]
 PANEL_SITE, PANEL_WORD = 0xB97478, 0xE1C602F8   # FUN_00b972d8: strd r0, r1, [r6, #0x28]
 GROUP_SITE, GROUP_WORD = 0xAE6678, 0xED941A0D   # FUN_00ae65f8: vldr s2, [r4, #0x34]
 GROUP_Y_SITE, GROUP_Y_WORD = 0xAE6694, 0xED941A0E   # FUN_00ae65f8: vldr s2, [r4, #0x38]
+MARKER_SITE, MARKER_WORD = 0xB9E694, 0xE3A02013     # FUN_00b94854: mov r2, #0x13, the marker's priority in
+                                                    # FUN_00ae63c8(group, 1, priority)
 
 
 def aspect_data(name: str, rules: AnchorRules | None = None) -> bytes:
@@ -63,12 +68,21 @@ def aspect_data(name: str, rules: AnchorRules | None = None) -> bytes:
     return data.ljust(ASPECT_DATA_SIZE, b"\0")
 
 
+def marker_priority() -> int:
+    """The draw priority of the target marker (curated tuning.json interface.target_marker_priority), as the byte of
+    the `mov r2, #priority` at MARKER_SITE."""
+    priority = tuning("interface", "target_marker_priority")
+    if not isinstance(priority, int) or not 0 <= priority <= 0xFF:
+        raise ValueError(f"tuning.json interface.target_marker_priority: a whole number 0 to 255, not {priority!r}")
+    return priority
+
+
 def supports_aspect_ratio(code: bytes, menu: bool = True) -> bool:
     """`code` has what the option changes (the update's executable, canonical, not patched yet). `menu`: and the
     START menu's words the list in the game replaces (the page that holds it is installed by another patch when not)."""
     word = lambda at: struct.unpack_from("<I", code, at - BASE_ADDRESS)[0]  # noqa: E731
     return word(VIEW_SITE) == VIEW_WORD and word(RECT_SITE) == RECT_WORD and word(PANEL_SITE) == PANEL_WORD and \
-        word(GROUP_SITE) == GROUP_WORD and word(GROUP_Y_SITE) == GROUP_Y_WORD and \
+        word(GROUP_SITE) == GROUP_WORD and word(GROUP_Y_SITE) == GROUP_Y_WORD and word(MARKER_SITE) == MARKER_WORD and \
         all(bl_target(code, at) == GUI_PROJECTION for at in GUI_CALLS) and (supports_mod_settings(code) or not menu)
 
 
@@ -94,4 +108,6 @@ def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None, anc
     layout.hook(out, PANEL_SITE, layout.symbol(STUB, "aspect_panel"))
     layout.hook(out, GROUP_SITE, layout.symbol(STUB, "aspect_group"))
     layout.hook(out, GROUP_Y_SITE, layout.symbol(STUB, "aspect_group_height"))
+    out[MARKER_SITE - BASE_ADDRESS:MARKER_SITE - BASE_ADDRESS + 4] = struct.pack("<I", MARKER_WORD & ~0xFF |
+                                                                                    marker_priority())
     return bytes(out)

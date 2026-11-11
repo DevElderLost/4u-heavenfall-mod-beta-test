@@ -36,11 +36,34 @@ EXT_START = 0x111E000
 # + the game GUI engine and its table (11 pages)
 # + the frames table grown to 16 scenes, 16 sets and 160 names (a page) + the ported monsters' severed tail fall (a
 # page: gameplay/tail_fall/tail_fall.py, joined with the game GUI
-# engine) + hold A (a page: gameplay/hold_a/hold_a.py) + the aspect ratio's anchors (4 pages)
+# engine) + hold A (a page: gameplay/hold_a/hold_a.py)
+# + Great Maccao's class and data (18 pages)
+# + the layered gear rules block (4 pages, Forge-style screens)
+# + the layered gear prices: the block (blocks.py, layered_rules) grew from 0x7000 to 0xB400 for the recipe table and
+#   its index per look (44,634 bytes with XX's models and the four ported monsters, 548 recipes), and 8 pages of the
+#   extension are kept free for it and the free camera
+# + the new-item table grown to ids 0xA00 for the rare materials of XX's monsters (2 pages: layered/xx_materials.py)
+# + the Wyporium's longer trade table (2 pages: gameplay/wyporium/trades.py)
+# + the Rare Materials Exchange (4 pages: gameplay/wyporium/rare_exchange.py)
+# (these MH XX pages: 0x2B000 in all)
+# + the aspect ratio's anchors (4 pages)
 # + Mod Settings and the list of aspect ratios (4 pages)
-EXT_SIZE = 0xE3000
-EXTENDED_SIZE = EXT_START + EXT_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
+# (these: 0x7000 in all)
+# + the id tables extended to 200 monster ids, 76 new ids (4 pages: monsters/porting/new_id_data.py, ID_LIMIT)
+# + Maccao's class and data (8 pages)
+# + Valstrax's class and data with MH XX's shell base 56 (39 pages)
+# + Great Maccao's pack beside Layered Gear's colours (1 page)
+# + Layered Gear's Relics and the split title's two RomFS beside Valstrax and the pack (1 page for both)
+# + each layered look's zenny a u32, for the relics priced by their monster (2 pages: the block layered_rules to
+#   0x12000)
+EXT_SIZE = 0x145000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
+# The extension's variables: pages after the extension, in
+# the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
+# uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
+# records, em data slots and save records.
+EXT_VARS_SIZE = 2 * PAGE
+EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000
 
@@ -51,8 +74,8 @@ class Region:
     "bss" is read-write memory the game never uses (zero at start, not in the file): variables only.
     `original_sha256`: a "code" region reclaimed from dead game code holds the game's bytes, not zeros;
     this is their hash, and Layout.place zeroes the region when it still holds exactly them.
-    `extension`: the region is not in the update's code.bin; placing a block there grows the executable
-    (Layout.extend)."""
+    `extension`: the region is not in the update's code.bin; placing a block there, or reserving a variable there,
+    grows the executable (Layout.extend, Layout.reserve)."""
     name: str
     start: int
     end: int
@@ -72,7 +95,10 @@ REGIONS = {region.name: region for region in (
     Region("ext", EXT_START, EXT_START + EXT_SIZE, "code", extension=True),
     # The rest of the last .bss page: bss ends at 0x111D128, the page at 0x111E000.
     Region("bss_tail", BSS_END, EXT_START, "bss"),
+    # Pages after the extension, read-write: variables only (a patcher that uses one calls Layout.reserve).
+    Region("ext_vars", EXT_START + EXT_SIZE, EXT_START + EXT_SIZE + EXT_VARS_SIZE, "bss", extension=True),
 )}
+EXT_VARS_START = REGIONS["ext_vars"].start
 
 
 class CodeSpaceError(ValueError):
@@ -234,17 +260,27 @@ class Layout:
         if pointers:
             note_game_pointers(block.address, data)
 
+    def reserve(self, code: bytearray, *names: str) -> None:
+        """The variables `names` are used: grow `code` so that the file holds those in the extension's variables
+        (ext_vars; a variable of the game's .bss needs nothing)."""
+        ends = [self.variables[n].address + self.variables[n].size for n in names
+                if REGIONS[self.variables[n].region].extension]
+        if ends:
+            self.extend(code, max(ends))
+
     def extend(self, code: bytearray, end: int | None = None) -> None:
         """Grow `code`, the update's executable, so that the extension holds everything up to address `end`
-        (default: the end of this layout's last block in the extension), in whole pages and no more: the first
-        time, its old .bss becomes zeros in the file and the bootstrap that makes the extension executable is
-        installed; each time, the bootstrap's range is set to the pages the file holds. Nothing to do if
-        `code` already holds them."""
+        (default: the end of this layout's last block or variable in the extension), in whole pages and no more:
+        the first time, its old .bss becomes zeros in the file and the bootstrap that makes the extension executable
+        is installed; each time, the bootstrap's range is set to the pages the file holds, up to the extension's
+        variables at most. Nothing to do if `code` already holds them."""
         if end is None:
-            end = max((b.end for b in self.blocks.values() if REGIONS[b.region].extension), default=EXT_START)
+            end = max([b.end for b in self.blocks.values() if REGIONS[b.region].extension] +
+                      [v.address + v.size for v in self.variables.values() if REGIONS[v.region].extension],
+                      default=EXT_START)
         size = -(-max(end, EXT_START) // PAGE) * PAGE - BASE_ADDRESS
         if size > EXTENDED_SIZE:
-            raise CodeSpaceError(f"{end:#x} is past the extension's end ({EXT_START + EXT_SIZE:#x})")
+            raise CodeSpaceError(f"{end:#x} is past the extension's end ({BASE_ADDRESS + EXTENDED_SIZE:#x})")
         if len(code) == CLEAN_SIZE:
             code.extend(bytes(size - CLEAN_SIZE))
             self.place(code, "ext_bootstrap")
@@ -259,12 +295,13 @@ class Layout:
             self._set_range_end(code, old)
 
     def _set_range_end(self, code: bytearray, old: int) -> None:
-        """Point the placed bootstrap's range at the extension's pages in `code`; it must still name `old`."""
+        """Point the placed bootstrap's range at the extension's pages in `code`, never into its variables (they stay
+        read-write); it must still name `old` (a file end, cut the same way)."""
         at = self.symbol("ext_bootstrap", "range_end") - BASE_ADDRESS
-        if struct.unpack_from("<I", code, at)[0] != old:
+        if struct.unpack_from("<I", code, at)[0] != min(old, EXT_VARS_START):
             raise CodeSpaceError(f"the bootstrap's range does not end at {old:#x}: not an executable this layout "
                                  "extended")
-        struct.pack_into("<I", code, at, BASE_ADDRESS + len(code))
+        struct.pack_into("<I", code, at, min(BASE_ADDRESS + len(code), EXT_VARS_START))
 
     def hook(self, code: bytearray, at: int, target: str | int, *, original: bytes | None = None,
              calls: int | None = None, link: bool = True, cond: int = COND_ALWAYS) -> None:

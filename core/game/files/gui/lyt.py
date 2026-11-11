@@ -80,6 +80,7 @@ POSITION_AT = {PaneKind.SPRITE: 0x0C, PaneKind.NULL: 0x0C, PaneKind.GROUP: 0x0C,
 SIZE_AT = {PaneKind.SPRITE: 0x18, PaneKind.TEXT: 0x34, PaneKind.BOUNDARY: 0x14, PaneKind.WINDOW: 0x18}
 SCALE_AT = {PaneKind.SPRITE: 0x20, PaneKind.NULL: 0x18, PaneKind.BOUNDARY: 0x1C}
 COLORS_AT = {PaneKind.SPRITE: 0x38, PaneKind.TEXT: 0x44, PaneKind.WINDOW: 0x38}  # 4 corners, RGBA bytes
+NULL_TINT_AT = 0x20  # a null's colour, RGBA bytes
 VISIBLE_AT = {PaneKind.SPRITE: 0x60, PaneKind.NULL: 0x2C}  # u32 1 / 0: shown when the layout loads
 FONT_SIZE_AT = 0x18  # text only
 SPACING_AT = 0x20    # text only
@@ -142,6 +143,12 @@ class Pane:
         if self.kind not in (PaneKind.SPRITE, PaneKind.WINDOW):
             raise AttributeError(f"{self.kind.name.lower()} panes have no origin")
         struct.pack_into("<I", self.layout.data, self.offset + ORIGIN_AT, value)
+
+    @property
+    def tint(self) -> tuple[int, int, int, int] | None:
+        """A null's colour (R, G, B, A), which multiplies its children's when they are drawn."""
+        return tuple(self.layout.data[self.offset + NULL_TINT_AT:self.offset + NULL_TINT_AT + 4]) \
+            if self.kind == PaneKind.NULL else None
 
     @property
     def font_size(self) -> tuple[float, float] | None:
@@ -250,7 +257,8 @@ class Layout:
         self.textures = [self._string(struct.unpack_from("<I", self.data, self.texture_table + 8 * i + 4)[0])
                          for i in range(textures)]
         self.panes = self._parse_panes(self.pane_table)
-        expected = {PaneKind.GROUP: groups, PaneKind.SPRITE: sprites, PaneKind.TEXT: texts,
+        self._names = {p.name for p in self.panes}
+        expected ={PaneKind.GROUP: groups, PaneKind.SPRITE: sprites, PaneKind.TEXT: texts,
                     PaneKind.BOUNDARY: boundaries, PaneKind.WINDOW: windows}
         for kind, count in expected.items():
             found = sum(1 for p in self.panes if p.kind == kind)
@@ -304,7 +312,7 @@ class Layout:
     def add_texture(self, name: str) -> int:
         """The index of the texture `name` in `textures`, added to the table when it is not there: a table entry
         after the others and the name after the other texture names (right before the pane table); every offset
-        behind them moves. Panes obtained earlier are stale afterwards."""
+        behind them moves. Panes obtained earlier stay valid (their offsets follow)."""
         if name in self.textures:
             return self.textures.index(name)
         if not name or not name.isascii():
@@ -340,7 +348,8 @@ class Layout:
         self.pane_table = moved(self.pane_table)
         self.tail_offset = moved(self.tail_offset)
         self.textures.append(name)
-        self.panes = self._parse_panes(self.pane_table)
+        for pane in self.panes:
+            pane.offset += shift
         return len(self.textures) - 1
 
     def insert_sprite(self, parent: Pane, template: Pane, name: str, position: tuple[float, float],
@@ -353,7 +362,7 @@ class Layout:
 
         The pane table grows by one record, the name goes after the other names, and every file offset
         behind them (names, texts, trailing table) moves; the sizes of `parent` and its ancestors and the
-        header's sprite count follow. Panes obtained earlier are stale afterwards: use the returned one."""
+        header's sprite count follow. Panes obtained earlier stay valid; the returned one is the new pane."""
         def edit(record: bytearray, _text_at: int) -> None:
             struct.pack_into("<2f", record, POSITION_AT[PaneKind.SPRITE], *position)
             if region is not None:
@@ -391,7 +400,7 @@ class Layout:
         header grows and the ancestors' sizes with it; the null's own size takes the pane's record (a text's is left
         out, like everywhere). With `subtree` the pane may be a null with children: they all go one level deeper and
         the new null's size takes the whole subtree's. Refused when the deepest pane would pass `MAX_DEPTH`. Panes
-        obtained earlier are stale afterwards: use the returned null."""
+        obtained earlier stay valid; the returned one is the new null."""
         if pane.layout is not self or pane.parent is None or (pane.kind in CONTAINERS and not (
                 subtree and pane.kind == PaneKind.NULL)):
             raise LytFormatError("only a childless pane of this layout, under another pane, can be wrapped (a null "
@@ -413,7 +422,7 @@ class Layout:
         position, so nothing moves and the draw order is kept; what the null is scaled and moved by, the whole group
         follows (the executable's frames). The null's size takes
         the whole subtree's (texts left out, like everywhere), the group's grows by the null's record. Refused when the
-        deepest pane would pass `MAX_DEPTH`. Panes obtained earlier are stale afterwards: use the returned null."""
+        deepest pane would pass `MAX_DEPTH`. Panes obtained earlier stay valid; the returned one is the new null."""
         if group.layout is not self or group.kind != PaneKind.GROUP or not group.children:
             raise LytFormatError("only a root group of this layout with panes under it can have them wrapped")
         lowest = max(pane.depth for pane in group.walk()) + 1
@@ -428,14 +437,19 @@ class Layout:
         wrapper = self._insert(group, template, PaneKind.NULL, name, edit, b"", before=group.children[0])
         # the group's other children (and what is under them) one level deeper too: each depth is stored in the record
         # that precedes the pane
-        moved = [pane for child in wrapper.parent.children if child is not wrapper for pane in child.walk()]
-        for pane in moved:
-            previous = self.panes[self.panes.index(pane) - 1]
-            struct.pack_into("<I", self.data, previous.offset + RECORD_SIZES[previous.kind] - 4, pane.depth + 1)
-        self.panes = self._parse_panes(self.pane_table)
-        wrapper = self.find(name)
-        if [p.name for p in wrapper.parent.children] != [name]:
-            raise LytFormatError(f"{name}: the group's panes did not all go under the new null")
+        others = [child for child in group.children if child is not wrapper]
+        deeper = {id(pane) for child in others for pane in child.walk()}
+        previous = None
+        for pane in self.panes:
+            if id(pane) in deeper:
+                struct.pack_into("<I", self.data, previous.offset + RECORD_SIZES[previous.kind] - 4, pane.depth + 1)
+            previous = pane
+        for child in others:
+            for pane in child.walk():
+                pane.depth += 1
+            child.parent = wrapper
+        wrapper.children.extend(others)
+        group.children = [wrapper]
         return wrapper
 
     def split_off(self, first: Pane, name: str) -> Pane:
@@ -444,28 +458,26 @@ class Layout:
         keep their depth and their positions are relative to the same frame, so nothing moves and the draw order is
         kept; animations find them by name in the same root group. The parent keeps at least its first child. The
         null count of the header grows, the ancestors' sizes by the null's record; the parent's size gives the moved
-        panes' records to the new null (texts left out, like everywhere). Panes obtained earlier are stale afterwards:
-        use the returned null."""
+        panes' records to the new null (texts left out, like everywhere).
+        Panes obtained earlier stay valid; the returned one is the new null."""
         parent = first.parent
         if first.layout is not self or parent is None or parent.kind != PaneKind.NULL or parent.parent is None:
             raise LytFormatError("only panes of a null under another pane of this layout can be split off")
         at = parent.children.index(first)
         if at == 0:
             raise LytFormatError(f"{first.name}: the null {parent.name} would be left empty")
-        run = [child.name for child in parent.children[at:]]
         moved = [pane for child in parent.children[at:] for pane in child.walk()]
         moved_size = sum(RECORD_SIZES[p.kind] for p in moved if p.kind != PaneKind.TEXT)
         kept_size = sum(RECORD_SIZES[p.kind] for p in parent.walk() if p.kind != PaneKind.TEXT) - moved_size
-        parent_name, first_name = parent.name, first.name
         null_size = RECORD_SIZES[PaneKind.NULL]
 
         def edit(record: bytearray, _text_at: int) -> None:
             struct.pack_into("<I", record, 0x08, null_size)
         new = self._insert(parent.parent, parent, PaneKind.NULL, name, edit, b"", behind=parent)
-        parent, first = self.find(parent_name), self.find(first_name)
         start, end = first.offset, new.offset + null_size
-        before = self.panes[self.panes.index(first) - 1]
-        last = self.panes[self.panes.index(new) - 1]
+        first_at, new_at = self.panes.index(first), self.panes.index(new)
+        before = self.panes[first_at - 1]
+        last = self.panes[new_at - 1]
         # the three links of the pane table (each record ends with the kind and depth of the next one) turn round:
         # the pane before the moved ones now leads to the null, the null to the first moved pane, the last moved pane
         # to what followed the null
@@ -481,10 +493,16 @@ class Layout:
         self.data[before.offset + RECORD_SIZES[before.kind] - 8:before.offset + RECORD_SIZES[before.kind]] = to_null
         struct.pack_into("<I", self.data, parent.offset + 8, kept_size)
         struct.pack_into("<I", self.data, start + 8, null_size + moved_size)
-        self.panes = self._parse_panes(self.pane_table)
-        new = self.find(name)
-        if [p.name for p in new.children] != run or new.parent is not self.find(parent_name).parent:
-            raise LytFormatError(f"{name}: the panes did not all go under the new null")
+        # the pane objects follow: the new null leads the moved panes, which shift behind it and become its children
+        moving = self.panes[first_at:new_at]
+        for pane in moving:
+            pane.offset += null_size
+        new.offset = start
+        self.panes[first_at:new_at + 1] = [new] + moving
+        new.children = parent.children[at:]
+        del parent.children[at:]
+        for child in new.children:
+            child.parent = new
         return new
 
     def insert_text(self, parent: Pane, template: Pane, name: str, position: tuple[float, float],
@@ -514,7 +532,7 @@ class Layout:
             raise LytFormatError(f"the parent must belong to this layout and the template be a {kind.name.lower()}")
         if parent.kind not in CONTAINERS:
             raise LytFormatError(f"a {parent.kind.name.lower()} cannot have children")
-        if not name or not name.isascii() or any(p.name == name for p in self.panes):
+        if not name or not name.isascii() or name in self._names:
             raise LytFormatError(f"the name {name!r} is empty, not ASCII or already used")
         if any(self.data[self.tail_offset:]):
             raise LytFormatError("layouts with a trailing table are not supported")
@@ -564,13 +582,14 @@ class Layout:
         while pane is not None and kind != PaneKind.TEXT:
             chain.append(pane)
             pane = pane.parent
+        chain_set = set(chain)
         for pane in self.panes:
             at = pane.offset + (size if pane.offset >= insert_at else 0)
             if struct.unpack_from("<I", data, at + 4)[0]:
                 struct.pack_into("<I", data, at + 4, moved(struct.unpack_from("<I", data, at + 4)[0]))
             if pane.kind == PaneKind.TEXT:
                 struct.pack_into("<I", data, at + 0x0C, moved(struct.unpack_from("<I", data, at + 0x0C)[0]))
-            if pane in chain:
+            if pane in chain_set:
                 struct.pack_into("<I", data, at + 8, struct.unpack_from("<I", data, at + 8)[0] + size)
         for i in range(len(self.textures)):
             at = self.texture_table + 8 * i + 4
@@ -582,21 +601,38 @@ class Layout:
             for pane in list(before.walk())[1:]:       # the record that precedes it)
                 previous = self.panes[self.panes.index(pane) - 1]
                 struct.pack_into("<I", data, previous.offset + size + RECORD_SIZES[previous.kind] - 4, pane.depth + 1)
+        # the pane objects follow the file: the ones from the new record on shift, the new one takes its place
+        index = self.panes.index(after) + 1
+        for pane in self.panes[index:]:
+            pane.offset += size
+        new = Pane(self, PaneKind(kind), parent.depth + 1, insert_at, name, parent)
+        self.panes.insert(index, new)
+        self._names.add(name)
+        if before is not None:
+            parent.children[parent.children.index(before)] = new
+            new.children.append(before)
+            before.parent = new
+            for pane in before.walk():
+                pane.depth += 1
+        elif behind is not None:
+            parent.children.insert(parent.children.index(behind) + 1, new)
+        elif first:
+            parent.children.insert(0, new)
+        else:
+            parent.children.append(new)
         self.data = data
         self.tail_offset = moved(self.tail_offset)
-        self.panes = self._parse_panes(self.pane_table)
-        return self.find(name)
+        return new
 
     def insert_group(self, template: Pane, name: str, position: tuple[float, float] = (0.0, 0.0)) -> Pane:
         """Add an empty root group as the last of the layout: a copy of `template`'s record (a group, of this layout or
         another) with a new name and position. The header's group count grows, and so does the trailing table by one
         zero word (the loader fills it with one pointer per root group). The game creates the group, hidden, with the
         layout; panes go into it with insert_sprite, insert_text and insert_null. As the others: the name goes after
-        the other names and every offset behind them moves; panes obtained earlier are stale afterwards, use the
-        returned group."""
+        the other names and every offset behind them moves; panes obtained earlier stay valid."""
         if template.kind != PaneKind.GROUP:
             raise LytFormatError("a group is copied from a group")
-        if not name or not name.isascii() or any(p.name == name for p in self.panes):
+        if not name or not name.isascii() or name in self._names:
             raise LytFormatError(f"the name {name!r} is empty, not ASCII or already used")
         if any(self.data[self.tail_offset:]):
             raise LytFormatError("layouts with a trailing table are not supported")
@@ -637,8 +673,10 @@ class Layout:
         struct.pack_into("<I", data, 0x2C, moved(self.tail_offset))
         self.data = data
         self.tail_offset = moved(self.tail_offset)
-        self.panes = self._parse_panes(self.pane_table)
-        return self.find(name)
+        group = Pane(self, PaneKind.GROUP, 0, insert_at, name)   # no pane's offset moves: all are before it
+        self.panes.append(group)
+        self._names.add(name)
+        return group
 
     def to_bytes(self) -> bytes:
         return bytes(self.data)

@@ -109,6 +109,19 @@ class Lmd:
         self.nodes.append((END, 0, 0, 0))
         return index
 
+    def add_mixed_message(self, template: str, value: int = SLOT_NUMBER) -> int:
+        """Append a message of text and number nodes: each "{}" of `template` is a number node (the next string slot
+        the caller filled with FUN_005a99a8, as the game's own "<number>/<number>" does). Returns its index."""
+        index = self._add_label()
+        for position, text in enumerate(template.split("{}")):
+            if position:
+                self.nodes.append((NUMBER, value, 0, 0))
+            if text:
+                self.nodes.append((TEXT, len(self.entries) + len(self.added), 0, 0))
+                self.added.append(text)
+        self.nodes.append((END, 0, 0, 0))
+        return index
+
     def _add_label(self) -> int:
         index = len(self.labels)
         hashes = {h for h, _ in self.labels}

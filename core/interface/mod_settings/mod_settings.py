@@ -19,10 +19,11 @@ The game's START menu has two pages of eight lines each. These functions change,
 - FUN_0060d058, which every close of the menu runs: its call of FUN_005e86b0 (at CLOSE) goes through the stub, which
   first ends the bind of the big list's pager if a screen of ours held it.
 
-From there it is the game's own widgets, driven as its sub-screens drive them: the small list of up to 5 rows, refilled
-for each list of the table, and from a list's row the big list of 8 rows a page with its title (aspect_list.c, the
-aspect ratios). The small lists come from the curated mod_settings.json, in the data block (`settings_data`), so a new
-row or a new level costs only data. Message indices come from `mod_texts`.
+From there it is the game's own widgets, driven as its sub-screens drive them: the small list of 5 rows, refilled
+for each list of the table and for each page of a list of up to 10 rows (the menu's title bar then says "1/2" or "2/2"),
+and from a list's row the big list of 8 rows a page with its title (aspect_list.c, the aspect ratios). The small lists
+come from the curated mod_settings.json, in the data block (`settings_data`), so a new row or a new level costs only
+data. Message indices come from `mod_texts`.
 """
 
 import json
@@ -44,9 +45,10 @@ VARIABLES = ("mod_settings_state", "aspect_list_state")
 
 ACTION = 0x14                   # the line's action: the game's table of actions (FUN_005f6c8c) ends at 0x13
 KIND = 0x2F                     # the menu's sub-screen kind (+0xA) while the list is open: no reader of +0xA knows it
-MAX_ROWS = 5                    # the rows of the game's small list (FUN_0060caec, FUN_005e87b4)
+SUBLIST_ROWS = 5                # the rows of the game's small list (FUN_0060caec, FUN_005e87b4): one page
+MAX_ROWS = 2 * SUBLIST_ROWS     # a list's rows: two pages of the small list, with the pager
 MAX_LISTS = 6                   # the small lists the data block has room for (mod_settings.c)
-MAX_TABLE = 16                  # their rows, together
+MAX_TABLE = 40                  # their rows, together: the top list and three full lists below it
 NO_LIST = 0xFF                  # in a list: it has no parent; in an entry: it opens a screen
 # The screens an entry can open, by their number in mod_settings.c: the aspect ratios (aspect_list.c) and an
 # option's values (option_list.c)
@@ -103,13 +105,14 @@ def load_zone(path: Path = SETTINGS_FILE) -> dict:
 
 
 def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None = None, aspect: bool = True) -> dict:
-    """The curated table with each text as its message index: {"line": {"name", "help"}, "pager": (x, y), "entries":
-    [row]}, where a row is {"name", "help", "title", "screen"} (and "option", the option's number, on the screen of its
-    values) when it opens a screen and {"name", "help", "entries": [row]} when it opens another small list. `available`:
-    the options the player's game can have (none: all); `aspect`: the aspect ratio's switch is on. A row of an option
-    that is not available, the aspect ratio's row without its switch, and a list left with no row, are left out.
-    Refuses a list with more than the small list has rows, a screen the code does not have, a place that is not two
-    whole numbers, a text that is not one of its menu_texts, and more lists or rows than the data block holds."""
+    """The curated table with each text as its message index: {"line": {"name", "help"}, "pager": (x, y) (the big
+    list's), "entries": [row]}, where a row is {"name", "help", "title", "screen"} (and "option", the option's number,
+    on the screen of its values) when it opens a screen and {"name", "help", "entries": [row]} when it opens another
+    small list. `available`: the options the player's game can have (none: all); `aspect`: the aspect ratio's switch
+    is on. A row of an option that is not available, the aspect ratio's row without its switch, and a list left with no
+    row, are left out. Refuses a list with more rows than two pages of the small list, a screen the code does not
+    have, a place that is not two whole numbers, a text that is not one of its menu_texts, and more lists or rows than
+    the data block holds."""
     from core.interface.mod_settings.mod_options import OPTION_IDS, load_options
 
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -147,13 +150,16 @@ def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None 
                                    f"one of {SCREENS} is needed")
         return {**texts, "title": message(opens["title"]), "screen": SCREENS.index(opens["screen"])}
 
+    def place(key: str) -> tuple[int, int]:
+        at = _value(raw, key)
+        if not isinstance(at, list) or len(at) != 2 or \
+                not all(isinstance(n, int) and not isinstance(n, bool) and -0x8000 <= n < 0x8000 for n in at):
+            raise ModSettingsError(f"mod_settings.json: {key} must be [x, y], two whole numbers")
+        return tuple(at)
+
     line = _value(raw, "line")
     entries = small_list(_value(raw, "entries"))
-    pager = _value(raw, "pager_place")
-    if not isinstance(pager, list) or len(pager) != 2 or \
-            not all(isinstance(at, int) and not isinstance(at, bool) and -0x8000 <= at < 0x8000 for at in pager):
-        raise ModSettingsError("mod_settings.json: pager_place must be [x, y], two whole numbers")
-    settings = {"line": {"name": message(line["name"]), "help": message(line["help"])}, "pager": tuple(pager),
+    settings = {"line": {"name": message(line["name"]), "help": message(line["help"])}, "pager": place("pager_place"),
                 "entries": entries}
     _flat_table(settings)
     return settings

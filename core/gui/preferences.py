@@ -12,7 +12,7 @@ PREFERENCES_PATH = edition().home / "gui.json"
 @dataclass
 class Preferences:
     rom_path: str = ""
-    mhgen_rom_path: str = ""   # optional: MH Generations' ROM (options mhgen_models and alatreon)
+    xx_rom_path: str = ""      # MH XX's ROM, asked for only while the options need it (Settings.needs_xx)
     output_dir: str = str(Path.cwd() / "output")
     last_settings: dict = field(default_factory=dict)
     language: str = ""         # "" until the player picks one: the window follows the system language (gui/qt/app.py)

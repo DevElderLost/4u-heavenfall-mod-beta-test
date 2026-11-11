@@ -107,7 +107,7 @@ class OptionsPage(Page):
         self.apply_button.setEnabled(not self.state.busy)
 
     def apply_now(self) -> None:
-        if not (self.state.rom_path and self.state.mhgen_rom_path):
+        if not self.state.rom_path or (self.state.needs_xx and not self.state.xx_rom_path):
             self.progress.show_message(T_FILES_FIRST, error=True)
             return
         try:

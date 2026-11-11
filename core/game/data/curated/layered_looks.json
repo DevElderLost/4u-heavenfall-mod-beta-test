@@ -1,0 +1,226 @@
+{
+ "description": "Layered equipment: the texts of the screens at the Smithy in the five game languages (RomFS folders), the words added to the look names, the cost of a look (recipes), the forge-style screens' rectangles, rows, priorities, colours and icons (forge_screen; a null is filled in when the screen opens; cursor: [frames held, rows a step] while up or down is held, at most 4, frames growing; weapon_preview_frames: the frames the cursor rests on a weapon's row before the model shows it, 1-255), and changes to the generated look lists (game/data/generated/layered_looks.json). Texts are ASCII or Latin letters only: the game's font may lack other symbols. A menu line is at most about 20 characters, a help text two lines of about 30. rank_unlocks: what opens a rank on the screens: a look shows only once its rank is open, whatever its own rule; low rank is always open, \"high\" opens the high rank looks (10325 is the Gathering Hall star 3 urgent that opens star 4; story flag 1573 is set when the Caravan girl's talk opens the Caravan star 7, the first quest of which, 701, needs only that flag), \"g\" the G rank looks (10725, the Hall star 7 urgent, opens Dundorma); an entry is a quest id (open when cleared; it must be in the game's cleared quest list) or {\"flag\": n} (open when story flag n is set); any one entry of a list opens its rank; 1 to 4 entries per rank. nothing: the armor look \"Nothing\" (the game's underwear on every part, free, first under every filter). monster_order, monster_words, monster_of: the order of the lists by monster, least to most powerful.",
+ "rank_unlocks": {
+  "high": [10325, {"flag": 1573}],
+  "g": [10725]
+ },
+ "ui": {
+  "felynes": {"eng": "Felynes", "fre": "Felynes", "ger": "Felynes", "ita": "Felyne", "spa": "Felynes"},
+  "felyne_none": {"eng": "No Felyne is going with you.", "fre": "Aucun Felyne ne vous suit.", "ger": "Kein Felyne begleitet dich.", "ita": "Nessun Felyne ti segue.", "spa": "Ningún Felyne va contigo."},
+  "felyne_choose": {"eng": "Choose a Felyne.", "fre": "Choisissez un Felyne.", "ger": "Wähle ein Felyne.", "ita": "Scegli un Felyne.", "spa": "Elige un Felyne."},
+  "entry": {"eng": "Layered Gear", "fre": "Équipement spécial", "ger": "Dekorausrüstung", "ita": "Stile equipaggiamento", "spa": "Equipo superpuesto"},
+  "entry_help": {
+   "eng": "Change how your armor and\nweapons look, piece by piece.",
+   "fre": "Changez l'apparence de votre\narmure et de vos armes.",
+   "ger": "Ändere das Aussehen deiner\nRüstung und Waffen.",
+   "ita": "Cambia l'aspetto della tua\narmatura e delle tue armi.",
+   "spa": "Cambia el aspecto de tu\narmadura y de tus armas."
+  },
+  "blank": {"eng": " ", "fre": " ", "ger": " ", "ita": " ", "spa": " "},
+  "weapons": {"eng": "Weapons", "fre": "Armes", "ger": "Waffen", "ita": "Armi", "spa": "Armas"},
+  "rank_low": {"eng": "LR", "fre": "RI", "ger": "NR", "ita": "GB", "spa": "RB"},
+  "rank_high": {"eng": "HR", "fre": "RS", "ger": "HR", "ita": "GA", "spa": "RA"},
+  "rank_g": {"eng": "G", "fre": "G", "ger": "G", "ita": "G", "spa": "G"},
+  "game_mh4u": {"eng": "MH4U", "fre": "MH4U", "ger": "MH4U", "ita": "MH4U", "spa": "MH4U"},
+  "game_gen": {"eng": "Generations", "fre": "Generations", "ger": "Generations", "ita": "Generations", "spa": "Generations"},
+  "game_all": {"eng": "All", "fre": "Tous", "ger": "Alle", "ita": "Tutti", "spa": "Todos"},
+  "armor": {"eng": "Armor", "fre": "Armures", "ger": "Rüstungen", "ita": "Armature", "spa": "Armaduras"},
+  "help_weapons": {
+   "eng": "Choose how each weapon\nclass looks.",
+   "fre": "Choisissez l'apparence de\nchaque type d'arme.",
+   "ger": "Wähle das Aussehen jeder\nWaffenart.",
+   "ita": "Scegli l'aspetto di ogni\ntipo di arma.",
+   "spa": "Elige el aspecto de cada\ntipo de arma."
+  },
+  "help_armor": {
+   "eng": "Choose how your armor\nlooks, piece by piece.",
+   "fre": "Choisissez l'apparence de\nvotre armure, pièce par pièce.",
+   "ger": "Wähle das Aussehen deiner\nRüstung, Teil für Teil.",
+   "ita": "Scegli l'aspetto della tua\narmatura, pezzo per pezzo.",
+   "spa": "Elige el aspecto de tu\narmadura, pieza a pieza."
+  },
+  "help_felyne": {
+   "eng": "Choose how your Felynes\nlook.",
+   "fre": "Choisissez l'apparence de\nvos Felynes.",
+   "ger": "Wähle das Aussehen deiner\nFelynes.",
+   "ita": "Scegli l'aspetto dei tuoi\nFelyne.",
+   "spa": "Elige el aspecto de tus\nFelynes."
+  },
+  "help_row": {
+   "eng": "A wear  Y try on  B back",
+   "fre": "A porter  Y essai  B retour",
+   "ger": "A tragen  Y Probe  B zurück",
+   "ita": "A indossa  Y prova  B indietro",
+   "spa": "A llevar  Y probar  B volver"
+  },
+  "help_row_weapons": {
+   "eng": "A wear  B back",
+   "fre": "A porter  B retour",
+   "ger": "A tragen  B zurück",
+   "ita": "A indossa  B indietro",
+   "spa": "A llevar  B volver"
+  },
+  "help_filter": {
+   "eng": "Left/Right change  B back",
+   "fre": "Gau./Dr. changer  B retour",
+   "ger": "Li./Re. ändern  B zurück",
+   "ita": "Sx/Dx cambia  B indietro",
+   "spa": "Izq./Der. cambiar  B volver"
+  },
+  "dye_keys": {
+   "eng": "A confirm  B back  L/R piece",
+   "fre": "A valider  B retour  L/R pièce",
+   "ger": "A OK  B zurück  L/R Teil",
+   "ita": "A conferma  B indietro  L/R pezzo",
+   "spa": "A aceptar  B volver  L/R pieza"
+  },
+  "select_key": {"eng": "SELECT", "fre": "SELECT", "ger": "SELECT", "ita": "SELECT", "spa": "SELECT"},
+  "relics": {"eng": "Relics", "fre": "Reliques", "ger": "Relikte", "ita": "Reliquie", "spa": "Reliquias"},
+  "help_relics": {
+   "eng": "Buy the look of relic\nweapons and armor.",
+   "fre": "Achetez l'apparence des\nreliques : armes et armures.",
+   "ger": "Kaufe das Aussehen von\nReliktwaffen und -rüstungen.",
+   "ita": "Acquista l'aspetto delle\nreliquie: armi e armature.",
+   "spa": "Compra el aspecto de las\narmas y armaduras reliquia."
+  }
+ },
+ "ranks": {"eng": ["LR", "HR", "G"], "fre": ["RI", "RS", "G"], "ger": ["NR", "HR", "G"], "ita": ["GB", "GA", "G"], "spa": ["RB", "RA", "G"]},
+ "hunters": {
+  "eng": {"blademaster": "Blade", "gunner": "Gun"},
+  "fre": {"blademaster": "Lame", "gunner": "Art"},
+  "ger": {"blademaster": "Nah", "gunner": "Fern"},
+  "ita": {"blademaster": "Spad", "gunner": "Art"},
+  "spa": {"blademaster": "Esp", "gunner": "Art"}
+ },
+ "names": {
+  "122-122": {"ger": "Tod/Falter"},
+  "173-173": {"ger": "Rathalosseele"},
+  "174-174": {"ger": "Rathalosseele"},
+  "240-240": {"ita": "Solido"},
+  "288-288": {"ger": "Rathalosseele", "spa": "Alma de Rath"},
+  "289-289": {"ger": "Rathalosseele"},
+  "320-320": {"ger": "Heroen"},
+  "342-342": {"ger": "Groß-Zwielicht"},
+  "388-388": {"ger": "Rathalosseele Z"},
+  "389-389": {"ger": "Rathalosseele Z"},
+  "448-448": {"fre": "Kujula"},
+  "452-452": {"ger": "Rebellion Z"},
+  "484-484": {"ger": "Roter Zwielicht"},
+  "487-487": {"fre": "Kirin U"},
+  "507-507": {"ger": "Fatalis GX"},
+  "508-508": {"ger": "Fatalis GX"},
+  "558-558": {"ger": "Großes Gemetzel"}
+ },
+ "recipes": {
+  "zenny": {"armor": [[3000, 8000], [9000, 18000], [20000, 40000]], "weapons": [[1500, 4000], [4500, 9000], [10000, 20000]],
+            "felyne": [[1500, 4000], [4500, 9000], [10000, 20000]], "step": 100, "fallback": 0.5},
+  "xx_felyne_materials": {"low": [["Foreign Scrap", 3]], "high": [["Foreign Scrap+", 3]], "G": [["Foreign Scrap+", 6]]},
+  "fallback_materials": {"low": [["Machalite Ore", 3], ["Lightcrystal", 2]], "high": [["Carbalite Ore", 3], ["Novacrystal", 2]],
+                         "G": [["Eltalite Ore", 3], ["Purecrystal", 2]]},
+  "armor": {"nothing": {"materials": [], "price": 0}},
+  "weapons": {},
+  "felyne": {}
+ },
+ "forge_screen": {
+  "camera": [8, 21, 184, 153],
+  "camera_full": [8, 21, 184, 217],
+  "materials": {"cut": 18, "price_widen": 24},
+  "cursor": [[60, 2], [150, 5]],
+  "weapon_preview_frames": 15,
+  "priority": {"ui401_fg_left": 40, "ui401_fg_right": 40, "ui401_fg_cursor": 41, "ui401_fg_rows": 42, "ui401_fg_keys": 43, "ui401_fg_cue": 44},
+  "panes": {
+   "fg_side0": [4, 18, 3, 136], "fg_side1": [185, 18, 3, 136], "fg_naka": [7, 18, 178, 136], "fg_model": [8, 21, 176, 132],
+   "fg_waku0": [190, 18, 3, 176], "fg_waku1": [190, 194, 3, 42], "fg_waku2": [393, 18, 3, 176], "fg_waku3": [393, 194, 3, 42],
+   "fg_naka0": [193, 18, 200, 218],
+   "fg_bar0_0": [194, 20, 55, 16], "fg_bar0_1": [248, 20, 144, 16], "fg_bar1_0": [194, 38, 55, 16], "fg_bar1_1": [248, 38, 144, 16],
+   "fg_L": [196, 21, 14, 14], "fg_R": [378, 21, 14, 14], "fg_X": [378, 39, 14, 14],
+   "fg_sel": [null, null, null, 13],
+   "fg_m_f0_0": [212, 22, 38, 12], "fg_m_f0_1": [254, 22, 38, 12], "fg_m_f0_2": [296, 22, 38, 12], "fg_m_f0_3": [338, 22, 38, 12],
+   "fg_m_f1_0": [196, 40, 58, 12], "fg_m_f1_1": [257, 40, 58, 12], "fg_m_f1_2": [318, 40, 58, 12],
+   "fg_r_0": [194, null, 95, null], "fg_r_1": [289, null, 14, null], "fg_r_2": [303, null, 89, null],
+   "fg_cur": [194, null, 198, null], "fg_keybar": [194, 219, 198, 14], "fg_m_hint": [198, 222, 150, 10], "fg_m_count": [354, 222, 36, 10]
+  },
+  "cue": {
+   "list": {"fg_start_bar": [8, 139, 66, 14], "fg_start": [10, 141, 27, 10], "fg_m_start": [39, 141, 34, 10]},
+   "camera": {"fg_start_bar": [194, 220, 98, 14], "fg_start": [198, 222, 27, 10], "fg_m_start": [229, 222, 62, 10]}
+  },
+  "fonts": {"filter": 10, "name": 10, "hint": 9},
+  "rows": {
+   "armor": {"count": 5, "pitch": 32, "first_y": 56, "name": [198, 2, 190, 12], "buttons": {"count": 6, "x": 198, "pitch": 31, "dy": 14}},
+   "felyne": {"count": 5, "pitch": 32, "first_y": 56, "name": [198, 2, 190, 12], "buttons": {"count": 4, "x": 198, "pitch": 31, "dy": 14}},
+   "weapons": {"count": 9, "pitch": 18, "first_y": 56, "name": [198, 3, 150, 12], "buttons": {"count": 1, "x": 358, "pitch": 0, "dy": 0}}
+  },
+  "button": {"plate": [30, 18], "icon": [7, 1, 16, 16], "mark": [13, 2, 16, 16], "try_on": [15, 8, 15, 10], "bracket": [[-1, -1], [15, -1], 16, 20]},
+  "colours": {
+   "model": [34, 44, 53], "filter_chosen": [255, 255, 255], "filter": [230, 230, 230], "grey": [100, 100, 100],
+   "bought": [240, 240, 240], "not_bought": [140, 140, 140], "key_bar": [0, 0, 0], "mark": [111, 199, 115],
+   "cursor_bar": [118, 89, 0, 110],
+   "plate": [66, 16, 9], "disabled_plate": [40, 40, 40], "disabled_icon": [120, 120, 120],
+   "not_owned_icon": [110, 110, 110]
+  },
+  "icons": {
+   "armor": [91, 70, 71, 73, 72, 74], "felyne": [91, 78, 79, 77], "mark": 90, "try_on": {"texels": [15, 4, 12, 8]},
+   "disabled": {"cell": [15, 8], "u": 0.9375, "v": 0.25},
+   "weapons": {"great_sword": 55, "sword_and_shield": 57, "hammer": 59, "lance": 61, "light_bowgun": 63, "heavy_bowgun": 65, "long_sword": 56, "switch_axe": 67, "gunlance": 62, "bow": 66, "dual_blades": 58, "hunting_horn": 60, "insect_glaive": 68, "charge_blade": 69}
+  },
+  "select_cue": {
+   "fg_select_bar": [8, 139, 80, 14], "fg_select": [10, 141, 36, 10], "fg_m_select_key": [10, 141, 36, 10],
+   "fg_m_select": [48, 141, 38, 10], "key_ends": 2, "key_font": 9, "key_word": [230, 230, 230],
+   "start": {"fg_start_bar": [8, 123, 66, 14], "fg_start": [10, 125, 27, 10], "fg_m_start": [39, 125, 34, 10]}
+  },
+  "dye": {
+   "priority": 42,
+   "title": [212, 22, 164, 12], "keys": {"fg_dye_L": [196, 21, 14, 14], "fg_dye_R": [378, 21, 14, 14]},
+   "targets": {"x": 198, "y": 60, "pitch": 31}, "swatch": [2, 20, 26, 5],
+   "chips": {"x": 204, "y": 92, "pitch": [31, 22], "size": [18, 18], "columns": 6},
+   "default": [198, 140, 60, 16], "default_text": [198, 142, 60, 12],
+   "scale": {"rect": [206, 160, 178, 53], "range": [174, 49], "start": [87, 24], "cursor": [16, 16],
+             "steps": [[20, 2], [45, 4]]},
+   "bracket": [-1, -1, 2, 2]
+  }
+ },
+ "groups": {},
+ "extra_armor": [],
+ "extra_weapons": {},
+ "nothing": {"names": {"eng": "Nothing", "fre": "Rien", "ger": "Nichts", "ita": "Niente", "spa": "Nada"}},
+ "monster_order": {
+  "small": ["Aptonoth", "Apceros", "Kelbi", "Popo", "Anteka", "Mosswine", "Bullfango", "Moofah", "Larinoth",
+            "Slagtoth", "Gargwa", "Rhenoplos", "Altaroth", "Konchu", "Bnahabra", "Vespoid", "Hornetaur", "Remobra",
+            "Zamite", "Delex", "Uroktor", "Cephalos", "Conga", "Hermitaur", "Jaggi", "Jaggia", "Velociprey", "Genprey",
+            "Ioprey"],
+  "large": ["Great Maccao", "Great Jaggi", "Velocidrome", "Bulldrome", "Gendrome", "Iodrome", "Giadrome", "Arzuros",
+            "Redhelm Arzuros", "Lagombi", "Kecha Wacha", "Yian Kut-Ku", "Great Baggi", "Great Wroggi", "Qurupeco",
+            "Congalala", "Tetsucabra", "Seltas", "Daimyo Hermitaur", "Royal Ludroth", "Malfestio",
+            "Nightcloak Malfestio", "Rathian", "Blue Yian Kut-Ku", "Desert Seltas", "Gypceros", "Cephadrome", "Khezu",
+            "Blangonga", "Volvidon", "Barroth", "Gobul", "Nibelsnarf", "Nerscylla", "Zamtrios", "Najarala", "Gigginox", "Rathalos",
+            "Zinogre", "Emerald Congalala", "Berserk Tetsucabra", "Plum Daimyo Hermitaur", "Tigerstripe Zamtrios",
+            "Seltas Queen", "Basarios", "Plesioth", "Lavasioth", "Duramboros", "Shogun Ceanataur", "Rustrazor Ceanataur",
+            "Monoblos", "Diablos", "Gravios", "Tigrex", "Uragaan", "Crystalbeard Uragaan", "Agnaktor", "Barioth",
+            "Lagiacrus", "Nargacuga", "Silverwind Nargacuga", "Mizutsune", "Ash Kecha Wacha", "Purple Gypceros",
+            "Red Khezu", "Shrouded Nerscylla", "Desert Seltas Queen", "Ruby Basarios", "White Monoblos", "Pink Rathian",
+            "Azure Rathalos", "Yian Garuga", "Gore Magala", "Astalos", "Boltreaver Astalos", "Gammoth",
+            "Elderfrost Gammoth", "Glavenus", "Brachydios", "Tidal Najarala", "Black Gravios", "Black Diablos",
+            "Brute Tigrex", "Seregios", "Chaotic Gore Magala", "Shagaru Magala", "Deviljho", "Stygian Zinogre",
+            "Gold Rathian", "Silver Rathalos", "Kirin", "Rajang", "Kushala Daora", "Teostra", "Chameleos",
+            "Lao-Shan Lung", "Nakarkos", "Amatsu", "Oroshi Kirin", "Rusted Kushala Daora", "Raging Brachydios",
+            "Savage Deviljho", "Golden Rajang", "Akantor", "Ukanlos", "Valstrax", "Ahtal-Ka", "Molten Tigrex",
+            "Dah'ren Mohran", "Alatreon", "Dalamadur (Head)", "Shah Dalamadur (Head)", "Gogmazios", "Black Fatalis",
+            "Crimson Fatalis", "White Fatalis", "Crimson Fatalis (Super)"]
+ },
+ "monster_words": {
+  "rath soul": "Rathalos", "rath heart": "Rathian", "dreadking": "Rathalos", "dreadqueen": "Rathian",
+  "mono": "Monoblos", "monodevil": "White Monoblos", "bloodbath": "Diablos", "grav": "Gravios",
+  "ceanataur": "Shogun Ceanataur", "rustrazor": "Rustrazor Ceanataur", "daimyo": "Daimyo Hermitaur",
+  "stonefist": "Daimyo Hermitaur", "blango": "Blangonga", "lava": "Lavasioth", "ludroth": "Royal Ludroth",
+  "lagia": "Lagiacrus", "narga": "Nargacuga", "silverwind": "Silverwind Nargacuga", "nibel": "Nibelsnarf",
+  "duram": "Duramboros", "volvi": "Volvidon", "cabra": "Tetsucabra", "drilltusk": "Tetsucabra", "naja": "Najarala",
+  "scylla": "Nerscylla", "brachy": "Brachydios", "vangis": "Deviljho", "kaiser": "Teostra", "daora": "Kushala Daora",
+  "mizuha": "Amatsu", "escador": "Alatreon", "gog": "Gogmazios", "dalamadur": "Dalamadur (Head)",
+  "snowbaron": "Lagombi", "redhelm": "Redhelm Arzuros", "deadeye": "Yian Garuga", "thunderlord": "Zinogre",
+  "grimclaw": "Tigrex", "hellblade": "Glavenus", "soulseer": "Mizutsune", "crystalbeard": "Crystalbeard Uragaan",
+  "nightcloak": "Nightcloak Malfestio", "boltreaver": "Boltreaver Astalos", "elderfrost": "Elderfrost Gammoth",
+  "giaprey": "Giadrome", "vprey": "Velocidrome", "baggi": "Great Baggi", "wroggi": "Great Wroggi",
+  "bnaha": "Bnahabra", "rheno": "Rhenoplos", "alta": "Altaroth", "hornet": "Hornetaur", "moofy": "Moofah"
+ },
+ "monster_of": {"armor": {}, "weapons": {}, "felyne": {}}
+}

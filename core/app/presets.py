@@ -10,7 +10,7 @@ with), and the presets never carry `seed`, `quest_reroll`, `quest_rerolls` or `f
 """
 
 import json
-from dataclasses import fields
+from dataclasses import fields, replace
 from functools import lru_cache
 
 from core.app.settings import Settings
@@ -57,7 +57,27 @@ def load_presets() -> dict:
                 if key in seen:
                     raise ValueError(f"gui_presets.json / gui_defaults.json: {key} is in {seen[key]} and {name}")
                 seen[key] = name
+    _check_modules(data["install"].get("modules", {}), data["install"]["options"], names)
     return data
+
+
+def _check_modules(layout: dict, options: list[str], names: set[str]) -> None:
+    """An edition's modules hold every installer option once, each under a switch of its own (a bool installer option,
+    the first name); the other names are Settings fields or rows of the START menu's page only."""
+    if not layout:
+        return
+    from core.interface.mod_settings.mod_options import page_only_options
+    bools = {f.name for f in fields(Settings) if f.type in (bool, "bool")}
+    listed = [name for members in layout.values() for name in members]
+    for key, members in layout.items():
+        if not members or members[0] not in bools or members[0] not in options:
+            raise ValueError(f"gui_presets.json, install.modules: {key} starts with no switch")
+    unknown = set(listed) - names - set(page_only_options())
+    doubled = {name for name in listed if listed.count(name) > 1}
+    left_out = set(options) - set(listed)
+    if unknown or doubled or left_out:
+        raise ValueError(f"gui_presets.json, install.modules: unknown {sorted(unknown)}, twice {sorted(doubled)}, "
+                         f"in no module {sorted(left_out)}")
 
 
 def _sections(data: dict) -> dict[str, dict]:
@@ -90,6 +110,29 @@ def in_game_fields() -> list[str]:
 def install_links() -> dict[str, list[str]]:
     """Installer options that write other fields with the same value (Option.links)."""
     return {k: list(v) for k, v in load_presets()["install"]["links"].items()}
+
+
+def modules() -> dict[str, list[str]]:
+    """The edition's modules, in the Options page's order (gui_presets.json `install.modules`): each a switch (its first
+    name) and what it turns on and off, Settings fields and rows of the START menu's page. Empty: an edition without
+    modules, whose options are all on their own."""
+    return {key: list(members) for key, members in load_presets()["install"].get("modules", {}).items()}
+
+
+def module_off_fields(settings: Settings) -> set[str]:
+    """Every name of the modules whose switch is off in `settings`: the run leaves them out of the game, and out of the
+    START menu's page."""
+    return {name for members in modules().values() if not getattr(settings, members[0]) for name in members}
+
+
+def apply_modules(settings: Settings) -> Settings:
+    """`settings` with each field of a module that is off at the Settings default, the game's own (the switch keeps its
+    value). The Options page only greys those options out, so they keep the player's values for when the module is on
+    again."""
+    off = module_off_fields(settings) - {members[0] for members in modules().values()}
+    defaults = Settings()
+    names = {f.name for f in fields(Settings)}
+    return replace(settings, **{name: getattr(defaults, name) for name in off if name in names})
 
 
 def installer_fields() -> set[str]:

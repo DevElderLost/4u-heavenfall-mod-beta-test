@@ -22,9 +22,9 @@
 @ The modes after the first are decided by one scan of the GUI manager's group list (manager = *(gui + 0x100), list =
 @ *(manager + 0x154), 0x600 pointers): each shown group (bit 0x400 of group + 0x44) is looked up by its name hash in
 @ scan_table (hash, bits; a 0 hash ends it, the patcher's: at most 128 names), the bits of what is shown are or'd, plus
-@ flag_mask when the byte layered_preview + 9 (the layered selector's frame is open) is set, and open_mask without the
-@ stay bit when the byte mod_settings_state + MOD_SETTINGS_OPEN is (the START menu's Mod Settings is open, which has a
-@ place of its own, in a quest too); the places and the modes are decided from that mask alone.
+@ flag_mask when the word screens_open (a forge-style screen is on) is set, and open_mask without the stay bit when
+@ the byte mod_settings_state + MOD_SETTINGS_OPEN is (the START menu's Mod Settings is open, which has a place of its
+@ own, in a quest too); the places and the modes are decided from that mask alone.
 @ The owner is the static object prompt_owner: +0x00..+0x24 the groups (in the order of the binder table
 @ prompt_binder_table, 12-byte entries, name hash first), +0x1F8 + 2 * slot the button kinds, +0x21F set once they are bound. A group is
 @ moved only when its hash is its table entry's and its screen differs, the binder's way: bits 14-17 of group + 0x44
@@ -194,7 +194,7 @@ more:
     subs    r2, r2, #1
     bne     slot
 flag:
-    ldr     r0, =layered_preview + 9  @ the layered selector's frame is open
+    ldr     r0, =screens_open         @ a forge-style screen (Layered Gear, the Rare Materials Exchange) is on
     ldrb    r0, [r0]
     cmp     r0, #0
     ldrne   r0, flag_mask

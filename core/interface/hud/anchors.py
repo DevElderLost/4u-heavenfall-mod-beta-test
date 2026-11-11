@@ -37,6 +37,7 @@ from core.game.files.gui.lanl import LANL_TYPE_HASH, Animations, Property, parse
 from core.game.files.gui.lyt import LYT_TYPE_HASH, Layout, Pane, PaneKind, name_hash, parse_lyt
 from core.interface.game_gui import geometry
 from core.interface.hud.build import CODE_PATCH_LAYOUTS, HUD_LAYOUTS, LANGUAGES, MAP_ARC, GameFiles, short_name
+from core.interface.hud.code_patch import FACE_ANCHOR, FACE_LAYOUT
 from core.interface.hud.scale import NO_EDGE, SCREEN_HALF_WIDTH, Anchor, anchor_all
 
 LEFT, CENTRE, RIGHT = -1, 0, 1
@@ -46,6 +47,8 @@ TABLE_LANGUAGE = "eng"      # the groups' names and places are the same in every
 TABLE_HEADER = struct.Struct("<I")          # the count
 TABLE_ENTRY = struct.Struct("<I2h")         # struct anchor in aspect_ratio.c: name hash, the box's left and right
 HUD_CODES = 16              # aspect_ratio.c: an entry from here on is a HUD group's anchor (`hud_code`)
+CORNER_CODES = 32           # aspect_ratio.c: from here on, a corner the data names (`corner_code`)
+CORNERS = {anchor.name.lower(): anchor for anchor in Anchor if anchor is not Anchor.IN_PLACE}
 # The ARCs under <language>/data/ that hold a sprite across the whole frame (the game's 28 of them); the weapon guide's
 # and the monsters' pages hold none, and the minimap's are moved by the executable
 BACKDROP_ARC = re.compile(r"(core_\w+|loading_\w+|monnyan_core|v\d\da\d\d_map)\.arc")
@@ -65,6 +68,7 @@ class AnchorRules:
     window_margin: float            # how far past the window's box a group may reach and still lie inside it
     child_sides: Mapping[str, int] = field(default_factory=dict)  # children of a root group, which move in the file
     follow_nulls: tuple[str, ...] = ()  # root groups the code moves by writing their first nulls (patterns)
+    corners: Mapping[str, Anchor] = field(default_factory=dict)  # root groups that keep to a corner of the picture
 
 
 def _number(raw: dict, key: str) -> float:
@@ -91,6 +95,16 @@ def _sides(raw: dict, key: str) -> dict[str, int]:
     return {pane: SIDES[side] for pane, side in sides.items()}
 
 
+def _corners(raw: dict, key: str) -> dict[str, Anchor]:
+    corners = raw.get(key)
+    if not isinstance(corners, dict):
+        raise ValueError(f"aspect_ratio.json: anchors: {key} must map root groups to a corner or an edge")
+    for group, corner in corners.items():
+        if corner not in CORNERS:
+            raise ValueError(f"aspect_ratio.json: anchors: {key}: {group} must be one of {', '.join(CORNERS)}")
+    return {group: CORNERS[corner] for group, corner in corners.items()}
+
+
 def load_anchor_rules(path: Path = SETTINGS_FILE) -> AnchorRules:
     """The curated rules. Raises ValueError naming the key of anything the mod cannot use."""
     raw = json.loads(Path(path).read_text(encoding="utf-8")).get("anchors")
@@ -100,7 +114,7 @@ def load_anchor_rules(path: Path = SETTINGS_FILE) -> AnchorRules:
                        _patterns(raw, "keep_centred"), _sides(raw, "sides"),
                        _patterns(raw, "keep_width"), _patterns(raw, "stretch_groups"), _number(raw, "sub_view_margin"),
                        _number(raw, "window_width"), _number(raw, "window_margin"), _sides(raw, "child_sides"),
-                       _patterns(raw, "follow_nulls"))
+                       _patterns(raw, "follow_nulls"), _corners(raw, "corners"))
 
 
 def side_of(low: float, high: float, rules: AnchorRules) -> int:
@@ -140,9 +154,10 @@ def group_span(layout: Layout, root: Pane) -> tuple[float, float] | None:
 
 
 def hud_owned_layouts() -> set[str]:
-    """The layouts whose files the HUD's edges already move, or the code places (interface/hud/build.py)."""
+    """The layouts whose files the HUD's edges already move, or the code places (interface/hud/build.py; the target
+    face's copy of its touch panel, code_patch.face_params)."""
     return {*(name for layouts in HUD_LAYOUTS.values() for name in layouts),
-            *(name for layouts in CODE_PATCH_LAYOUTS.values() for name in layouts)}
+            *(name for layouts in CODE_PATCH_LAYOUTS.values() for name in layouts), FACE_LAYOUT}
 
 
 def _whole_box(root: Pane) -> geometry.Box | None:
@@ -201,6 +216,9 @@ def anchor_entries(layouts: Mapping[str, Layout], rules: AnchorRules,
         for root in layout.roots:
             if root.name in skip_groups:
                 continue
+            if root.name in rules.corners:
+                out[root.name] = (corner_code(rules.corners[root.name]),) * 2
+                continue
             forced = forced_side(root.name, rules)
             if forced is not None:
                 if forced != CENTRE:
@@ -225,17 +243,25 @@ def hud_code(anchor: Anchor) -> int:
     return HUD_CODES + ((x + 1) << 2 | y + 1)
 
 
+def corner_code(anchor: Anchor) -> int:
+    """What the table says of a group the data keeps to a corner of the picture (`corners`), twice: the anchor's signs
+    as `hud_code`'s, from CORNER_CODES on. Its files are the game's, so the executable takes it from the 400 x 240
+    frame, not from the installer's ratio."""
+    return hud_code(anchor) - HUD_CODES + CORNER_CODES
+
+
 def hud_entries(layouts: Mapping[str, Layout]) -> dict[str, tuple[int, int]]:
     """Root group -> what the table says of each group of the HUD. Its files are at the sides of the installer's ratio
-    (scale.py); the executable takes it from there to the ratio chosen in the game. What stays in place is left out."""
+    (scale.py), and so is the target face, which the code places beside the item selector (code_patch.face_params);
+    the executable takes them from there to the ratio chosen in the game. What stays in place is left out."""
+    specs = [(name, spec) for by_arc in (HUD_LAYOUTS, CODE_PATCH_LAYOUTS) for by_layout in by_arc.values()
+             for name, spec in by_layout.items()]
     out: dict[str, tuple[int, int]] = {}
-    for by_arc in (HUD_LAYOUTS, CODE_PATCH_LAYOUTS):
-        for by_layout in by_arc.values():
-            for name, spec in by_layout.items():
-                if name in layouts:
-                    anchors = spec if isinstance(spec, Mapping) else anchor_all(layouts[name], spec)
-                    out.update((group, (hud_code(anchor),) * 2) for group, anchor in anchors.items()
-                               if anchor is not Anchor.IN_PLACE)
+    for name, spec in [*specs, (FACE_LAYOUT, FACE_ANCHOR)]:
+        if name in layouts:
+            anchors = spec if isinstance(spec, Mapping) else anchor_all(layouts[name], spec)
+            out.update((group, (hud_code(anchor),) * 2) for group, anchor in anchors.items()
+                       if anchor is not Anchor.IN_PLACE)
     return out
 
 

@@ -20,10 +20,12 @@ GAME_PROBLEMS = {
     "is_update": "this is the game update, not the game itself: choose the game (cartridge or eShop dump)",
     "is_mh4u": "this is Monster Hunter 4 Ultimate, not Monster Hunter Generations",
     "is_mhgen": "this is Monster Hunter Generations, not Monster Hunter 4 Ultimate",
+    "wrong_mhxx": "this is not the Japanese Monster Hunter XX",
+    "is_mhxx": "this is Monster Hunter XX, not the game asked for here",
     "unreadable": "the file cannot be read (check that it is not in use, that you have permission to open it, and "
                   "that its drive is connected)",
 }
-WRONG_MH4U, WRONG_MHGEN, IS_UPDATE, IS_MH4U, IS_MHGEN, UNREADABLE = GAME_PROBLEMS.values()
+WRONG_MH4U, WRONG_MHGEN, IS_UPDATE, IS_MH4U, IS_MHGEN, WRONG_MHXX, IS_MHXX, UNREADABLE = GAME_PROBLEMS.values()
 
 
 class InputsError(Exception):
@@ -32,7 +34,9 @@ class InputsError(Exception):
         self.problems = problems
 
 
-def _game_problem(path: Path | None, label: str, is_mh4u: bool) -> str | None:
+def _game_problem(path: Path | None, label: str, wanted: str) -> str | None:
+    """What is wrong with the file picked for the game `wanted` (titles.MH4U, MHGEN or MHXX); None when it is that
+    game."""
     from core.game.executable.extract import ExtractError
     from core.game.executable.romfs import RomFS
     from core.game.executable import titles
@@ -46,25 +50,28 @@ def _game_problem(path: Path | None, label: str, is_mh4u: bool) -> str | None:
         return f"{label}: {UNREADABLE}"
     kind = titles.identify(title)
     game = kind[0] if kind else None
-    if is_mh4u:
-        if game == titles.MH4U:
-            return None
-        reason = {titles.MH4U_UPDATE: IS_UPDATE, titles.MHGEN: IS_MHGEN}.get(game)
-        return f"{label}: {reason}" if reason else f"{label}: {WRONG_MH4U} (title {title})"
-    if game == titles.MHGEN:
+    if game == wanted:
         return None
-    if game in (titles.MH4U, titles.MH4U_UPDATE):
-        return f"{label}: {IS_MH4U}"
-    return f"{label}: {WRONG_MHGEN} (title {title})"
+    if wanted == titles.MH4U:
+        reason = {titles.MH4U_UPDATE: IS_UPDATE, titles.MHGEN: IS_MHGEN, titles.MHXX: IS_MHXX}.get(game)
+        return f"{label}: {reason}" if reason else f"{label}: {WRONG_MH4U} (title {title})"
+    if wanted == titles.MHGEN:
+        if game in (titles.MH4U, titles.MH4U_UPDATE):
+            return f"{label}: {IS_MH4U}"
+        if game == titles.MHXX:
+            return f"{label}: {IS_MHXX}"
+        return f"{label}: {WRONG_MHGEN} (title {title})"
+    return f"{label}: {WRONG_MHXX} (title {title})"
 
 
-def check_inputs(rom: Path | None, mhgen_rom: Path | None, need_mhgen: bool = True) -> list[str]:
+def check_inputs(rom: Path | None, xx_rom: Path | None = None, need_xx: bool = False) -> list[str]:
     """What is wrong with the game files, one message each: MH4U must be the decrypted base game, European or
-    American (not its update, not another game); MH Generations (needed by the ported monsters and gear) the
-    decrypted game, European or American."""
-    problems = [_game_problem(rom, "Monster Hunter 4 Ultimate", True)]
-    if need_mhgen:
-        problems.append(_game_problem(mhgen_rom, "Monster Hunter Generations", False))
+    American (not its update, not another game); MH XX (`need_xx`: a ported monster or the models pack is on, the
+    only other game a run reads) the decrypted Japanese game."""
+    from core.game.executable import titles
+    problems = [_game_problem(rom, "Monster Hunter 4 Ultimate", titles.MH4U)]
+    if need_xx:
+        problems.append(_game_problem(xx_rom, "Monster Hunter XX", titles.MHXX))
     return [problem for problem in problems if problem]
 
 
@@ -127,15 +134,17 @@ def clear_previous_runs(kind: str) -> None:
             shutil.rmtree(folder)
 
 
-def build(rom: Path, mhgen_rom: Path | None, settings, build_dir: Path | None = None, console: bool = False,
+def build(rom: Path, settings, build_dir: Path | None = None, console: bool = False,
           progress: Callable[[int, int], None] | None = None, stage: Callable[[str], None] | None = None,
-          kind: str = "install"):
+          kind: str = "install", xx_rom: Path | None = None):
     """Run the pipeline into `build_dir` (default `build/<kind>[_3ds]` in the edition's folder under the home; the
     default folders of both forms are deleted first, `clear_previous_runs`) and return its RunResult, built from the
     player's own game (the update is never read). `console`: the 3DS form (luma/ and the pack), with the emulator-only
-    options at their defaults. Raises InputsError before touching anything. MH Generations' game is checked when the
-    edition needs it (edition.json `needs_mhgen`)."""
-    problems = check_inputs(rom, mhgen_rom, need_mhgen=edition().needs_mhgen)
+    options at their defaults. Raises InputsError before touching anything. `xx_rom`, MH XX's, is needed when the
+    settings add a ported monster or the models pack (Settings.needs_xx); an edition where it is optional
+    (`Edition.xx_optional`) checks it only when one is given."""
+    problems = check_inputs(rom, xx_rom=xx_rom,
+                            need_xx=settings.needs_xx or (edition().xx_optional and xx_rom is not None))
     if problems:
         raise InputsError(problems)
     from core.app.pipeline import run
@@ -144,6 +153,6 @@ def build(rom: Path, mhgen_rom: Path | None, settings, build_dir: Path | None = 
     build_dir = prepare_build_dir(Path(build_dir) if build_dir else default_build_dir(kind, console))
     if console:
         settings = settings.for_console()
-    return run(Path(rom), build_dir, settings, mhgen_rom=Path(mhgen_rom) if mhgen_rom else None, stage=stage,
+    return run(Path(rom), build_dir, settings, stage=stage,
                progress=(lambda done, total, _report: progress(done, total)) if progress else None,
-               console=console)
+               console=console, xx_rom=Path(xx_rom) if xx_rom else None)

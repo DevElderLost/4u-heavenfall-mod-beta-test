@@ -13,7 +13,8 @@ from core.gui.preferences import Preferences
 
 
 class AppState(QObject):
-    changed = Signal(str)   # the key that changed: rom_path, mhgen_rom_path, target, sd_root, personal, console, busy
+    changed = Signal(str)   # the key that changed: rom_path, xx_rom_path, target, sd_root, personal,
+    #                         console, busy
 
     def __init__(self, preferences: Preferences | None = None):
         super().__init__()
@@ -30,12 +31,33 @@ class AppState(QObject):
         self._set("rom_path", value)
 
     @property
-    def mhgen_rom_path(self) -> str:
-        return self.preferences.mhgen_rom_path
+    def xx_rom_path(self) -> str:
+        """MH XX's ROM: the Install page asks for it, and the runs need it, while the player's choices add a ported
+        monster or the models pack (`needs_xx`)."""
+        return self.preferences.xx_rom_path
 
-    @mhgen_rom_path.setter
-    def mhgen_rom_path(self, value: str) -> None:
-        self._set("mhgen_rom_path", value)
+    @xx_rom_path.setter
+    def xx_rom_path(self, value: str) -> None:
+        self._set("xx_rom_path", value)
+
+    @property
+    def needs_xx(self) -> bool:
+        """The player's own options (Options page) add a ported monster or the models pack: Settings.needs_xx."""
+        from core.app.presets import install_settings
+        return install_settings(self.personal).needs_xx
+
+    @property
+    def offers_xx(self) -> bool:
+        """MH XX is optional in this edition (`Edition.xx_optional`) and the player's options use what it adds (Layered
+        Gear's looks): the Install page offers its file, and a run reads it when one is given."""
+        from core.app.edition import edition
+        from core.app.presets import install_settings
+        return edition().xx_optional and install_settings(self.personal).layered_equipment
+
+    def xx_rom_for(self, settings) -> str:
+        """The MH XX file a run reads: the chosen one when the settings need it (`needs_xx`) or the edition offers it
+        (`offers_xx`), else none."""
+        return self.xx_rom_path if self.xx_rom_path and (getattr(settings, "needs_xx", False) or self.offers_xx) else ""
 
     # -- where the mod goes (Install page): "auto" (the emulator found) or a mod folder; the 3DS SD card's root
     @property

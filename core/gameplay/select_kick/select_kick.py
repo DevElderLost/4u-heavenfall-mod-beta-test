@@ -15,6 +15,12 @@ executable go through the block `select_kick` (gameplay/select_kick/select_kick.
 * `OPTION_CALL`, in FUN_005ecf60 (the Game Menu's per-frame logic): the `bl` of FUN_002b02fc (the settings byte that
   stops Start from opening the menu in a quest). The block lets a Select press through when the option is Kick.
 
+`plain` (a mod without Select's kick: Heavenfall Beta with its single-screen module off) keeps both calls for what
+other features need of them and leaves Select and Start the game's: the SDK's call is made as it was (Select is a
+second Start), and in a town Select also presses the kick's button, which Layered Gear's Armor screen reads as Select
+(its colour window); the menu's call answers Kick while a skipped death camera plays, so the START that skips it does
+not open the Game Menu (gameplay/death_camera_skip/death_camera_skip.c).
+
 Update's executable only; each call is checked first.
 """
 
@@ -43,8 +49,10 @@ def supports_select_kick(code: bytes) -> bool:
         return False
 
 
-def patch_select_kick(code: bytes, layout: Layout | None = None) -> bytes:
-    """`code` (the update's executable) where Select and Start follow the game's option START."""
+def patch_select_kick(code: bytes, layout: Layout | None = None, plain: bool = False) -> bytes:
+    """`code` (the update's executable) where Select and Start follow the game's option START. `plain`: they stay the
+    game's, and the two calls only give Layered Gear's Armor screen its Select in a town and keep the START that skips
+    a death camera out of the Game Menu."""
     if not supports_select_kick(code):
         raise CodeSpaceError("select kick: the calls at "
                              f"{SDK_FIX_CALL:#x} / {OPTION_CALL:#x} are not the update's "
@@ -52,6 +60,7 @@ def patch_select_kick(code: bytes, layout: Layout | None = None) -> bytes:
     layout = layout or load_layout()
     out = bytearray(code)
     layout.place(out, BLOCK)
-    layout.hook(out, SDK_FIX_CALL, layout.symbol(BLOCK, "select_kick_step"), original=SDK_ORIGINAL, cond=COND_EQ)
+    step = "select_plain_step" if plain else "select_kick_step"
+    layout.hook(out, SDK_FIX_CALL, layout.symbol(BLOCK, step), original=SDK_ORIGINAL, cond=COND_EQ)
     layout.hook(out, OPTION_CALL, layout.symbol(BLOCK, "select_kick_gate"), calls=OPTION_READ)
     return bytes(out)

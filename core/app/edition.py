@@ -13,9 +13,74 @@ from pathlib import Path
 from core.game.data.paths import CURATED_DIR
 
 EDITION_FILE = CURATED_DIR / "edition.json"
-PAGES = ("install", "options", "randomizer")    # the GUI's pages an edition may have (gui/qt/app.py)
+PAGES = ("install", "options", "randomizer", "saves")    # the GUI's pages an edition may have (gui/qt/app.py)
 PLATFORMS = ("emulator", "console")             # "console": a real 3DS (luma.py)
 TOOLS_LANGUAGES = ("es", "en")
+
+
+REGIONS = ("eur", "usa")                        # the base games a console title is made from (titles.py)
+APPLICATION = "00040000"                        # a title id's high word for a 3DS application
+
+
+@dataclass(frozen=True)
+class ConsoleTitle:
+    """The mod as an installed title on a real 3DS: its own title id for each region's game, and
+    its names on the HOME Menu."""
+    title_ids: tuple[tuple[str, str], ...]      # (region, 16 lowercase hex digits), one per REGIONS
+    short_name: str
+    long_name: str
+    publisher: str
+
+    def title_id(self, region: str) -> str:
+        return dict(self.title_ids)[region]
+
+
+def _console_title(values: dict | None, path: Path) -> ConsoleTitle | None:
+    """`values` (edition.json's console_title) checked: an application's id for each region, unique id per region,
+    variation 0 (only demos and Download Play children use one). That none is a game's own is checked where the
+    title is built (install/title/build_title.py): the updater loads this module and must stay light."""
+    if values is None:
+        return None
+    ids = {region: str(title).lower() for region, title in values["title_ids"].items()}
+    bad = [title for title in ids.values()
+           if len(title) != 16 or any(c not in "0123456789abcdef" for c in title) or not title.startswith(APPLICATION)
+           or not title.endswith("00")]
+    if sorted(ids) != sorted(REGIONS) or bad or len(set(ids.values())) != len(ids):
+        raise ValueError(f"{path}: bad console_title title_ids ({', '.join(bad) or 'one a region'})")
+    return ConsoleTitle(tuple((region, ids[region]) for region in REGIONS), values["short_name"],
+                        values["long_name"], values["publisher"])
+
+
+@dataclass(frozen=True)
+class ConsoleRelease:
+    """The files of the edition's GitHub release that the 3DS app reads:
+    the app as a CIA and as a .3dsx, and the patch set of each region, without MH XX and with it (the app takes the XX
+    set when the player's MH XX dump is on the card; "MH XX on the console"). The titles' ids are console_title's."""
+    app_cia: str
+    app_3dsx: str
+    patch_eur: str
+    patch_usa: str
+    patch_eur_xx: str
+    patch_usa_xx: str
+
+    def patch(self, region: str, xx: bool = False) -> str:
+        if xx:
+            return {"eur": self.patch_eur_xx, "usa": self.patch_usa_xx}[region]
+        return {"eur": self.patch_eur, "usa": self.patch_usa}[region]
+
+
+_RELEASE_KEYS = ("app_cia", "app_3dsx", "patch_eur", "patch_usa", "patch_eur_xx", "patch_usa_xx")
+
+
+def _console_release(values: dict | None, path: Path) -> ConsoleRelease | None:
+    if values is None:
+        return None
+    names = [values.get(key) for key in _RELEASE_KEYS]
+    if set(values) != set(_RELEASE_KEYS) or len(set(names)) != len(_RELEASE_KEYS) or not all(
+            isinstance(n, str) and n and "/" not in n for n in names):
+        raise ValueError(f"{path}: bad console_release (exactly {', '.join(_RELEASE_KEYS)}: "
+                         f"{len(_RELEASE_KEYS)} different file names)")
+    return ConsoleRelease(*names)
 
 
 @dataclass(frozen=True)
@@ -28,7 +93,6 @@ class Edition:
     app_user_model_id: str      # Windows groups the taskbar button by it
     pages: tuple[str, ...]      # of PAGES, in the sidebar's order
     platforms: tuple[str, ...]  # of PLATFORMS; with one the sidebar shows no switch
-    needs_mhgen: bool           # the Install page asks for MH Generations' game too
     tools_language: str         # the developer tools' texts (the recorder, tools/ui/ui.py), of TOOLS_LANGUAGES
     user_folder: str            # under the home folder: the GUI's preferences, its log and the builds
     marker: str                 # the file that marks our mod in a mod folder (install/deploy.py)
@@ -38,6 +102,9 @@ class Edition:
     legacy_user_folders: tuple[str, ...] = ()       # copied into user_folder once (migrate_legacy_user_folder)
     legacy_markers: tuple[str, ...] = ()            # a mod folder marked with one is still ours (install/deploy.py)
     legacy_build_markers: tuple[str, ...] = ()      # so do build folders (install/build.py)
+    xx_optional: bool = False   # MH XX is never required; the Install page offers its file (state.offers_xx)
+    console_title: ConsoleTitle | None = None       # required with the "console" platform
+    console_release: ConsoleRelease | None = None   # the release files the 3DS app downloads (launcher)
 
     @property
     def home(self) -> Path:
@@ -54,11 +121,17 @@ def load_edition(path: Path = EDITION_FILE) -> Edition:
     values.pop("description", None)
     lists = {key: tuple(values[key]) for key in ("pages", "platforms", "legacy_user_folders", "legacy_markers",
                                                   "legacy_build_markers") if key in values}
-    edition = Edition(**{**values, **lists})
+    console = _console_title(values.pop("console_title", None), path)
+    release = _console_release(values.pop("console_release", None), path)
+    edition = Edition(**{**values, **lists}, console_title=console, console_release=release)
     unknown = [key for key in edition.pages if key not in PAGES] + \
         [key for key in edition.platforms if key not in PLATFORMS]
     if unknown or not edition.pages or not edition.platforms or edition.tools_language not in TOOLS_LANGUAGES:
         raise ValueError(f"{path}: bad pages, platforms or tools_language ({', '.join(unknown) or 'empty'})")
+    if "console" in edition.platforms and console is None:
+        raise ValueError(f"{path}: the console platform needs console_title")
+    if release is not None and console is None:
+        raise ValueError(f"{path}: console_release needs console_title (the titles the launcher installs)")
     return edition
 
 

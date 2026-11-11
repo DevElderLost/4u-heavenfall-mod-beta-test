@@ -22,13 +22,13 @@ class NoTarget(Exception):
 @dataclass(frozen=True)
 class InstallRequest:
     rom: Path
-    mhgen_rom: Path | None    # None: the edition needs no MH Generations (edition.json needs_mhgen)
     settings: object          # randomizer.Settings, complete (presets.install_settings / randomizer_settings)
     kind: str                 # "install" | "randomizer"
     console: bool             # the 3DS form (Luma3DS) on the SD card at `target`
     target: Path              # emulator: the mods folder .../load/mods/<title>; 3DS: the SD card's root
     title: str                # the folder's name: the title of the player's game (European or American)
     replace_unknown: bool = False
+    xx_rom: Path | None = None   # MH XX's ROM, when the settings need it (Settings.needs_xx)
 
 
 @dataclass(frozen=True)
@@ -85,8 +85,9 @@ def request_from_state(state, settings, kind: str, replace_unknown: bool = False
 
         folder_of = target_of
     title = mod_title_for(state.rom_path, lambda candidate: read_marker(folder_of(candidate)) is not None)
-    return InstallRequest(Path(state.rom_path), Path(state.mhgen_rom_path) if state.mhgen_rom_path else None,
-                          settings, kind, state.console, target_of(title), title, replace_unknown)
+    xx_rom = Path(state.xx_rom_for(settings)) if state.xx_rom_for(settings) else None
+    return InstallRequest(Path(state.rom_path), settings, kind, state.console, target_of(title), title,
+                          replace_unknown, xx_rom)
 
 
 def install_folder(request: InstallRequest) -> Path:
@@ -114,8 +115,10 @@ def copy_mod(request: InstallRequest, build_dir: Path, seed: str, checksum: str,
     """Copy a build into the request's destination (the emulator's mods folder or the SD card). `title` is the
     build's own (RunResult.mod_title; None: unknown, as when a saved build comes back): it must be the destination's,
     so a USA build never lands in the European folder or the other way round (raises UnsafeTarget)."""
+    from core.game.executable.romfs import RomFS
     from core.install.console import build_title, install_sd
     from core.install.deploy import UnsafeTarget, install
+    from core.install.hd_textures import adapt_pack
     if request.console:
         built = build_title(build_dir)
         if built != request.title.upper():
@@ -125,6 +128,7 @@ def copy_mod(request: InstallRequest, build_dir: Path, seed: str, checksum: str,
     else:
         install(build_dir, request.target, request.kind, seed=seed, checksum=checksum, settings=settings,
                 replace_unknown=request.replace_unknown, progress=progress, title=title or request.title)
+        adapt_pack(request.target, Path(build_dir) / "romfs", lambda: RomFS(request.rom), progress)
 
 
 def discard_build(request: InstallRequest, build_dir: Path) -> None:
@@ -139,8 +143,8 @@ def run_install(request: InstallRequest, report) -> InstallOutcome:
     """Build the mod and install it (worker thread). `report` is a worker Reporter: the pipeline's stages and
     progress, then the stage "install" with the copy's progress, then "done"."""
     from core.install.build import build
-    result = build(request.rom, request.mhgen_rom, request.settings, console=request.console, kind=request.kind,
-                   progress=report.progress, stage=report.stage)
+    result = build(request.rom, request.settings, console=request.console, kind=request.kind,
+                   progress=report.progress, stage=report.stage, xx_rom=request.xx_rom)
     code = result.checksum.code if result.checksum else ""
     settings = request.settings.for_console() if request.console else request.settings
     report.stage("install")

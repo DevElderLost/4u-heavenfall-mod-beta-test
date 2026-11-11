@@ -30,6 +30,7 @@ WINDOW_TITLE = T(edition().window_title, edition().window_title)
 PAGE_INSTALL = T("Instalar", "Install")
 PAGE_OPTIONS = T("Opciones", "Options")
 PAGE_RANDOMIZER = T("Randomizer", "Randomizer")
+PAGE_SAVES = T("Partidas", "Saves")
 PLATFORM_EMULATOR = T("Emulador", "Emulator")
 PLATFORM_3DS = T("3DS", "3DS")
 
@@ -50,6 +51,7 @@ ALL_PAGES = {
     "install": ("install_page", "InstallPage", PAGE_INSTALL),
     "options": ("options_page", "OptionsPage", PAGE_OPTIONS),
     "randomizer": ("randomizer_page", "RandomizerPage", PAGE_RANDOMIZER),
+    "saves": ("saves_page", "SavesPage", PAGE_SAVES),
 }
 PAGES = {key: ALL_PAGES[key] for key in edition().pages}    # the edition's, in its order
 
@@ -122,7 +124,9 @@ class MainWindow(QMainWindow):
         pages = pages or default_pages(self.state)
         translator.language = self.preferences.language if self.preferences.language in LANGUAGE_NAMES \
             else system_language()
-        self.console = self.state.console and "console" in edition().platforms
+        if self.state.console and "console" not in edition().platforms:
+            self.state.console = False      # a saved choice this edition has no form for: its jobs read the state
+        self.console = self.state.console
         self._factories = {key: factory for key, _, factory in pages}
         self.page_keys = [key for key, _, _ in pages]
         self._titles = {key: title for key, title, _ in pages}

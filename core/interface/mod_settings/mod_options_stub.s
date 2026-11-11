@@ -19,9 +19,32 @@
 @ mod_raw_a, mod_raw_b: FUN_0026e33c and FUN_0027335c load the weapon classes' table (`ldr r0, [pc, ...]`, `ldr r2, [pc,
 @   ...]`): the base address comes from mod_options_state, the game's table or one of 100s; no flag changes.
 @
-@ gate_*: a call of the game that another block took (hold A, fast text, fast gathering, the lock-on's D-pad filter) goes
-@   here first: with the option off it makes the game's own call, else it goes on to the block's entry. Only the flags
-@   change (r12 is kept), so the callee gets its registers and stack arguments as they came.
+@ mod_camera_cap: FUN_00bfd028, the camera's turn by the buttons, adds the frame's time to how long a turn has been held
+@   and caps it with `vldr s0, [pc, ...]` (10.0); the turn's speed grows with that time, so the cap is its top speed. The
+@   load takes the mod's value instead (the game's own literal until mod_frame has run), and the flags are kept.
+@
+@ mod_box_kind: FUN_009ec82c(scene, box) stores `box` (r6: 0 the house's box, 1 the Gathering Hall's) in its menu with
+@   `strb r6, [r4, #0x2]`, then reads r6 and that byte again: box 0 gets seven lines and the house's set-ups, and only
+@   for box 0 does the menu draw the lines past four and the submenus they open. The game's box is kept in
+@   mod_options_state for mod_box_lines. With the option on r6 becomes 0 first, so every box is the house's; off, or
+@   before mod_frame has run, the game's. The store becomes `bl mod_box_kind`, which returns to the next instruction: lr
+@   is free there (the function pushed it on entry), and only the flags change (the function compares again before it
+@   uses them).
+@
+@ mod_box_lines: FUN_009ec82c(scene, box) then stores the menu's count of lines, 7 for box 0 and 4 for box 1, with
+@   `strb r1, [r4, #0xa]`. At a box away from home (the game's box was not 0) with the option on the count is its
+@   value's: the lines past 4 are Manage Equipment, Equipment Sets and Change Appearance, and the value leaves out
+@   Change Appearance, whose screen only the house loads. The house's box keeps the game's
+@   7; off, or before mod_frame has run, the game's. Only the flags change (the function compares again before it uses
+@   them).
+@
+@ keyboard_poll_game: FUN_002b58e8, the poll of the game's keyboard, from its second instruction on: the game's poll
+@   for the gate and for the system keyboard's block, whose hook replaced the first (`push {r4, r5, r6, lr}`).
+@
+@ gate_*: a call of the game that another block took (hold A, fast text, fast gathering, the lock-on's D-pad filter, the
+@   death camera skip's call of FUN_00c03d70 in the camera manager's frame) goes here first: with the option off it
+@   makes the game's own call, else it goes on to the block's entry. Only the flags change (r12 is kept), so the callee
+@   gets its registers and stack arguments as they came.
 @
 @ Build: tools/build/build_code_space.py (devkitARM), which places and links it.
 
@@ -30,9 +53,9 @@
     .arm
     .global _start
     .global mod_frame_stub, mod_bloom, mod_fov_reset, mod_fov_other, mod_net_waits, mod_net_polls_a, mod_net_polls_b
-    .global mod_raw_a, mod_raw_b
+    .global mod_raw_a, mod_raw_b, mod_camera_cap, mod_box_kind, mod_box_lines
     .global gate_hold_a_field, gate_hold_a_rewards, gate_hold_a_claim, gate_fast_text, gate_fast_motion
-    .global gate_fast_timer, gate_lock
+    .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera
 
     @ struct mod_options_state (mod_options.c checks the offsets)
     .equ NET_WAITS, 16
@@ -40,14 +63,21 @@
     .equ FOV_ONE, 24
     .equ FOV_OTHER, 28
     .equ RAW_BASE, 32
+    .equ CAMERA_CAP, 56
+    .equ BOX_LINES, 60
+    .equ BOX_AWAY, 61
     @ the options' places in mod_options_state.values (mod_options.py OPTION_IDS)
     .equ OPT_BLOOM, 1
     .equ OPT_LOCK, 6
     .equ OPT_HOLD_A, 7
     .equ OPT_FAST_TEXT, 8
     .equ OPT_FAST_GATHERING, 9
+    .equ OPT_BOX, 11
+    .equ OPT_KEYBOARD, 12
+    .equ OPT_DEATH_CAMERA, 13
     .equ GAME_FOV_ONE, 0x42480000       @ 50.0, the game's literal of the reset case "not equal" and of FUN_00c06a14
     .equ GAME_FOV_OTHER, 0x42680000     @ 58.0, the reset case "equal"
+    .equ GAME_CAMERA_CAP, 0x41200000    @ 10.0, FUN_00bfd028's cap
 
 _start:
 mod_frame_stub:
@@ -121,6 +151,41 @@ mod_raw_b:
     ldr     r2, [r2, #RAW_BASE]
     b       raw_b_return
 
+mod_camera_cap:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_CAP]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_CAP
+    vmov    s0, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_cap_return
+
+mod_box_kind:
+    push    {r12}
+    ldr     r12, =mod_options_state
+    strb    r6, [r12, #BOX_AWAY]
+    ldrb    r12, [r12, #OPT_BOX]
+    cmp     r12, #0
+    movne   r6, #0
+    strb    r6, [r4, #0x2]
+    pop     {r12}
+    bx      lr
+
+mod_box_lines:
+    push    {r12}
+    ldr     r12, =mod_options_state
+    ldrh    r12, [r12, #BOX_LINES]  @ the count, and above it the box away from home
+    tst     r12, #0xFF00
+    andne   r12, r12, #0xFF
+    cmpne   r12, #0
+    movne   r1, r12
+    strb    r1, [r4, #0xa]
+    pop     {r12}
+    b       box_lines_return
+
     .macro gate name, option, entry, original
 \name:
     push    {r12}
@@ -139,5 +204,11 @@ mod_raw_b:
     gate    gate_fast_motion, OPT_FAST_GATHERING, fast_gathering_motion, motion_speed
     gate    gate_fast_timer, OPT_FAST_GATHERING, fast_gathering_timer, has_skill
     gate    gate_lock, OPT_LOCK, dpad_filter_entry, dpad_actions
+    gate    gate_system_keyboard, OPT_KEYBOARD, system_keyboard_poll, keyboard_poll_game
+    gate    gate_death_camera, OPT_DEATH_CAMERA, death_camera_step, camera_play
+
+keyboard_poll_game:
+    push    {r4, r5, r6, lr}
+    b       keyboard_poll_body
 
     .ltorg

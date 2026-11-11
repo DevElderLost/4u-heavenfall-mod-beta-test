@@ -24,7 +24,8 @@
  *     FUN_0028beac(group, 0xff)); WANTED: the cards are refreshed with FUN_00a6eea0(scene) (it needs the owner, the
  *     group and the session; it writes the slot structs and the box's own panes). Not WANTED and shown: hidden
  *     (FUN_00ae53e0(group, 0)); not WANTED and hidden: nothing.
- * The draw priority is the binder's (layouts.ui500 in single_screen.json). The group is never kept between frames.
+ * The draw priority is the game's (10, set by the hub's setup FUN_009B2744), behind every top-screen group of a hall.
+ * The group is never kept between frames.
  *
  * Build: tools/build/build_code_space.py, as a unit of the frames block; the game functions and
  * variables are named in blocks.py GAME_SYMBOLS.

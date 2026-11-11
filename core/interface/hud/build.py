@@ -3,7 +3,6 @@
 The layouts were identified in the game with research/probes/hud_probe.py.
 """
 
-import os
 import re
 from collections.abc import Collection, Iterator, Mapping
 from pathlib import Path
@@ -36,9 +35,11 @@ HUD_LAYOUTS: dict[str, dict[str, AnchorSpec | dict[str, AnchorSpec]]] = {
 # the game is in a quest (code_patch.patch_talk_size, quest_frames). Only together with the executable patch.
 HUD_IN_QUEST: dict[str, dict[str, dict[str, AnchorSpec]]] = {
     "core_common.arc": {
-        # the talk windows (NPCs', quests'), from their bottom-left corner; not the hall's chat log (kaiwa03, chat)
+        # the talk windows (NPCs', quests') and the chat log (its grounds kaiwa02, 03, 04 and its lines, chat), from
+        # their bottom-left corner
         "ui005": {"ui005_kaiwa00": Anchor.BOTTOM_LEFT, "ui005_kaiwa01": Anchor.BOTTOM_LEFT,
-                  "ui005_kaiwa02": Anchor.BOTTOM_LEFT, "ui005_kaiwa04": Anchor.BOTTOM_LEFT},
+                  "ui005_kaiwa02": Anchor.BOTTOM_LEFT, "ui005_kaiwa04": Anchor.BOTTOM_LEFT,
+                  "ui005_kaiwa03": Anchor.BOTTOM_LEFT, "ui005_chat": Anchor.BOTTOM_LEFT},
     },
 }
 # ARC in <lang>/data/ -> layout -> root groups whose panes the game's code positions every frame in the file's own
@@ -83,9 +84,8 @@ def layouts_of(arc_name: str, with_code_patch: bool) -> dict[str, AnchorSpec | d
     return layouts
 
 UPDATE_TITLE_ID = "0004000e00126100"
-# Emulators keep installed titles decrypted on their virtual SD card:
+# Emulators keep installed titles decrypted on their virtual SD card (install/targets.py, emulator_folders):
 # <user folder>/<emulator>/sdmc/Nintendo 3DS/<id>/<id>/title/0004000e/00126100/content/00000000.app
-EMULATORS = ("Citra", "Azahar", "Lime3DS", "citra-emu", "azahar-emu", "lime3ds-emu")
 UPDATE_CONTENT = Path("title") / "0004000e" / "00126100" / "content" / "00000000.app"
 
 
@@ -195,16 +195,10 @@ def hud_files(rom: GameFiles, factor: float,
                 yield path, scale_arc(raw, {name: MINIMAP_ANCHOR for name in names}, factor)
 
 
-def emulator_folders() -> list[Path]:
-    """User folders where Citra and its forks keep their data (Windows, Linux, macOS)."""
-    bases = [Path(os.environ[var]) for var in ("APPDATA", "XDG_DATA_HOME") if os.environ.get(var)]
-    bases += [Path.home() / ".local" / "share", Path.home() / "Library" / "Application Support"]
-    return [base / name for base in bases for name in EMULATORS]
-
-
 def find_update() -> Path | None:
     """The update's 00000000.app installed in an emulator, if any: for research tools that build from it on
     purpose (research/probes/port_probe.py update_app); a run never looks for it."""
+    from core.install.targets import emulator_folders
     for folder in emulator_folders():
         sd_card = folder / "sdmc" / "Nintendo 3DS"
         if sd_card.is_dir():

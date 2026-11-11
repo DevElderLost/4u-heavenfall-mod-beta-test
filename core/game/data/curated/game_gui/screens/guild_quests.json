@@ -1,0 +1,10 @@
+{
+  "description": "The Guild Quests page of the START menu (Manage List: Registered Quests and Quest Pool). The touch screen's list (ui532: the two tabs, the quests, Delete, Check All, Show Founder, Register Quest) and the top screen's information panel (ui510: Guild Quest Info) stand side by side on the top screen, the panel at the Courier's place, so the player sees and reads the list and nothing overlaps. The page is ui532's hozonquest group (the quest list's frame) with the panel's levelquest_info group; ui532 alone (any other use of its groups) stays where the game puts it.",
+  "screens": [
+    {"id": "guild_quests", "number": "90", "name": "Misiones del gremio: lista", "mode": "single_screen", "when": {"all": ["ui532_hozonquest", "ui510_levelquest_info"]}, "blocks": {
+      "ui532.board": {"x": 2.0, "y": 46.0, "scale": 0.64, "screen": "top", "priority": 57},
+      "ui510.panels": {"x": 127.2, "y": 42.0, "scale": 0.72},
+      "ui510.background": {}
+    }}
+  ]
+}

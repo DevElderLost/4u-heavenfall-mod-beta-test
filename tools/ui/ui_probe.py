@@ -2,15 +2,16 @@
 plus the frame counters the recorder needs to copy the GUI only between frames
 (core/interface/game_gui/gui_frame_marks.s).
 
-    python tools/ui/ui_probe.py --out output/ui/rec<N>_<round> [--single-screen] [--rom GAME] [--mhgen MHGEN]
+    python tools/ui/ui_probe.py --out output/ui/rec<N>_<round> [--single-screen] [--rom GAME]
 
 Writes OUT: a whole mod without the randomizer, as the GUI installs it (presets.install_settings) with the
 installer options this machine's GUI has saved, `single_screen` off (the recordings are the game's own GUI) and
 `layered_equipment` on (its menus are recorded too), and the frame counters: the variable `gui_frame_marks`
 (game/executable/blocks.py) that sMhMain::frame's two hooks keep (started, done). GAME is the player's base game,
-European or American (default: local.ini `mh4u_rom`); MHGEN is MH Generations' decrypted .3ds (default: local.ini
-`mhgen_rom`). `--single-screen`: single-screen mode on instead (the migration's probes: today's look with the arranged
-themes placed by the game GUI engine), to record the arranged screens.
+European or American (default: local.ini `mh4u_rom`); XX is MH XX's decrypted .3ds
+(defaults: local.ini `mhxx_rom`). `--single-screen`: single-screen mode on instead (the migration's probes: today's look
+with the arranged themes placed by the game GUI engine), to record
+the arranged screens.
 Nothing is installed here; `python tools/ui/ui.py probe NAME --install` builds the next round and installs it over one
 of our own probes only (`install_probe`).
 """
@@ -99,7 +100,8 @@ def recording_settings(single_screen: bool = False):
     return presets.install_settings({**defaults, **saved, "single_screen": single_screen, **layered})
 
 
-def build(out: Path, single_screen: bool, rom: Path | None = None, mhgen: Path | None = None):
+def build(out: Path, single_screen: bool, rom: Path | None = None,
+          xx: Path | None = None):
     """Writes the probe into `out` (a new folder); returns (the run's result, the settings, the counters' address)."""
     config = local_config.load()
     rom = rom or config.get("mh4u_rom")
@@ -110,7 +112,8 @@ def build(out: Path, single_screen: bool, rom: Path | None = None, mhgen: Path |
     layout = counters_layout()
     probe = pipeline.Probe(lambda code: patch_frame_counters(code, layout), layout)
     settings = recording_settings(single_screen)
-    result = pipeline.run(Path(rom), Path(out), settings, mhgen_rom=mhgen or config.get("mhgen_rom"), probe=probe)
+    result = pipeline.run(Path(rom), Path(out), settings,
+                          xx_rom=xx or config.get("mhxx_rom"), probe=probe)
     for notice in result.notices:
         print(f"notice: {notice}")
     return result, settings, layout.address("gui_frame_marks")
@@ -120,11 +123,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--rom", type=Path, help="the base game (default: local.ini mh4u_rom)")
-    parser.add_argument("--mhgen", type=Path, help="MH Generations' .3ds (default: local.ini mhgen_rom)")
+    parser.add_argument("--xx-rom", type=Path, help="MH XX's .3ds (default: local.ini mhxx_rom)")
     parser.add_argument("--single-screen", action="store_true",
                         help="single-screen mode on (the arranged screens placed by the game GUI engine)")
     args = parser.parse_args()
-    result, _settings, counters = build(args.out, args.single_screen, args.rom, args.mhgen)
+    result, _settings, counters = build(args.out, args.single_screen, args.rom, args.xx_rom)
     print(f"{args.out}: {result.game_version}, frame counters at {counters:#x}, executable {result.executable_path}")
 
 

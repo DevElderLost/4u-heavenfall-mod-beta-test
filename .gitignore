@@ -3,7 +3,8 @@ local.ini
 # Builds, recordings and pictures (tools/release/build_exe.py, tools/ui/ui_recorder.py, tools/ui/ui.py)
 work/
 output/
-# Python
+# Python (.venv: run.sh's packages)
+.venv/
 __pycache__/
 *.pyc
 *.egg-info/

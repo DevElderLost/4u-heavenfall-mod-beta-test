@@ -51,7 +51,7 @@ def check_game(game: str | Path, language: str) -> dict:
     from core.game.executable import titles
     from core.gui.strings import REGIONS, describe_problem
     from core.install.build import check_inputs
-    problems = check_inputs(Path(game), None, need_mhgen=False)
+    problems = check_inputs(Path(game))
     if problems:
         return {"ok": False, "problem": "; ".join(describe_problem(problem, language) for problem in problems)}
     return {"ok": True, "title": titles.mod_title_of_file(game), "region": REGIONS[titles.file_kind(game)[1]](language)}

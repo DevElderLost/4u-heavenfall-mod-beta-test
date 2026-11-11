@@ -21,7 +21,8 @@ const TEXTS = {
     gameBad: "✗ {problem}",
     optionsTitle: "2. Opciones",
     optionsHelp: "Las opciones por defecto valen para casi todo el mundo: pantalla única, HUD al 70 % e imagen más "
-      + "nítida. Los trucos, fijar monstruos con L y mantener A también se cambian dentro del juego: menú START, "
+      + "nítida. Cada módulo (pantalla única, equipo superpuesto, otros) tiene su interruptor: apagado, el juego queda "
+      + "como el original en todo lo suyo. Los trucos, fijar monstruos con L y mantener A también se cambian dentro del juego: menú START, "
       + "tercera página, Ajustes del mod.",
     optionsShow: "Ver y cambiar opciones",
     reset: "Restablecer",
@@ -106,8 +107,9 @@ const TEXTS = {
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
     gameBad: "✗ {problem}",
     optionsTitle: "2. Options",
-    optionsHelp: "The default options suit most players: single screen, the HUD at 70% and a sharper picture. The "
-      + "cheats, the lock-on with L and holding A can also be changed inside the game: START menu, third page, "
+    optionsHelp: "The default options suit most players: single screen, the HUD at 70% and a sharper picture. Each "
+      + "module (single screen, Layered gear, other) has its own switch: off, the game stays as the original in "
+      + "everything it holds. The cheats, the lock-on with L and holding A can also be changed inside the game: START menu, third page, "
       + "Mod Settings.",
     optionsShow: "See and change options",
     reset: "Reset",

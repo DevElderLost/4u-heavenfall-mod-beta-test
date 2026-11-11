@@ -156,8 +156,9 @@ FIX_LOADING = T("Cargando…", "Loading…")
 FIX_INSTALLED_NONE = T("No hay ninguna partida de Randomizer instalada en el destino.",
                        "No Randomizer game is installed at the destination.")
 FIX_NO_RESULT = T("Pulsa «Previsualizar» para ver qué cambia.", "Press \"Preview\" to see what changes.")
-FIX_NEED_FILES = T("Elige la ROM de MH4U y la de MH Generations en la página Instalar.",
-                   "Choose the MH4U and MH Generations ROMs on the Install page.")
+FIX_NEED_FILES = T("Elige la ROM de MH4U en la página Instalar.", "Choose the MH4U ROM on the Install page.")
+FIX_NEED_XX = T("Tus opciones necesitan Monster Hunter XX (japonés): elige su archivo en la página Instalar.",
+                "Your options need Monster Hunter XX (Japanese): choose its file on the Install page.")
 FIX_NEED_TARGET = T("No hay destino: elige el emulador o la tarjeta SD en la página Instalar.",
                     "No destination selected: choose the emulator or the SD card on the Install page.")
 FIX_INPUTS = T("Faltan archivos del juego:\n{problems}", "Some game files are missing:\n{problems}")
@@ -192,6 +193,10 @@ GAME_PROBLEMS = {
                  "this is Monster Hunter 4 Ultimate, not Monster Hunter Generations"),
     "is_mhgen": T("es Monster Hunter Generations, no Monster Hunter 4 Ultimate",
                   "this is Monster Hunter Generations, not Monster Hunter 4 Ultimate"),
+    "wrong_mhxx": T("no es Monster Hunter XX japonés",
+                    "this is not the Japanese Monster Hunter XX"),
+    "is_mhxx": T("es Monster Hunter XX, no el juego que se pide aquí",
+                 "this is Monster Hunter XX, not the game asked for here"),
     "unreadable": T("no se puede leer el archivo (¿está en uso, sin permiso o en una unidad desconectada?)",
                     "the file cannot be read (check that it is not in use, that you have permission to open it, and "
                     "that its drive is connected)"),
@@ -266,7 +271,7 @@ def describe_problem(problem: str, language: str) -> str:
 
 
 # The region a game file is from, shown beside its picker
-REGIONS = {"eur": T("Europa", "Europe"), "usa": T("América", "America")}
+REGIONS = {"eur": T("Europa", "Europe"), "usa": T("América", "America"), "jpn": T("Japón", "Japan")}
 FIX_APPLIED_INSTALLED = T("Arreglo instalado: revisión {revision}, código {code}. Envía {file} a quien juegue contigo.",
                           "Fix installed: revision {revision}, code {code}. Send {file} to everyone you play with.")
 FIX_RESTORED_INSTALLED = T("Copia {name} restaurada e instalada.", "Backup {name} restored and installed.")

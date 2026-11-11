@@ -15,6 +15,7 @@ typedef unsigned char u8;
 #define ZONE_VERSION 4          /* its u16 */
 #define ZONE_ASPECT 9           /* its u8: 0 the installer's ratio, else its place + 1 */
 #define HUD_CODES 16            /* interface/hud/anchors.py hud_code: an entry from here on is the HUD's */
+#define CORNER_CODES 32         /* anchors.py corner_code: from here on, a corner the data names, from the game's frame */
 #define BOTTOM_SCREEN_VIEW 7    /* FUN_00aeee7c's view that draws on the bottom screen */
 #define CAMERA_ASPECT 0x38      /* the camera's aspect, which uMhCamera's projection reads */
 #define VIEW_SHORT_SIDE 240.0f  /* the whole top screen's view, turned as the hardware has it: the screen's height */
@@ -58,7 +59,8 @@ struct aspect_data {            /* aspect_ratio.py aspect_data */
 struct anchor {                 /* interface/hud/anchors.py anchor_table */
     unsigned hash;              /* the root group's name */
     short low, high;            /* its box in the frame's pixels at a translate of 0; twice one number: that side, or
-                                   from HUD_CODES on the HUD's anchor, whose files are fitted to the installer's ratio */
+                                   from HUD_CODES on the HUD's anchor, whose files are fitted to the installer's ratio,
+                                   or from CORNER_CODES on a corner's, whose files are the game's */
 };
 
 struct anchors {
@@ -219,10 +221,28 @@ static int side_under_nulls(const char *group, float x, float low, float high)
     return side_of(CENTRE_X - x - scale * (CENTRE_X - low), CENTRE_X - x - scale * (CENTRE_X - high));
 }
 
+/* The anchor's signs of a HUD or corner code (anchors.py hud_code, corner_code): x in bits 2-3, y in bits 0-1, each + 1 */
+static int code_bits(int code)
+{
+    return code >= CORNER_CODES ? code - CORNER_CODES : code - HUD_CODES;
+}
+
+/* The interface's width and height its files were fitted to: the installer's ratio for the HUD's, the game's frame (1)
+ * for a corner's */
+static float fitted_width(int code)
+{
+    return code >= CORNER_CODES ? 1.0f : installed()->gui_width;
+}
+
+static float fitted_height(int code)
+{
+    return code >= CORNER_CODES ? 1.0f : installed()->gui_height;
+}
+
 /* FUN_00ae65f8's load of a group's second translate, which it adds to the group's place as it draws the group: that
  * translate, with the group's way to its side of the wider interface. A layout's x grows to the left, a pixel's to the
  * right. The side counts where the game has the group now, so a group the code moves to the other column follows it. The
- * HUD's files are at their sides of the installer's ratio: it takes the way from there. */
+ * HUD's files are at their sides of the installer's ratio: it takes the way from there; a corner's are the game's. */
 float aspect_group_x(const char *group, const char *context)
 {
     float second = *(const float *)(group + GROUP_SECOND_X);
@@ -235,8 +255,8 @@ float aspect_group_x(const char *group, const char *context)
     if (!anchor)
         return second;
     if (anchor->low == anchor->high && anchor->low >= HUD_CODES)
-        return second + (float)(((anchor->low - HUD_CODES) >> 2) - 1) * CENTRE_X
-            * (in_use()->gui_width - installed()->gui_width);
+        return second + (float)((code_bits(anchor->low) >> 2) - 1) * CENTRE_X
+            * (in_use()->gui_width - fitted_width(anchor->low));
     if (anchor->low == anchor->high) {
         side = anchor->low;
     } else {
@@ -249,8 +269,8 @@ float aspect_group_x(const char *group, const char *context)
     return second - (float)side * CENTRE_X * (in_use()->gui_width - 1.0f);
 }
 
-/* The same load of the second translate's y: only the HUD keeps to the top and the bottom of a taller interface. A layout's
- * y grows upwards. */
+/* The same load of the second translate's y: only the HUD and the corners keep to the top and the bottom of a taller
+ * interface. A layout's y grows upwards. */
 float aspect_group_y(const char *group, const char *context)
 {
     float second = *(const float *)(group + GROUP_SECOND_Y);
@@ -261,8 +281,8 @@ float aspect_group_y(const char *group, const char *context)
     anchor = find_anchor(*(const unsigned *)group);
     if (!anchor || anchor->low != anchor->high || anchor->low < HUD_CODES)
         return second;
-    return second + (float)(((anchor->low - HUD_CODES) & 3) - 1) * CENTRE_Y
-        * (in_use()->gui_height - installed()->gui_height);
+    return second + (float)((code_bits(anchor->low) & 3) - 1) * CENTRE_Y
+        * (in_use()->gui_height - fitted_height(anchor->low));
 }
 
 static int moved(float at, int centre, float factor)

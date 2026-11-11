@@ -20,6 +20,11 @@ DATA_INFO = 0x30                     # .data: address, size in pages, size in by
 BSS_SIZE = 0x3C
 KERNEL_CAPS = (0x370, 0x770)         # ARM11 kernel capabilities, and the access descriptor's copy
 CAPS = 28                            # descriptors per copy; 0xFFFFFFFF is an empty one
+# ARM11 local system capabilities' filesystem access info (7 bytes: storage info + 0x18), and the access descriptor's
+# copy, which the console checks it against. Bits: 3dbrew "NCCH/Extended Header", "Filesystem Access Info".
+FS_ACCESS = (0x248, 0x648)
+FS_ACCESS_SIZE = 7
+FS_CATEGORY_SYSTEM_APPLICATION = 0x1
 EMPTY = 0xFFFFFFFF
 SVC_PREFIX, SVC_PREFIX_MASK = 0xF0000000, 0xF8000000  # 0b11110: SVCs 24 * index + bit (bits 0-23)
 # Each MH4U version's (game/executable/versions.py keys) .text, .rodata and .data sizes and .bss, as their exheaders
@@ -77,6 +82,20 @@ def _allow_svc(exheader: bytearray, at: int, svc: int) -> None:
             raise ExheaderError(f"no free kernel capability for SVC {svc:#x}")
         caps[caps.index(EMPTY)] = SVC_PREFIX | index << 24 | 1 << bit
     struct.pack_into(f"<{CAPS}I", exheader, at, *caps)
+
+
+def allow_fs_access(exheader: bytes, bits: int) -> bytes:
+    """`exheader` whose filesystem access info asks for `bits` too, in the access info and in the access descriptor's
+    copy (Luma3DS' signature patches accept the descriptor, as they accept the bootstrap's system calls)."""
+    if len(exheader) != SIZE:
+        raise ExheaderError(f"an exheader has {SIZE:#x} bytes, not {len(exheader):#x}")
+    if bits >> 8 * FS_ACCESS_SIZE:
+        raise ExheaderError(f"the filesystem access info has {8 * FS_ACCESS_SIZE} bits, not {bits:#x}")
+    out = bytearray(exheader)
+    for at in FS_ACCESS:
+        have = int.from_bytes(out[at:at + FS_ACCESS_SIZE], "little")
+        out[at:at + FS_ACCESS_SIZE] = (have | bits).to_bytes(FS_ACCESS_SIZE, "little")
+    return bytes(out)
 
 
 def exheader_version(exheader: bytes) -> str:

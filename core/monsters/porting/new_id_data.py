@@ -2,7 +2,9 @@
 only, so that game/executable/blocks.py can declare the blocks. new_id.py patches these places.
 
 The update knows ids 0-123. Every table indexed by a monster id has 124 entries (some 123); new ids are
-FIRST_NEW_ID to ID_LIMIT - 1. ID_LIMIT is 128 because the save already keeps 128 hunt, capture and size records.
+FIRST_NEW_ID to ID_LIMIT - 1. ID_LIMIT is 200 (the hard ceiling is 254, the id being a
+byte). The game's save keeps 128 hunt, capture and size records (SAVE_IDS): ids 128-199 never reach its arrays (the
+save functions' bounds stay as they are).
 """
 
 from __future__ import annotations
@@ -10,9 +12,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 FIRST_NEW_ID = 124
-ID_LIMIT = 128
+ID_LIMIT = 200
+SAVE_IDS = 128                 # the ids the game's save keeps hunt, capture and size records for
 NEW_IDS = ID_LIMIT - FIRST_NEW_ID
 NO_MONSTER = 0                 # id 0: the entry new ids get when they copy no monster
+C_DEFINES = (f"FIRST_NEW_ID={FIRST_NEW_ID}", f"ID_LIMIT={ID_LIMIT}")     # new_id.c's macros (BlockSpec.defines)
 
 
 @dataclass(frozen=True)
@@ -62,13 +66,14 @@ ID_TABLES = (
     IdTable("effect_base_b", 0x1003ED4, 2, (0x9358F4,), "s16 index into 0x1002A5C: FUN_009357ec"),
     # reached from the quest's monster ids, not from em's
     IdTable("icons", 0xE06698, 1, (0xC0E260, 0xC0E884),
-            "the monster's icon (0x7F: none); FUN_00c0e1b4 and FUN_00c0e850 copy it to the stack (STACK_COPIES)"),
+            "the monster's icon (0x7F: none); FUN_00c0e1b4 and FUN_00c0e850 read the moved table (ICON_READERS)"),
     IdTable("hunt_points", 0xE067F4, 2, (0x6968BC,), "u16 points of a hunt: FUN_006968ac, from FUN_006b4110"),
     IdTable("hunt_tier", 0xE070A4, 1, (0x6B87E4,), "a rank 0-4 (0xFF: none) the quest compares: 0x6B83E8"),
     IdTable("hunt_class", 0xE07120, 1, (0x6B464C,), "a class byte (17, 18, 20, 33, 36, 40): FUN_006b4110"),
     IdTable("quest_rewards", 0xE07708, 10, (0x6A2818, 0x6A28D4), "five u16 per monster: 0x6A2808"),
     IdTable("target_kind", 0xE0FE8C, 1, (0xC56F30,),
-            "a flag byte the target camera reads; 0xC56DB0 copies it to the stack (STACK_COPIES)"),
+            "a flag byte the target camera reads; FUN_00c564ec copies it to the stack twice and reads the table "
+            "instead (TABLE_INDEXES)"),
     IdTable("part_records", 0xF384D0, 4, (0x68F05C,), "an offset per monster (-1: none): FUN_0068effc"),
     IdTable("quest_monster", 0xFBF5C8, 30,
             (0x6A06A8, 0x6A2F9C, 0x6A6D28, 0x6A9AF4, 0x6A9AF8, 0x6B4644, 0x6B55EC, 0x6B6430, 0x6B799C, 0x6B7EFC,
@@ -89,25 +94,68 @@ EM_DATA_SLOTS_REFS = (0x68E088,)
 EM_DATA_VARIANTS = 2
 
 # `cmp rX, #0x7C` that must let the new ids through: the crown table's check, the sound ranges' check,
-# the unload loop over the em data slots.
+# the unload loop over the em data slots, the hunt notice. Not 0xAC93EC (FUN_00ac90c8, the quest end's loop that adds
+# each id's hunts and captures to the save) nor 0x615BD8 (FUN_00615bd4, the hunting log's sizes): with them the save's
+# arrays would be written past id 127; they keep their bound.
 BOUND_RAISES = {
     0x6887A8: "FUN_006887a4: crowns",
     0x30F544: "FUN_0030f4f0: sound ranges",
     0x68E07C: "FUN_0068dfa4: unload loop over the em data slots",
-    0xC0E20C: "FUN_00c0e1b4: the icon (sprite)",
-    0xC0E86C: "FUN_00c0e850: the icon",
-    0xAC93EC: "FUN_00ac90c8: quest end, the loop that adds each id's hunts and captures to the save",
     0xB9D700: "FUN_00b9d6f4: the hunt notice (count of the monster's kills in the quest)",
 }
 CMP_IMM_MASK, CMP_IMM = 0x0FF0FFFF, 0x0350007C   # cmp rX, #0x7C
-# `mov r2, #0x7C`: the size of a table's copy to the stack before it is indexed. The frames hold 0x80 bytes
-# there (0xC0E1B4, 0xC0E850: sp+0-0x80; 0xC56DB0: sp+0xC-0x8C of a 0x8C frame, sp+0x88 unused).
-STACK_COPIES = {
-    0xC0E1FC: "FUN_00c0e1b4: icons",
-    0xC0E860: "FUN_00c0e850: icons",
-    0xC56DB0: "0xC56D90: target_kind",
-}
+
+
+@dataclass(frozen=True)
+class IconReader:
+    """FUN_00c0e850 (id in r4) and FUN_00c0e1b4 (id in r2) copied 0x7C bytes of the icons table to a frame of exactly
+    0x80 bytes and indexed the copy; they read the moved table in place. r1 holds its address (the literal
+    extend_tables retargets) from the copy's setup to the indexed load, with no call between once the copy's two
+    words (`copy`: `mov r0, sp`, `bl memcpy`) are nops. `bound` is `cmp rI, #0x7C` (rI the id: `compare`), which becomes
+    `cmp rI, #ID_LIMIT`; `load` is `ldrblt r0, [sp, rI]`, which becomes `ldrblt r0, [r1, rI]`."""
+    name: str
+    copy: tuple[int, int]
+    bound: int
+    compare: int
+    load: int
+    stack_load: int
+    table_load: int
+
+
+ICON_READERS = (
+    IconReader("FUN_00c0e850: the icon", (0xC0E864, 0xC0E868), 0xC0E86C, 0xE354007C, 0xC0E874, 0xB7DD0004, 0xB7D10004),
+    IconReader("FUN_00c0e1b4: the icon (sprite)", (0xC0E200, 0xC0E204), 0xC0E20C, 0xE355007C, 0xC0E214, 0xB7DD0002,
+               0xB7D10002),
+)
+MOV_R0_SP = 0xE1A0000D                                  # mov r0, sp, the memcpy's destination
 MOV_IMM_MASK, MOV_IMM = 0x0FFF0FFF, 0x03A0007C   # mov rX, #0x7C
+# Where a stack copy of an id table is indexed, the copy's base `add r1, sp, #0xC` becomes `ldr r1, [pc, #x]`, the
+# literal the copy was made from (the table's address, which extend_tables points at the copy in the extension):
+# every id reads the extended table, whatever the copy's size. FUN_00c564ec (the target camera) copies target_kind,
+# 0x7C bytes to sp+0xC, at 0xC56CD0 and at 0xC56DAC, and reads `ldrb r0, [r1, r0]` with r0 the monster's id;
+# indexing the copy, a new id read stack bytes past it. Address of the `add` -> address of the literal.
+TABLE_INDEXES = {
+    0xC56CE4: 0xC56F30,
+    0xC56DC0: 0xC56F30,
+}
+# The icon cells: the atlas' right block holds indices 99 to 99 + RIGHT_BLOCK_CELLS - 1 (cells 124-196 are free, 127 is
+# the readers' "no icon"); FUN_00c0e8fc stops it at 0xC0E970 (`cmp r0, #0x19` after `sub r0, r1, #0x63`).
+RIGHT_BLOCK_FIRST = 99
+RIGHT_BLOCK_CELLS = 0x62
+RIGHT_BLOCK_BOUND = 0xC0E970
+RIGHT_BLOCK_WORD = 0xE3500019                     # cmp r0, #0x19
+# The pictures of the quest board and the quest-info screen are icon indices, checked `< 124` (and not 98) at 17 places
+# (`cmp rX, #0x7C`): they let the right block's indices through up to ICON_END - 1.
+ICON_END = RIGHT_BLOCK_FIRST + RIGHT_BLOCK_CELLS
+BOARD_PICTURE_BOUNDS = (
+    0x224BCC,                                                         # FUN_00224b14: the quest-info screen
+    0x9F4434, 0x9F444C, 0x9F446C, 0x9F448C, 0x9F44AC,
+    0xA633DC, 0xA633F4, 0xA63414, 0xA63434, 0xA63454,
+    0xA6E324, 0xA6E33C, 0xA6E35C, 0xA6E37C, 0xA6E39C,
+    0xC0E580,
+)
+ADD_R1_SP_C = 0xE28D100C                          # add r1, sp, #0xC
+LDR_R1_PC = 0xE59F1000                            # ldr r1, [pc, #+x]
 
 # The quest manager's kill records: KILLS_ENTRY bytes per id at quest + KILLS (u16 largest size, smallest
 # size, hunts, captures), ids 0-123; another array follows at once (quest+0xB2E4, 0x128 bytes). Every
@@ -130,7 +178,7 @@ KILL_SITES = {
 KILL_CLEARS = (0x6BB098, 0x6BCF14)
 ADD_LSL3_MASK, ADD_LSL3 = 0xFFF00FF0, 0xE0800180    # add rD, rB, rI, lsl #3
 KILL_STUB = 12 * 4
-CLEAR_STUB = 17 * 4
+CLEAR_STUB = 16 * 4
 
 # The monster's theme: FUN_0030e16c(manager, id, u8 *queue, u32 *request), a switch on the id that writes the
 # queue and the request and returns nothing. Its first instruction goes to a stub (theme_stub) that gives a new
@@ -180,7 +228,7 @@ ALIAS_JUMPS = {
 }
 ALIAS_TAIL = 3                                          # words after the comparison: ALIAS_JUMPS' and a branch
 CMP_ANY_MASK, CMP_ANY = 0x0FF0F000, 0x03500000   # cmp rX, #imm
-ALIAS_STUB = (2 * NEW_IDS + 2 + ALIAS_TAIL) * 4
+ALIAS_STUB = (2 + 2 * NEW_IDS + 2 + ALIAS_TAIL) * 4      # the guard of the game's ids, the new ids', the comparison
 
 # The monster's name: FUN_005a91ac(text, id) sets `text` to entry `id` of emName (message file 6). A stub at its
 # entry (name_stub) gives a new id the entry of `names` instead (an unused entry the mod rewrites). Its first

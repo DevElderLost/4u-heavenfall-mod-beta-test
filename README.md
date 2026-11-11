@@ -1,174 +1,57 @@
 # Heavenfall Beta: Play Monster Hunter 4 Ultimate on a Single Screen
 
-**A fan-made mod for the European and American versions of Monster Hunter 4 Ultimate (3DS), designed for playing on a single screen in an emulator.**
+**A fan-made mod for the European and American versions of Monster Hunter 4 Ultimate (3DS), designed for playing on a single screen in an emulator, and playable on a real 3DS too.**
 
-Heavenfall Beta is the single-screen module of Heavenfall, a mod for Monster Hunter 4 Ultimate. It moves menus normally displayed on the bottom screen to the top screen, adds a button combination for locking on to monsters without using the touchscreen, and lets you scale down the HUD. It also includes five built-in cheats as a fallback in case your emulator's own cheats don't work.
+Heavenfall Beta moves the menus of the bottom screen to the top screen, locks on to monsters without the touchscreen, scales down the HUD and adds Layered Gear, quality-of-life options and built-in cheats. Your game file is never modified.
 
-You choose your options in a small program, press one button, and it installs the mod into your emulator. Your game file is never modified.
+> **Disclaimer:** Heavenfall Beta is an unofficial fan project, not affiliated with or endorsed by Capcom or Nintendo. It contains no game files: you need your own copy of the game, dumped from your own cartridge or console. It is provided as is, without any warranty (GPL v3). Back up your saves before installing; on a 3DS, custom firmware and homebrew are your own responsibility.
 
 ## Links
 
-- **Windows program:** https://github.com/popzol/4u-heavenfall-mod-beta/releases/latest (the file `HeavenfallBeta-windows.zip`; [installation instructions](#installation))
-- **Web installer, for Android, Steam Deck or PC, with nothing to install:** https://popzol.github.io/4u-heavenfall-mod-beta/ ([how it works](#the-web-installer))
-- **Discord server, for help, bug reports, feedback and news:** https://discord.gg/qQwPRc8CDF
+- **Downloads:** https://github.com/popzol/4u-heavenfall-mod-beta/releases/latest
+- **Web installer**, with nothing to install: https://popzol.github.io/4u-heavenfall-mod-beta/
+- **Discord server**, for help, bug reports, feedback and news: https://discord.gg/qQwPRc8CDF
 
-> **Status:** Beta. Heavenfall Beta is currently compatible with the **Azahar** and **Citra** emulators on PC, and with **Azahar** on Android. It has not been tried on a real Steam Deck yet. It does not work on a real 3DS.
+## Install it
 
-## Contents
+| Where you play | How |
+|---|---|
+| **Windows** (Azahar or Citra) | [The Windows program](docs/install/windows.md) |
+| **Linux or macOS** (Azahar or Citra) | [The program from a script](docs/install/linux.md), or the web installer |
+| **Android** (Azahar) | [The web installer](docs/install/android.md) |
+| **Steam Deck** (Azahar) | [The web installer or the Linux script](docs/install/steam_deck.md) |
+| **A real 3DS or New 3DS** (custom firmware) | [The Heavenfall Launcher app](docs/install/3ds.md) |
 
-- [What the mod adds](#what-the-mod-adds)
-- [What you need](#what-you-need)
-- [Installation, step by step](#installation)
-- [The web installer](#the-web-installer)
-- [Removing or updating the mod](#removing-or-updating-the-mod)
-- [Questions and problems](#questions-and-problems)
-- [For developers](#for-developers)
-- [Credits and license](#credits-and-license)
+On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
+
+> **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
 
 ## What the mod adds
 
-**Playing on a single screen**
+- **Single Screen Mode** (emulators): every menu of the bottom screen on the top screen.
+- **Lock-on with L**, **Kick on Select**, **holding A** to keep gathering, **faster text** and a **faster camera**.
+- **A smaller HUD**, from 90% to 60%.
+- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange.
+- **Built-in cheats**: 3D, glow and blur off, frame rate, field of view and more.
 
-- Menus normally displayed on the bottom screen are moved to the top screen, including the title screen and main menu, quest list, Canteen, yes/no prompts and menu descriptions.
-- Shops, equipment sets, the Melding Pot, Palico menus, help screens, tutorials and the Arena are also displayed on the top screen, along with the Gathering Hall's menus, Guild Cards, friends, chat and gestures.
-- Character creation also takes place on the top screen, and you can enter character names using the D-pad.
-- In towns and Gathering Halls, X opens the World Map on the top screen, while L displays the town map.
-- In a Gathering Hall, a box in the top-left corner displays each hunter's weapon, name, Hunter Rank and ticket.
-- On the Guild Card, Y hides the menus surrounding the hunters so you can take pictures (press X while editing the card).
-- The touchscreen remains fully functional whenever the bottom screen is visible.
+The full list is in **[what the mod adds](docs/features.md)**, and every change in the **[changelog](CHANGELOG.md)**.
 
-**Locking on with L**
+## Help
 
-- Hold L and press Up on the D-pad to lock on to a large monster or switch between targets. The target monster's face is displayed on the top screen.
-- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
-
-**Kick on Select**
-
-- Select kicks, and only Start opens the menu.
-- If you set the game's own **START** option to **Kick** (Options, page 2), they swap in quests: Start kicks, and Select opens and closes the menu.
-
-**Holding A**
-
-- Holding A with your weapon sheathed keeps picking up, gathering and carving, without pressing it again.
-- In quest rewards and the Wyporium's Claim Items, A takes an item and moves to the next one, and holding it keeps going.
-- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
-
-**Faster text**
-
-- Hold B to speed through conversations.
-- You can turn it off on the **Options** page or in the game: START, third page, Mod Settings.
-
-**A smaller HUD**
-
-- The HUD elements displayed over the game (clock, health, stamina, sharpness, item selector, minimap, talk windows during quests, etc.) can be scaled down, moving towards their respective corners. Available sizes are 90%, 80%, 70% and 60%. The default size is 70%.
-
-**Built-in cheats**
-
-- Choose them on the **Options** page, and change them during play, for each character: START, third page, Mod Settings.
-- 3D, glow and distant blur are off by default for a sharper image.
-- Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
-- **⚠️ EXPERIMENTAL, expect problems:** turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. It is disabled by default, and menus, prompts or backgrounds may be out of place or stretched. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). You can also change it during play: START, third page, Mod Settings. Please report any problem you see.
-
-The full list of changes can be found in the **[changelog](CHANGELOG.md)**.
-
-## What you need
-
-1. **Windows** On other operating systems, you can run the program using Python (see the end of the installation instructions). On Android or Steam Deck, you only need a browser ([the web installer](#the-web-installer)).
-2. **The Azahar emulator** ([azahar-emu.org](https://azahar-emu.org/)) or Citra.
-3. **Your own decrypted copy of Monster Hunter 4 Ultimate (European or American version).** Supported formats are `.3ds`, `.cia`, and Azahar's compressed `.zcci` or `.zcia` formats.
-
-   You can dump your own copy from a cartridge or 3DS using a homebrewed console ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)). This project does not include or distribute any game files.
-
-   The game update is optional; the mod works with or without it installed.
-
-## Installation
-
-**1. Download the program.** Download `HeavenfallBeta-windows.zip` from the latest "Heavenfall Single-Screen Mod" release on the [Releases page](../../releases/latest) and extract it anywhere (for example, on your Desktop).
-
-**2. Open it.** Double-click `HeavenfallBeta.exe`. Since the program is not digitally signed, Windows may display a "Windows protected your PC" warning. If you downloaded it from the official repository, click **More info**, then **Run anyway**. The program automatically selects English or Spanish based on your system language. You can change it at the bottom of the left panel.
-
-**3. Select your game file.** On the **Install** page, the program automatically looks for your game in your emulator's game folders, Downloads, Desktop and Documents. If it can't find it, click **Choose…** and select the file manually. The program will identify which region it belongs to.
-
-**4. Check the destination.** The program automatically detects your Azahar or Citra installation. If it can't find it, click **Choose folder…** and select your emulator's folder.
-
-**5. Choose your options.** The **Options** page lets you configure Single Screen Mode, HUD size, the aspect ratio, the cheats, the lock-on with L, holding A and fast text. Hover over any option to see what it does. The last four are what each character starts with, and they also change inside the game: START, third page, Mod Settings.
-
-**6. Click Install.** Installation may take a few moments. If the emulator was running the game, restart emulation for the changes to take effect. If the Install button is disabled, the message below it explains what's missing.
-
-**7. Play on a single screen.** In Azahar, select the **Single Screen** layout (View > Screen Layout).
-
-**Running on other operating systems or from source:** Install [Python](https://www.python.org/downloads/) 3.10 or newer, download the source code using the green **Code** button on this page and selecting **Download ZIP**, then open a terminal in the extracted folder and run:
-
-```bash
-pip install -r requirements.txt
-python -m core.gui
-```
-
-> **Tip:** Keep a backup of your save before installing a new mod, just in case.
-
-## The web installer
-
-**https://popzol.github.io/4u-heavenfall-mod-beta/** makes the same mod in your browser, with nothing to install. It's meant for Android and Steam Deck, where the program doesn't run, and it works on a PC too. Your game is never uploaded: everything happens on your device.
-
-1. Open the page in a recent version of Chrome or Firefox (on a Steam Deck, in Desktop Mode) and choose your game file.
-2. Change the options if you want, press **Make the mod** and keep the page open until it finishes.
-3. Download the zip and extract it. Inside is a folder named `0004000000126100` (European game) or `0004000000126300` (American game).
-4. Move that folder into `load/mods/` inside Azahar's user folder. It must end up as `load/mods/0004000000126100/romfs`. The page shows the steps for your device.
-5. Choose the **Single Screen** layout in Azahar and open the game.
-
-> **Steam Deck:** these steps haven't been tried on a real Steam Deck yet. If something doesn't match, please let me know on my Discord server.
-
-## Removing or updating the mod
-
-- **To uninstall:** Click **Uninstall** on the Install page. This restores the game to its original state. The program only removes the files it installed.
-- **To update:** Close the program and open `HeavenfallBeta-update.exe`, in the same folder. It downloads the latest version, replaces the program and rebuilds the mod you installed with the same options. Then restart emulation. It never touches a mod it did not install. If your folder doesn't have that file, download the latest release as in step 1 of the installation.
-- **To change your options:** Change them on the Options page and click **Update** on the Install page (or **Apply now** on the Options page).
-- **If you used the web installer:** To uninstall, delete the mod's folder from `load/mods/`. To change your options or update, delete it too, then make the mod again and move in the new folder: old files left behind would still be loaded.
-
-## Questions and problems
-
-**My antivirus says the program is a trojan.**
-
-Some antivirus programs have wrongly flagged it (for example as "Bearfoo"), which can happen with new, unsigned programs. To check that your download is the official one, open PowerShell in the folder with the zip and run `Get-FileHash HeavenfallBeta-windows.zip`. Compare the long code it prints with the `sha256` shown beside that file on the [Releases page](../../releases/latest); capital letters don't matter. If they match, you have the exact file published here, built by GitHub from this repository's public code. If they differ, delete it and download it again from that page.
-
-**Does this modify my game file?**
-
-No. The program only reads your game file and installs the mod in a separate folder inside your emulator's mod directory.
-
-**Do I need the game's update?**
-
-No. The mod works with or without the game update installed.
-
-**It says there are files from another mod.**
-
-The destination already contains mod files that weren't installed by Heavenfall Beta. The program will ask before replacing them. Choose **No** if you want to keep the existing files.
-
-**Can I use it on a real 3DS?**
-
-No. Heavenfall Beta changes how the game is displayed for single-screen emulation, so it only works with Azahar or Citra.
-
-**Should I use these cheats or my emulator's?**
-
-Use the mod's cheats (START, third page, Mod Settings); emulator cheats will create bugs or crash the game
-
-**I found a bug.**
-
-Please report it in the **#bug-reports** channel on my Discord server, preferably. Alternatively, you can open an issue using the **Issues** tab on GitHub. In either case, please attach the `settings_.json` file from your emulator's mod folder. Check it for personal information before sharing it.
+- **[Questions and problems](docs/faq.md)**: antivirus warnings, HD texture packs, other mods, cheats and how to report a bug.
+- **Updating or removing the mod:** see your platform's page above.
 
 ## For developers
 
-Want to understand how the mod works or learn how to edit the game's menus yourself? These guides should help:
-
 - [How it works](docs/how_it_works.md): what the mod changes in the game and how the installation is built.
-- [Editing the interface](docs/editing_the_ui.md): capture the game's screens, view them as images, reposition their elements using simple coordinates and test your changes in the emulator.
-- [Development](docs/develop/development.md): running the program from source, building the Windows executable and publishing a release.
+- [Editing the interface](docs/editing_the_ui.md): capture the game's screens, reposition their elements and test your changes.
+- [Development](docs/develop/development.md): running the program from source, building it and publishing a release.
 
 ## Credits and license
 
 - **Developed by:** popzol and BlitzWOLF.
 - **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The visual and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
 - **Game data reference:** [Kiranico](https://mh4u.kiranico.com/).
+- **Linux start script:** based on the one hndll56 contributed.
 
-**License:** This project is licensed under the [GNU General Public License v3.0 or later](LICENSE). See the license for the full terms and conditions.
-
-Monster Hunter is a trademark of Capcom. This is an unofficial fan project, not affiliated with or endorsed by Capcom.
+**License:** [GNU General Public License v3.0 or later](LICENSE). Monster Hunter is a trademark of Capcom. This is an unofficial fan project, not affiliated with or endorsed by Capcom.

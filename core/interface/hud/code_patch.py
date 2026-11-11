@@ -97,7 +97,7 @@ MINIMAP_CIRCLE_OFFSET = (0xB97AFC, 4.0)
 # in every scene; talk_size.c makes it, then sizes the talk windows by the game mode.
 POPUP_UPDATE = 0x5A805C
 TALK_FRAME_CALL = 0xAF53D0
-TALK_WINDOWS = 4    # the windows talk_size_data holds (talk_size.c TALKS)
+TALK_WINDOWS = 6    # the windows talk_size_data holds (talk_size.c TALKS)
 GAME_MODES = 32     # the game control's byte +0x2B as bits of a word
 
 # L + D-pad up: the D-pad / C-stick actions are called from FUN_00b1cdf0 through asm/dpad_filter.s.
@@ -117,6 +117,10 @@ SHOW_HOOK = 0xAE53E0        # FUN_00ae53e0 (show / hide a group), first instruct
 SHOW_HOOK_ORIGINAL = bytes.fromhex("70002de9")
 FACE_HOOK = 0xB82B50        # FUN_00b826bc: bl FUN_00b94854 (target panel update, every frame)
 PANEL_UPDATE = 0xB94854
+# The layout the face is a copy of, and the corner it keeps to with the item selector beside it: the aspect ratio's
+# table takes it from the installer's ratio to the one chosen in the game, as the selector's (anchors.hud_entries).
+FACE_LAYOUT = "ui601"
+FACE_ANCHOR = Anchor.BOTTOM_RIGHT
 # Size of the face relative to the touch panel; the gap between the face's right edge and the screen's
 # right edge at 100 %, in pixels (the item selector opened with L reaches 137 from the right edge,
 # ui205_y_button01; the lock mark is 0.1 face wider on each side, plus 2); and the layout y of the
@@ -274,7 +278,7 @@ def face_params(factor: float, edge: tuple[float, float] = NO_EDGE) -> tuple[flo
     icon_y = -120 + (ITEM_ICON_Y + 120) * factor
     x = 200 - right + (half - (120 - 40)) * scale
     y = icon_y - 86 * scale
-    shift = edge_shift(Anchor.BOTTOM_RIGHT, edge)
+    shift = edge_shift(FACE_ANCHOR, edge)
     return x + shift[0], y + shift[1], scale
 
 

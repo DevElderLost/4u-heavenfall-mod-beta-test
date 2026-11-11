@@ -12,14 +12,24 @@
  *         touch panel does, bit 0x1 of the pad's word +0x3F0 (which the pad update turns into the held buttons and
  *         clears).
  *       * option Kick, in a town: Select opens the menu. It makes the original call, so Select is a second Start.
+ *       * in a town, with either value, Select also presses the kick's button: the Armor screen of Layered Gear
+ *         reads it as Select (equipment/layered/layered_forge.c), and a town has no kick.
  *       * option Kick, in a quest: Select opens and closes the Game Menu. It only notes in select_kick_state that Select
  *         is held (HELD) and that the menu has seen it (SEEN); the kick stays on Start.
  *   select_kick_gate(settings, 0x11)  0x5ED0D0 in FUN_005ecf60 (the menu's per-frame logic), instead of the call of
  *       FUN_002b02fc, which reads the setting that stops Start from opening the menu in a quest. It reads the setting
  *       as the game does; when Select was pressed this frame in a quest with Kick it also sets Start (0x400) in the
  *       menu's copy of the pressed GUI buttons (menu + 0x558, which the line before the call filled) and returns 0, so
- *       the game's own test lets this press open or close the menu. Start keeps being refused.
- * Both entries keep the registers the calls they replace keep (r4 and up; r0-r3 and ip are scratch there). Nothing else
+ *       the game's own test lets this press open or close the menu. Start keeps being refused. While a slain monster's
+ *       death camera plays with its skip on (death_camera_skip_state, set by gameplay/death_camera_skip/
+ *       death_camera_skip.c) it counts that state down and answers Kick: in a quest Start then ends the camera and
+ *       does not open the menu.
+ *   select_plain_step(status)         0x4857F0 instead of select_kick_step, in a mod without Select's kick (Heavenfall
+ *       Beta with its single-screen module off): Select stays the game's, a second Start everywhere (the original
+ *       call is made as it was), and in a town it also presses the kick's button, which Layered Gear's Armor screen
+ *       reads as Select (a town has no kick). select_kick_gate keeps the menu's call: select_kick_state stays 0, so it
+ *       only answers Kick while the death camera plays with its skip on.
+ * The entries keep the registers the calls they replace keep (r4 and up; r0-r3 and ip are scratch there). Nothing else
  * changes: START in the menus and in the town, and the touch panel's kick, do as before.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with select_kick.ld where it places the block); the
@@ -56,6 +66,9 @@ extern u8 *const game_control;          /* the variable holding sGameControl */
 extern u8 *const pad_control;           /* the variable holding the pad object */
 extern u8 start_menu[];                 /* the Game Menu's object */
 extern volatile u32 select_kick_state;  /* the variable */
+/* Frames left in which START belongs to a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.c
+ * keeps it set while the camera plays with its option on; 0 in a mod without it) */
+extern volatile u32 death_camera_skip_state;
 
 /* Game functions */
 void sdk_select_to_start(u8 *status);                       /* FUN_00571e58: Select becomes Start in the status */
@@ -73,22 +86,35 @@ __attribute__((used, section(".text.entry"))) void select_kick_step(u8 *status)
         select_kick_state = 0;
         return;
     }
-    if (game_setting(game, OPTION_START) == START_KICKS) {
+    u32 kicks = game_setting(game, OPTION_START) == START_KICKS;
+    if (select && pad && (!kicks || mode == MODE_TOWN))
+        U32(pad, PAD_PRESS) |= GAME_KICK;
+    if (kicks) {
         if (mode == MODE_TOWN)
             sdk_select_to_start(status);
         else if (select)
             state = HELD | (before & SEEN);
-    } else if (select && pad) {
-        U32(pad, PAD_PRESS) |= GAME_KICK;
     }
     select_kick_state = state;
 }
 
+__attribute__((used, section(".text.entry"))) void select_plain_step(u8 *status)
+{
+    u8 *game = game_control, *pad = pad_control;
+    if (game && pad && U8(game, GAME_MODE) == MODE_TOWN && (U32(status, STATUS_HELD) & HID_SELECT))
+        U32(pad, PAD_PRESS) |= GAME_KICK;
+    sdk_select_to_start(status);
+}
+
 __attribute__((used, section(".text.entry"))) u32 select_kick_gate(u8 *control, u32 index)
 {
-    u32 option = game_setting(control, index), state = select_kick_state;
+    u32 option = game_setting(control, index), state = select_kick_state, camera = death_camera_skip_state;
     u32 pressed = (state & HELD) && !(state & SEEN);
     select_kick_state = (state & HELD) ? state | SEEN : 0;
+    if (camera) {                       /* START ends the death camera: it does not open the menu in a quest */
+        death_camera_skip_state = camera - 1;
+        return START_KICKS;
+    }
     if (pressed && option == START_KICKS) {
         U32(start_menu, M_PRESSED) |= GUI_START;
         return 0;

@@ -74,6 +74,12 @@ EXEMPT: tuple[Exempt, ...] = (
            "in pixels, random words that now and then look like a branch or a game address"),
     Exempt("game_gui_table", "the game GUI engine's table: group and pane name hashes, floats, counts and offsets from "
            "its own start (no address), random words that now and then look like a branch or a game address"),
+    Exempt("layered_data", "Layered Gear's lists: model numbers, message ids, pane name hashes, the sets' colours (RGB "
+           "bytes) and offsets from its own start (no address), random words that now and then look like a branch or "
+           "a game address"),
+    Exempt("layered_rules", "Layered Gear's rules and prices: u16 condition words, item ids and counts, list orders "
+           "and message ids, u32 zenny and offsets from its own start (no address), pairs of u16 that now and then "
+           "look like a branch or a game address"),
 )
 
 
