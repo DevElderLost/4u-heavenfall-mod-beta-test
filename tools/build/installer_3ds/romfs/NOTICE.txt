@@ -1,0 +1,25 @@
+Third-party material in this app's RomFS and network code
+
+cacert.pem: the list of root certificates that Mozilla's CA Certificate Program trusts, as packaged by the certifi
+project (https://github.com/certifi/python-certifi). It is licensed under the Mozilla Public License 2.0
+(https://www.mozilla.org/MPL/2.0/); the file is unmodified and its source is the one above. The app uses it to check
+the HTTPS servers of GitHub; the 3DS's own certificate store is not used.
+
+libcurl (curl licence, https://curl.se/docs/copyright.html), Mbed TLS 2.28 (Apache License 2.0 or GPL-2.0-or-later) and
+zlib (zlib licence) are linked from devkitPro's portlibs (3ds-curl, 3ds-mbedtls, 3ds-zlib).
+
+miniz 3.0.2 (MIT licence), compiled into the app: a deflate / inflate library by Rich Geldreich, RAD Game Tools and
+Valve Software (https://github.com/richgel999/miniz). Copyright 2013-2014 RAD Game Tools and Valve Software;
+copyright 2010-2014 Rich Geldreich and Tenacious Software LLC. Permission is granted, free of charge, to use, copy,
+modify, merge, publish, distribute, sublicense and sell copies of the software, provided the copyright notice and this
+permission notice are included in all copies or substantial portions of it. The software is provided "as is", without
+warranty of any kind. The full licence is in core/install/title/c/vendor/miniz/LICENSE of the source repository.
+
+sha256_armv4.s (SHA-256 for the 3DS's ARM11 processor): OpenSSL's crypto/sha/asm/sha256-armv4.pl, Andy Polyakov's
+CRYPTOGAMS code (https://github.com/dot-asm/cryptogams/), copyright 2007-2026 The OpenSSL Project Authors. It is
+licensed under the Apache License 2.0 (https://www.openssl.org/source/license.html) or the CRYPTOGAMS licence, and
+Polyakov grants permission to use it under GPL terms.
+
+libctru (the 3DS system library of devkitPro, https://github.com/devkitPro/libctru) is linked into the app. It is
+licensed under the zlib licence (https://github.com/devkitPro/libctru/blob/master/LICENSE.md); the system call and
+service wrappers in it are by the libctru authors.
