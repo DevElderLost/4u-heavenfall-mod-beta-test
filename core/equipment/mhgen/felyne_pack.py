@@ -478,7 +478,8 @@ def write_files(mod_dir: Path, felyne: FelynePack) -> list[str]:
         (mod_dir / DATA_DIR).mkdir(parents=True, exist_ok=True)
         for path, data in felyne.files.items():
             (mod_dir / DATA_DIR / path.split("/")[-1]).write_bytes(data)
-        (mod_dir / MANIFEST).write_text("".join(f"{name}\n" for name in names), encoding="utf-8")
+        # LF on every system: the web page's mod is the program's, byte for byte
+        (mod_dir / MANIFEST).write_bytes("".join(f"{name}\n" for name in names).encode("utf-8"))
     return names
 
 

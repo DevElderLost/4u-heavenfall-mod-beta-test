@@ -181,6 +181,7 @@ def write_pack_files(mod_dir: Path, gen, m4, prepared: PreparedPack, xx=None, so
     data_dir = mod_dir / DATA_DIR
     data_dir.mkdir(parents=True, exist_ok=True)
     names = plan_file_names(prepared.plan)
-    (mod_dir / MANIFEST).write_text("".join(f"{name}\n" for name in names), encoding="utf-8")
+    # LF on every system: the web page's mod is the program's, byte for byte
+    (mod_dir / MANIFEST).write_bytes("".join(f"{name}\n" for name in names).encode("utf-8"))
     pack.write_pack(data_dir, gen, m4, list(prepared.plan), _shaders(gen, m4), xx, sources)
     return names

@@ -1,6 +1,7 @@
-"""What the web page asks of Python: the options it shows, the check of the player's game and the mod as one zip.
+"""What the web page asks of Python: the options it shows, the check of the player's game (and of MH XX's, optional)
+and the mod as one zip.
 
-The page's worker (web/worker.js) runs this module in the browser, in Pyodide, on the game file the player chose;
+The page's worker (web/worker.js) runs this module in the browser, in Pyodide, on the game files the player chose;
 nothing is sent anywhere. tools/release/build_web.py writes `options` into the site, so the page shows them before its
 engine is loaded. Nothing here knows of a browser: the run is the program's own (core/app/pipeline.py), and the module's
 heavy imports are inside the functions that need them.
@@ -57,6 +58,17 @@ def check_game(game: str | Path, language: str) -> dict:
     return {"ok": True, "title": titles.mod_title_of_file(game), "region": REGIONS[titles.file_kind(game)[1]](language)}
 
 
+def check_xx(xx: str | Path, language: str) -> dict:
+    """MH XX's file, optional (with it, Layered Gear also has XX's looks): `ok`, and `problem` (why it cannot be used,
+    in `language`) when it is not the decrypted Japanese game."""
+    from core.gui.strings import describe_problem
+    from core.install.build import xx_problems
+    problems = xx_problems(Path(xx))
+    if problems:
+        return {"ok": False, "problem": "; ".join(describe_problem(problem, language) for problem in problems)}
+    return {"ok": True}
+
+
 def write_zip(folder: Path, title: str, target: Path) -> int:
     """`folder` into the zip `target`, as one folder named `title`, uncompressed: the zip is made on the device that
     uses it and the game's files are compressed already. Each file is deleted once in, so the mod is never in memory
@@ -70,11 +82,12 @@ def write_zip(folder: Path, title: str, target: Path) -> int:
 
 
 def build(game: str | Path, target: str | Path, personal: dict, language: str,
-          stage: Callable[[str], None] | None = None) -> dict:
+          stage: Callable[[str], None] | None = None, xx: str | Path | None = None) -> dict:
     """The mod of the player's game, with `personal` (installer options; a missing one keeps its default, and what is no
-    installer option, as something an older page saved, is ignored), as the zip
-    `target`. `stage` is told pipeline.STAGES and then ZIP_STAGE. Returns `ok`, and either `problem` or the zip's
-    `title`, `zip_name`, `files`, the `notices` of features left out and the game's `version`."""
+    installer option, as something an older page saved, is ignored), as the zip `target`; with `xx` (MH XX's file,
+    checked by check_xx), Layered Gear also has XX's looks. `stage` is told pipeline.STAGES and then ZIP_STAGE. Returns
+    `ok`, and either `problem` or the zip's `title`, `zip_name`, `files`, the `notices` of features left out and the
+    game's `version`."""
     from core.app.pipeline import run
     from core.game.executable import titles
     from core.game.executable.rebase import RebaseError
@@ -86,7 +99,8 @@ def build(game: str | Path, target: str | Path, personal: dict, language: str,
     with tempfile.TemporaryDirectory() as temporary:
         try:
             settings = presets.install_settings({**defaults, **chosen})
-            result = run(Path(game), Path(temporary) / "mod", settings, stage=announce)
+            result = run(Path(game), Path(temporary) / "mod", settings, stage=announce,
+                         xx_rom=Path(xx) if xx else None)
         except (UnsupportedVersion, RebaseError, ValueError) as error:     # not a game the mod can be built for
             return {"ok": False, "problem": describe_problem(str(error), language)}
         announce(ZIP_STAGE)

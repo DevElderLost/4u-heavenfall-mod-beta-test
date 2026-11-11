@@ -83,6 +83,7 @@ button, .button, select { font: inherit; }
 .picker:focus-visible + .status, label.button:focus-within { outline: 2px solid var(--gold); }
 
 .status { min-height: 1.5em; }
+.extra-game { margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--border); }
 .status.good { color: var(--good); }
 .status.bad { color: var(--danger); }
 

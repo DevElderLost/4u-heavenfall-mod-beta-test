@@ -70,9 +70,14 @@ def check_inputs(rom: Path | None, xx_rom: Path | None = None, need_xx: bool = F
     only other game a run reads) the decrypted Japanese game."""
     from core.game.executable import titles
     problems = [_game_problem(rom, "Monster Hunter 4 Ultimate", titles.MH4U)]
-    if need_xx:
-        problems.append(_game_problem(xx_rom, "Monster Hunter XX", titles.MHXX))
-    return [problem for problem in problems if problem]
+    return [problem for problem in problems if problem] + (xx_problems(xx_rom) if need_xx else [])
+
+
+def xx_problems(xx_rom: Path | None) -> list[str]:
+    """What is wrong with MH XX's file, one message each (none: the decrypted Japanese game)."""
+    from core.game.executable import titles
+    problem = _game_problem(xx_rom, "Monster Hunter XX", titles.MHXX)
+    return [problem] if problem else []
 
 
 def is_our_build_dir(folder: Path) -> bool:

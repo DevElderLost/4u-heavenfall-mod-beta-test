@@ -8,7 +8,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Layered Gear at the Smithy: wear the look of any armor, weapon or Felyne gear over your own.
 - A Relics list for the Guild Quests' relic gear.
 - A free color window for armor looks.
-- With Monster Hunter XX's game, its weapon and armor looks too.
+- With Monster Hunter XX's game, its weapon and armor looks too, also from the web installer.
 - In multiplayer, players with the mod see each other's Layered Gear.
 
 ### Extended Wyporium

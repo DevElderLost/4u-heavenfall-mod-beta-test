@@ -14,7 +14,7 @@ On Android you make the mod in your browser with the web installer, and play it 
 
 **https://popzol.github.io/4u-heavenfall-mod-beta/** makes the same mod as the program, in your browser, with nothing to install. Your game is never uploaded: everything happens on your device.
 
-1. Open the page and choose your game file.
+1. Open the page and choose your game file. Optionally, also choose your copy of Monster Hunter XX: Layered Gear then has its looks too, and the mod takes longer to make.
 2. Change the options if you want, press **Make the mod** and keep the page open until it finishes.
 3. Download the zip and extract it. Inside is a folder named `0004000000126100` (European game) or `0004000000126300` (American game).
 4. Move that folder into `load/mods/` inside Azahar's user folder. It must end up as `load/mods/0004000000126100/romfs`. The page shows the steps for your device.
