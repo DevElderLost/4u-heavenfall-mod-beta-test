@@ -34,7 +34,7 @@ MAX_SCRAP_PERCENT = 30
 # The monsters in the order their gear takes ids: a monster's weapons, armor and Felyne pieces take the fixed block of
 # ids after the blocks of the monsters before it (blocks.py), so an id never depends on which monsters are on. Only
 # ever append (with a block in blocks.BLOCKS).
-ORDER = ("mizutsune", "alatreon", "great_maccao", "glavenus", "valstrax")
+ORDER = ("mizutsune", "alatreon", "great_maccao", "glavenus", "valstrax", "astalos")
 
 
 class CuratedError(ValueError):

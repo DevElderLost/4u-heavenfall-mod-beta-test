@@ -159,6 +159,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.equipment.new_gear import gear_space as gear
     from core.equipment.tables import item_data
     from core.equipment.new_gear import new_weapon_room
+    from core.equipment.mhgen.felyne_pack import FELYNE_IDS, FIRST_MODEL, SOUND_SLOT
     from core.equipment.new_gear.felyne_data import FEATURE as FELYNE
     from core.equipment.new_gear.felyne_data import block_specs as felyne_blocks
     from core.gameplay.quests.quest_lists import HALL_LIST_LENGTH, NEW_QUEST_ROOM, SAVE_LIST_LENGTH
@@ -264,16 +265,16 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("rod_effects", "mhgen_models", size=3 * 256, region="ext"),
     # tables.HAIR_ROW_ROOM rows of 0x70 bytes, plus the bytes to reach the game's row grid
     BlockSpec("hair_rows", "mhgen_models", size=224 * 0x70 + 0x70 - 4, region="ext"),
-    # MHGen's Felyne models at numbers of their own (equipment/mhgen/felyne_pack.py), FELYNE_IDS = 333: the head and
+    # MHGen's Felyne models at numbers of their own (equipment/mhgen/felyne_pack.py), FELYNE_IDS (336): the head and
     # body masks (FELYNE_IDS u16 each), the helm cloth bits (FELYNE_IDS
     # bytes) and the weapons' sound table (FELYNE_IDS pointers) moved
     # to hold the new numbers, and the new weapons' sound paths (SOUND_SLOT bytes per number from FIRST_MODEL to
     # FELYNE_IDS - 1)
-    BlockSpec("felyne_head_masks", "felyne_models", size=2 * 333, region="ext"),
-    BlockSpec("felyne_body_masks", "felyne_models", size=2 * 333, region="ext"),
-    BlockSpec("felyne_head_cloth", "felyne_models", size=333, region="ext"),
-    BlockSpec("felyne_sound_table", "felyne_models", size=4 * 333, region="ext"),
-    BlockSpec("felyne_sound_paths", "felyne_models", size=(333 - 114) * 32, region="ext"),
+    BlockSpec("felyne_head_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_body_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_head_cloth", "felyne_models", size=FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_sound_table", "felyne_models", size=4 * FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_sound_paths", "felyne_models", size=(FELYNE_IDS - FIRST_MODEL) * SOUND_SLOT, region="ext"),
     # New quests with ids of their own (gameplay/quests/new_quests.py): the availability
     # hook, its (id, unlocking quest) pairs, and the Gathering Hall's load list and the save's quest list moved to hold
     # the new ids (NEW_QUEST_ROOM at most, the free bits of the save)
@@ -456,6 +457,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("new_weapon_stats", new_weapon_room.FEATURE, size=new_weapon_room.STATS_BYTES, region="ext"),
     BlockSpec("new_weapon_upgrades", new_weapon_room.FEATURE, size=new_weapon_room.UPGRADE_BYTES, region="ext"),
     BlockSpec("new_sharpness", new_weapon_room.FEATURE, size=new_weapon_room.SHARPNESS_BYTES, region="ext"),
+    # The save's marks of the new ids past a class's own bits (equipment/new_gear/weapon_marks.py; docs/equipment/
+    # equipment_data.md, "The save"): the function that gives an id its bit, its table and the six accessors' stubs
+    BlockSpec("weapon_marks_code", new_weapon_room.FEATURE, "equipment/new_gear/weapon_marks.c", region="ext",
+              defines=new_weapon_room.MARK_DEFINES),
+    BlockSpec("weapon_marks_table", new_weapon_room.FEATURE, size=new_weapon_room.MARK_TABLE_BYTES, region="ext"),
+    BlockSpec("weapon_marks_stubs", new_weapon_room.FEATURE, size=new_weapon_room.MARK_STUBS_BYTES, region="ext"),
     # The ported monsters' hunter equipment (equipment/new_gear/new_armor.py, new_recipes.py): the armor lookup's and
     # the create recipes' hooks; the new armor records (gear.ARMOR_ROOM per part, parts in layout.ARMOR_PARTS order) and
     # each type's first new id and table base; the new create recipes (gear.*_RECIPE_ROOM) and the runs where they sit
@@ -813,6 +820,7 @@ GAME_SYMBOLS = {
     "gypceros_construct": 0x703364,   # Gypceros' family's constructor (ids 9, 10; Great Maccao's host, spec.GYPCEROS)
     "jaggi_construct": 0x8660B8,      # Jaggi's constructor (id 56 alone; Maccao's host, spec.JAGGI)
     "seregios_construct": 0x8B65B4,   # Seregios' family's constructor (ids 88, 122; Valstrax's host, spec.SEREGIOS)
+    "rathian_construct": 0x6EC8D4,    # Rathian's family's constructor (ids 1-6; Astalos' host, spec.RATHIAN)
     "uenemy_vtable": 0xE6B058,
     "uEnemy_construct": 0x955FF4,
     "enemy_set_status": 0x9167EC,
@@ -1670,6 +1678,69 @@ GAME_SYMBOLS |= {
 # START skips a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.c)
 GAME_SYMBOLS |= {
     "camera_play": 0xC03D70,            # FUN_00c03d70(manager, slot, n): one frame of an event camera, 0 when over
+}
+
+# Astalos' MH4U engine calls whose function is the same code (phase G2n; the comment
+# holds the MH XX address; each pair is a verified row of em081/pairs.py, engine_pairs.json, and the bytes the test of
+# tests/monsters/astalos/test_astalos_pairs.py reads)
+GAME_SYMBOLS |= {
+    "enemy_set_action_kept": 0x92B178,  # 0x8B3820: (this, act_st, act_no): the set action unless mActSt is 0xB
+    # 0x8A4840: (this, v): em+0x180 += v x unit_delta, then em+0x1C7 = 1 (em+0x5C, 0x1B9 in XX)
+    "enemy_height_step": 0x915D7C,
+    # 0x8A6E38: (this): layer 1's weight 0 and the floats em+0x394.. zeroed (em+0x308.. in XX)
+    "enemy_clear_em_308": 0x918F28,
+    # 0x89A65C: (model, joint, m[16]): the joint record's quaternion from the matrix, +0x58 (+0x60 in XX)
+    "model_joint_set_mtx": 0xB05754,
+    "enemy_move_turned_land": 0x9165A4,  # 0x8A4AFC: (this, s0): enemy_move_by_rate_turned, then enemy_ground_landed
+    # 0x8A6DA0: (this, target, step): em+0x394 toward target by step x unit_delta, clamped to -1..1
+    "enemy_approach_f308": 0x918E80,
+    "enemy_play_motion_layered": 0x919058,  # 0x8A6F0C: a motion on layer 0 and layer 1 (engine_pairs.json)
+    "enemy_motion_no_is": 0x91B250,  # 0x8A8898: (this, no): the motion number is `no`
+    "enemy_em4c1_set_2": 0x91B268,  # 0x8A88B0: (this): the byte em+0x539 = 2 (em+0x4C1 in XX)
+    # 0x8B673C: (this, max, min, speed): the distance to the homing point / speed, clamped
+    "enemy_homing_frames_clamped": 0x92E440,
+    # 0x8B68A4: (this, flags): re-picks the route point by his facing every n calls
+    "enemy_pick_route_point_by_yaw": 0x92E530,
+    # 0x8BD78C: (this, step, offset, point): 1 when facing the point plus offset, after turning
+    "enemy_turn_to_point": 0x934AC8,
+    # 0x8BF178: (this, motion+, motion-, f, sign): layer 1's motion by em+0x394
+    "enemy_play_layer1_motion_by_f308": 0x935FF0,
+    "enemy_homing_run_start": 0x938780,  # 0x8C0B4C: (this, rec): plays the record's motion and saves mPos
+    # 0x8C0BF8: (this, rec, r2): runs toward the homing point, its layer motions blended
+    "enemy_homing_run_step": 0x93886C,
+    # 0x8C2E68: (this, fixed, out[4], kind, ...): the position to home on by the homing kind
+    "enemy_homing_target_pos": 0x93AAB4,
+    # 0x8C5E28: (this, now): stops the quake when the homing hunter 0 is the local player
+    "enemy_camera_quake_stop": 0x93E590,
+    "enemy_set_timer_310": 0x9427FC,  # 0x8CB244: (this, n, f): layer 1's weight 0, then em+0x39C = n
+    # 0x8CD098: a vector turned by his joint's delta (0x936960) added to his position
+    "enemy_move_by_turned_vector": 0x94461C,
+    # 0x8D1024: (this): the factor em+0x404 = 1.0 and a second factor = 1.0 (em+0x7908)
+    "enemy_reset_factors": 0x947258,
+    # 0x8DE50C: (this, s16 angle, step, clamp): angle + step x unit_delta, kept within -0x3F49..0x4000
+    "enemy_angle_add_scaled_clamp": 0x94D73C,
+    "enemy_set_draw_ofs_scaled": 0x94E358,  # 0x8DE7E0: (this, v): draw offset (em+0xD10) = v x enemy_size_ratio, w = 0
+    # 0x8E58E0: (this, step): mPos.y toward the homing point's y by step, or onto it when closer
+    "enemy_approach_homing_y": 0x955A94,
+    # two names of an address already named above or by Valstrax's phase G2e
+    "mt_powf": 0xD13E38,                        # 0xAFC3B8: math_powf_4u's address, the name his C and the table use
+    "em081_move_turned_ground": 0x91B468,       # 0x8A8EDC: enemy_move_turned_at's address (D14's second name: it
+                                                # returns the ground clamp's result, the dive tests it)
+    # the shells' bases 14 and 15 (effect_player/gen_symbols.py PENDING_4U's three found here: the same instructions)
+    "mt_atanf": 0xD1302C,                       # 0xAFAAE8: atanf (s0), XX's blocks in the same order, same constants
+    "random_init": 0xB72354,                    # 0x9924F4: (generator, seed): the xorshift's four words, 100 steps;
+                                                # XX's instructions with two registers swapped
+    "random_next": 0xB723EC,                    # 0x9924B8: (generator): its next 32 bits, the same fifteen words
+    # an adapter's callee (stage_area_position, 0x895240: em081.h)
+    "stage_area_position_4u": 0x6C3AF8,         # (sStage, area, out[4]): the area's x, y, z (s16 at sStage+0x166 + 24 x
+                                                # the area number) as floats; the adapter sets out[3] = 0
+    # phase G2e (em081/engine_4u.c): a joint's matrix his slots call directly, and the line check's callee
+    "festachar_joint_matrix": 0xB052EC,         # 0x1E32B0: (out, model, joint) the joint's 4x4 matrix from its record's
+                                                # quaternion and translation; XX's adds a warning call, MH4U's records
+                                                # are 0xA8 bytes (XX 0xA0)
+    "collision_line_4u": 0x2B9CD4,              # 0x2CF17C: (sCollision, this, from, to, area, out, normal, record, b),
+                                                # s0 the radius; XX's two virtual calls on `this` are direct uEnemy
+                                                # calls (0x911D34, 0x91DFC0); its Rathian calls it at 0x6D6034
 }
 
 # The C-stick turns the camera analogically (gameplay/modern_camera/modern_camera.c)

@@ -75,6 +75,7 @@ RESOURCES = ASSET_FOLDERS + (
     "monsters/great_maccao/recordings_em085.json",
     "monsters/maccao/recordings_ems046.json",
     "monsters/valstrax/recordings_em086.json",
+    "monsters/astalos/recordings_em081.json",
     # read for the sizes of the shells' point tables (monsters/porting/proof_blocks.py)
     "monsters/alatreon/em050/statics.c",
     "monsters/glavenus/em080/statics.c",
@@ -82,6 +83,7 @@ RESOURCES = ASSET_FOLDERS + (
     "monsters/great_maccao/em085/statics.c",
     "monsters/maccao/ems046/static.c",       # Maccao has no shells: his spec's statics, read the same way
     "monsters/valstrax/em086/static.c",
+    "monsters/astalos/em081/static.c",
     "native/lib",                   # the native kernels' library
 )
 # Files outside the package, to the bundle's top (where the modules that use them look: the checkout's top).

@@ -59,7 +59,11 @@ EXT_START = 0x111E000
 # + the modern camera giving the C-stick's question the game's answer and a skipped intro's music stopped by its
 #   voices (1 page)
 # + Mod Settings' lists of every size, their frames' name hashes (1 page)
-EXT_SIZE = 0x149000
+# + the rooms for the next ports: Felyne model numbers, armor ids, create recipes, break and carve tables (2 pages)
+# + the new weapons' room from 40 to 80 ids per class and the save's marks of the ids past a class's bits (7 pages:
+#   equipment/new_gear/new_weapon_room.py, weapon_marks.py)
+# + Astalos' class and data with MH XX's shell bases 14 and 15 (55 pages)
+EXT_SIZE = 0x189000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that

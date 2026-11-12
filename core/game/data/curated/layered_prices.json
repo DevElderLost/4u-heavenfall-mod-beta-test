@@ -63,7 +63,7 @@
      "Magi Coin": "skip", "Magic Realm Key": "skip", "Option": "skip", "Palico Ticket G": "skip",
      "Pawprint Ticket": "skip", "Pirate Ticket J": "skip", "Pokke Ticket": "skip", "Privilege": "skip",
      "Pub Ticket": "skip", "Puppet Ticket": "skip", "Sealing Shield": "skip", "Soaratorium Ticket": "skip",
-     "Steel Egg": "skip", "Strange Mask": "skip", "Triforce": "skip", "Ushio Coin": "skip", "Weapon Codex": "skip",
+     "Steel Egg": "skip", "Strange Mask": "skip", "Triforce": "skip", "Ushio Coin": "skip", "Uniqlo Coin S": "skip", "Weapon Codex": "skip",
      "Wycademy Ticket": "skip", "Wycademy Ticket G": "skip", "Yukumo Ticket": "skip", "Zaruba Fragment": "skip",
      "Zelda Ticket": "skip",
 
@@ -84,7 +84,8 @@
      "Agnaktor Hide+": "monster:Agnaktor", "Agnaktor Scale": "monster:Agnaktor", "Agnaktor Tail": "monster:Agnaktor",
      "Ahtal-Ka Fine Silk": "monster:Ahtal-Ka", "Arzuros Brace": "monster:Arzuros",
      "Redhelm Ragehair": "monster:Redhelm Arzuros", "Astalos Crest": "monster:Astalos",
-     "Electroscale": "monster:Astalos", "Electroscale+": "monster:Astalos", "Amber Fang+": "monster:Barioth",
+     "Electroscale": "monster:Astalos", "Electroscale+": "monster:Astalos", "Astalos Scale": "monster:Astalos",
+     "Astalos Scale+": "monster:Astalos", "Astalos Crest+": "monster:Astalos", "Amber Fang+": "monster:Barioth",
      "Bulldrome Tusk": "monster:Bulldrome", "Ceanataur Claw": "monster:Shogun Ceanataur",
      "Ceanataur Claw+": "monster:Shogun Ceanataur", "Ceanataur Cortex": "monster:Shogun Ceanataur",
      "Cephalos Fang": "monster:Cephadrome", "Cephalos Fin": "monster:Cephadrome", "Cephalos Scale": "monster:Cephadrome",
@@ -157,9 +158,9 @@
    "diablos": "Diablos", "monoblos": "Monoblos", "cham": "Chameleos", "cephalos": "Cephadrome",
    "hermitaur": "Daimyo Hermitaur", "ukanlos": "Ukanlos", "shagaru": "Shagaru Magala", "arc": "Shagaru Magala",
    "storge": "Shagaru Magala", "mizutsune": "Mizutsune", "glavenus": "Glavenus", "escadora": "Alatreon",
-   "maccao": "Great Maccao", "valstrax": "Valstrax"
+   "maccao": "Great Maccao", "valstrax": "Valstrax", "astalos": "Astalos"
   },
-  "ported": {"Mizutsune": "mizutsune", "Glavenus": "glavenus", "Alatreon": "alatreon", "Great Maccao": "great_maccao", "Valstrax": "valstrax"},
+  "ported": {"Mizutsune": "mizutsune", "Glavenus": "glavenus", "Alatreon": "alatreon", "Great Maccao": "great_maccao", "Valstrax": "valstrax", "Astalos": "astalos"},
   "monster": {
    "Snowbaron": ["Lagombi", "deviant Lagombi: its recipe asks the white-hare materials"],
    "Stonefist": ["Daimyo Hermitaur", "deviant Hermitaur: shield-crab materials"],
@@ -191,7 +192,7 @@
    "Hellblade": ["Glavenus", "deviant Glavenus: a ported monster; asks Glavenus' item until we port Hellblade"],
    "Nightcloak": ["none", "deviant Malfestio: MH4U has no large Malfestio"],
    "Rustrazor": ["none", "deviant Ceanataur: MH4U has no Ceanataur"],
-   "Boltreaver": ["none", "deviant Astalos: MH4U has no Astalos"],
+   "Boltreaver": ["Astalos", "deviant Astalos: a ported monster; asks Astalos' item until we port Boltreaver"],
    "Elderfrost": ["none", "deviant Gammoth: MH4U has no Gammoth"],
    "Soulseer": ["Mizutsune", "deviant Mizutsune: a ported monster; asks Mizutsune's item until we port Soulseer"],
    "Tempest": ["none", "Amatsu's set: MH4U has no Amatsu"],

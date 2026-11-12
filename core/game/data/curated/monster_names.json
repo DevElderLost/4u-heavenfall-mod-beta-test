@@ -473,7 +473,8 @@
   "122": {"en": "Seregios", "fr": "Seregios", "es": "Seregios", "de": "Seregios", "it": "Seregios", "verified": true},
   "127": {"en": "Great Maccao", "fr": "Grand Maccao", "es": "Gran Maccao", "de": "Groß-Maccao", "it": "Gran Maccao", "verified": true},
   "128": {"en": "Maccao", "fr": "Maccao", "es": "Maccao", "de": "Maccao", "it": "Maccao", "verified": true},
-  "129": {"en": "Valstrax", "fr": "Valstrax", "es": "Valstrax", "de": "Valstrax", "it": "Valstrax", "verified": true}
+  "129": {"en": "Valstrax", "fr": "Valstrax", "es": "Valstrax", "de": "Valstrax", "it": "Valstrax", "verified": true},
+  "130": {"en": "Astalos", "fr": "Astalos", "es": "Astalos", "de": "Astalos", "it": "Astalos", "verified": true}
  },
  "ecology": {
   "124": {
@@ -510,6 +511,13 @@
    "es": "Un dragón venerable que rehúye a\r\nlos humanos y vuela a gran altitud.\r\nDeja un rastro incandescente cuando\r\nsurca los cielos, por lo que se le conoce\r\ncomo \"El cometa plateado\". Sus alas\r\ndespedazan a sus víctimas con facilidad.\r\nNo es raro toparse con restos calcinados\r\nde sus escamas.",
    "de": "Ein Drachenältester, der angetrieben von\r\nseinem Atem wie ein roter Komet über den\r\nHimmel zieht, weshalb er den Beinamen\r\n\"der Silberne Komet\" trägt. Seine Flügel\r\nverwendet er auch zum Durchstoßen,\r\nZerfetzen oder Wegschleudern von Feinden.\r\nSelten kann man einen Verkokelten Panzer\r\nfinden, der von ihm abgefallen ist.",
    "it": "Drago anziano che solcava i cieli di\r\nterre lontane. Volava ad alta velocità\r\ne il battito delle sue ali lasciava una scia\r\nsimile a una cometa. Per questo, è noto\r\nanche con il nome di  \"cometa d'argento\".\r\nLe sue ali sono molto versatili e cambiano\r\nposizione a seconda della situazione.\r\nA volte lasciano cadere scaglie bollenti."
+  },
+  "130": {
+   "en": "Known as the \"Thunder Wyvern,\"\r\nAstalos can charge itself with\r\nelectricity from the furious move-\r\nments of its wings, tail and crest.\r\nIn its charged state, the membrane\r\nin its wings take on a beautiful glow\r\nthat only barely offsets the terrible\r\nnature of this monster.",
+   "fr": "Surnommé \"wyverne du tonnerre\",\r\nl'Astalos peut se charger en\r\nélectricité d'un vif mouvement de\r\nses ailes, de sa queue et de sa crête.\r\nUne fois chargée, la membrane de\r\nses ailes se met à briller, contrastant\r\navec la nature terrible de ce monstre.",
+   "es": "El Astalos, conocido como \"wyvern\r\ndel rayo\", se carga de electricidad\r\ncon un violento movimiento de sus\r\nalas, cola y cresta. En ese estado,\r\nla membrana en sus alas brilla\r\ndesvelando la bella y terrible\r\nnaturaleza de este monstruo.",
+   "de": "Auch bekannt als \"Donnerwyvern\",\r\nkann sich der Astalos durch rasende\r\nFlügel-, Schwanz- und Kamm-\r\nbewegungen elektrisch aufladen.\r\nEinmal aufgeladen, glühen seine\r\nFlügelmembranen so wunderschön;\r\nfast könnte man seine schreckliche\r\nNatur vergessen.",
+   "it": "Conosciuto come il \"wyvern del tuono\",\r\nl'Astalos si può caricare di elettricità\r\nscuotendo furiosamente le ali, la coda\r\ne la cresta. Quando è caricato, le ali\r\nbrillano di una luce affascinante che\r\nper un attimo fa dimenticare la temibile\r\nnatura di questo mostro."
   }
  }
 }

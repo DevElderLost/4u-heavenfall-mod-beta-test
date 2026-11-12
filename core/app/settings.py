@@ -147,6 +147,14 @@ class ValstraxMode(str, Enum):
     EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
 
 
+class AstalosMode(str, Enum):
+    """Where Astalos (from MH XX) is met (core/monsters/astalos/astalos_quests.py)."""
+    OFF = "off"
+    QUESTS = "quests"            # three Gathering Hall quests of his own on the Ancestral Steppe: 3★, 6★ and G★1
+    RANDOMIZED = "randomized"    # tier 3 among the randomized monsters, without his quests
+    EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
+
+
 @dataclass(frozen=True)
 class PortedOption:
     """The option of one ported monster: an entry of PORTED_OPTIONS, the one place that names the
@@ -220,6 +228,16 @@ PORTED_OPTIONS: tuple[PortedOption, ...] = (
                  "the Tower Summit (high rank 7 stars and G rank 3 stars), only among the randomized "
                  "monsters, or `extended`: his quests, randomized like any quest, and among the randomized "
                  "monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    # Astalos has no installer or GUI option: he will be fixed on in both presets (curated/gui_presets.json `fixed`, as
+    # Great Maccao) once phase G puts him in spec.BUILT; until then a run that asks for him is refused
+    PortedOption(
+        "astalos", "Astalos", AstalosMode, AstalosMode.OFF, pool=AstalosMode.RANDOMIZED,
+        quests=AstalosMode.QUESTS, extended=AstalosMode.EXTENDED,
+        cli_help="add Astalos from MH XX (switches the additional monsters on): three quests of his own on "
+                 "the Ancestral Steppe (low rank 3 stars, high rank 6 stars and G rank 1 star), only among the "
+                 "randomized monsters, or `extended`: his quests, randomized like any quest, and among the "
+                 "randomized monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
         game="xx"),
 )
 
@@ -522,6 +540,9 @@ class Settings:
     great_maccao: GreatMaccaoMode = GreatMaccaoMode.OFF
     # Valstrax, from the player's MH XX ROM: two quests of his own on the Tower Summit (high rank and G rank)
     valstrax: ValstraxMode = ValstraxMode.OFF
+    # Astalos, from the player's MH XX ROM: three quests of his own on the Ancestral Steppe, one per rank (no option in
+    # the GUI: fixed on once he is built)
+    astalos: AstalosMode = AstalosMode.OFF
 
     # Debug
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster
@@ -678,6 +699,16 @@ class Settings:
     def builds_valstrax(self) -> bool:
         """builds("valstrax")."""
         return self.builds("valstrax")
+
+    @property
+    def astalos_mode(self) -> AstalosMode:
+        """mode_of("astalos")."""
+        return self.mode_of("astalos")
+
+    @property
+    def builds_astalos(self) -> bool:
+        """builds("astalos")."""
+        return self.builds("astalos")
 
     @property
     def builds_ported(self) -> bool:
