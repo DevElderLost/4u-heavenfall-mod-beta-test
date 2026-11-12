@@ -60,7 +60,7 @@ struct params {
 extern const struct params face_params; /* the face_params block, filled by code_patch.py */
 
 extern const u32 mod_options_state[];   /* interface/mod_settings/mod_options.c */
-#define HIDE_FACE mod_options_state[14] /* its hide_face (byte 56): the START menu's lock-on is off */
+#define HIDE_FACE mod_options_state[15] /* its hide_face (byte 60): the START menu's lock-on is off */
 
 /* Compiled as Thumb (game/executable/blocks.py): game functions are ARM code at absolute addresses, so they are
  * called through a register (long_call: ldr + blx), which switches to ARM. */

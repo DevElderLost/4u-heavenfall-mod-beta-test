@@ -57,8 +57,9 @@ OPTION_IDS = {
     "horn_songs": 20,
     "skip_monster_intro": 21,
     "modern_camera_speed": 22, "modern_camera_acceleration": 23,
+    "horn_songs_colour": 24,
 }
-MAX_OPTIONS = 24                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 24)
+MAX_OPTIONS = 28                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 28)
 MAX_VALUES = 16                 # a list of values: two pages
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
 ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (0 to 8: the item wheel's, 9: the ratio)
@@ -233,7 +234,7 @@ def supports_option(code: bytes, key: str) -> bool:
     from core.interface.damage_numbers.damage_numbers import OPTIONS, supports_damage_numbers
     if key in OPTIONS:
         return supports_damage_numbers(code)
-    if key == "horn_songs":
+    if key in ("horn_songs", "horn_songs_colour"):
         from core.interface.horn_songs.horn_songs import supports_horn_songs
         return supports_horn_songs(code)
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,

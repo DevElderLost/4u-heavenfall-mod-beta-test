@@ -113,7 +113,7 @@ MOD_SETTINGS = "mod_settings"
 MOD_SETTINGS_DATA_SIZE = 852
 MOD_SETTINGS_PANE_HASHES = (724, 840)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
-MOD_OPTIONS_DATA_SIZE = 16 + 24 * 164
+MOD_OPTIONS_DATA_SIZE = 16 + 28 * 164
 MOD_RAW_TABLE_SIZE = 64
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
@@ -141,8 +141,8 @@ QUEST_LAYOUTS_DATA_SIZE = 128
 # The Hunting Horn's songs (interface/horn_songs/horn_songs.py): the C and its data
 # (struct horn_data); its state is in the extension's variables.
 HORN_SONGS = "horn_songs"
-HORN_SONGS_DATA_SIZE = 296
-HORN_SONGS_STATE_SIZE = 48
+HORN_SONGS_DATA_SIZE = 312
+HORN_SONGS_STATE_SIZE = 60
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -560,7 +560,7 @@ VARIABLES = (
     VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
-    VariableSpec("mod_options_state", MOD_SETTINGS, 64),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 68, region="ext_vars"),
     VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s

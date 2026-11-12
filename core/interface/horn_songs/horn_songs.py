@@ -19,6 +19,9 @@ from core.interface.quest_layouts.quest_layouts import QuestLayout, add_quest_la
 
 CODE, DATA, STATE = "horn_songs_code", "horn_songs_data", "horn_songs_state"
 OPTION = "horn_songs"
+MODE_OPTION = "horn_songs_colour"       # Mod Settings' Highlight: what an effect colours
+MODES = ("background", "text")          # its values' settings, in order: horn_songs.c BACKGROUND, TEXT
+EFFECT_KINDS = ("normal", "encore")     # horn_songs.c NORMAL, ENCORE (the colours' order)
 INDEX = 0x5D1           # the group's slot in the GUI manager (quest_layouts.FREE_INDICES), after Damage Numbers'
 STATES = ("idle", "partial", "full")    # horn_songs.c IDLE, PARTIAL, FULL
 MESSAGE_FILE = 3        # the common file of the songs' names: Menu (FUN_00277938's)
@@ -80,7 +83,9 @@ def data_block(tuning: dict | None = None) -> bytes:
     data += struct.pack("<2I", _rgba(colours["notes"]["waiting"]), _rgba(colours["notes"]["lit"]))
     data += struct.pack("<4fI", NOTE_CELL, NORMAL_V, SPECIAL_U, SPECIAL_V, SPECIAL_HORN)
     effect = tuning["effect"]
-    data += struct.pack("<I2f", _rgba(effect["bar"]), effect["blink_seconds"] * TICKS_PER_SECOND,
+    data += struct.pack("<5I", *(_rgba(effect[part][kind]) for part in ("bar", "text") for kind in EFFECT_KINDS),
+                        OPTION_IDS[MODE_OPTION])
+    data += struct.pack("<2f", effect["blink_seconds"] * TICKS_PER_SECOND,
                         2 / (effect["blink_period"] * TICKS_PER_SECOND))
     for pairs in EFFECT_NEEDS:
         data += bytes(x for pair in pairs for x in pair) + bytes((NO_SLOT, 0)) * (2 - len(pairs))
@@ -108,5 +113,6 @@ def patch_horn_songs(code: bytes, layout: Layout | None = None) -> bytes:
     return bytes(out)
 
 
-__all__ = ["CODE", "DATA", "EFFECT_NEEDS", "INDEX", "MESSAGE_FILE", "NO_SLOT", "OPTION", "SLOTS", "STATE", "STATES",
-           "TICKS_PER_SECOND", "data_block", "patch_horn_songs", "supports_horn_songs"]
+__all__ = ["CODE", "DATA", "EFFECT_KINDS", "EFFECT_NEEDS", "INDEX", "MESSAGE_FILE", "MODES", "MODE_OPTION", "NO_SLOT",
+           "OPTION", "SLOTS", "STATE", "STATES", "TICKS_PER_SECOND", "data_block", "patch_horn_songs",
+           "supports_horn_songs"]

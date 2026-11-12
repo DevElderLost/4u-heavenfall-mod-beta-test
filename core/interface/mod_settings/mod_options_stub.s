@@ -71,14 +71,14 @@
 
     @ struct mod_options_state (mod_options.c checks the offsets)
     @ NET_WAITS and NET_POLLS are halfwords
-    .equ NET_WAITS, 24
-    .equ NET_POLLS, 26
-    .equ FOV_ONE, 28
-    .equ FOV_OTHER, 32
-    .equ RAW_BASE, 36
-    .equ CAMERA_CAP, 52
-    .equ BOX_LINES, 60
-    .equ BOX_AWAY, 61
+    .equ NET_WAITS, 28
+    .equ NET_POLLS, 30
+    .equ FOV_ONE, 32
+    .equ FOV_OTHER, 36
+    .equ RAW_BASE, 40
+    .equ CAMERA_CAP, 56
+    .equ BOX_LINES, 64
+    .equ BOX_AWAY, 65
     @ the options' places in mod_options_state.values (mod_options.py OPTION_IDS)
     .equ OPT_BLOOM, 1
     .equ OPT_LOCK, 6

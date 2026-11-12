@@ -117,7 +117,7 @@ typedef short s16;
                                        turns), set with bits 0-3 */
 #define GUNNER_BOWGUN     0         /* FUN_00d04dd4's kinds: the bowguns (weapon classes 4, 5, 6, 0xF), the Bow (10) */
 #define GUNNER_BOW        2
-#define MOD_FRAME         63        /* mod_options_state: the frame count (mod_options.c) */
+#define MOD_FRAME         67        /* mod_options_state: the frame count (mod_options.c) */
 #define SETTINGS_BYTES    100       /* sGameControl: + 100 + n the settings byte n */
 #define PERCENT           0.01f     /* FUN_00b1ea04: the pitch's hundredths of its span, a turn's units, a degree */
 #define TURN_UNITS        65536.0f

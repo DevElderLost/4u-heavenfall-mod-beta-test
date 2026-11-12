@@ -74,8 +74,11 @@ def load_tuning(path: Path = TUNING_FILE) -> dict:
             or set(colours["bar"]) != set(states) or set(colours["notes"]) != {"waiting", "lit"}:
         raise HornSongsError("horn_songs.json: colours are text and bar (idle, partial, full) and notes (waiting, lit)")
     effect = tuning["effect"]
+    if any(set(effect.get(part) or ()) != {"normal", "encore"} for part in ("bar", "text")):
+        raise HornSongsError("horn_songs.json: the effect's colours are bar and text (normal, encore)")
+    effect_colours = [effect[part][kind] for part in ("bar", "text") for kind in ("normal", "encore")]
     if any(len(c) != 4 or not all(0 <= x <= 255 for x in c)
-           for c in [*(c for group in colours.values() for c in group.values()), effect.get("bar", ())]):
+           for c in [*(c for group in colours.values() for c in group.values()), *effect_colours]):
         raise HornSongsError("horn_songs.json: a colour is four bytes (RGBA)")
     if not 0 <= effect.get("blink_seconds", -1) <= 60 or not 0 < effect.get("blink_period", 0) <= 5:
         raise HornSongsError("horn_songs.json: the effect's blink lasts 0-60 seconds, a period of up to 5")
