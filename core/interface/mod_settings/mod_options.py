@@ -50,9 +50,10 @@ VARIABLES = ("mod_options_state", "option_list_state")
 OPTION_IDS = {
     "cheat_3d_mode": 0, "cheat_no_bloom_dof": 1, "cheat_fps": 2, "cheat_fov": 3, "cheat_net_fix": 4,
     "cheat_raw_unbloat": 5, "touchless_target": 6, "hold_a": 7, "fast_text": 8, "fast_gathering": 9,
-    "camera_speed": 10, "box_equipment": 11, "system_keyboard": 12, "skip_death_camera": 13,
+    "camera_speed": 10, "box_equipment": 11, "system_keyboard": 12, "skip_death_camera": 13, "damage_numbers": 14,
+    "damage_numbers_other": 15, "damage_numbers_style": 16, "damage_numbers_size": 17, "damage_numbers_duration": 18,
 }
-MAX_OPTIONS = 16                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 16)
+MAX_OPTIONS = 24                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 24)
 MAX_VALUES = 16                 # a list of values: two pages
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
 ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (0 to 8: the item wheel's, 9: the ratio)
@@ -222,6 +223,9 @@ def supports_option(code: bytes, key: str) -> bool:
         return _static_ok(code, (BOX_KIND, BOX_LINES))
     from core.interface.system_keyboard.system_keyboard import supports_system_keyboard
     from core.gameplay.death_camera_skip.death_camera_skip import supports_death_camera_skip
+    from core.interface.damage_numbers.damage_numbers import OPTIONS, supports_damage_numbers
+    if key in OPTIONS:
+        return supports_damage_numbers(code)
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,
               "fast_gathering": supports_fast_gathering, "system_keyboard": supports_system_keyboard,
               "skip_death_camera": supports_death_camera_skip}
@@ -256,7 +260,7 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
         raise CodeSpaceError("the options' sites are not the update's words: already patched or another game")
     layout = layout or load_layout()
     table = load_settings(available=available, aspect=aspect)
-    out = bytearray(patch_mod_settings(code, layout, table))
+    out = bytearray(patch_mod_settings(code, layout, table, bool(getattr(settings, "single_screen", False))))
     layout.place(out, STUB)
     layout.place(out, DATA, options_data(settings, available))
     layout.place(out, RAW_TABLE, raw_table())

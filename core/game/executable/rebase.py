@@ -20,6 +20,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from core.monsters.porting.new_id_data import FIRST_NEW_ID, ID_TABLES
+from core.game.executable.blocks import MOD_SETTINGS_PANE_HASHES
 from core.game.executable.canonical import (
     BASE, arm_branch, arm_branch_target, thumb_branch, thumb_branch_target, to_canonical,
 )
@@ -80,6 +81,8 @@ EXEMPT: tuple[Exempt, ...] = (
     Exempt("layered_rules", "Layered Gear's rules and prices: u16 condition words, item ids and counts, list orders "
            "and message ids, u32 zenny and offsets from its own start (no address), pairs of u16 that now and then "
            "look like a branch or a game address"),
+    Exempt("mod_settings_data", "Mod Settings' lists of ten rows: ui020's pane name hashes, random words that now and "
+           "then look like a branch or a game address", *MOD_SETTINGS_PANE_HASHES),
 )
 
 

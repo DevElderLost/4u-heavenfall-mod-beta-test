@@ -142,7 +142,9 @@ off (`mod_options_stub.s`). A character with no choice yet, the title screen and
 the program's Options page (it starts at `gui_defaults.json`'s), written into the mod by the run (`mod_options.py`); an
 option with a `default` of its own in that file (skipping the death camera) is the page's only, with that value. In
 single-screen mode the page's description panel stands at the bottom left, in a quest too: a place of `help_top` that waits for
-the byte `mod_settings_state` + 5, up only while the page is open.
+the byte `mod_settings_state` + 5, up only while the page is open. Its lists show ten rows a page, the game's list widgets
+(five and eight lines) with the panes `interface/mod_settings/ten_rows.py` adds to `ui020` (more lines, a taller frame,
+hidden until the page shows them); Up and Down go round a page's rows, Left and Right turn the pages.
 
 ## Locking on with L
 

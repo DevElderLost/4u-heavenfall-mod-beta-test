@@ -372,15 +372,15 @@ class Layout:
         return self._insert(parent, template, PaneKind.SPRITE, name, edit, b"", first, behind=behind)
 
     def insert_null(self, parent: Pane, template: Pane, name: str, position: tuple[float, float],
-                    visible: bool = True, first: bool = False) -> Pane:
-        """Add a null as the last child of `parent` (the first with `first`): a copy of `template`'s record (scale,
-        colour), without its children, with a new name, position and visibility at load. As insert_sprite; panes
-        inserted into it later grow its subtree size."""
+                    visible: bool = True, first: bool = False, behind: Pane | None = None) -> Pane:
+        """Add a null as the last child of `parent` (the first with `first`; right after the child `behind` and what is
+        under it with `behind`): a copy of `template`'s record (scale, colour), without its children, with a new name,
+        position and visibility at load. As insert_sprite; panes inserted into it later grow its subtree size."""
         def edit(record: bytearray, _text_at: int) -> None:
             struct.pack_into("<I", record, 0x08, RECORD_SIZES[PaneKind.NULL])
             struct.pack_into("<2f", record, POSITION_AT[PaneKind.NULL], *position)
             struct.pack_into("<I", record, VISIBLE_AT[PaneKind.NULL], int(visible))
-        return self._insert(parent, template, PaneKind.NULL, name, edit, b"", first)
+        return self._insert(parent, template, PaneKind.NULL, name, edit, b"", first, behind=behind)
 
     def plain_null(self) -> Pane:
         """A null of this layout with no scale, tint nor offset of its own (z 0, scale 1, opaque white): the template

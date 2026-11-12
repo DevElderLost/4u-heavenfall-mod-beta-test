@@ -58,12 +58,13 @@
     .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera
 
     @ struct mod_options_state (mod_options.c checks the offsets)
-    .equ NET_WAITS, 16
-    .equ NET_POLLS, 20
-    .equ FOV_ONE, 24
-    .equ FOV_OTHER, 28
-    .equ RAW_BASE, 32
-    .equ CAMERA_CAP, 56
+    @ NET_WAITS and NET_POLLS are halfwords
+    .equ NET_WAITS, 24
+    .equ NET_POLLS, 26
+    .equ FOV_ONE, 28
+    .equ FOV_OTHER, 32
+    .equ RAW_BASE, 36
+    .equ CAMERA_CAP, 52
     .equ BOX_LINES, 60
     .equ BOX_AWAY, 61
     @ the options' places in mod_options_state.values (mod_options.py OPTION_IDS)
@@ -126,19 +127,19 @@ mod_fov_other:
 mod_net_waits:
     push    {r12}
     ldr     r12, =mod_options_state
-    ldr     r12, [r12, #NET_WAITS]
+    ldrh    r12, [r12, #NET_WAITS]
     cmp     r2, r12
     pop     {r12}
     b       net_waits_return
 
 mod_net_polls_a:
     ldr     r0, =mod_options_state
-    ldr     r0, [r0, #NET_POLLS]
+    ldrh    r0, [r0, #NET_POLLS]
     b       net_polls_a_return
 
 mod_net_polls_b:
     ldr     r0, =mod_options_state
-    ldr     r0, [r0, #NET_POLLS]
+    ldrh    r0, [r0, #NET_POLLS]
     b       net_polls_b_return
 
 mod_raw_a:

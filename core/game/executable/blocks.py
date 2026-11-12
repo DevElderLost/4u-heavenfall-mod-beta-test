@@ -110,9 +110,10 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 468
-ASPECT_LIST_DATA_SIZE = 24
-MOD_OPTIONS_DATA_SIZE = 16 + 16 * 164
+MOD_SETTINGS_DATA_SIZE = 740
+MOD_SETTINGS_PANE_HASHES = (708, 736)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+ASPECT_LIST_DATA_SIZE = 28
+MOD_OPTIONS_DATA_SIZE = 16 + 24 * 164
 MOD_RAW_TABLE_SIZE = 64
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
@@ -121,6 +122,11 @@ ASPECT_ANCHORS_SIZE = 0x3000
 # Settings, which every mod carries, so that build does not take the aspect ratio's pages; its variable goes after the
 # debug ones with Bubbleblight's (tools/build/build_code_space.py pack_variables).
 SPLIT_ROMFS = "split_romfs"
+# Damage Numbers (interface/damage_numbers/damage_numbers.py): the hooks' stubs, the C
+# and its data (struct dmg_data). Packed last, so it moves no other block; its state is in the extension's variables.
+DAMAGE_NUMBERS = "damage_numbers"
+DAMAGE_NUMBERS_DATA_SIZE = 932
+DAMAGE_NUMBERS_STATE_SIZE = 1480
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -493,6 +499,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
     BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
     BlockSpec("aspect_anchors", ASPECT_RATIO, size=ASPECT_ANCHORS_SIZE, region="ext"),
+    BlockSpec("damage_numbers_stub", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers_stub.s", region="ext"),
+    BlockSpec("damage_numbers_code", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers.c", region="ext"),
+    BlockSpec("damage_numbers_data", DAMAGE_NUMBERS, size=DAMAGE_NUMBERS_DATA_SIZE, region="ext"),
 )
 
 
@@ -597,6 +606,8 @@ VARIABLES = (
     # The log of Heavenfall's own save files: every call of the file task's two operations (core/save/game_redirect.c
     # struct save_log: 16 + 160 notes of 16 bytes); patch_game_redirect calls Layout.reserve
     VariableSpec("save_redirect_log", "save_redirect", 0xA10, align=0x10, region="ext_vars"),
+    # Damage Numbers' events, numbers and monsters (damage_numbers.c struct dmg_state); patch_damage_numbers reserves it
+    VariableSpec("damage_numbers_state", DAMAGE_NUMBERS, DAMAGE_NUMBERS_STATE_SIZE, align=0x10, region="ext_vars"),
     # gameplay/monster_phases/monster_phases.s: the phases of 77, 78 and 124 and the monster whose theme played last
     VariableSpec("monster_phase", "monster_phases", 4),
     # adapter, engine side: the effect player's own managers, which MH4U lacks (core/monsters/porting/sdk/proof_api.h):
@@ -1380,6 +1391,8 @@ GAME_SYMBOLS |= {
     "creation_resume": 0xB74854,        # FUN_00B74748(scene, mode): after the goal target x load (hook 0xB74850)
     "creation_page_body": 0x22CEC4,     # FUN_0022cec4(owner, kind): the creation menu's page change (0x22CDB4)
     "gui_group_show": 0xAE53E0,         # FUN_00ae53e0(group, shown): shows or hides a GUI group (bit 0x400 of +0x44)
+    "monster_hit_damage": 0x921F74,     # FUN_00921f74(uEnemy, region, total, flag): a hit's damage into the frame's
+    "blast_damage": 0x9178E8,           # FUN_009178e8(uEnemy): a blast's damage into the region of the last blast hit
     "cursor_step": 0x5E70BC,            # FUN_005e70bc(cursor, count, pressed, prev, next): a cursor step
     "creation_cursor": 0x22B96C,        # FUN_0022b96c(owner, mode, pad, cells, columns): the creation menu's cursor
 }

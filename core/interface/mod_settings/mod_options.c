@@ -23,7 +23,7 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define MOD_OPTIONS 16          /* mod_options.py MAX_OPTIONS */
+#define MOD_OPTIONS 24          /* mod_options.py MAX_OPTIONS */
 #define MOD_VALUES 16           /* mod_options.py MAX_VALUES */
 #define SAVE_DATA 0x5C          /* the save object's data starts here */
 #define ZONE_WORDS 12           /* the save zone's size in words (curated mod_settings.json) */
@@ -32,7 +32,8 @@ typedef unsigned char u8;
 /* mod_options.py OPTION_IDS */
 enum {
     OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT, OPT_FAST_GATHERING,
-    OPT_CAMERA, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA
+    OPT_CAMERA, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA, OPT_DAMAGE_NUMBERS, OPT_DAMAGE_OTHER, OPT_DAMAGE_STYLE,
+    OPT_DAMAGE_SIZE, OPT_DAMAGE_DURATION
 };
 
 #define SLOT_3D 0               /* mod_options_state.saved: the game's word an option overwrites */
@@ -62,27 +63,27 @@ struct mod_options_data {
 
 struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u8 values[MOD_OPTIONS];     /* 0: each option's value this frame */
-    u32 net_waits;              /* 16: the online waits (frames, polls) */
-    u32 net_polls;              /* 20 */
-    u32 fov_one;                /* 24: the camera's literal in the reset case with the flags "not equal", and the other */
-    u32 fov_other;              /* 28: and in the case "equal" */
-    u32 raw_base;               /* 32: the weapon classes' table the menus read */
-    u32 saved[3];               /* 36: the game's words (SLOT_*) */
-    u32 live;                   /* 48: bit n set while the option writes into slot n */
-    u32 hide_face;              /* 52: the mod has the lock-on and it is off: no target face (hud/target_face.c) */
-    u32 camera_cap;             /* 56: the cap of how long a camera turn has been held (FUN_00bfd028; a float) */
+    u16 net_waits;              /* 24: the online waits (frames, polls; mod_options.py NET_LIMIT) */
+    u16 net_polls;              /* 26 */
+    u32 fov_one;                /* 28: the camera's literal in the reset case with the flags "not equal", and the other */
+    u32 fov_other;              /* 32: and in the case "equal" */
+    u32 raw_base;               /* 36: the weapon classes' table the menus read */
+    u32 saved[3];               /* 40: the game's words (SLOT_*) */
+    u32 camera_cap;             /* 52: the cap of how long a camera turn has been held (FUN_00bfd028; a float) */
+    u32 hide_face;              /* 56: the mod has the lock-on and it is off: no target face (hud/target_face.c) */
     u8 box_lines;               /* 60: a menu's count of lines at a box away from home (FUN_009ec82c); 0: the game's */
     u8 box_away;                /* 61: the box being opened is not the house's (mod_box_kind keeps the game's box) */
-    u8 box_pad[2];
+    u8 live;                    /* 62: bit n set while the option writes into slot n */
+    u8 pad;
 };
 
-_Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 16, "mod_options_stub.s NET_WAITS");
-_Static_assert(__builtin_offsetof(struct mod_options_state, net_polls) == 20, "mod_options_stub.s NET_POLLS");
-_Static_assert(__builtin_offsetof(struct mod_options_state, fov_one) == 24, "mod_options_stub.s FOV_ONE");
-_Static_assert(__builtin_offsetof(struct mod_options_state, fov_other) == 28, "mod_options_stub.s FOV_OTHER");
-_Static_assert(__builtin_offsetof(struct mod_options_state, raw_base) == 32, "mod_options_stub.s RAW_BASE");
-_Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 52, "hud/target_face.c HIDE_FACE");
-_Static_assert(__builtin_offsetof(struct mod_options_state, camera_cap) == 56, "mod_options_stub.s CAMERA_CAP");
+_Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 24, "mod_options_stub.s NET_WAITS");
+_Static_assert(__builtin_offsetof(struct mod_options_state, net_polls) == 26, "mod_options_stub.s NET_POLLS");
+_Static_assert(__builtin_offsetof(struct mod_options_state, fov_one) == 28, "mod_options_stub.s FOV_ONE");
+_Static_assert(__builtin_offsetof(struct mod_options_state, fov_other) == 32, "mod_options_stub.s FOV_OTHER");
+_Static_assert(__builtin_offsetof(struct mod_options_state, raw_base) == 36, "mod_options_stub.s RAW_BASE");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_cap) == 52, "mod_options_stub.s CAMERA_CAP");
+_Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 56, "hud/target_face.c, face_show.s HIDE_FACE");
 _Static_assert(__builtin_offsetof(struct mod_options_state, box_lines) == 60, "mod_options_stub.s BOX_LINES");
 _Static_assert(__builtin_offsetof(struct mod_options_state, box_away) == 61, "mod_options_stub.s BOX_AWAY");
 _Static_assert(sizeof(struct mod_options_state) <= 64, "blocks.py: the variable mod_options_state");
@@ -129,6 +130,12 @@ int mod_option_value(int id)
 int mod_option_count(int id)
 {
     return mod_options_data.options[id].count;
+}
+
+/* What the option's value in use writes or hands to a hook (two words; Damage Numbers reads its floats) */
+const u32 *mod_option_payload(int id)
+{
+    return mod_options_data.options[id].payload[mod_options_state.values[id]];
 }
 
 int mod_option_name(int id, int value)
@@ -210,8 +217,8 @@ void mod_frame(void)
                game_fov());
     state->fov_one = payload_of(OPT_FOV)[0];
     state->fov_other = payload_of(OPT_FOV)[1];
-    state->net_waits = payload_of(OPT_NET)[0];
-    state->net_polls = payload_of(OPT_NET)[1];
+    state->net_waits = (u16)payload_of(OPT_NET)[0];
+    state->net_polls = (u16)payload_of(OPT_NET)[1];
     state->raw_base = state->values[OPT_RAW] != 0 ? (u32)mod_raw_table : (u32)class_multipliers;
     state->hide_face = mod_options_data.options[OPT_LOCK].count != 0 && state->values[OPT_LOCK] == 0;
     state->camera_cap = payload_of(OPT_CAMERA)[0];

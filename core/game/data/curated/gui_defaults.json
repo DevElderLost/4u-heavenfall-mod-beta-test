@@ -5,6 +5,7 @@
   "fast_text": true,
   "camera_speed": 10,
   "box_equipment": true,
+  "damage_numbers": false,
   "single_screen": true,
   "layered_equipment": true,
   "layered_by_rank": true,

@@ -296,7 +296,7 @@ CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(
 
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
-                   "box_equipment", "system_keyboard",
+                   "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "mhw_fatalis_music",
                    "alatreon_music",
                    "cheat_3d_mode",
@@ -452,6 +452,10 @@ class Settings:
     # Manage Equipment and Equipment Sets at every item box, not only at home (the Hall's box's lines:
     # curated/mod_settings.json; core/interface/mod_settings/mod_options.py BOX_LINES)
     box_equipment: bool = False
+    # A number over the monster at each hit, as MH Wilds and Rise show (core/interface/damage_numbers/); its style,
+    # size, duration and Show All Damage are the START menu's (curated
+    # mod_settings.json)
+    damage_numbers: bool = False
     # Names, chat and guild card texts are typed in the 3DS system keyboard, which the emulator shows as a text box for
     # the computer's keyboard (core/interface/system_keyboard/system_keyboard.py); emulator only. No edition offers it:
     # the emulation waits while the text box is open

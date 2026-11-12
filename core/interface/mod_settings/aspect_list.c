@@ -9,7 +9,7 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define PAGE_ROWS 8             /* mod_settings.py LIST_ROWS */
+#define PAGE_ROWS 10            /* mod_settings.py LIST_ROWS */
 #define KEY_UP 1
 #define KEY_DOWN 2
 #define KEY_A 0x10

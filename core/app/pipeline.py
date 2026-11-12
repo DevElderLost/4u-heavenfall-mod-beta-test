@@ -67,6 +67,8 @@ from core.interface.hud.build import hint_files
 from core.interface.hud.code_patch import patch_interface
 from core.interface.hud.scale import NO_EDGE
 from core.interface.single_screen.layout.single_screen import remove_single_screen_files
+from core.interface.damage_numbers.damage_numbers import patch_damage_numbers
+from core.interface.damage_numbers.layout import damage_numbers_files, remove_damage_numbers_files
 from core.app import presets
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
@@ -135,12 +137,13 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
                           single_screen: bool = False, menu_texts: bool = False,
                           target_switch: bool = False, layered_texts: bool = False, exchange_texts: bool = False,
                           gen_looks: GenLooks | None = None, gear_texts: CommonTexts | None = None,
-                          felynes: felyne_looks.FelyneLooks | None = None
+                          felynes: felyne_looks.FelyneLooks | None = None, damage_numbers: bool = False
                           ) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's, the START menu page's (`menu_texts`), the new items' names (`gear_texts`: the rare materials of
     MH XX's monsters), Layered Gear's (with MH XX's looks: `gen_looks`; the Felynes': `felynes`), the Rare Materials
-    Exchange's and the single-screen mode's RomFS files, and with the game's files always the font's (its blank
-    characters, away from its glyphs). They may change the same ARCs, so each is made on the previous
+    Exchange's, Damage Numbers' layout (`damage_numbers`) and the single-screen mode's RomFS files, and with the game's
+    files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
+    made on the previous
     one's copies and everything is written once; files of an earlier run are removed first (they would still be
     loaded). `target_switch`: the lock-on with L is in the mod, so the item selector shows its hint. Returns the
     single-screen mode's draw order offsets and the game GUI engine's table
@@ -153,6 +156,7 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     remove_common_text_files(output_dir)
     remove_single_screen_files(output_dir)
     remove_backdrop_files(output_dir)
+    remove_damage_numbers_files(output_dir)
     # the aspect ratio moves the HUD only with the game's files; it needs no more than the executable to work
     edge = settings.hud_edge if rom is not None else NO_EDGE
     resize_hud = settings.hud_scale != HudScale.FULL or edge != NO_EDGE
@@ -168,11 +172,14 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     texts = dict(layered_text_files(rom, {**hud, **names}, gen=gen_looks, felynes=felynes)) if layered_texts else {}
     if exchange_texts:      # the Wyporium's messages and panes, on top of the other options' copies
         texts.update(exchange_text_files(rom, {**hud, **names, **texts}))
+    dmg = {}                # Damage Numbers' layout and picture in core_quest.arc (interface/damage_numbers/layout.py)
+    if damage_numbers and rom is not None:
+        dmg = dict(damage_numbers_files(rom, {**hud, **names, **texts}))
     screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the others added (single_screen.py)
-        made = single_screen_romfs(rom, {**hud, **names, **texts}, edge if anchored else None)
+        made = single_screen_romfs(rom, {**hud, **names, **texts, **dmg}, edge if anchored else None)
         screens, offsets, engine_table, engine_groups = made.files, made.offsets, made.engine_table, made.engine_groups
-    written = {**hud, **names, **texts, **screens}
+    written = {**hud, **names, **texts, **dmg, **screens}
     if rom is not None:     # always: the font's blank characters away from its glyphs (interface/font/blank_glyphs.py)
         written |= font_files(lambda path: written.get(path) or rom.read(path))
     # after all of them: the backdrops of the files as they are, and the table of each layout's final places
@@ -246,6 +253,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                                 NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
     in_menu = in_menu and bool(menu_options or settings.aspect_on)
     target_switch = "touchless_target" in menu_options
+    damage = in_menu and "damage_numbers" in menu_options     # its layout and its page's option
     patch_interface_code = settings.hud_scale != HudScale.FULL or target_switch
     # the touch screen's menus on the top screen (interface/single_screen/executable/single_screen.py, single_screen.py)
     single_screen = settings.single_screen and supports_single_screen(code)
@@ -303,7 +311,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     gen_looks = prepared.gen_looks() if prepared else None
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
-        gen_looks, added.texts if added else None, felynes)
+        gen_looks, added.texts if added else None, felynes, damage)
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange
             or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
@@ -339,6 +347,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 result.interface_patched = True
             if single_screen:
                 patched = patch_single_screen(patched, screen_offsets, engine_table=engine_table)
+            if damage:      # after the target face: its loader and freer hooks go on to the face's
+                patched = patch_damage_numbers(patched)
             if prepared:    # the executable's tables for the pack's models
                 patched = patch_executable(patched, prepared.needs)
             if title_build:     # the installed title's: the game data as `rom:`, its own RomFS first

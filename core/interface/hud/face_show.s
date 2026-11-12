@@ -31,7 +31,7 @@
     .equ BINDER, target_binder        @ ui601 binder: panel00, panel01, target00
     .equ HUD_REF, health_binder       @ ui202 binder: ui202_tairyoku (code_patch.HUD_REF)
     .equ COPY_INDEX, 0x5C0            @ code_patch.COPY_INDEX
-    .equ HIDE_FACE, 52                @ mod_options_state's hide_face (mod_settings/mod_options.c)
+    .equ HIDE_FACE, 56                @ mod_options_state's hide_face (mod_settings/mod_options.c)
 
 _start:
     ldr     r12, [r0, #0x44]

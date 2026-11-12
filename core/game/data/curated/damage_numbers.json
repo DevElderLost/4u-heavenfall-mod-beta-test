@@ -1,0 +1,29 @@
+{
+  "description": "Damage Numbers (core/interface/damage_numbers/damage_numbers.py): how the numbers look and move. Sizes and distances are in the top screen's layout units (400 x 240 at 5:3), times are seconds. The art's cells are in core/interface/damage_numbers/art/damage_numbers_atlas.json.",
+  "weak_hitzone": {"value": 45, "description": "A hit whose physical hitzone value (cut, impact or shot, the one the hit used) is at least this shows gold; below it, or unknown, white."},
+  "colours": {"value": {"white": [255, 255, 255, 255], "gold": [255, 196, 64, 255], "grey": [150, 150, 150, 255]}, "description": "The digits' colours (RGBA): a normal hit and the other damage white, a weak spot, blast and the mount's finish gold, a bounce and poison grey."},
+  "digit_height": {"value": 15.0, "description": "A digit's cell (the atlas' 32-pixel row) at size 1x."},
+  "frame_seconds": {"value": 0.033333335, "description": "The game's frame delta of 1.0 lasts this long (30 frames a second)."},
+  "pop": {"value": {"seconds": 0.12, "scale": 1.45}, "description": "A new number starts `scale` times its size and settles to it in `seconds`."},
+  "rise": {"value": 16.0, "description": "How far a number rises over its life."},
+  "fade_from": {"value": 0.7, "description": "The part of its life after which a number fades out."},
+  "stack": {"value": {"radius": 14.0, "seconds": 0.35, "step": 1.05, "max": 4}, "description": "A number that lands within `radius` of one younger than `seconds` goes `step` digit cells higher for each, at most `max` of them."},
+  "edge": {"value": 0.05, "description": "How far past the picture's edge (a part of half its side) a number's point may be and still show."},
+  "monster_lift": {"value": 100.0, "description": "A number with no point of its own (poison, blast, the mount, the other damage) shows this many world units over the monster's position."},
+  "group": {"value": {"layer": 1, "priority": 18}, "description": "The group's layer and draw priority: over the 3D scene and the hunters' names (0), under the target marker (19), every HUD panel (20 and up) and the talk windows (63)."},
+  "shared_health_species": {"value": [24, 83, 110, 111], "description": "Monster ids whose two parts share one health (Dalamadur and Shah Dalamadur): a part's own health does not drop, so they show no other damage."},
+  "styles": {
+    "value": {
+      "wilds": {"advance": 0.7, "weak_scale": 1.0,
+                "effects": [{"mark": "star", "colour": [255, 80, 170, 255], "anchor": [-1, 1], "offset": [0.05, -0.05], "size": [3.0, 0.9], "grow": 0},
+                            {"mark": "star_core", "colour": [255, 240, 250, 255], "anchor": [-1, 1], "offset": [0.05, -0.05], "size": [0.6, 0.6], "grow": 0}]},
+      "rise": {"advance": 0.74, "weak_scale": 1.3,
+               "effects": [{"mark": "slash", "colour": [255, 40, 50, 255], "anchor": [0, 0], "offset": [0.0, 0.0], "size": [2.0, 4.0], "grow": 0},
+                           {"mark": "slash_core", "colour": [255, 225, 225, 255], "anchor": [0, 0], "offset": [0.0, 0.0], "size": [2.0, 4.0], "grow": 0}]},
+      "classic": {"advance": 0.9, "weak_scale": 1.0,
+                  "effects": [{"mark": "mark", "colour": [255, 215, 100, 255], "anchor": [-1, 0], "offset": [-0.5, 0.0], "size": [0.85, 0.26], "grow": 0},
+                              {"mark": "mark", "colour": [255, 215, 100, 255], "anchor": [1, 0], "offset": [0.5, 0.0], "size": [0.85, 0.26], "grow": 0}]}
+    },
+    "description": "Per style: `advance`, the step from one digit to the next as a part of a digit's cell width (the outlines overlap); `weak_scale`, how much bigger a weak spot's number is; `effects`, the marks of a critical hit (at most two, drawn in order behind the digits): the atlas' `mark` in `colour` (RGBA), placed at the digits' `anchor` (x: -1 left, 0 centre, 1 right; y: -1 bottom, 0 centre, 1 top) moved by `offset` and sized `size`, both in digit cells, the width growing by the digits' width times `grow`. Wilds: a pink star on its flare at the number's top left, and its white core; Rise: a long red slash across the number, and its bright core; Classic: a straight mark on each side."
+  }
+}

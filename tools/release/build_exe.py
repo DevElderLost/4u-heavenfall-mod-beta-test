@@ -57,6 +57,7 @@ ASSET_FOLDERS = (
     "music/mhw/music",              # MH World's music
     "install/installer_3ds",        # the 3DS app
     "interface/single_screen/layout/images",
+    "interface/damage_numbers/art",  # Damage Numbers' picture and its cells
 )
 # What the program reads at run time, relative to core/ (a folder: every file in it that is not code).
 RESOURCES = ASSET_FOLDERS + (

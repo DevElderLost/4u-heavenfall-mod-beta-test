@@ -56,13 +56,14 @@ EXT_START = 0x111E000
 # + Layered Gear's Relics and the split title's two RomFS beside Valstrax and the pack (1 page for both)
 # + each layered look's zenny a u32, for the relics priced by their monster (2 pages: the block layered_rules to
 #   0x12000)
-EXT_SIZE = 0x145000
+EXT_SIZE = 0x147000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
 # uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
-# records, em data slots and save records.
-EXT_VARS_SIZE = 2 * PAGE
+# records, em data slots and save records; a third for Damage Numbers'
+# state.
+EXT_VARS_SIZE = 3 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000

@@ -235,7 +235,7 @@
   ["0xebfd90", "0xec0000", -48],
   ["0xec0000", "0x104df38", 0],
   ["0x104df40", "0x10ed000", -8],
-  ["0x10ed000", "0x1265000", 0]
+  ["0x10ed000", "0x1268000", 0]
 ],
 "holes": [
   ["0x100054", "0x100080"],
@@ -390,6 +390,7 @@
   "GAME_SYMBOLS.armor_recipes": "run",
   "GAME_SYMBOLS.attack_buff": "run",
   "GAME_SYMBOLS.bit_ref_copy": "run",
+  "GAME_SYMBOLS.blast_damage": "run",
   "GAME_SYMBOLS.bloom_body": "run",
   "GAME_SYMBOLS.box_lines_return": "run",
   "GAME_SYMBOLS.buff_duration": "run",
@@ -788,6 +789,7 @@
   "GAME_SYMBOLS.money_show": "run",
   "GAME_SYMBOLS.money_write": "run",
   "GAME_SYMBOLS.monster_data_manager": "run",
+  "GAME_SYMBOLS.monster_hit_damage": "run",
   "GAME_SYMBOLS.monster_theme": "run",
   "GAME_SYMBOLS.motion_speed": "run",
   "GAME_SYMBOLS.motion_start_4u": "run",
@@ -1713,6 +1715,10 @@
   "install.title.split_romfs.ROM_MOUNT": "run",
   "install.title.split_romfs.TRY_INITIALIZE": "run",
   "install.title_pack.CHUNK": "run",
+  "interface.damage_numbers.damage_numbers.BLAST_CALL": "run",
+  "interface.damage_numbers.damage_numbers.HIT_CALL": "run",
+  "interface.damage_numbers.damage_numbers.MOUNT_CALL": "run",
+  "interface.damage_numbers.damage_numbers.POISON_CALL": "run",
   "interface.fast_text.fast_text.CALLS[0]": "run",
   "interface.fast_text.fast_text.CALLS[1]": "run",
   "interface.fast_text.fast_text.CALLS[2]": "run",

@@ -60,6 +60,9 @@ def main(argv=None) -> int:
     parser.add_argument("--box-equipment", action=argparse.BooleanOptionalAction,
                         help="every item box has Manage Equipment and Equipment Sets (Change Appearance stays "
                              "at home)")
+    parser.add_argument("--damage-numbers", action=argparse.BooleanOptionalAction,
+                        help="a number over the monster at each hit; its style, size and duration are in the game's "
+                             "Mod Settings")
     parser.add_argument("--camera-speed", type=int, metavar="CAP",
                         help="the camera's top turning speed with the buttons (10: the game's own; 50: five times)")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")

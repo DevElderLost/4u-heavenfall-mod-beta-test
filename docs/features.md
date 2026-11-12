@@ -44,6 +44,12 @@
 - The camera can turn up to five times faster while you hold a button to turn it. The game's own speed is the default.
 - Change it on the **Options** page or in the game: START, third page, Mod Settings.
 
+**Damage numbers**
+
+- Each of your hits shows its damage over the monster: gold on a weak spot, white elsewhere, grey when it bounces off. Poison is grey; blast and a mount's finish are gold.
+- Three styles: Wilds, Rise and Classic, each with its own mark for critical hits.
+- They are off by default. Turn them on in the **Options** page or in the game: START, third page, Mod Settings, Other, Damage Numbers, which also has the style, the size, how long they stay and Show All Damage (every hit on the monster, not only yours). Felynes' damage never shows.
+
 **Layered Gear and the Wyporium**
 
 - The Smithy has a new line, Layered Gear: each look of an armor, weapon or Felyne set is bought once with materials and money, and worn over what you wear without changing it. Armor looks show their own colors; on the armor screen, SELECT opens a free color window: choose the whole set or one piece, then a color. Relics (Guild Quest gear) have their own Relics line, below Felyne, priced like their monster's gear; looks you don't own show darker icons.

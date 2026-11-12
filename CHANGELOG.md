@@ -25,6 +25,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Start can skip the camera over a slain monster.
 - The camera can turn up to five times faster.
 - Manage Equipment and Equipment Sets from every item box.
+- Damage numbers over monsters, in three styles; switch them on in Mod Settings.
 
 ### Real Hardware
 - Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.
@@ -61,6 +62,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### Cheats
 - The cheats can also be changed in the game: START menu, third page, Mod Settings.
+- Mod Settings' lists show ten rows a page; Left and Right turn the pages.
 - Each character keeps its own choices; one with none yet starts with what the Options page says.
 - Cheats can also show weapons' true attack instead of the inflated number.
 - Cheats can fit the game and its menus to screens from 4:3 to 32:9; experimental.
