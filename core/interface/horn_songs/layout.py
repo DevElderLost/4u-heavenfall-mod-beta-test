@@ -60,10 +60,10 @@ class HornSongsError(ValueError):
 
 def load_tuning(path: Path = TUNING_FILE) -> dict:
     """The curated tuning, checked: every key as its value; refuses a colour that is not four bytes, a note or a name
-    taller than its row's band, notes drawn over each other and letters over each other."""
+    taller than its row's band, notes drawn over each other, letters over each other and a blink out of range."""
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
     tuning = {}
-    for key in ("minimap_gap", "list_scale", "row", "font", "colours", "group"):
+    for key in ("minimap_gap", "list_scale", "row", "font", "colours", "effect", "group"):
         entry = raw.get(key)
         if not isinstance(entry, dict) or "value" not in entry or not isinstance(entry.get("description"), str):
             raise HornSongsError(f"horn_songs.json: {key} must be {{\"value\": ..., \"description\": ...}}")
@@ -73,8 +73,12 @@ def load_tuning(path: Path = TUNING_FILE) -> dict:
     if set(colours) != {"text", "bar", "notes"} or set(colours["text"]) != set(states) \
             or set(colours["bar"]) != set(states) or set(colours["notes"]) != {"waiting", "lit"}:
         raise HornSongsError("horn_songs.json: colours are text and bar (idle, partial, full) and notes (waiting, lit)")
-    if any(len(c) != 4 or not all(0 <= x <= 255 for x in c) for group in colours.values() for c in group.values()):
+    effect = tuning["effect"]
+    if any(len(c) != 4 or not all(0 <= x <= 255 for x in c)
+           for c in [*(c for group in colours.values() for c in group.values()), effect.get("bar", ())]):
         raise HornSongsError("horn_songs.json: a colour is four bytes (RGBA)")
+    if not 0 <= effect.get("blink_seconds", -1) <= 60 or not 0 < effect.get("blink_period", 0) <= 5:
+        raise HornSongsError("horn_songs.json: the effect's blink lasts 0-60 seconds, a period of up to 5")
     table = tuning["list_scale"]
     if not table or any(not 0 < scale <= 1.5 for scale in table.values()) \
             or any(not 0 < int(percent) <= 100 for percent in table):

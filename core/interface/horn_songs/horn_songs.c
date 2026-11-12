@@ -18,6 +18,10 @@
  * The rows are made again when the group or the note set changes; the lights when the notes played change. A row is
  * idle, partial (the last k notes played are its first k: those notes lit) or full (its whole tune is the last notes
  * played, as the game's own match at its first offset): its bar, its name and its notes take that state's colours.
+ * A song whose effect the hunter has (the game's table of each song's effect; each effect's slots and least levels,
+ * horn_songs.py EFFECT_NEEDS, in the data block; the slots' levels and time left in the work, +0x804 and +0x824) has
+ * the green bar instead, blinking in its last seconds; its name and notes keep their state's colours. The greens are
+ * worked out every frame and only the bars that change are written.
  * The group shows only in a quest with the HUD on (the health bar's group shown), while the option is on and the hunter
  * holds a horn; it is not cached (its flag 0x100 cleared), so plain writes show at once.
  *
@@ -33,6 +37,10 @@ typedef unsigned char u8;
 #define SONGS 75                /* the game's song table */
 #define CLASSES 50              /* the game's note triplets */
 #define NO_CLASS 0xFF
+#define EFFECTS 52              /* horn_songs.py EFFECT_NEEDS: the game's song effects */
+#define SLOTS 29                /* horn_songs.py SLOTS: the hunter's song effect slots */
+#define NEEDS 2                 /* an effect's slots, at most */
+#define NO_SLOT 0xFF
 
 enum { IDLE, PARTIAL, FULL };
 
@@ -43,6 +51,7 @@ extern const u8 horn_note_triplets[];   /* CLASSES x 3 notes */
 extern const u8 horn_song_names[];      /* SONGS: the name's index */
 extern const u32 horn_name_messages[];  /* a name index -> the Menu file's message */
 extern const u8 hud_note_cells[];       /* a note (0-8) -> its cell */
+extern const u8 horn_song_effects[];    /* SONGS: the song's effect */
 extern int mod_option_value(int id);    /* mod_options.c */
 extern int mod_option_count(int id);
 u32 player_get(u32 manager, int index);                 /* FUN_00af9ab0 */
@@ -65,6 +74,10 @@ struct horn_data {              /* the block horn_songs_data (horn_songs.py data
     float normal_v;             /* the row of the notes' cells */
     float special_u, special_v; /* the special horn's: where its cells start */
     u32 special_horn;           /* the weapon id whose notes are the special ones */
+    u32 active_bar;             /* the bar of a song whose effect the hunter has */
+    float blink_below;          /* the time left (ticks) under which the green blinks */
+    float blink_rate;           /* 1 / half the blink's period (ticks): green, then the state's bar */
+    u8 needs[EFFECTS][NEEDS][2]; /* an effect's slots and their least levels (slot NO_SLOT: none) */
 };
 
 struct horn_row {
@@ -77,11 +90,13 @@ struct horn_state {             /* the variable horn_songs_state */
     u8 shown, rows;
     u8 note_set;                /* the note triplet the rows were made for, NO_CLASS: none */
     u8 special;                 /* 1: the rows have the special horn's notes */
+    u8 green;                   /* the rows whose bar is green (a bit per row) */
+    u8 unused[3];
     struct horn_row row[ROWS];
 };
 
-_Static_assert(sizeof(struct horn_data) == 76, "blocks.py HORN_SONGS_DATA_SIZE, horn_songs.py data_block");
-_Static_assert(sizeof(struct horn_state) == 44, "blocks.py HORN_SONGS_STATE_SIZE");
+_Static_assert(sizeof(struct horn_data) == 296, "blocks.py HORN_SONGS_DATA_SIZE, horn_songs.py data_block");
+_Static_assert(sizeof(struct horn_state) == 48, "blocks.py HORN_SONGS_STATE_SIZE");
 
 extern const struct horn_data horn_songs_data;
 extern struct horn_state horn_songs_state;
@@ -103,6 +118,8 @@ extern struct horn_state horn_songs_state;
 #define HUNTING_HORN 18
 #define NOTE_SET 0x16C          /* work: the horn's note triplet */
 #define PLAYED 0x930            /* work: the notes played, newest first */
+#define EFFECT_LEVEL 0x804      /* work: each song effect slot's level (u8; FUN_0035716c, FUN_00b40140) */
+#define EFFECT_TIME 0x824       /* work: each slot's time left (f32, ticks; FUN_00b17260 counts it down, 0 off) */
 #define NODE_DATA 0x08          /* a pane's node: its data, */
 #define NODE_DIRTY 0x0C         /* its redraw entry (+ DIRTY_MARK: 3 redraws it), */
 #define DIRTY_MARK 0x12
@@ -331,7 +348,81 @@ static void build(u32 group, int note_set, int special)
     }
     state->note_set = (u8)note_set;
     state->special = (u8)special;
+    state->green = 0;           /* the bars are idle */
     state->played = ~0u;        /* the lights are made again */
+}
+
+/* The time left of the song's effect on the hunter whose work is `work` (ticks; the least of its slots'), 0 when it
+ * does not have it: every slot of its effect with time left at its least level or more. An instant song has none. */
+static float effect_left(u32 work, int song)
+{
+    const struct horn_data *data = &horn_songs_data;
+    u32 effect = horn_song_effects[song];
+    float left = 0.0f;
+    int i;
+
+    if (effect >= EFFECTS)
+        return 0.0f;
+    for (i = 0; i < NEEDS; i++) {
+        u32 slot = data->needs[effect][i][0];
+        float time;
+
+        if (slot == NO_SLOT)
+            continue;
+        if (slot >= SLOTS)
+            return 0.0f;
+        time = F(work, EFFECT_TIME + 4 * slot);
+        if (!(time > 0.0f) || B(work, EFFECT_LEVEL + slot) < data->needs[effect][i][1])
+            return 0.0f;
+        if (left == 0.0f || time < left)
+            left = time;
+    }
+    return left;
+}
+
+/* The rows whose bar is green: their song's effect on, and in its last seconds only in the blink's green half */
+static u32 green_rows(u32 work)
+{
+    const struct horn_data *data = &horn_songs_data;
+    const struct horn_state *state = &horn_songs_state;
+    u32 green = 0;
+    int row;
+
+    for (row = 0; row < state->rows; row++) {
+        float left = effect_left(work, state->row[row].song);
+        int half;
+
+        if (!(left > 0.0f))
+            continue;
+        half = left >= data->blink_below ? 0 : (int)((data->blink_below - left) * data->blink_rate);
+        if ((half & 1) == 0)
+            green |= 1u << row;
+    }
+    return green;
+}
+
+static u32 bar_colour(int state, int green)
+{
+    return green ? horn_songs_data.active_bar : horn_songs_data.bar_colour[state];
+}
+
+/* The bars whose green changed, with no note played since the last lights */
+static void paint_bars(u32 group, u32 green)
+{
+    struct horn_state *state = &horn_songs_state;
+    int row;
+
+    for (row = 0; row < state->rows; row++) {
+        u32 bit = 1u << row, null;
+        struct row_panes panes;
+
+        if (((green ^ state->green) & bit) == 0 || (null = row_null(group, row)) == 0)
+            continue;
+        row_panes(null, &panes);
+        if (panes.bar != 0)
+            sprite_colour(group, panes.bar, bar_colour(state->row[row].state, (green & bit) != 0));
+    }
+    state->green = (u8)green;
 }
 
 /* How the notes played (`played`, newest first) meet the song's: FULL, PARTIAL with `lit` notes, or IDLE */
@@ -354,7 +445,8 @@ static int match(int song, const u8 *played, int heard, int *lit)
     return k == count ? FULL : k > 0 ? PARTIAL : IDLE;
 }
 
-static void light(u32 group, u32 work)
+/* The lights of the notes played, with the bars' greens `green` */
+static void light(u32 group, u32 work, u32 green)
 {
     const struct horn_data *data = &horn_songs_data;
     struct horn_state *state = &horn_songs_state;
@@ -366,7 +458,7 @@ static void light(u32 group, u32 work)
     for (row = 0; row < state->rows; row++) {
         struct horn_row *r = &state->row[row];
         struct row_panes panes;
-        u32 null = row_null(group, row);
+        u32 null = row_null(group, row), bit = 1u << row;
         int lit, now = match(r->song, played, heard, &lit);
 
         if (null == 0)
@@ -374,14 +466,15 @@ static void light(u32 group, u32 work)
         row_panes(null, &panes);
         if (now != r->state && panes.text != 0)
             row_text(group, panes.text, r->song, data->text_colour[now]);
-        if (now != r->state && panes.bar != 0)
-            sprite_colour(group, panes.bar, data->bar_colour[now]);
+        if ((now != r->state || ((green ^ state->green) & bit) != 0) && panes.bar != 0)
+            sprite_colour(group, panes.bar, bar_colour(now, (green & bit) != 0));
         for (i = 0; i < NOTES; i++)
             if (panes.note[i] != 0)
                 sprite_colour(group, panes.note[i], data->note_colour[i < lit]);
         r->state = (u8)now;
         r->lit = (u8)lit;
     }
+    state->green = (u8)green;
 }
 
 static void hide(struct horn_state *state)
@@ -397,7 +490,7 @@ void horn_frame(void)
 {
     const struct horn_data *data = &horn_songs_data;
     struct horn_state *state = &horn_songs_state;
-    u32 group = find_group(), status = 0, work = 0, played;
+    u32 group = find_group(), status = 0, work = 0, played, green;
 
     if (group != state->group) {        /* a new quest's group, or none */
         state->group = group;
@@ -418,9 +511,12 @@ void horn_frame(void)
         build(group, B(work, NOTE_SET), special_horn(status));      /* another horn (the camp's box) */
     played = (u32)B(work, PLAYED) | (u32)B(work, PLAYED + 1) << 8 | (u32)B(work, PLAYED + 2) << 16 |
              (u32)B(work, PLAYED + 3) << 24;
+    green = green_rows(work);
     if (played != state->played) {
-        light(group, work);
+        light(group, work, green);
         state->played = played;
+    } else if (green != state->green) {
+        paint_bars(group, green);
     }
     if (!state->shown) {
         gui_group_show(group, 1);

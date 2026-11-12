@@ -740,6 +740,7 @@
   "GAME_SYMBOLS.hit_resume": "run",
   "GAME_SYMBOLS.horn_name_messages": "run",
   "GAME_SYMBOLS.horn_note_triplets": "run",
+  "GAME_SYMBOLS.horn_song_effects": "run",
   "GAME_SYMBOLS.horn_song_names": "run",
   "GAME_SYMBOLS.horn_song_notes": "run",
   "GAME_SYMBOLS.hud_note_cells": "run",

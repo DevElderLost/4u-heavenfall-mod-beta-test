@@ -27,6 +27,42 @@ MESSAGE_FILE = 3        # the common file of the songs' names: Menu (FUN_0027793
 NORMAL_V, SPECIAL_U, SPECIAL_V = 160 / 512, 256 / 512, 202 / 512
 SPECIAL_HORN = 0xA9     # the weapon id (status +0x1C2) whose notes are the special ones
 
+# The songs' effects. A song's effect is the game's table
+# (GAME_SYMBOLS horn_song_effects); FUN_00b29140 gives each effect to one or two of the hunter's SLOTS slots (work
+# +0x800: a level byte at +0x804 + slot, the time left at +0x824 + 4 x slot, in TICKS_PER_SECOND), at a level: 1 for a
+# plain one (2 once extended), 1, 3 or 5 for an effect's weaker, middle or stronger song (FUN_0035716c: 2, 4 or 6 once
+# extended), the health it gives for a health boost (FUN_00b40140). EFFECT_NEEDS copies that switch: per effect, its
+# (slot, least level) pairs; none for the instant ones (heals 0x0E-0x13, Sonic Waves 0x29). The song is green while
+# each of its slots has time left at its level or more.
+SLOTS = 29
+TICKS_PER_SECOND = 60   # the effects' time falls by the frame's delta (uPlayer +0x14), in 1/60 s (the frame limiter's)
+NO_SLOT = 0xFF
+
+
+def _plain(slot):
+    return ((slot, 1),)
+
+
+def _levels(slot):
+    return ((slot, 1),), ((slot, 5),)
+
+
+EFFECT_NEEDS = (
+    _plain(0), *_levels(1), *_levels(2),                        # 0x00-0x04
+    ((3, 30),), ((3, 40),), ((3, 50),),                         # 0x05-0x07: the health boosts
+    ((4, 1),), ((4, 3),), ((4, 5),),                            # 0x08-0x0A: three levels
+    *_levels(5), _plain(6),                                     # 0x0B-0x0D
+    (), (), (), (), (), (),                                     # 0x0E-0x13: heals
+    *_levels(7), _plain(8), _plain(9), _plain(10), *_levels(11),    # 0x14-0x1A
+    _plain(12), _plain(13), _plain(14), _plain(15),             # 0x1B-0x1E
+    *_levels(16), *_levels(17), *_levels(18), *_levels(19), *_levels(20),   # 0x1F-0x28
+    (), _plain(26), _plain(21),                                 # 0x29 Sonic Waves, 0x2A extends every effect, 0x2B
+    ((1, 1), (2, 1)),                                           # 0x2C: effects 0x01 and 0x03 together
+    _plain(22), _plain(23), _plain(27), _plain(24), _plain(25),     # 0x2D-0x31
+    ((11, 1), (4, 3)),                                          # 0x32: effects 0x19 and 0x09 together
+    _plain(28),                                                 # 0x33
+)
+
 
 def _rgba(colour) -> int:
     return struct.unpack("<I", bytes(colour))[0]
@@ -43,6 +79,11 @@ def data_block(tuning: dict | None = None) -> bytes:
     data += struct.pack("<3I", *(_rgba(colours["bar"][state]) for state in STATES))
     data += struct.pack("<2I", _rgba(colours["notes"]["waiting"]), _rgba(colours["notes"]["lit"]))
     data += struct.pack("<4fI", NOTE_CELL, NORMAL_V, SPECIAL_U, SPECIAL_V, SPECIAL_HORN)
+    effect = tuning["effect"]
+    data += struct.pack("<I2f", _rgba(effect["bar"]), effect["blink_seconds"] * TICKS_PER_SECOND,
+                        2 / (effect["blink_period"] * TICKS_PER_SECOND))
+    for pairs in EFFECT_NEEDS:
+        data += bytes(x for pair in pairs for x in pair) + bytes((NO_SLOT, 0)) * (2 - len(pairs))
     if len(data) != HORN_SONGS_DATA_SIZE:
         raise HornSongsError(f"horn_songs_data holds {HORN_SONGS_DATA_SIZE} bytes, made {len(data)}")
     return data
@@ -67,5 +108,5 @@ def patch_horn_songs(code: bytes, layout: Layout | None = None) -> bytes:
     return bytes(out)
 
 
-__all__ = ["CODE", "DATA", "INDEX", "MESSAGE_FILE", "OPTION", "STATE", "STATES", "data_block", "patch_horn_songs",
-           "supports_horn_songs"]
+__all__ = ["CODE", "DATA", "EFFECT_NEEDS", "INDEX", "MESSAGE_FILE", "NO_SLOT", "OPTION", "SLOTS", "STATE", "STATES",
+           "TICKS_PER_SECOND", "data_block", "patch_horn_songs", "supports_horn_songs"]

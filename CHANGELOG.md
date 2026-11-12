@@ -27,6 +27,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The camera can turn up to five times faster.
 - Better Camera: the New 3DS C-Stick turns and stops the camera and aim smoothly, at your speed and acceleration.
 - With a Hunting Horn, its songs show under the minimap and light up as you play them.
+- A horn song whose effect you have turns green, blinking in its last five seconds.
 - The frame rate can be set from 30 to 60 FPS in fives (emulator only).
 - Manage Equipment and Equipment Sets from every item box.
 - Damage numbers over monsters, in three styles; switch them on in Mod Settings.

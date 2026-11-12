@@ -141,8 +141,8 @@ QUEST_LAYOUTS_DATA_SIZE = 128
 # The Hunting Horn's songs (interface/horn_songs/horn_songs.py): the C and its data
 # (struct horn_data); its state is in the extension's variables.
 HORN_SONGS = "horn_songs"
-HORN_SONGS_DATA_SIZE = 76
-HORN_SONGS_STATE_SIZE = 44
+HORN_SONGS_DATA_SIZE = 296
+HORN_SONGS_STATE_SIZE = 48
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -1800,4 +1800,5 @@ GAME_SYMBOLS |= {
     "horn_song_names": 0xED256A,        # u8[75]: a song's name index (FUN_00277e68 at 0x278120)
     "horn_name_messages": 0xED2858,     # u32[]: a name index's message of the Menu file (common file 3)
     "hud_note_cells": 0xB90EFC,         # u8[9]: a note's cell in the HUD's picture (FUN_00b8f58c's literal)
+    "horn_song_effects": 0x100C44C,     # u8[75]: a song's effect (FUN_00b29140); the effects' durations just before
 }

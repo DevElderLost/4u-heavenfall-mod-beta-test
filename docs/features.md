@@ -70,6 +70,9 @@
 - With a Hunting Horn in a quest, the top screen lists its songs at its right edge, under the minimap: each song's notes,
   then its name.
 - The songs that start with the notes you just played light up, and a song you just completed lights up brighter.
+- A song whose effect you have (from your horn or another hunter's) has a green band until the effect runs out; it
+  blinks in the last five seconds. A weaker version of an effect you have stronger is green too; instant songs
+  (healing, Sonic Waves) never are.
 - It is on by default. Turn it off in the game: START, third page, Mod Settings, Interface, Hunting Horn Songs.
 
 **Layered Gear and the Wyporium**
