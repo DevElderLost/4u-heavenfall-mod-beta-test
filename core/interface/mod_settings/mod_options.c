@@ -29,11 +29,12 @@ typedef unsigned char u8;
 #define ZONE_WORDS 12           /* the save zone's size in words (curated mod_settings.json) */
 #define ZONE_VERSION 4          /* its u16 */
 
-/* mod_options.py OPTION_IDS */
+/* mod_options.py OPTION_IDS (a number the list skips is an option this code does not have) */
 enum {
     OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT, OPT_FAST_GATHERING,
     OPT_CAMERA, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA, OPT_DAMAGE_NUMBERS, OPT_DAMAGE_OTHER, OPT_DAMAGE_STYLE,
-    OPT_DAMAGE_SIZE, OPT_DAMAGE_DURATION
+    OPT_DAMAGE_SIZE, OPT_DAMAGE_DURATION, OPT_MODERN_CAMERA, OPT_HORN_SONGS, OPT_INTRO_SKIP,
+    OPT_CAMERA_MAX, OPT_CAMERA_ACCEL
 };
 
 #define SLOT_3D 0               /* mod_options_state.saved: the game's word an option overwrites */
@@ -42,6 +43,7 @@ enum {
 
 #define DISPLAY_MODE 0x6BA8     /* MtGX's draw object: the display mode word */
 #define FRAME_RATE 0x30         /* the main object: the frame rate the limiter aims at */
+#define LIMITER_BASE 0x2C       /* the main object: the limiter's 60.0 (frames a second at rate 1), a float */
 #define FIELD_OF_VIEW 0xED0     /* sCamera: the camera's field of view */
 
 struct mod_option {             /* mod_options.py options_data */
@@ -74,7 +76,7 @@ struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u8 box_lines;               /* 60: a menu's count of lines at a box away from home (FUN_009ec82c); 0: the game's */
     u8 box_away;                /* 61: the box being opened is not the house's (mod_box_kind keeps the game's box) */
     u8 live;                    /* 62: bit n set while the option writes into slot n */
-    u8 pad;
+    u8 frame;                   /* 63: the frames counted (mod_frame), for a block that must know one went by */
 };
 
 _Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 24, "mod_options_stub.s NET_WAITS");
@@ -86,6 +88,7 @@ _Static_assert(__builtin_offsetof(struct mod_options_state, camera_cap) == 52, "
 _Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 56, "hud/target_face.c, face_show.s HIDE_FACE");
 _Static_assert(__builtin_offsetof(struct mod_options_state, box_lines) == 60, "mod_options_stub.s BOX_LINES");
 _Static_assert(__builtin_offsetof(struct mod_options_state, box_away) == 61, "mod_options_stub.s BOX_AWAY");
+_Static_assert(__builtin_offsetof(struct mod_options_state, frame) == 63, "modern_camera.c MOD_FRAME");
 _Static_assert(sizeof(struct mod_options_state) <= 64, "blocks.py: the variable mod_options_state");
 
 extern const struct mod_options_data mod_options_data;
@@ -93,6 +96,7 @@ extern struct mod_options_state mod_options_state;
 extern const u32 mod_raw_table[16];
 extern const u32 class_multipliers[16];
 extern u32 save_control, gx_main, game_main, camera_control;
+extern float fps_carry_state;   /* blocks.py: the vsyncs' fraction frame_rate_word carries */
 
 /* The save zone of the character in play, 0 without a save */
 static u8 *save_zone(void)
@@ -203,6 +207,35 @@ static u32 game_fov(void)
     return state[0] == 8 && state[1] == 1 ? 0x42680000 : 0x42480000;
 }
 
+/* The frame rate word the limiter (FUN_00644320) is given. The limiter sleeps until a frame lasted base / word (in 60ths
+ * of a second) after the last one, and the GX wait (FUN_00bf5fec) ends every frame on a vsync, so a frame lasts a whole
+ * number of vsyncs and a target between them sleeps the frame off its vsync (50 fps ran as 45 when drawing took four
+ * fifths of one: the overshoot is the frame's time, never given back). Each frame is given 1 or more whole vsyncs instead, the fractions added up in
+ * fps_carry_state: 45 fps is three frames in every four vsyncs. 0 again when the option is off. */
+static u32 frame_rate_word(u32 rate_word, int active)
+{
+    union { u32 bits; float number; } in, out;
+    float rate, base, vsyncs;
+    int whole;
+
+    in.bits = rate_word;
+    rate = in.number;
+    if (!active)
+        fps_carry_state = 0.0f;
+    if (!active || game_main == 0)
+        return rate_word;
+    base = *(float *)(game_main + LIMITER_BASE);
+    if (!(rate > 0.0f) || !(base > 0.0f))
+        return rate_word;
+    vsyncs = fps_carry_state + base / rate;
+    if (!(vsyncs >= 1.0f && vsyncs < 4.0f))         /* not a value this wrote: start again */
+        vsyncs = 1.0f;
+    whole = (int)vsyncs;
+    fps_carry_state = vsyncs - (float)whole;
+    out.number = base / (float)whole;
+    return out.bits;
+}
+
 /* FUN_00644320's caller, once per frame in every scene, before the engine's timing update */
 void mod_frame(void)
 {
@@ -212,7 +245,8 @@ void mod_frame(void)
     for (id = 0; id < MOD_OPTIONS; id++)
         state->values[id] = value_of(id);
     write_word(gx_main, DISPLAY_MODE, state->values[OPT_3D] != 0, payload_of(OPT_3D)[0], SLOT_3D, 0);
-    write_word(game_main, FRAME_RATE, state->values[OPT_FPS] != 0, payload_of(OPT_FPS)[0], SLOT_FPS, 0);
+    write_word(game_main, FRAME_RATE, state->values[OPT_FPS] != 0,
+               frame_rate_word(payload_of(OPT_FPS)[0], state->values[OPT_FPS] != 0), SLOT_FPS, 0);
     write_word(camera_control, FIELD_OF_VIEW, state->values[OPT_FOV] != 0, payload_of(OPT_FOV)[0], SLOT_FOV,
                game_fov());
     state->fov_one = payload_of(OPT_FOV)[0];
@@ -223,4 +257,5 @@ void mod_frame(void)
     state->hide_face = mod_options_data.options[OPT_LOCK].count != 0 && state->values[OPT_LOCK] == 0;
     state->camera_cap = payload_of(OPT_CAMERA)[0];
     state->box_lines = (u8)payload_of(OPT_BOX)[0];
+    state->frame++;
 }

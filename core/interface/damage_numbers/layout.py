@@ -1,5 +1,5 @@
 """Damage Numbers' game files: a layout of our own and its picture in
-each language's core_quest.arc, which the quest loads with its other layouts (damage_numbers_stub.s dmg_loader).
+each language's core_quest.arc, which the quest loads with its other layouts (interface/quest_layouts).
 
 The layout `lyt\\quest\\hf_dmg` has one root group, `hf_dmg`, with SLOTS nulls (one number each, hidden when the
 layout loads), each holding EFFECTS sprites (the critical marks, drawn first: behind) and DIGITS sprites (the digits);
@@ -27,7 +27,7 @@ from core.interface.hud.build import LANGUAGES, GameFiles
 ART = Path(__file__).resolve().parent / "art"
 PICTURE, CELLS = ART / "damage_numbers.png", ART / "damage_numbers_atlas.json"
 ARC = "core_quest.arc"
-LAYOUT_PATH = "lyt\\quest\\hf_dmg"      # what damage_numbers_stub.s loads (layout_path); the entry is "<lang>\\" + it
+LAYOUT_PATH = "lyt\\quest\\hf_dmg"      # its quest_layouts entry; the arc entry is "<lang>\\" + it
 TEXTURE = "lyt\\quest\\texture\\hf_dmg_GSM_NOMIP"
 GROUP = "hf_dmg"
 TEMPLATE = "lyt\\quest\\ui211"          # the target marker: the records copied

@@ -10,7 +10,7 @@
   "modules": {
    "single_screen": ["single_screen", "hud_scale", "touchless_target", "cheat_aspect_allowed", "cheat_aspect_ratio"],
    "layered_gear": ["layered_equipment", "layered_by_rank", "rare_exchange"],
-   "quality_of_life": ["quality_of_life", "hold_a", "fast_text", "camera_speed", "box_equipment", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "skip_death_camera", "damage_numbers", "damage_numbers_other", "damage_numbers_style", "damage_numbers_size", "damage_numbers_duration"]
+   "quality_of_life": ["quality_of_life", "hold_a", "fast_text", "camera_speed", "box_equipment", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "skip_death_camera", "skip_monster_intro", "modern_camera", "modern_camera_speed", "modern_camera_acceleration", "damage_numbers", "damage_numbers_other", "damage_numbers_style", "damage_numbers_size", "damage_numbers_duration", "horn_songs"]
   },
   "links": {}
  },

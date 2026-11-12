@@ -49,7 +49,7 @@ KIND = 0x2F                     # the menu's sub-screen kind (+0xA) while the li
 SUBLIST_ROWS = 5                # the game's own rows of its small list (FUN_0060caec, FUN_005e87b4, FUN_0060fbc0)
 LIST_PAGE_ROWS = 10             # a page of a small list: the game's rows and ui020's five more (ten_rows.py)
 MAX_ROWS = 2 * LIST_PAGE_ROWS   # a list's rows: two pages, with the page numbers in the menu's title bar
-MAX_LISTS = 6                   # the small lists the data block has room for (mod_settings.c)
+MAX_LISTS = 8                   # the small lists the data block has room for (mod_settings.c)
 MAX_TABLE = 64                  # their rows, together: the top list and three full lists below it
 NO_LIST = 0xFF                  # in a list: it has no parent; in an entry: it opens a screen
 # The screens an entry can open, by their number in mod_settings.c: the aspect ratios (aspect_list.c) and an

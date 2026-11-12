@@ -1,7 +1,8 @@
 /* Damage Numbers (interface/damage_numbers/damage_numbers.py): a number over the
  * monster at each hit, in the style the player picks in Mod Settings (Wilds, Rise or Classic).
  *
- * The hooks of damage_numbers_stub.s hand the game's damage to this code:
+ * The hooks of damage_numbers_stub.s hand the game's damage to this code (the frame, the layout's load and free go
+ * through the quest's shared hooks, interface/quest_layouts, whose table names dmg_frame):
  *   - dmg_hit: FUN_00be9c64 (a hit on a monster) called FUN_00921f74, which adds the hit's final damage to the
  *     monster's damage of the frame (em + 0x4B4 + 2 * region); the stub hands the difference it made, the hit record
  *     and the caller's frame (the hitzone record at +0x4C, the melee's impact choice at +0x7C);
@@ -12,7 +13,7 @@
  * and always when a monster made it or nobody did (the map's weapons); with Show All Damage (the option
  * damage_numbers_other) another player's hits show too; a Felyne's never do (any player's); a status damage shows at the
  * monster. dmg_frame turns them into numbers:
- *   - a number takes a slot of the group `hf_dmg` (our own layout, which damage_numbers_stub.s loads with the quest's
+ *   - a number takes a slot of the group `hf_dmg` (our own layout, which the shared hooks load with the quest's
  *     layouts at a fixed index of the GUI manager); when all are taken, the oldest number gives its slot up;
  *   - its colour: gold for a physical hitzone at or above the curated threshold, white below it or unknown, grey for
  *     a bounce and for poison, gold for blast and the mount's finish, white for the other damage;

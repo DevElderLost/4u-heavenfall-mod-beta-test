@@ -6,15 +6,12 @@ choice acts at once.
 
 These functions change, in the update's executable (canonical):
 
-- FUN_00af52a0 (sMhMain::frame): its `ldr r0, [r4, #0x2bc]` after every system's move and before the render
-  (FRAME_HOOK) goes through the stub, which runs the numbers' frame first;
 - FUN_00be9c64 (a hit on a monster): its only call of FUN_00921f74, which adds the hit's final damage to the monster's
   damage of the frame (HIT_CALL), goes through the stub, which hands the difference it made to the code;
 - FUN_00920104 (the monster's damage step): its call of FUN_009178e8, the blast (BLAST_CALL), and its two calls of
   FUN_0093ba30 that take a poison tick (POISON_CALL) and the mount's finish (MOUNT_CALL) off the monster's health;
-- FUN_00c1017c (the quest's layouts' loader): its `mov r4, #0` right after the stage map's load (LOAD_HOOK) loads our
-  layout too, and FUN_00c0f110 (frees the GUI layouts): its `mov r10, r1` (FREE_HOOK) frees it. The target face takes
-  the instructions next to them (interface/hud/code_patch.py LOADER_HOOK, FREE_HOOK), so both can be in a mod.
+- through the quest's shared hooks (interface/quest_layouts/quest_layouts.py): FUN_00af52a0 (sMhMain::frame) runs the
+  numbers' frame (dmg_frame), FUN_00c1017c loads our layout at INDEX and FUN_00c0f110 frees it.
 Update's executable only; the version maps carry it to the base games.
 """
 
@@ -25,9 +22,10 @@ from typing import Any
 
 from core.game.data.paths import CURATED_DIR
 from core.game.executable.blocks import DAMAGE_NUMBERS_DATA_SIZE, GAME_SYMBOLS
-from core.game.executable.code_space import BASE_ADDRESS, Layout, bl_target, load_layout
+from core.game.executable.code_space import Layout, bl_target, load_layout
 from core.game.files.gui.lyt import name_hash
-from core.interface.damage_numbers.layout import EFFECTS, GROUP, atlas
+from core.interface.damage_numbers.layout import EFFECTS, GROUP, LAYOUT_PATH, atlas
+from core.interface.quest_layouts.quest_layouts import QuestLayout, add_quest_layout, supports_quest_layouts
 
 TUNING_FILE = CURATED_DIR / "damage_numbers.json"
 STUB, CODE, DATA, STATE = "damage_numbers_stub", "damage_numbers_code", "damage_numbers_data", "damage_numbers_state"
@@ -37,16 +35,11 @@ STYLES = ("wilds", "rise", "classic")   # the style option's values in order (cu
 KINDS = ("hit", "poison", "blast", "mount", "other")    # damage_numbers.c KIND_*
 MARKS = ("star", "star_core", "slash", "slash_core", "mark")    # the atlas' effects
 
-# The hooks. (address, the word the game has, or the function the `bl` calls)
-FRAME_HOOK, FRAME_WORD = 0xAF554C, bytes.fromhex("bc0294e5")   # FUN_00af52a0: ldr r0, [r4, #0x2bc]
+# The hooks: (address, the function the `bl` calls, the stub's label)
 HIT_CALL = 0xBEBE78             # FUN_00be9c64: bl FUN_00921f74 (monster_hit_damage)
 BLAST_CALL = 0x920334           # FUN_00920104: bl FUN_009178e8 (blast_damage)
 POISON_CALL = 0x9209F8          # FUN_00920104: bl FUN_0093ba30 (enemy_vital_add), the poison tick
 MOUNT_CALL = 0x9211FC           # FUN_00920104: bl FUN_0093ba30, the mount's finish
-LOAD_HOOK, LOAD_WORD = 0xC10434, bytes.fromhex("0040a0e3")    # FUN_00c1017c: mov r4, #0 (after the stage map)
-FREE_HOOK, FREE_WORD = 0xC0F118, bytes.fromhex("01a0a0e1")    # FUN_00c0f110: mov r10, r1
-WORDS = ((FRAME_HOOK, FRAME_WORD, "dmg_frame_hook"), (LOAD_HOOK, LOAD_WORD, "dmg_loader"),
-         (FREE_HOOK, FREE_WORD, "dmg_free"))
 CALLS = ((HIT_CALL, "monster_hit_damage", "dmg_hit_hook"), (BLAST_CALL, "blast_damage", "dmg_blast_hook"),
          (POISON_CALL, "enemy_vital_add", "dmg_poison_hook"), (MOUNT_CALL, "enemy_vital_add", "dmg_mount_hook"))
 
@@ -128,23 +121,19 @@ def data_block(tuning: dict | None = None) -> bytes:
     return data
 
 
-INDEX = 0x5D0   # the group's slot in the GUI manager: free in every scene (the game: 20-721, 1526-1535; the target
-                # face: 0x5C0-0x5C2); damage_numbers_stub.s INDEX
-
-
-def _word(code: bytes | bytearray, at: int) -> bytes:
-    return bytes(code[at - BASE_ADDRESS:at - BASE_ADDRESS + 4])
+INDEX = 0x5D0   # the group's slot in the GUI manager (quest_layouts.FREE_INDICES)
 
 
 def supports_damage_numbers(code: bytes) -> bool:
     """`code` (the update's executable, canonical, not patched yet) has every instruction the hooks replace."""
-    return (all(_word(code, site) == word for site, word, _ in WORDS)
-            and all(bl_target(code, site) == GAME_SYMBOLS[callee] for site, callee, _ in CALLS))
+    return supports_quest_layouts(code) and all(bl_target(code, site) == GAME_SYMBOLS[callee]
+                                                for site, callee, _ in CALLS)
 
 
 def patch_damage_numbers(code: bytes, layout: Layout | None = None) -> bytes:
-    """`code` (the update's executable) with Damage Numbers' blocks, its state and its hooks. Refuses an executable
-    where a site is not the game's instruction."""
+    """`code` (the update's executable) with Damage Numbers' blocks, its state, its hooks and its entry in the quest's
+    layouts (the shared hooks, placed by the first feature). Refuses an executable where a site is not the game's
+    instruction."""
     layout = layout or load_layout()
     out = bytearray(code)
     for name in (STUB, CODE):
@@ -152,12 +141,11 @@ def patch_damage_numbers(code: bytes, layout: Layout | None = None) -> bytes:
     layout.place(out, DATA, data_block())
     layout.reserve(out, STATE)
     at = lambda label: layout.symbol(STUB, label)  # noqa: E731
-    for site, word, label in WORDS:
-        layout.hook(out, site, at(label), original=word)
     for site, callee, label in CALLS:
         layout.hook(out, site, at(label), calls=GAME_SYMBOLS[callee])
+    add_quest_layout(out, QuestLayout(layout.symbol(CODE, "dmg_frame"), INDEX, LAYOUT_PATH), layout)
     return bytes(out)
 
 
-__all__ = ["CALLS", "INDEX", "KINDS", "WORDS", "OPTIONS", "STYLES", "data_block", "load_tuning",
+__all__ = ["CALLS", "INDEX", "KINDS", "OPTIONS", "STYLES", "data_block", "load_tuning",
            "patch_damage_numbers", "supports_damage_numbers"]

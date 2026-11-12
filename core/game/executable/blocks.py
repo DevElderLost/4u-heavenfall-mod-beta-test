@@ -110,8 +110,8 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 740
-MOD_SETTINGS_PANE_HASHES = (708, 736)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 748
+MOD_SETTINGS_PANE_HASHES = (716, 744)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
 MOD_OPTIONS_DATA_SIZE = 16 + 24 * 164
 MOD_RAW_TABLE_SIZE = 64
@@ -127,6 +127,22 @@ SPLIT_ROMFS = "split_romfs"
 DAMAGE_NUMBERS = "damage_numbers"
 DAMAGE_NUMBERS_DATA_SIZE = 932
 DAMAGE_NUMBERS_STATE_SIZE = 1480
+# The modern camera (gameplay/modern_camera/modern_camera.py): its code, its tuning
+# (struct modern_camera_data) and its state in the extension's variables (struct modern_camera_state). Packed before
+# Mod Settings, so the installed title's update RomFS and the aspect ratio stay last.
+MODERN_CAMERA = "modern_camera"
+MODERN_CAMERA_DATA_SIZE = 120
+MODERN_CAMERA_STATE_SIZE = 72
+# The quest's layouts of our own (interface/quest_layouts/quest_layouts.py): the frame, load and free hooks Damage
+# Numbers and the horn's songs share, their code and their table
+# (struct quest_layouts).
+QUEST_LAYOUTS = "quest_layouts"
+QUEST_LAYOUTS_DATA_SIZE = 128
+# The Hunting Horn's songs (interface/horn_songs/horn_songs.py): the C and its data
+# (struct horn_data); its state is in the extension's variables.
+HORN_SONGS = "horn_songs"
+HORN_SONGS_DATA_SIZE = 76
+HORN_SONGS_STATE_SIZE = 44
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -151,8 +167,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
-                   GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MOD_SETTINGS,
-                   SPLIT_ROMFS, ASPECT_RATIO)
+                   GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
+                   MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -201,6 +217,10 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # START skips a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.py): one entry, for the
     # camera manager's call of a camera sequence's frame
     BlockSpec("death_camera_skip", "skip_death_camera", "gameplay/death_camera_skip/death_camera_skip.c", region="ext"),
+    # START does what the touch screen's Skip does (gameplay/intro_skip/intro_skip.py):
+    # three entries, for the touch bar input's call of a button's frame and the event player's two calls of the sound
+    # control
+    BlockSpec("intro_skip", "skip_monster_intro", "gameplay/intro_skip/intro_skip.c", region="ext"),
     # The virtual map of monster_routes (monsters/routes/patch.py): its hooks, its
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
@@ -502,6 +522,17 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("damage_numbers_stub", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers_stub.s", region="ext"),
     BlockSpec("damage_numbers_code", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers.c", region="ext"),
     BlockSpec("damage_numbers_data", DAMAGE_NUMBERS, size=DAMAGE_NUMBERS_DATA_SIZE, region="ext"),
+    # The C-stick turns the camera and the aims analogically: the entries for FUN_00b3cc64's question "is the C-stick
+    # tilted", for the cameras' calls of FUN_00bfd028 and for the aim's hooks in FUN_00b2041c, and the curated tuning
+    # (modern_camera.py data_block)
+    BlockSpec(MODERN_CAMERA, MODERN_CAMERA, "gameplay/modern_camera/modern_camera.c", region="ext",
+              defines=(f"DATA_SIZE={MODERN_CAMERA_DATA_SIZE}", f"STATE_SIZE={MODERN_CAMERA_STATE_SIZE}")),
+    BlockSpec("modern_camera_data", MODERN_CAMERA, size=MODERN_CAMERA_DATA_SIZE, region="ext"),
+    BlockSpec("quest_layouts_stub", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts_stub.s", region="ext"),
+    BlockSpec("quest_layouts_code", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts.c", region="ext"),
+    BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext"),
+    BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext"),
+    BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
 )
 
 
@@ -523,13 +554,15 @@ VARIABLES = (
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
     VariableSpec("mod_options_state", MOD_SETTINGS, 64),
+    VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
     VariableSpec("fast_gathering_state", "fast_gathering", 4),  # fast_gathering.s: the mPlayerSpeed it last wrote
     VariableSpec("select_kick_state", "select_kick", 4),     # select_kick.c: Select held (1), seen by the menu (2)
     VariableSpec("save_redirect_state", "save_redirect", 4),  # game_redirect.c: bit n: file kind n is read from MH4U's
-    # death_camera_skip.c -> select_kick.c: frames left in which START belongs to the death camera
+    # death_camera_skip.c, intro_skip.c -> select_kick.c: frames left in which START belongs to the death camera or to
+    # the touch screen's Skip
     VariableSpec("death_camera_skip_state", "skip_death_camera", 4),
     # bubbleblight.s: the local hunter's bubbles (+0 state, +4 timer, +8 unused) and bubble_bind.s' slide velocity
     # (x, z) of the large bubbles at +8 / +12 (`bubble_state + 8`): one variable, because bss_tail had 4 bytes left
@@ -608,6 +641,11 @@ VARIABLES = (
     VariableSpec("save_redirect_log", "save_redirect", 0xA10, align=0x10, region="ext_vars"),
     # Damage Numbers' events, numbers and monsters (damage_numbers.c struct dmg_state); patch_damage_numbers reserves it
     VariableSpec("damage_numbers_state", DAMAGE_NUMBERS, DAMAGE_NUMBERS_STATE_SIZE, align=0x10, region="ext_vars"),
+    # The modern camera's kept C-stick, each camera input's turn and the aim's (modern_camera.c struct
+    # modern_camera_state); patch_modern_camera reserves it
+    VariableSpec("modern_camera_state", MODERN_CAMERA, MODERN_CAMERA_STATE_SIZE, region="ext_vars"),
+    # The horn's songs' rows and lights (horn_songs.c struct horn_state); patch_horn_songs reserves it
+    VariableSpec("horn_songs_state", HORN_SONGS, HORN_SONGS_STATE_SIZE, align=0x10, region="ext_vars"),
     # gameplay/monster_phases/monster_phases.s: the phases of 77, 78 and 124 and the monster whose theme played last
     VariableSpec("monster_phase", "monster_phases", 4),
     # adapter, engine side: the effect player's own managers, which MH4U lacks (core/monsters/porting/sdk/proof_api.h):
@@ -1635,6 +1673,36 @@ GAME_SYMBOLS |= {
     "camera_play": 0xC03D70,            # FUN_00c03d70(manager, slot, n): one frame of an event camera, 0 when over
 }
 
+# The C-stick turns the camera analogically (gameplay/modern_camera/modern_camera.c)
+GAME_SYMBOLS |= {
+    "camera_turn_by_input": 0xBFD028,   # FUN_00bfd028(camera, input, flags): sMhCamera::turnByInput, the turn by
+    #                                     the camera's buttons; 0xFF no button, 0 the pitch turned, 1 the yaw
+    "is_gunner": 0xD04DD4,              # FUN_00d04dd4(hunter, kind): the weapon is a bowgun (kind 0), ranged (1), the
+    #                                     Bow (2)
+    "aim_speed": 0xB3FE50,              # FUN_00b3fe50(hunter, kind): the Aim Speed option's factor (a float in s0) for
+    #                                     the scope (0), over the shoulder (1), the Bow (2)
+    "camera_zoom": 0xC00038,            # FUN_00c00038(camera, &zooming, &zoom): the scope's zoom, 0 to 1 (the widest)
+    "aim_pitch_view": 0xB1EA04,         # FUN_00b1ea04(hunter, pitch, up, down): the aim's pitch angle (weapon work +
+    #                                     0x50E) from its pitch steps; up, down (s0, s1) the degrees of 100 steps
+}
+
+# START does what the touch screen's Skip does (gameplay/intro_skip/intro_skip.c): the
+# touch menu bar, its Skip button's handler, the skip checks and calls the handler makes; the calls that stop a
+# skipped cutscene's music and sounds
+GAME_SYMBOLS |= {
+    "touch_bar": 0x109A350,             # the touch menu bar's object (ui002; + 0xCF which skip its Skip button makes)
+    "touch_bar_button": 0x292EA4,       # FUN_00292ea4(position, button, kind): a bar button's frame (kind 7, 8, 9, 0xB)
+    "event_control": 0xFB5EDC,          # the variable holding the event player (cutscenes)
+    "event_skip_offered": 0x1A1CB8,     # FUN_001a1cb8(event): a cutscene plays and the player may skip it
+    "event_skip": 0x1A2D4C,             # FUN_001a2d4c(event): asks the event player to skip (70 frames or more left)
+    "camera_skip_offered": 0xD0CCB4,    # FUN_00d0ccb4(sCamera): an event camera the player may skip plays
+    "camera_skip": 0xBFD3F0,            # FUN_00bfd3f0(sCamera): ends it
+    "cutscene_sound_stop": 0x30CB5C,    # FUN_0030cb5c(sound control): a skipped event's sound: fades the event
+    #                                     players' streams out (by their records), stops the sounds
+    "event_sound_end": 0x30CD10,        # FUN_0030cd10(sound control): the sound control's part of an event's end
+    "sound_fade_out": 0xBCAC00,         # FUN_00bcac00(driver, queue, request, set, fade, 0): fades a stream out
+}
+
 # The split title's RomFS (install/title/split_romfs.c, split_romfs_stub.s): the SDK's pieces of a RomFS mount, as the
 # update's FUN_00108930 mounts `patch:`, the running title's id, and
 # nn::fs::FileStream::TryInitialize
@@ -1652,4 +1720,14 @@ GAME_SYMBOLS |= {
     "default_allocator": 0x10BDC88,     # the variable holding the SDK's default allocator (+0x20 allocate, +0x38 free)
     "file_stream_open_body": 0x10BAFC,  # nn::fs::FileStream::TryInitialize (FUN_0010baf8) after its first instruction
     "fs_is_not_found": 0xDC0AD8,        # FUN_00dc0ad8(result): an FS "not found" (module 17, descriptions 100-179)
+}
+
+# The Hunting Horn's songs (interface/horn_songs/horn_songs.c): the
+# tables the equipment menu's list (FUN_00277e68) and the notes' match (FUN_00cbab58) read, and the HUD's note pictures
+GAME_SYMBOLS |= {
+    "horn_song_notes": 0xF31E3A,        # u8[75][4]: each song's notes, newest first, 0 none (FUN_00cbab58)
+    "horn_note_triplets": 0xF31DA4,     # u8[50][3]: a horn's three notes by its note set (work +0x16C; FUN_00cbd81c)
+    "horn_song_names": 0xED256A,        # u8[75]: a song's name index (FUN_00277e68 at 0x278120)
+    "horn_name_messages": 0xED2858,     # u32[]: a name index's message of the Menu file (common file 3)
+    "hud_note_cells": 0xB90EFC,         # u8[9]: a note's cell in the HUD's picture (FUN_00b8f58c's literal)
 }

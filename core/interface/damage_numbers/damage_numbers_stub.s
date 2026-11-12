@@ -1,9 +1,8 @@
 @ Damage Numbers' hooks (interface/damage_numbers/damage_numbers.py). Each
-@ keeps what its game function needs, does the instruction or call it replaced and hands the damage to damage_numbers.c:
+@ keeps what its game function needs, does the call it replaced and hands the damage to damage_numbers.c. The frame,
+@ the layout's load and its free go through the quest's shared hooks (interface/quest_layouts/), whose table calls
+@ dmg_frame.
 @
-@ dmg_frame_hook   sMhMain::frame (FUN_00af52a0), `ldr r0, [r4, #0x2bc]` after every system's move and before the
-@                  render: dmg_frame, then the load. The instruction before is a `blx`, so r0-r3, r12 and the flags hold
-@                  nothing the frame reads again; r4 (sMhMain) is kept by the C.
 @ dmg_hit_hook     FUN_00be9c64 (a hit on a monster), its only call of FUN_00921f74(uEnemy, region, total, flag), which
 @                  adds the hit's final damage to the monster's damage of the frame (em + 0x4B4 + 2 * region): that
 @                  halfword before and after the call gives dmg_hit what the hit dealt, with the hit record (r4), the
@@ -12,11 +11,6 @@
 @                  damage to the region of the last blast hit (em + 0x7AB8): the same halfword before and after.
 @ dmg_poison_hook  FUN_00920104's call of FUN_0093ba30(uEnemy, -poison, max) for a poison tick, and
 @ dmg_mount_hook   its call for the mount's finish: dmg_status with the damage, then the call (a tail branch).
-@ dmg_loader       FUN_00c1017c (the quest's layouts), its `mov r4, #0` right after the stage map's load (the
-@                  instruction after the one the target face's face_loader.s takes): our layout (layout_path) at the
-@                  GUI manager's index INDEX on the top screen, as face_loader.s loads its copy, then the move.
-@ dmg_free         FUN_00c0f110 (frees the GUI layouts when leaving a quest or a menu), its `mov r10, r1` (the
-@                  instruction before the one face_free.s takes): frees INDEX, keeps r0-r3, then the move.
 @
 @ Build: tools/build/build_code_space.py (devkitARM), which places and links it.
 
@@ -32,17 +26,8 @@
     .equ KIND_POISON, 1               @ damage_numbers.c
     .equ KIND_BLAST, 2
     .equ KIND_MOUNT, 3
-    .equ INDEX, 0x5D0                 @ damage_numbers.py INDEX
-    .equ FRAME, 24                    @ what dmg_loader pushes: the caller's sp = sp + FRAME
 
 _start:
-dmg_frame_hook:
-    push    {r12, lr}
-    bl      dmg_frame
-    pop     {r12, lr}
-    ldr     r0, [r4, #0x2bc]
-    bx      lr
-
 @ r0 = em + 0x4B4 + 2 * r1 (r0 uEnemy, r1 region)
 damage_slot:
     ldr     r0, [r0, #EM]
@@ -106,71 +91,3 @@ dmg_mount_hook:
     bl      dmg_status
     pop     {r0-r3, r12, lr}
     b       enemy_vital_add
-
-@ In: r6 gui, r7 the extra layouts' paths, sl the file loader's variable, [sp + 4] the resource handle, [sp + 8] the
-@ language (FUN_00c1017c's frame); r0-r3 and r12 free; r4 is set to 0 at the end.
-dmg_loader:
-    push    {r4, r6, r7, lr}
-    sub     sp, sp, #8
-    mov     r0, r6
-    bl      free_ours
-    mov     r0, #0
-    str     r0, [sp]                  @ the 5th argument
-    adr     r2, layout_path
-    ldr     r3, [sp, #(FRAME + 8)]
-    add     r1, sp, #(FRAME + 4)
-    ldr     r0, [sl]
-    bl      load_file                 @ FUN_002b51c0(loader, &handle, path, language, 0)
-    ldr     r0, resources
-    ldr     r1, [sp, #(FRAME + 4)]
-    mov     r3, #1
-    ldr     r0, [r0]
-    cmp     r1, #0
-    addne   r2, r1, #8
-    ldreq   r2, no_name
-    ldr     r1, [r0]
-    ldr     r12, [r1, #0x38]
-    ldr     r1, layout_type
-    blx     r12                       @ the layout resource
-    movs    r4, r0
-    beq     loaded
-    mov     r3, r0
-    mov     r2, #INDEX
-    mov     r1, #0                    @ the top screen
-    mov     r0, r6
-    bl      create_groups             @ FUN_00c0f474(gui, screen, first index, layout)
-    mov     r0, r4
-    bl      resource_release          @ FUN_00be2768(layout)
-loaded:
-    add     sp, sp, #8
-    pop     {r4, r6, r7, lr}
-    mov     r4, #0                    @ the replaced instruction
-    bx      lr
-
-@ In: r0 gui, r1 the function's second argument; r2, r3 and r12 kept too.
-dmg_free:
-    push    {r0-r3, r12, lr}
-    bl      free_ours
-    pop     {r0-r3, r12, lr}
-    mov     r10, r1                   @ the replaced instruction
-    bx      lr
-
-@ frees our group (FUN_00b044f4 skips an empty slot); r0 gui
-free_ours:
-    push    {r4, lr}
-    ldr     r0, [r0, #0x100]
-    cmp     r0, #0
-    beq     1f
-    mov     r1, #INDEX
-    bl      free_group                @ FUN_00b044f4(manager, index)
-1:  pop     {r4, pc}
-
-resources:
-    .word resource_manager
-no_name:
-    .word empty_name
-layout_type:
-    .word layout_dti
-layout_path:
-    .asciz "lyt\\quest\\hf_dmg"
-    .align 2

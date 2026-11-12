@@ -56,7 +56,9 @@ EXT_START = 0x111E000
 # + Layered Gear's Relics and the split title's two RomFS beside Valstrax and the pack (1 page for both)
 # + each layered look's zenny a u32, for the relics priced by their monster (2 pages: the block layered_rules to
 #   0x12000)
-EXT_SIZE = 0x147000
+# + the modern camera giving the C-stick's question the game's answer and a skipped intro's music stopped by its
+#   voices (1 page)
+EXT_SIZE = 0x148000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that

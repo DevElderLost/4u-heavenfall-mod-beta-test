@@ -22,8 +22,9 @@ update's executable go through the block `select_kick` (gameplay/select_kick/sel
 `plain` (a mod without Select's kick: Heavenfall Beta with its single-screen module off) keeps the calls for what
 other features need of them and leaves Select and Start the game's: the SDK's call is made as it was (Select is a
 second Start), and in a town Select also presses the kick's button, which Layered Gear's Armor screen reads as Select
-(its colour window); the menu's call answers Kick while a skipped death camera plays, so the START that skips it does
-not open the Game Menu (gameplay/death_camera_skip/death_camera_skip.c).
+(its colour window); the menu's call answers Kick while a skipped death camera plays or just after START did the touch
+screen's Skip, so the START that skips does not open the Game Menu (gameplay/death_camera_skip/death_camera_skip.c,
+gameplay/intro_skip/intro_skip.c).
 
 Update's executable only; each call is checked first.
 """

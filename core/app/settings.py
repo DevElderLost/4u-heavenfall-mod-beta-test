@@ -268,6 +268,11 @@ class CheatFps(str, Enum):
     """The frame rate cheat (core/cheats/cheats.py): the game's own, or a fixed rate."""
     GAME = "off"
     F30 = "30"
+    F35 = "35"                # every 5 between 30 and 60: the frames alternate one and two vsyncs
+    F40 = "40"
+    F45 = "45"
+    F50 = "50"
+    F55 = "55"
     F60 = "60"                # higher rates did not work in Azahar
 
     @classmethod

@@ -140,7 +140,8 @@ and a byte in the character's save, so every character keeps its own choices. A 
 (`mod_options.c`), and the options that hook the game go through a gate that makes the game's own call when the option is
 off (`mod_options_stub.s`). A character with no choice yet, the title screen and character creation take the value chosen on
 the program's Options page (it starts at `gui_defaults.json`'s), written into the mod by the run (`mod_options.py`); an
-option with a `default` of its own in that file (skipping the death camera) is the page's only, with that value. In
+option with a `default` of its own in that file (skipping the death camera or a monster's intro) is the page's only, with
+that value. In
 single-screen mode the page's description panel stands at the bottom left, in a quest too: a place of `help_top` that waits for
 the byte `mod_settings_state` + 5, up only while the page is open. Its lists show ten rows a page, the game's list widgets
 (five and eight lines) with the panes `interface/mod_settings/ten_rows.py` adds to `ui020` (more lines, a taller frame,
@@ -174,6 +175,53 @@ FUN_00c03d70 once a frame while it plays; a 0 from that call makes the manager e
 `death_camera_skip` (`gameplay/death_camera_skip/death_camera_skip.c`, patch in `death_camera_skip.py`) takes that call
 through the Mod Settings gate: with the option on (the default) it answers 0 when Start was pressed. While the camera plays
 it also sets `death_camera_skip_state`, which `select_kick`'s menu gate counts down, so that press does not open the menu.
+
+## Better Camera
+
+Its code is called `modern_camera`; Mod Settings shows it as Better Camera, a row that opens a list of three: the option
+`modern_camera` (Enabled or Disabled), Max Speed and Acceleration.
+
+The game turns the camera by four buttons: FUN_00b3cc64 turns the D-pad and the C-stick into "camera up, down, left,
+right", and FUN_00bfd028 turns the camera's angles by them, one axis a frame. Block `modern_camera`
+(`gameplay/modern_camera/modern_camera.c`, patch in `modern_camera.py`) takes two places through Mod Settings' gates.
+FUN_00b3cc64's question "is the C-stick tilted" goes to `modern_camera_stick`, which gives the game's own answer (the
+stick sets the game's buttons for every other reader) and, when the game takes the stick for the camera (not while a
+gunner looks through the scope), keeps its direction and length. The cameras' three calls of FUN_00bfd028 go to
+`modern_camera_turn`, which makes the game's call with the stick's buttons hidden (the D-pad turns as before) and then
+turns both angles by the kept stick: a dead zone, a response curve, a top speed per axis times Max Speed, and
+an exponential speeding up and slowing down over the frame's time (its time constants divided by Acceleration), within the game's pitch limit and its invert
+settings.
+
+The aims (a bowgun over the shoulder or through the scope, the Bow) are FUN_00b2041c's, which turns them by digital
+commands, one step a frame. Three more places inside it go through gates: its loads of the commands over the shoulder
+and the Bow's go to `aim_commands_hook`, which takes the C-stick's command out of the register (not the D-pad's); its
+test of the scope's C-stick bits goes to `aim_scope_hook`, which hides them; both then turn the aim's yaw and pitch by
+the stick with the camera's dead zone, each aim's own curve, smoothing and top speed (the scope's curve stronger and its
+turn slower to start and settle, since its view is the aim itself), Max Speed and Acceleration as for the camera, the game's Aim Speed, the scope's zoom, the
+aim's limits and invert settings. Its calls of FUN_00b1ea04 go to `modern_aim_view`, which makes the pitch's angle from
+the whole pitch, not its integer part. A bowgun with the Scope part keeps the game's scope, where the C-stick zooms
+and the circle pad aims. Only the hunter this console plays is turned. Max Speed and Acceleration are options of the page
+whose values carry a float (`floats` in `curated/mod_settings.json`); the block reads the one in use through
+`mod_option_payload`. The tuning is `curated/modern_camera.json`. With Better Camera disabled, every gate makes the game's own call or instruction.
+
+## Skipping a monster's intro
+
+The touch screen's menu bar turns its third button into Skip while the game lets the player skip something: an event
+camera whose kind is flagged skippable (FUN_00d0ccb4), or in a quest a cutscene whose skip flag is set (FUN_001a1cb8; the
+flag is set at the quest's start only for the monsters with an intro cutscene, so story cutscenes never get it). The
+bar's input calls the frame of each of its buttons, FUN_00292ea4, from one place. Block `intro_skip`
+(`gameplay/intro_skip/intro_skip.c`, patch in `intro_skip.py`) takes that call through the Mod Settings gate: it makes
+the game's call, then, with the option on (the default), in a quest, for the Skip button with Start pressed, it makes what
+a touch of Skip makes, after the same checks (FUN_00bfd3f0 ends the camera; FUN_001a2d4c asks the cutscene's player to
+skip, which the player takes or refuses as for a touch). When it skipped it sets `death_camera_skip_state` as the death
+camera skip does, so that press does not open the menu.
+
+A skipped cutscene's music and sounds stop, for Start and a touch alike. While the cutscene's player skips, its frame
+(FUN_0019dfb8) calls FUN_0030cb5c, which fades out only the event streams the sound control still keeps a player record
+of; a stream without one would play on into the fight. The block takes that call and the one at the event's end
+(FUN_0030cd10) through the same option's gates: after the game's call it fades out (FUN_00bcac00, as the game does)
+every live voice of the sound driver on the two event queues, by the voice's own queue and request; at the end only
+when the event was skipped. The fight's music is on other queues and plays as the game starts it.
 
 ## Holding A
 
@@ -242,7 +290,7 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/single_screen/` | Single-screen mode: `layout/` (its layout changes), `executable/` (its patches and their C and assembly) |
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
-| `core/gameplay/select_kick/`, `core/gameplay/hold_a/`, `core/gameplay/death_camera_skip/` | Select and Start; holding A; skipping the death camera |
+| `core/gameplay/select_kick/`, `core/gameplay/hold_a/`, `core/gameplay/death_camera_skip/`, `core/gameplay/intro_skip/`, `core/gameplay/modern_camera/` | Select and Start; holding A; skipping the death camera; skipping a monster's intro; the modern camera |
 | `core/interface/mod_settings/` | The START menu's page, its options and their values |
 | `core/equipment/layered/`, `core/equipment/mhgen/`, `core/gameplay/wyporium/` | Layered Gear, the models of MH XX's looks, the Wyporium's trades and exchange |
 | `core/cheats/` | The emulator cheats and the aspect ratio |

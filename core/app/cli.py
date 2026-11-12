@@ -71,7 +71,7 @@ def main(argv=None) -> int:
     parser.add_argument("--cheat-no-bloom-dof", action=argparse.BooleanOptionalAction,
                         help="no glow (bloom) and no distant blur (depth of field)")
     parser.add_argument("--cheat-fps", choices=[value.value for value in CheatFps],
-                        help="frame rate: off (the game's own), 30 or 60")
+                        help="frame rate: off (the game's own) or every 5 from 30 to 60")
     parser.add_argument("--cheat-fov", type=int, metavar="DEGREES", help="camera field of view (50: the game's own)")
     parser.add_argument("--cheat-net-fix", action=argparse.BooleanOptionalAction,
                         help="longer waits for the online connection")

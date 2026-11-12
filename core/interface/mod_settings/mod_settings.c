@@ -34,7 +34,7 @@ typedef short s16;
 
 #define ACTION 0x14             /* mod_settings.py ACTION */
 #define KIND 0x2F               /* mod_settings.py KIND */
-#define MAX_LISTS 6             /* mod_settings.py MAX_LISTS */
+#define MAX_LISTS 8             /* mod_settings.py MAX_LISTS */
 #define MAX_TABLE 64            /* mod_settings.py MAX_TABLE */
 #define SUBLIST_ROWS 5          /* mod_settings.py SUBLIST_ROWS: the game's own lines of its small list */
 #define PAGE_LIST_ROWS 10       /* mod_settings.py LIST_PAGE_ROWS: a page of a small list */
@@ -148,8 +148,8 @@ struct mod_settings_data {      /* the curated table (mod_settings.py settings_d
     s16 ten_raise;              /* how far up a small list of ten rows goes (single-screen mode, else 0) */
     u16 pad;
 };
-_Static_assert(sizeof(struct mod_settings_data) == 740, "blocks.py MOD_SETTINGS_DATA_SIZE");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 708, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(sizeof(struct mod_settings_data) == 748, "blocks.py MOD_SETTINGS_DATA_SIZE");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 716, "blocks.py MOD_SETTINGS_PANE_HASHES");
 
 enum { LEVEL_LIST, LEVEL_SCREEN };
 
