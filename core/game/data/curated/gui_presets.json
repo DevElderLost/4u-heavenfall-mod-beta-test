@@ -1,12 +1,17 @@
 {
- "description": "Heavenfall Beta's GUI presets (presets.py): which settings are the program's options (the Options page), which the START menu's Mod Settings page holds too (in_game: the value installed is what a character with no choice yet gets), how far apart a number's values are (steps) and what a run fixes without a widget. Their starting values are in gui_defaults.json. Keys are fields of core/app/settings.py; Heavenfall Beta has no randomizer, so its part is empty.",
+ "description": "Heavenfall Beta's GUI presets (presets.py): which settings are the program's options (the Options page), which the START menu's Mod Settings page holds too (in_game: the value installed is what a character with no choice yet gets), how far apart a number's values are (steps) and what a run fixes without a widget. Their starting values are in gui_defaults.json. install.modules: the Options page's tabs, in order; each module starts with its switch and lists every option it holds (and the rows of the START menu's page it holds), and one that is off leaves the game as it is in all of them (presets.apply_modules). Keys are fields of core/app/settings.py; Heavenfall Beta has no randomizer, so its part is empty.",
  "fixed": {},
- "ranges": {"cheat_fov": [30, 90]},
- "steps": {"cheat_fov": 5},
- "in_game": ["cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "touchless_target", "hold_a", "fast_text"],
+ "ranges": {"cheat_fov": [30, 90], "camera_speed": [10, 50]},
+ "steps": {"cheat_fov": 5, "camera_speed": 5},
+ "in_game": ["cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "touchless_target", "hold_a", "fast_text", "camera_speed", "box_equipment"],
  "install": {
   "fixed": {"randomize_quests": false, "randomize_equipment": false},
-  "options": ["hud_scale", "touchless_target", "hold_a", "fast_text", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "cheat_aspect_allowed", "cheat_aspect_ratio"],
+  "options": ["single_screen", "hud_scale", "touchless_target", "cheat_aspect_allowed", "cheat_aspect_ratio", "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "hold_a", "fast_text", "camera_speed", "box_equipment", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat"],
+  "modules": {
+   "single_screen": ["single_screen", "hud_scale", "touchless_target", "cheat_aspect_allowed", "cheat_aspect_ratio"],
+   "layered_gear": ["layered_equipment", "layered_by_rank", "rare_exchange"],
+   "quality_of_life": ["quality_of_life", "hold_a", "fast_text", "camera_speed", "box_equipment", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "skip_death_camera"]
+  },
   "links": {}
  },
  "randomizer": {"fixed": {}, "legacy_choices": {}}

@@ -89,6 +89,12 @@ class RomFS:
             f.seek(self.level3 + self.data_offset + data_offset)
             return read_exactly(f, data_size, f"{path} in the RomFS")
 
+    def entries(self):
+        """(path, absolute offset in the file open_container returns, size) of every file."""
+        for name, entry in self._walk_entries(0, ""):
+            data_offset, data_size = struct.unpack_from("<QQ", self.files, entry + 0x08)
+            yield name, self.level3 + self.data_offset + data_offset, data_size
+
     def walk(self, dir_offset: int = 0, prefix: str = ""):
         """Every file path of the RomFS."""
         for name, _ in self._walk_entries(dir_offset, prefix):

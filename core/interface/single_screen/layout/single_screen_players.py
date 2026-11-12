@@ -14,9 +14,9 @@ and has the game refresh the cards.
 Everything is curated (single_screen.json, "players"): the box's corner, the rows' pitch, the
 plate, and a rectangle in pixels (from the row's top-left corner) and a font size for each part. The panes are found by
 the layout's structure, which is checked: the cards' names differ from one card to the next (`ui500_pl_name`,
-`ui500_pl_name2`...). The step runs after the layout is placed (interface/single_screen/layout/single_screen.py: the
-setting's `priority`, which draws the group in front of the top screen's own), so the placing neither scales nor moves
-it.
+`ui500_pl_name2`...). The step runs after the layout is placed (interface/single_screen/layout/single_screen.py; the
+setting adds no `priority`: the game's 10 draws the box behind every top-screen group of a hall, menus included), so
+the placing neither scales nor moves it.
 """
 
 import json

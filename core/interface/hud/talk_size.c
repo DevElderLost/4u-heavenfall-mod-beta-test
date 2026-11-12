@@ -1,7 +1,7 @@
 /* The talk windows at the HUD size only in a quest, for the HUD size option (interface/hud/code_patch.py
  * patch_talk_size).
  *
- * The talk windows (ui005_kaiwa00, 01, 02, 04 of core_common.arc) are one layout for the towns, the Gathering Hall and
+ * The talk windows (ui005_kaiwa00 to 04 and ui005_chat of core_common.arc) are one layout for the towns, the Gathering Hall and
  * the quests, loaded once into the GUI's layout manager. The data side (build.HUD_IN_QUEST) puts every pane of each
  * window under one null, <group>_frame, at (0, 0) and scale 1, so the file draws them at full size. Every frame this
  * block gives each such null the HUD size while the game is in a quest: the null's position (x, y) and scale (s, s)
@@ -25,7 +25,7 @@
 typedef unsigned int u32;
 typedef unsigned char u8;
 
-#define TALKS 4
+#define TALKS 6
 
 struct talk {
     u32 group;          /* the window's name hash */

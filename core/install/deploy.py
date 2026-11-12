@@ -19,6 +19,7 @@ from pathlib import Path
 from core import __version__
 from core.app.edition import edition
 from core.game.executable import titles
+from core.install.hd_textures import clear_generated
 from core.install.luma import mod_titles
 
 MARKER = edition().marker      # "heavenfall_mod.json" (game/data/curated/edition.json)
@@ -181,9 +182,11 @@ def deploy_files(plan: list[tuple[Path, str]], target: Path, kind: str, seed: st
         raise ForeignContent(f"{target} holds files this installer did not put there")
     old = read_marker(target) if state is State.OURS else None
     old_files = [str(rel) for rel in old["files"]] if old else []
-    for rel in old_files:
-        _member(target, rel)
     rels = [rel for _, rel in plan]
+    # every path checked before anything moves: into our folder, a link inside it (a player's, a tool's) would make the
+    # install write, and a rollback delete, files elsewhere
+    for rel in old_files + (rels if state is State.OURS else []):
+        _member(target, rel)
     total = 2 * len(plan)
     temp = target.parent / (target.name + ".heavenfall_new")
     aside = target.parent / (target.name + ".heavenfall_old")
@@ -211,8 +214,10 @@ def deploy_files(plan: list[tuple[Path, str]], target: Path, kind: str, seed: st
             write_marker(target, old_marker[0], old_files + rels, *old_marker[2:], version=old_version,
                          incomplete=True)  # the union, until the new marker
             moved, placed = [], []
+            listed = set(old_files)
             try:
-                for rel in old_files:
+                # the old files, and a file the player left at a new file's path, go aside: a failure puts them back
+                for rel in old_files + [rel for rel in rels if rel not in listed]:
                     path = target / rel
                     if path.is_file() or path.is_symlink():
                         (aside / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -260,10 +265,11 @@ def uninstall(mods_dir: Path) -> None:
     mods_dir = Path(mods_dir)
     assert_safe(mods_dir)
     state = inspect_target(mods_dir)
-    if state is State.EMPTY:
-        return
     if state is State.UNKNOWN:
         raise ForeignContent(f"{mods_dir} was not installed by this installer")
+    clear_generated(mods_dir)
+    if state is State.EMPTY:
+        return
     _remove_files(mods_dir, [str(rel) for rel in read_marker(mods_dir)["files"]])
     for name in (MARKER, *LEGACY_MARKERS):
         if (mods_dir / name).is_file():

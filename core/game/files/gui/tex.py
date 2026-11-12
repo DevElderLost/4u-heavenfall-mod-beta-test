@@ -76,6 +76,16 @@ def _morton(index: int) -> tuple[int, int]:
 
 
 MORTON_INDEX = {_morton(i): i for i in range(TILE * TILE)}  # (x, y) in a tile -> position
+# A pixel's position in its tile is the bits of its x and its y interleaved: the two parts add up.
+_MORTON_X = [MORTON_INDEX[(i, 0)] for i in range(TILE)]
+_MORTON_Y = [MORTON_INDEX[(0, i)] for i in range(TILE)]
+# Lookup tables per byte or channel value, the same arithmetic as per pixel.
+_NIBBLES = [bytes(((v >> 4) * 17, (v & 15) * 17)) for v in range(256)]     # a byte's two nibbles widened to 8 bits
+_LA4_RGBA = [bytes(((v >> 4) * 17,) * 3 + ((v & 15) * 17,)) for v in range(256)]
+_WIDE5 = [v << 3 | v >> 2 for v in range(32)]
+_TO4 = [round(c / 17) for c in range(256)]
+_TO5 = [round(c * 31 / 255) for c in range(256)]
+_GREY4 = [round(total / 3) for total in range(3 * 15 + 1)]     # LA4: the mean of three 4-bit channels
 
 
 def _decode_etc1(word: int) -> list[tuple[int, int, int]]:
@@ -108,11 +118,13 @@ class Tex:
     mips: int
     format: int
 
-    def _pixel_offset(self, x: int, y: int) -> int:
-        tiles_per_row = self.width // TILE
-        tile = (y // TILE) * tiles_per_row + x // TILE
-        in_tile = MORTON_INDEX[(x % TILE, y % TILE)]
-        return HEADER_SIZE + (tile * TILE * TILE + in_tile) * BYTES_PER_PIXEL[self.format]
+    def _region_offsets(self, x0: int, y0: int, width: int, height: int) -> tuple[list[int], list[int]]:
+        """(rows, columns) of a rectangle: pixel (x0 + i, y0 + j) is at byte rows[j] + columns[i], in tile
+        (y // TILE) * tiles per row + x // TILE, at its Morton position inside it."""
+        size, tile = BYTES_PER_PIXEL[self.format], TILE * TILE
+        columns = [HEADER_SIZE + (x // TILE * tile + _MORTON_X[x % TILE]) * size for x in range(x0, x0 + width)]
+        rows = [(y // TILE * (self.width // TILE) * tile + _MORTON_Y[y % TILE]) * size for y in range(y0, y0 + height)]
+        return rows, columns
 
     def _block_offset(self, x: int, y: int) -> int:
         """Offset of the 16-byte ETC1A4 block that holds pixel (x, y)."""
@@ -140,24 +152,18 @@ class Tex:
                     i = x % 4 * 4 + y % 4
                     out += bytes((*colours[i], (alpha >> (4 * i) & 15) * 17))
             return bytes(out)
+        raw, (rows, columns) = self.raw, self._region_offsets(x0, y0, width, height)
         if self.format == LA4:
-            for y in range(y0, y0 + height):
-                for x in range(x0, x0 + width):
-                    v = self.raw[self._pixel_offset(x, y)]
-                    out += bytes(((v >> 4) * 17,) * 3 + ((v & 15) * 17,))
-            return bytes(out)
+            return b"".join(_LA4_RGBA[raw[row + column]] for row in rows for column in columns)
         if self.format == RGBA5551:
-            for y in range(y0, y0 + height):
-                for x in range(x0, x0 + width):
-                    v = struct.unpack_from("<H", self.raw, self._pixel_offset(x, y))[0]
-                    r, g, b = (v >> s & 31 for s in (11, 6, 1))
-                    out += bytes((r << 3 | r >> 2, g << 3 | g >> 2, b << 3 | b >> 2, 255 * (v & 1)))
+            for row in rows:
+                for column in columns:
+                    v = raw[row + column] | raw[row + column + 1] << 8
+                    out += bytes((_WIDE5[v >> 11], _WIDE5[v >> 6 & 31], _WIDE5[v >> 1 & 31], 255 * (v & 1)))
             return bytes(out)
-        for y in range(y0, y0 + height):
-            for x in range(x0, x0 + width):
-                v = struct.unpack_from("<H", self.raw, self._pixel_offset(x, y))[0]
-                out += bytes(((v >> 12) * 17, (v >> 8 & 15) * 17, (v >> 4 & 15) * 17, (v & 15) * 17))
-        return bytes(out)
+        # RGBA4444, little-endian: the high byte holds red and green, the low byte blue and alpha
+        return b"".join(_NIBBLES[raw[row + column + 1]] + _NIBBLES[raw[row + column]]
+                        for row in rows for column in columns)
 
     def to_array(self):
         """Mip 0 as a numpy array of RGBA bytes (height, width, 4), rows from the top-left corner: the same pixels as
@@ -232,19 +238,20 @@ class Tex:
             raise TexFormatError(f"region {width}x{height} at ({x0}, {y0}) is outside the texture")
         if len(rgba) != width * height * 4:
             raise TexFormatError(f"{len(rgba)} bytes for a {width}x{height} region")
-        for y in range(height):
-            for x in range(width):
+        raw, (rows, columns) = self.raw, self._region_offsets(x0, y0, width, height)
+        at = 0
+        for row in rows:
+            for column in columns:
+                r, g, b, a = rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]
+                at += 4
+                pixel = row + column
                 if self.format == RGBA5551:
-                    r, g, b, a = rgba[(y * width + x) * 4:(y * width + x) * 4 + 4]
-                    struct.pack_into("<H", self.raw, self._pixel_offset(x0 + x, y0 + y),
-                                     round(r * 31 / 255) << 11 | round(g * 31 / 255) << 6
-                                     | round(b * 31 / 255) << 1 | (a >= 128))
-                    continue
-                r, g, b, a = (round(c / 17) for c in rgba[(y * width + x) * 4:(y * width + x) * 4 + 4])
-                if self.format == LA4:
-                    self.raw[self._pixel_offset(x0 + x, y0 + y)] = round((r + g + b) / 3) << 4 | a
-                    continue
-                struct.pack_into("<H", self.raw, self._pixel_offset(x0 + x, y0 + y), r << 12 | g << 8 | b << 4 | a)
+                    v = _TO5[r] << 11 | _TO5[g] << 6 | _TO5[b] << 1 | (a >= 128)
+                    raw[pixel], raw[pixel + 1] = v & 0xFF, v >> 8
+                elif self.format == LA4:
+                    raw[pixel] = _GREY4[_TO4[r] + _TO4[g] + _TO4[b]] << 4 | _TO4[a]
+                else:
+                    raw[pixel], raw[pixel + 1] = _TO4[b] << 4 | _TO4[a], _TO4[r] << 4 | _TO4[g]
 
     def to_bytes(self) -> bytes:
         return bytes(self.raw)

@@ -1,0 +1,37 @@
+{
+ "description": "The Rare Materials Exchange's texts (core/gameplay/wyporium/exchange_texts.py). 'texts': the messages added to the Wyporium's D_shop file, by language; a '{}' is a number the game fills in (a string slot). 'name' is the menu line (it must fit the menu's 120 pixel pane at font 11) and also the trade list's title (136 pixels at font 10); 'hand_over' is the first line of the materials box (112 pixels, font 10, with the biggest number); 'handed' is the counter in the list's title (136 pixels, font 10, two numbers). 'owners': the owners of a rare item are written under the box's first line as one or two lines of 'line_px' pixels at font 'line_font' (a Helvetica estimate; a longer list ends in 'more'); 'owner_names' gives the English name (of curated/monster_names.json) of an owner of generated/rare_exchange.json that has none of its own, 'proper_names' the owners whose name is the same in every language (the ported monsters').",
+ "texts": {
+  "name": {"eng": "Rare Material Exchange", "fre": "Troc de raretés", "ger": "Raritätenhandel", "ita": "Scambia rari", "spa": "Canjear raros"},
+  "menu_help": {
+   "eng": "Hand over items of the monsters\nthat drop a rare material for it.",
+   "fre": "Donnez des objets des monstres\nqui lâchent un matériau rare.",
+   "ger": "Gib Objekte der Monster ab, die\nein seltenes Material hinterlassen.",
+   "ita": "Offri oggetti dei mostri che\nlasciano un materiale raro.",
+   "spa": "Entrega objetos de los monstruos\nque sueltan un material raro."},
+  "hand_over": {
+   "eng": "Hand over {} items of:", "fre": "Remettre {} objets de :", "ger": "Gib {} Objekte von:",
+   "ita": "Consegna {} oggetti di:", "spa": "Entrega {} objetos de:"},
+  "handed": {
+   "eng": "Handed over {}/{}", "fre": "Remis : {}/{}", "ger": "Abgegeben: {}/{}",
+   "ita": "Consegnati: {}/{}", "spa": "Entregado: {}/{}"},
+  "help_pool": {
+   "eng": "Left/Right: hand over or take back.\nA: confirm  B: back",
+   "fre": "Gauche/Droite : remettre ou reprendre.\nA : valider  B : retour",
+   "ger": "Links/Rechts: abgeben oder zurücknehmen.\nA: bestätigen  B: zurück",
+   "ita": "Sinistra/Destra: consegna o riprendi.\nA: conferma  B: indietro",
+   "spa": "Izquierda/Derecha: entregar o quitar.\nA: confirmar  B: volver"},
+  "prompt": {
+   "eng": "Hand over these items\nfor the rare material?",
+   "fre": "Donner ces objets contre\nle matériau rare ?",
+   "ger": "Diese Objekte gegen das\nseltene Material tauschen?",
+   "ita": "Scambiare questi oggetti\ncon il materiale raro?",
+   "spa": "¿Entregar estos objetos\npor el material raro?"}
+ },
+ "owners": {"line_px": 112, "line_font": 10, "more": "..."},
+ "owner_names": {
+  "great_maccao": "Great Maccao", "Black Fatalis": "Fatalis", "Golden Rajang": "Rajang",
+  "Dalamadur (Head)": "Dalamadur", "Dalamadur (Tail)": "Dalamadur",
+  "Shah Dalamadur (Head)": "Shah Dalamadur", "Shah Dalamadur (Tail)": "Shah Dalamadur",
+  "Crimson Fatalis (Super)": "Crimson Fatalis"},
+ "proper_names": {"alatreon": "Alatreon", "mizutsune": "Mizutsune", "glavenus": "Glavenus", "valstrax": "Valstrax"}
+}

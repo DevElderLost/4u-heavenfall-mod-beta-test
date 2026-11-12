@@ -3,8 +3,9 @@
 
 Each option has a list of values (curated mod_settings.json, `options`) and a byte of the character's save zone. A
 character with no choice, and the title screen, take the default the mod is installed with: the Settings field of the
-same name, what the player chose in the installer (it starts at gui_defaults.json's). The code reads every option once
-a frame (mod_options.c `mod_frame`).
+same name, what the player chose in the installer (it starts at gui_defaults.json's). An option with a `default` of its
+own in the curated file is the page's only: it has no Settings field, every edition's mod has it, and that value is its
+default. The code reads every option once a frame (mod_options.c `mod_frame`).
 These functions change, in the update's executable (canonical):
 
 - FUN_00af52a0, the application's update: its call of FUN_00644320 (FRAME_CALL) goes through the stub, which runs
@@ -15,8 +16,16 @@ These functions change, in the update's executable (canonical):
 - FUN_00533e6c, FUN_005348a8 and FUN_00535480, the multiplayer node's waits (NET_SITES): the numbers come from the mod;
 - FUN_0026e33c and FUN_0027335c, which load the weapon classes' table of display multipliers (RAW_SITES): its base
   address is the game's table or one of 100s;
-- the calls of hold A, fast text, fast gathering and the lock-on's D-pad filter go through a gate (the modules' own
-  patches, `gated`), which makes the game's call when the option is off.
+- FUN_00bfd028, the camera's turn by the buttons (the PC port's `sMhCamera::turnByInput`): its load of the cap on how
+  long a turn has been held, and so of the turn's top speed (CAMERA_CAP, 10.0), takes the mod's value;
+- FUN_009ec82c, which opens an item box's menu: its store of the box's kind (BOX_KIND; 0 the house's, 1 the
+  Gathering Hall's) makes every box the house's, and its store of the menu's count of lines (BOX_LINES; 7 at home, 4
+  at the Hall's box) takes the option's count at a box away from home, so Manage Equipment and Equipment Sets are at
+  every box, drawn, and Change Appearance stays at the house's;
+- FUN_002b58e8, the poll of the game's keyboard: through a gate to the system keyboard (system_keyboard);
+- the calls of hold A, fast text, fast gathering, the lock-on's D-pad filter and the death camera skip (FUN_00c006f4's
+  call of a camera sequence's frame) go through a gate (the modules' own patches, `gated`), which makes the game's call
+  when the option is off.
 
 The game's per-frame writes (3D, the frame rate, the camera) are mod_frame's. Update's executable only; the version maps
 carry it to the base games.
@@ -41,8 +50,9 @@ VARIABLES = ("mod_options_state", "option_list_state")
 OPTION_IDS = {
     "cheat_3d_mode": 0, "cheat_no_bloom_dof": 1, "cheat_fps": 2, "cheat_fov": 3, "cheat_net_fix": 4,
     "cheat_raw_unbloat": 5, "touchless_target": 6, "hold_a": 7, "fast_text": 8, "fast_gathering": 9,
+    "camera_speed": 10, "box_equipment": 11, "system_keyboard": 12, "skip_death_camera": 13,
 }
-MAX_OPTIONS = 12                # the data block's room (mod_options.c MOD_OPTIONS)
+MAX_OPTIONS = 16                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 16)
 MAX_VALUES = 16                 # a list of values: two pages
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
 ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (0 to 8: the item wheel's, 9: the ratio)
@@ -60,6 +70,9 @@ FOV_OTHER = (0xC06C88, 0xEDDF1A56)                      # FUN_00c06a14: vldr s3,
 NET_WAITS = (0x533F40, 0xE3520078)                      # FUN_00533e6c: cmp r2, #120
 NET_POLLS = ((0x534B54, 0xE3A0000A), (0x5356DC, 0xE3A0000A))   # FUN_005348a8, FUN_00535480: mov r0, #10
 RAW_SITES = ((0x26E390, 0xE59F0020), (0x273368, 0xE59F201C))   # FUN_0026e33c, FUN_0027335c: ldr r0/r2, [pc, ..]
+CAMERA_CAP = (0xBFD16C, 0xED9F0A72)                     # FUN_00bfd028: vldr s0, [pc, #0x1c8] (10.0, at 0xBFD33C)
+BOX_KIND = (0x9EC870, 0xE5C46002)                       # FUN_009ec82c: strb r6, [r4, #0x2] (the box's kind)
+BOX_LINES = (0x9EC8A4, 0xE5C4100A)                      # FUN_009ec82c: strb r1, [r4, #0xa] (the menu's lines)
 CLASS_TABLE = 0xED24A0
 CLASS_WORDS = (480, 140, 520, 230, 150, 130, 130, 330, 540, 230, 120, 140, 520, 310, 360, 170)
 
@@ -74,9 +87,10 @@ def _words(code: bytes | bytearray, at: int) -> int:
 
 def load_options(path: Path = SETTINGS_FILE) -> list[dict]:
     """The curated options: {"key", "name", "help", "title", "values": [{"name", "setting", "payload": [u32, u32]}]},
-    in the order of the file (the title is the name, for a row without one of its own). Refuses an option the code has
-    no number for, a repeated one, a list of values that is empty or longer than MAX_VALUES, a value with more than
-    PAYLOAD_WORDS numbers or both kinds of them, and a text that is no menu text."""
+    and "default" for an option of the page only, in the order of the file (the title is the name, for a row without
+    one of its own). Refuses an option the code has no number for, a repeated one, a list of values that is empty or
+    longer than MAX_VALUES, a value with more than PAYLOAD_WORDS numbers or both kinds of them, a default that is not
+    one of its values' settings, and a text that is no menu text."""
     raw = json.loads(Path(path).read_text(encoding="utf-8")).get("options")
     entries = raw.get("value") if isinstance(raw, dict) else None
     if not isinstance(entries, list):
@@ -94,10 +108,25 @@ def load_options(path: Path = SETTINGS_FILE) -> list[dict]:
         for text in (entry.get("name"), entry.get("help"), title, *(value.get("name") for value in values)):
             if text not in known:
                 raise ModOptionsError(f"mod_settings.json: {key}: no menu text {text!r}")
-        options.append({"key": key, "name": entry["name"], "help": entry["help"], "title": title,
-                        "values": [{"name": value["name"], "setting": value["setting"], "payload": _payload(key, value)}
-                                   for value in values]})
+        option = {"key": key, "name": entry["name"], "help": entry["help"], "title": title,
+                  "values": [{"name": value["name"], "setting": value["setting"], "payload": _payload(key, value)}
+                             for value in values]}
+        if "default" in entry:
+            if not any(_same(value["setting"], entry["default"]) for value in values):
+                raise ModOptionsError(f"mod_settings.json: {key}: its default is none of its values' settings")
+            option["default"] = entry["default"]
+        options.append(option)
     return options
+
+
+def _same(a: Any, b: Any) -> bool:
+    return a == b and type(a) is type(b)
+
+
+def page_only_options(path: Path = SETTINGS_FILE) -> list[str]:
+    """The options of the START menu's page only: a `default` of their own in the curated file, no Settings field and
+    no installer choice; every edition's mod has them."""
+    return [option["key"] for option in load_options(path) if "default" in option]
 
 
 def _payload(key: str, value: dict) -> list[int]:
@@ -118,12 +147,13 @@ def _setting(settings: Any, key: str) -> Any:
 
 
 def default_value(option: dict, settings: Any) -> int:
-    """The place in the option's values of `settings`' value for it (the installed default): the value whose `setting`
-    is it, else for a number the nearest, else the first (the game's own)."""
-    wanted = _setting(settings, option["key"])
+    """The place in the option's values of `settings`' value for it (the installed default), or of its own `default`
+    for an option of the page only: the value whose `setting` is it, else for a number the nearest, else the first (the
+    game's own)."""
+    wanted = option["default"] if "default" in option else _setting(settings, option["key"])
     choices = [value["setting"] for value in option["values"]]
     for place, choice in enumerate(choices):
-        if choice == wanted and type(choice) is type(wanted):
+        if _same(choice, wanted):
             return place
     if isinstance(wanted, int) and not isinstance(wanted, bool):
         numbers = [(abs(choice - wanted), place) for place, choice in enumerate(choices)
@@ -186,8 +216,15 @@ def supports_option(code: bytes, key: str) -> bool:
     if key == "cheat_raw_unbloat":
         return _static_ok(code, RAW_SITES) and all(
             _words(code, CLASS_TABLE + 4 * place) == word for place, word in enumerate(CLASS_WORDS))
+    if key == "camera_speed":
+        return _static_ok(code, (CAMERA_CAP,))
+    if key == "box_equipment":
+        return _static_ok(code, (BOX_KIND, BOX_LINES))
+    from core.interface.system_keyboard.system_keyboard import supports_system_keyboard
+    from core.gameplay.death_camera_skip.death_camera_skip import supports_death_camera_skip
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,
-              "fast_gathering": supports_fast_gathering}
+              "fast_gathering": supports_fast_gathering, "system_keyboard": supports_system_keyboard,
+              "skip_death_camera": supports_death_camera_skip}
     return checks[key](code) if key in checks else True
 
 
@@ -200,10 +237,11 @@ def supports_mod_options(code: bytes) -> bool:
 
 def available_options(code: bytes, settings: Any, console: bool = False) -> list[str]:
     """The options the player's game can change during play, in the order of OPTION_IDS: the edition's
-    (gui_presets.json, `in_game`), the ones a 3DS can use when `console`, and those whose hooks the executable has."""
+    (gui_presets.json, `in_game`) and the page's own (page_only_options), the ones a 3DS can use when `console`, and
+    those whose hooks the executable has."""
     from core.app.presets import in_game_fields
     from core.app.settings import EMULATOR_ONLY
-    wanted = [key for key in in_game_fields() if not (console and key in EMULATOR_ONLY)]
+    wanted = [key for key in (*in_game_fields(), *page_only_options()) if not (console and key in EMULATOR_ONLY)]
     return sorted((key for key in wanted if supports_option(code, key)), key=OPTION_IDS.__getitem__)
 
 
@@ -237,15 +275,23 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
     if "cheat_raw_unbloat" in available:
         for (site, original), label in zip(RAW_SITES, ("mod_raw_a", "mod_raw_b")):
             layout.hook(out, site, at(label), original=word(original), link=False)
+    if "camera_speed" in available:
+        layout.hook(out, CAMERA_CAP[0], at("mod_camera_cap"), original=word(CAMERA_CAP[1]), link=False)
+    if "box_equipment" in available:
+        layout.hook(out, BOX_KIND[0], at("mod_box_kind"), original=word(BOX_KIND[1]))
+        layout.hook(out, BOX_LINES[0], at("mod_box_lines"), original=word(BOX_LINES[1]), link=False)
     from core.gameplay.fast_gathering.fast_gathering import patch_fast_gathering
     from core.gameplay.hold_a.hold_a import patch_hold_a
     from core.interface.fast_text.fast_text import patch_fast_text
+    from core.interface.system_keyboard.system_keyboard import patch_system_keyboard
+    from core.gameplay.death_camera_skip.death_camera_skip import patch_death_camera_skip
     for key, patch in (("hold_a", patch_hold_a), ("fast_text", patch_fast_text),
-                       ("fast_gathering", patch_fast_gathering)):
+                       ("fast_gathering", patch_fast_gathering), ("system_keyboard", patch_system_keyboard),
+                       ("skip_death_camera", patch_death_camera_skip)):
         if key in available:
             out = bytearray(patch(bytes(out), layout, gated=True))
     return bytes(out)
 
 
-__all__ = ["OPTION_IDS", "available_options", "default_value", "load_options", "options_data",
+__all__ = ["OPTION_IDS", "available_options", "default_value", "load_options", "options_data", "page_only_options",
            "patch_mod_options", "raw_table", "supports_mod_options", "supports_option"]

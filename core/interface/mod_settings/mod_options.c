@@ -11,7 +11,8 @@ frame, and what the hooks of
  *     game's objects every frame (the draw object's display mode word, the main object's frame rate, the camera's
  *     field of view). The game's own value is kept the first time the option writes and put back when its value is
  *     "game's own" again;
- *   - the online waits, the camera's literals and the true attack's table are read by the hooks from the variable.
+ *   - the online waits, the camera's literals, the cap of the camera's turn, an item box menu's lines and the true
+ *     attack's table are read by the hooks from the variable.
  * The values the writes use are in the option's payload, two words per value.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, ARM, a unit of the block mod_settings_code, linked with
@@ -22,7 +23,7 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define MOD_OPTIONS 12          /* mod_options.py MAX_OPTIONS */
+#define MOD_OPTIONS 16          /* mod_options.py MAX_OPTIONS */
 #define MOD_VALUES 16           /* mod_options.py MAX_VALUES */
 #define SAVE_DATA 0x5C          /* the save object's data starts here */
 #define ZONE_WORDS 12           /* the save zone's size in words (curated mod_settings.json) */
@@ -30,7 +31,8 @@ typedef unsigned char u8;
 
 /* mod_options.py OPTION_IDS */
 enum {
-    OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT, OPT_FAST_GATHERING
+    OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT, OPT_FAST_GATHERING,
+    OPT_CAMERA, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA
 };
 
 #define SLOT_3D 0               /* mod_options_state.saved: the game's word an option overwrites */
@@ -59,7 +61,7 @@ struct mod_options_data {
 };
 
 struct mod_options_state {      /* mod_options_stub.s has the offsets */
-    u8 values[16];              /* 0: each option's value this frame */
+    u8 values[MOD_OPTIONS];     /* 0: each option's value this frame */
     u32 net_waits;              /* 16: the online waits (frames, polls) */
     u32 net_polls;              /* 20 */
     u32 fov_one;                /* 24: the camera's literal in the reset case with the flags "not equal", and the other */
@@ -68,6 +70,10 @@ struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u32 saved[3];               /* 36: the game's words (SLOT_*) */
     u32 live;                   /* 48: bit n set while the option writes into slot n */
     u32 hide_face;              /* 52: the mod has the lock-on and it is off: no target face (hud/target_face.c) */
+    u32 camera_cap;             /* 56: the cap of how long a camera turn has been held (FUN_00bfd028; a float) */
+    u8 box_lines;               /* 60: a menu's count of lines at a box away from home (FUN_009ec82c); 0: the game's */
+    u8 box_away;                /* 61: the box being opened is not the house's (mod_box_kind keeps the game's box) */
+    u8 box_pad[2];
 };
 
 _Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 16, "mod_options_stub.s NET_WAITS");
@@ -76,6 +82,10 @@ _Static_assert(__builtin_offsetof(struct mod_options_state, fov_one) == 24, "mod
 _Static_assert(__builtin_offsetof(struct mod_options_state, fov_other) == 28, "mod_options_stub.s FOV_OTHER");
 _Static_assert(__builtin_offsetof(struct mod_options_state, raw_base) == 32, "mod_options_stub.s RAW_BASE");
 _Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 52, "hud/target_face.c HIDE_FACE");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_cap) == 56, "mod_options_stub.s CAMERA_CAP");
+_Static_assert(__builtin_offsetof(struct mod_options_state, box_lines) == 60, "mod_options_stub.s BOX_LINES");
+_Static_assert(__builtin_offsetof(struct mod_options_state, box_away) == 61, "mod_options_stub.s BOX_AWAY");
+_Static_assert(sizeof(struct mod_options_state) <= 64, "blocks.py: the variable mod_options_state");
 
 extern const struct mod_options_data mod_options_data;
 extern struct mod_options_state mod_options_state;
@@ -151,7 +161,7 @@ void mod_option_choose(int id, int value)
 }
 
 /* A word of one of the game's objects: written while the option is on, the game's own put back when it goes off */
-static void write_word(u32 object, int offset, int active, u32 word, int slot)
+static void write_word(u32 object, int offset, int active, u32 word, int slot, u32 own)
 {
     u32 *at = (u32 *)(object + offset);
 
@@ -164,7 +174,7 @@ static void write_word(u32 object, int offset, int active, u32 word, int slot)
         }
         *at = word;
     } else if (mod_options_state.live & (1u << slot)) {
-        *at = mod_options_state.saved[slot];
+        *at = own != 0 ? own : mod_options_state.saved[slot];
         mod_options_state.live &= ~(1u << slot);
     }
 }
@@ -172,6 +182,18 @@ static void write_word(u32 object, int offset, int active, u32 word, int slot)
 static const u32 *payload_of(int id)
 {
     return mod_options_data.options[id].payload[mod_options_state.values[id]];
+}
+
+/* The camera's own field of view: the literal FUN_00bff28c loads for the camera's state, 58.0 when the state byte
+ * (+0xE34) is 8 and the next is 1, else 50.0. The camera object is built again with every scene, so no word kept from
+ * another scene is the camera's now; 0 while the camera does not exist */
+static u32 game_fov(void)
+{
+    const u8 *state = (const u8 *)(camera_control + 0xE34);
+
+    if (camera_control == 0)
+        return 0;
+    return state[0] == 8 && state[1] == 1 ? 0x42680000 : 0x42480000;
 }
 
 /* FUN_00644320's caller, once per frame in every scene, before the engine's timing update */
@@ -182,13 +204,16 @@ void mod_frame(void)
 
     for (id = 0; id < MOD_OPTIONS; id++)
         state->values[id] = value_of(id);
-    write_word(gx_main, DISPLAY_MODE, state->values[OPT_3D] != 0, payload_of(OPT_3D)[0], SLOT_3D);
-    write_word(game_main, FRAME_RATE, state->values[OPT_FPS] != 0, payload_of(OPT_FPS)[0], SLOT_FPS);
-    write_word(camera_control, FIELD_OF_VIEW, state->values[OPT_FOV] != 0, payload_of(OPT_FOV)[0], SLOT_FOV);
+    write_word(gx_main, DISPLAY_MODE, state->values[OPT_3D] != 0, payload_of(OPT_3D)[0], SLOT_3D, 0);
+    write_word(game_main, FRAME_RATE, state->values[OPT_FPS] != 0, payload_of(OPT_FPS)[0], SLOT_FPS, 0);
+    write_word(camera_control, FIELD_OF_VIEW, state->values[OPT_FOV] != 0, payload_of(OPT_FOV)[0], SLOT_FOV,
+               game_fov());
     state->fov_one = payload_of(OPT_FOV)[0];
     state->fov_other = payload_of(OPT_FOV)[1];
     state->net_waits = payload_of(OPT_NET)[0];
     state->net_polls = payload_of(OPT_NET)[1];
     state->raw_base = state->values[OPT_RAW] != 0 ? (u32)mod_raw_table : (u32)class_multipliers;
     state->hide_face = mod_options_data.options[OPT_LOCK].count != 0 && state->values[OPT_LOCK] == 0;
+    state->camera_cap = payload_of(OPT_CAMERA)[0];
+    state->box_lines = (u8)payload_of(OPT_BOX)[0];
 }

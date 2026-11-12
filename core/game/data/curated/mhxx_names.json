@@ -1,0 +1,1449 @@
+{
+ "description": "The Western names and descriptions (English, French, German, Italian, Spanish) of the gear of the monsters ported from MH XX, copied from MH Generations Ultimate's text files by research/porting/xx_names.py: XX has only Japanese text and its tables are MHGU's, so a string has the same index in both. One block per monster; records keyed by their id in XX.",
+ "monsters": {
+  "xx_materials": {
+   "items": {
+    "573": {
+     "names": {
+      "eng": "Maccao Scale+",
+      "fre": "Écaille Maccao +",
+      "ger": "Maccao-Schuppe+",
+      "ita": "Maccao: scaglia+",
+      "spa": "Escama de Maccao+"
+     },
+     "descriptions": {
+      "eng": "A superior scale from a Maccao.\r\nIts rigidity and durability make\r\nfor excellent armor.",
+      "fre": "Écaille supérieure de Maccao.\r\nRigide et résistante. Idéale pour\r\nforger une bonne armure.",
+      "ger": "Diese bessere Schuppe ist\r\nhart und strapazierfähig;\r\ngut für Rüstungen geeignet.",
+      "ita": "Scaglia pregiata di Maccao.\r\nAbbastanza dura e rigida da\r\ngarantire una buona difesa.",
+      "spa": "Escama superior de Maccao.\r\nCrea una armadura excelente\r\npor su rigidez y resistencia."
+     }
+    },
+    "574": {
+     "names": {
+      "eng": "Maccao Shard",
+      "fre": "Éclat Maccao",
+      "ger": "Maccao-Scherbe",
+      "ita": "Maccao: frammento",
+      "spa": "Esquirla de Maccao"
+     },
+     "descriptions": {
+      "eng": "An especially tough scale carved\r\nfrom a Maccao that offers\r\nresistance to vicious attacks.",
+      "fre": "Écaille extrêmement résistante\r\nprélevée sur un Maccao pouvant\r\noffrir davantage de protection.",
+      "ger": "Diese besonders starke Schuppe\r\nbietet Schutz vor den stärksten\r\nAngriffen.",
+      "ita": "Frammento particolarmente duro,\r\nestratto da un Maccao. Resiste\r\na quasi qualunque attacco.",
+      "spa": "Escama gruesa de Maccao.\r\nEs capaz de resistir potentes\r\nataques."
+     }
+    },
+    "575": {
+     "names": {
+      "eng": "Maccao Hide",
+      "fre": "Peau Maccao",
+      "ger": "Maccao-Lederhaut",
+      "ita": "Maccao: pelle",
+      "spa": "Piel de Maccao"
+     },
+     "descriptions": {
+      "eng": "A Maccao hide stripped of its\r\nscales. Its elasticity allows for\r\nfree and easy movement.",
+      "fre": "Peau de Maccao dépourvue de ses\r\nécailles. Son élasticité offre\r\nune belle liberté de mouvement.",
+      "ger": "Diese Haut wurde von den\r\nSchuppen befreit und erlaubt\r\neine gute Bewegungsfreiheit.",
+      "ita": "Pelle di Maccao privata delle\r\nscaglie. La sua elasticità\r\nnon ostacola i movimenti.",
+      "spa": "Piel de Maccao desprovista de\r\nescamas. Su elasticidad ofrece\r\nlibertad de movimientos."
+     }
+    },
+    "638": {
+     "names": {
+      "eng": "Giadrome Head",
+      "fre": "Tête Giadrome",
+      "ger": "Giadrome-Kopf",
+      "ita": "Giadrome: testa",
+      "spa": "Cabeza de Giadrome"
+     },
+     "descriptions": {
+      "eng": "Giadromes seem quite proud of\r\ntheir beautifully colored crests.\r\nWouldn't you be?",
+      "fre": "Les Giadrome sont fiers de leur\r\ncrête colorée... Qui ne le serait\r\npas à leur place ?",
+      "ger": "Kopf mit prächtigem Kamm.\r\nIn den Bergen der letzte Schrei.",
+      "ita": "I Giadrome sembrano alquanto\r\nfieri della loro cresta. E chi\r\nnon lo sarebbe?!",
+      "spa": "Los Giadromes se sienten muy\r\norgullosos de sus coloridas\r\ncrestas. ¿Quién no lo estaría?"
+     }
+    },
+    "649": {
+     "names": {
+      "eng": "Redhelm Pelt+",
+      "fre": "Toison Crâne-ardent",
+      "ger": "Rothelm-Toison",
+      "ita": "Sanguis: pelle+",
+      "spa": "Piel de Ámbar+"
+     },
+     "descriptions": {
+      "eng": "A quality pelt that's hard\r\nand durable. Epitomizes the\r\nRedhelm's viciousness.",
+      "fre": "Toison de bonne qualité, dure et\r\nrésistante. Son aspect rappelle\r\nla méchanceté du Crâne-ardent.",
+      "ger": "Hochwertiger, harter Pelz.\r\nEin Kennzeichen für die\r\nBösartigkeit des Rothelms.",
+      "ita": "Pelle pregiata, coriacea e\r\nresistente. È il simbolo\r\ndella crudeltà del Sanguis.",
+      "spa": "Piel de calidad, resistente y\r\ndura. Personifica la ferocidad\r\ndel Arzuros Ámbar."
+     }
+    },
+    "656": {
+     "names": {
+      "eng": "Redhelm Zenith Furyhair",
+      "fre": "Crête sup Crâne-ardent",
+      "ger": "Rothelm-Tobsuchtshaar",
+      "ita": "Sanguis: criniera zenith",
+      "spa": "Melena de Ámbar cénit"
+     },
+     "descriptions": {
+      "eng": "Redhelm head hair of the highest\r\nquality. Extremely thick, showing\r\noff the creature's pure rage.",
+      "fre": "Crête de Crâne-ardent de\r\nhaute qualité, d'un rouge profond\r\nrappelant la rage de son porteur.",
+      "ger": "Haar der höchsten Qualität,\r\ndas die unbändige Wildheit\r\ndes Rothelm-Arzuros bezeugt.",
+      "ita": "Ottimo pelo della testa di\r\nSanguis, spesso e resistente\r\ncome la rabbia della bestia.",
+      "spa": "Melena de Arzuros Ámbar de\r\ngran calidad y de un rojo intenso\r\ncomo la ira."
+     }
+    },
+    "674": {
+     "names": {
+      "eng": "Volvidon Shell",
+      "fre": "Carapace Volvidon",
+      "ger": "Volvidon-Panzer",
+      "ita": "Volvidon: corazza",
+      "spa": "Caparazón Volvidon"
+     },
+     "descriptions": {
+      "eng": "The heat-resistant shell of\r\na Volvidon. Unaffected even\r\nby boiling lava.",
+      "fre": "Carapace résistante à la\r\nchaleur. Même la lave en\r\nfusion ne l'affecte pas.",
+      "ger": "Hitzebeständiger Volvidon-\r\nPanzer. Auch kochende Lava\r\nkann ihm nichts anhaben.",
+      "ita": "Corazza di Volvidon\r\nresistente al calore\r\ne perfino alla lava.",
+      "spa": "Caparazón de Volvidon\r\nresistente al calor. No le\r\nafecta ni la lava hirviendo."
+     }
+    },
+    "677": {
+     "names": {
+      "eng": "Volvidon Claw",
+      "fre": "Griffe Volvidon",
+      "ger": "Volvidon-Klaue",
+      "ita": "Volvidon: artiglio",
+      "spa": "Garra Volvidon"
+     },
+     "descriptions": {
+      "eng": "A claw from a Volvidon's\r\nforelegs. Dramatically increases\r\nthe power of a wide swing.",
+      "fre": "Griffe de patte avant.\r\nAugmente spectaculairement\r\nla puissance d'un coup.",
+      "ger": "Klaue von einem Volvidon-\r\nVorderbein. Erhöht die Kraft\r\neines weiten Hiebs deutlich.",
+      "ita": "Artiglio della zampa di\r\nVolvidon; aumenta notevolmente\r\nla forza d'attacco.",
+      "spa": "Garra de la pata delantera\r\nde un Volvidon. Aumenta el\r\npoder de sus zarpazos."
+     }
+    },
+    "679": {
+     "names": {
+      "eng": "Volvidon Talon",
+      "fre": "Serre Volvidon",
+      "ger": "Volvidon-Kralle",
+      "ita": "Sper. Volvidon",
+      "spa": "Zarpa Volvidon"
+     },
+     "descriptions": {
+      "eng": "A punishing Volvidon claw.\r\nIts solidity and sharpness\r\nis almost overwhelming.",
+      "fre": "Griffe pouvant infliger une\r\npunition. Incroyablement\r\nsolide et affûtée.",
+      "ger": "Harte Volvidon-Klaue. Ihre\r\nRobustheit und Schärfe sind\r\nbeinahe überwältigend.",
+      "ita": "Artiglio di Volvidon\r\ncosì affilato da\r\nessere sbalorditivo.",
+      "spa": "Fuerte garra de Volvidon.\r\nTan sólida y afilada que\r\nabruma."
+     }
+    },
+    "707": {
+     "names": {
+      "eng": "Azurefeather",
+      "fre": "Plume azur",
+      "ger": "Azurfeder",
+      "ita": "Piuma azzurra",
+      "spa": "Pluma celeste"
+     },
+     "descriptions": {
+      "eng": "The blue scalefeather of a\r\nMalfestio, the secret behind\r\nits silent flight.",
+      "fre": "Plume écaillée bleue d'un\r\nMalfestio. Elle lui permet de\r\nvoler sans faire de bruit.",
+      "ger": "Die blaue Schuppenfeder eines\r\nMalfestio. Sie ist das Geheimnis\r\nihres lautlosen Fluges.",
+      "ita": "Piuma a scaglie blu di\r\nMalfestio. Sono il segreto\r\ndel suo volo silenzioso.",
+      "spa": "Pluma de escama azul\r\nde Malfestio. Es el secreto\r\nde su silencioso vuelo."
+     }
+    },
+    "710": {
+     "names": {
+      "eng": "Malfestio Webbing",
+      "fre": "Palmure Malfestio",
+      "ger": "Malfestio-Gewebe",
+      "ita": "Malfestio: membrana",
+      "spa": "Membrana Malfestio"
+     },
+     "descriptions": {
+      "eng": "Webbing from a Malfestio wing.\r\nIts scales gather sound and\r\nemit a strange echo pattern.",
+      "fre": "La palmure des ailes d'un\r\nMalfestio. Emprisonne les sons\r\npour émettre un écho bizarre.",
+      "ger": "Vom Flügel eines Malfestio.\r\nDie Schuppen speichern den\r\nSchall und erzeugen ein Echo.",
+      "ita": "Membrana alare di Malfestio.\r\nLe scaglie assorbono i suoni\r\ned emettono una strana eco.",
+      "spa": "Membrana de ala de Malfestio.\r\nSus escamas absorben sonidos\r\ny emiten un extraño eco."
+     }
+    },
+    "720": {
+     "names": {
+      "eng": "Malfestio Goldfeather",
+      "fre": "Plume or Malfestio",
+      "ger": "Malfestio-Goldfeder",
+      "ita": "Malfestio: piuma oro",
+      "spa": "Pluma dorada Malfestio"
+     },
+     "descriptions": {
+      "eng": "The magnificent golden feather\r\nof a Malfestio. Collectors prize\r\nit for its sense of flair.",
+      "fre": "Superbe plume d'or de Malfestio.\r\nPrisée par les collectionneurs\r\nen raison de son élégance.",
+      "ger": "Die prächtige goldene Feder\r\neines Malfestio erzielt bei\r\nSammlern hohe Preise.",
+      "ita": "Piuma dorata di Malfestio. È\r\nambita dai collezionisti per\r\nla sua eleganza.",
+      "spa": "Magnífica pluma dorada de\r\nMalfestio. Los coleccionistas\r\nla valoran por su elegancia."
+     }
+    },
+    "721": {
+     "names": {
+      "eng": "Malfestio Goldfeather+",
+      "fre": "Plume or Malfestio +",
+      "ger": "Malfestio-Goldfeder+",
+      "ita": "Malfestio: piuma oro+",
+      "spa": "Pluma dorad. Malfestio+"
+     },
+     "descriptions": {
+      "eng": "A particularly high quality\r\ngolden feather which enchants\r\nanyone who gazes upon it.",
+      "fre": "Plume d'or de très grande qualité\r\ndont l'éclat en ravira plus d'un.",
+      "ger": "Diese goldene Feder erster\r\nGüte verzaubert jeden, der\r\nsie ansieht.",
+      "ita": "Piuma dorata di alta qualità,\r\nche incanta chiunque la guardi.",
+      "spa": "Una pluma dorada de muchísima\r\ncalidad que encandila a todo\r\nel que la mira."
+     }
+    },
+    "726": {
+     "names": {
+      "eng": "Nightcloak Clearscale",
+      "fre": "Clairécaille Lune-noire",
+      "ger": "MondscheinLichtschuppe",
+      "ita": "Occultus: scaglia limpida",
+      "spa": "Pluma clara Nébula"
+     },
+     "descriptions": {
+      "eng": "Camouflages a Nightcloak in the\r\nwild, but weapons fashioned with\r\nthem stand out in a crowd.",
+      "fre": "Bien qu'elle permette au\r\nMalfestio de se camoufler, elle\r\nrend les armes très voyantes.",
+      "ger": "Machte einst einen Mondschein-\r\nMalfestio unsichtbar. Kann\r\nAusrüstung edle Farbe verleihen.",
+      "ita": "Serve all'Occultus per\r\nmimetizzarsi. Si usa anche per\r\ncostruire armi appariscenti.",
+      "spa": "Aunque sirven para camuflar al\r\nMalfestio, en las armas quedan\r\nmuy llamativas."
+     }
+    },
+    "757": {
+     "names": {
+      "eng": "Bulldrome Hide",
+      "fre": "Peau Bulldrome",
+      "ger": "Bulldrome-Lederhaut",
+      "ita": "Bulldrome: pelle",
+      "spa": "Piel de Bulldrome"
+     },
+     "descriptions": {
+      "eng": "The hide of a Bulldrome.\r\nIts bristliness has a certain\r\nbeauty to it.",
+      "fre": "Apparence broussailleuse,\r\nmais étrangement assez jolie.",
+      "ger": "Die ledrige Haut eines Bull-\r\ndrome. Seiner Rauheit wohnt\r\neine gewisse Schönheit inne.",
+      "ita": "Pelle dura di Bulldrome,\r\ntanto resistente quanto\r\nispida.",
+      "spa": "Piel de Bulldrome cuyo\r\nreluciente aspecto le\r\nda una belleza especial."
+     }
+    },
+    "760": {
+     "names": {
+      "eng": "Bulldrome Tusk",
+      "fre": "Défense Bulldrome",
+      "ger": "Bulldrome-Hauer",
+      "ita": "Bulldrome: zanna",
+      "spa": "Colmillo Bulldrome"
+     },
+     "descriptions": {
+      "eng": "A majestic Bulldrome Tusk.\r\nThe damaged surface tells\r\nthe tale of many battles.",
+      "fre": "Sa surface endommagée\r\nraconte moult batailles.",
+      "ger": "Mächtiger Bulldrome-Hauer.\r\nDie zerkratzte Oberfläche\r\nzeugt von vielen Kämpfen.",
+      "ita": "Maestosa zanna di Bulldrome.\r\nLa superficie danneggiata\r\nparla di molte battaglie.",
+      "spa": "Majestuoso colmillo de\r\nBulldrome. Su superficie\r\nrecuerda muchas batallas."
+     }
+    },
+    "777": {
+     "names": {
+      "eng": "Blangonga Pelt",
+      "fre": "Peau Blangonga",
+      "ger": "Blangonga-Pelz",
+      "ita": "Blangonga: pelle",
+      "spa": "Piel de Blangonga"
+     },
+     "descriptions": {
+      "eng": "White fur with astounding\r\nthermal properties and as\r\nstrong as an iron chain.",
+      "fre": "Fourrure aux propriétés\r\nthermiques incroyables\r\net très résistante.",
+      "ger": "Weißer Pelz mit wärmenden\r\nEigenschaften und der\r\nStärke einer Eisenkette.",
+      "ita": "Pelle bianca, ottime\r\nproprietà termiche, forte\r\ncome una cotta di ferro.",
+      "spa": "Piel blanca con increíbles\r\npropiedades térmicas y tan\r\nfuerte como el hierro."
+     }
+    },
+    "785": {
+     "names": {
+      "eng": "Blangonga Tail",
+      "fre": "Queue Blangonga",
+      "ger": "Blangonga-Schwanz",
+      "ita": "Blangonga: coda",
+      "spa": "Cola de Blangonga"
+     },
+     "descriptions": {
+      "eng": "The smooth feeling of a\r\nBlangonga Tail is\r\nundeniably appealing.",
+      "fre": "Sa douce caresse est très\r\napaisante.",
+      "ger": "Die Berührung durch einen\r\nBlangonga-Schwanz erzeugt\r\nbesondere Gefühle...",
+      "ita": "La liscia coda di un\r\nBlangonga dà una\r\nsensazione piacevole.",
+      "spa": "Es innegable que el suave tacto\r\nde la cola de un Blangonga\r\nes muy agradable."
+     }
+    },
+    "817": {
+     "names": {
+      "eng": "Plesioth Fang+",
+      "fre": "Croc Plesioth +",
+      "ger": "Plesioth-Reißzahn+",
+      "ita": "Plesioth: zanna+",
+      "spa": "Colmillo Plesio+"
+     },
+     "descriptions": {
+      "eng": "A finely honed Plesioth Fang.\r\nSharp enough to shatter the\r\nshells of small Carapaceons.",
+      "fre": "Croc bien aiguisé. Assez\r\naffûté pour pouvoir broyer\r\nles petits carapaceons.",
+      "ger": "Fein geschliffener Plesioth-\r\nReißzahn. Er durchdringt\r\nPanzer kleiner Carapaceon.",
+      "ita": "Affilata zanna di Plesioth;\r\npuò penetrare la corazza\r\ndei Carapaceon piccoli.",
+      "spa": "Afilado colmillo de Plesioth.\r\nDestroza los caparazones\r\nde pequeños monstruos."
+     }
+    },
+    "821": {
+     "names": {
+      "eng": "Plesioth Head",
+      "fre": "Tête Plesioth",
+      "ger": "Plesioth-Kopf",
+      "ita": "Plesioth: testa",
+      "spa": "Cabeza de Plesioth"
+     },
+     "descriptions": {
+      "eng": "A surprisingly hard head prized\r\nas armor material. Might make\r\nfor a great party gag, too.",
+      "fre": "Crâne solide apprécié\r\ncomme matériau d'armure.\r\nBon masque de carnaval.",
+      "ger": "Überraschend harter Schädel.\r\nGut geeignet für Rüstungen.\r\nOder auch als Party-Gag.",
+      "ita": "Testa resistentissima; ottimo\r\nmateriale per armature e anche\r\nper gli scherzi alle feste.",
+      "spa": "Cabeza durísima usada como\r\nmaterial de armadura. Sirve\r\ncomo broma para fiestas."
+     }
+    },
+    "825": {
+     "names": {
+      "eng": "Lavasioth Scale+",
+      "fre": "Écaille Lavasioth +",
+      "ger": "Lavasioth-Schuppe+",
+      "ita": "Lavasioth: scaglia+",
+      "spa": "Escama de Lavasioth+"
+     },
+     "descriptions": {
+      "eng": "A superior Lavasioth scale.\r\nThe encrusted lava leaves\r\nbehind a brilliant gold sheen.",
+      "fre": "Excellente écaille de Lavasioth.\r\nLa lave incrustée la fait\r\nbriller d'une belle couleur or.",
+      "ger": "Bessere Lavasioth-Schuppe.\r\nDie Lavakruste hinterlässt\r\nein goldenes Schimmern.",
+      "ita": "Pregevole scaglia di\r\nLavasioth. I residui di lava\r\nemettono riflessi brillanti.",
+      "spa": "Escama superior de Lavasioth.\r\nLa lava incrustada deja tras\r\nde sí un brillo dorado."
+     }
+    },
+    "827": {
+     "names": {
+      "eng": "Lavasioth Carapace",
+      "fre": "Cuirasse Lavasioth",
+      "ger": "Lavasioth-Rückenpanzer",
+      "ita": "Lavasioth: carapace",
+      "spa": "Coraza de Lavasioth"
+     },
+     "descriptions": {
+      "eng": "Lavasioth carapace encrusted\r\nwith rare hardened minerals,\r\nmaking for excellent armor.",
+      "fre": "Cuirasse de Lavasioth sertie de\r\nminéraux rares et durs qui en\r\nfont une excellente armure.",
+      "ger": "Der Lavasioth-Rückenpanzer\r\nist von hartem Gestein bedeckt.\r\nGut für Rüstungen geeignet.",
+      "ita": "Carapace incrostato di\r\nminerali rari che ne\r\nincrementano la resistenza.",
+      "spa": "Coraza de Lavasioth con raros\r\nminerales endurecidos, forma\r\nuna armadura excelente."
+     }
+    },
+    "828": {
+     "names": {
+      "eng": "Lavasioth Cortex",
+      "fre": "Cortex Lavasioth",
+      "ger": "Lavasioth-Kortex",
+      "ita": "Lavasioth: corteccia",
+      "spa": "Placa de Lavasioth"
+     },
+     "descriptions": {
+      "eng": "Heavy Lavasioth carapace\r\ncovered in hardened minerals,\r\nmaking for excellent armor.",
+      "fre": "Carapace lourde de Lavasioth\r\nsertie de minéraux durs qui en\r\nfont une excellente armure.",
+      "ger": "Der schwere Lavasioth-Panzer\r\nist von hartem Gestein bedeckt.\r\nGut für Rüstungen geeignet.",
+      "ita": "Carapace pesante e incrostato\r\ndi minerali rari che ne\r\nincrementano la resistenza.",
+      "spa": "Pesado caparazón de Lavasioth.\r\nSus minerales petrificados\r\nconforman una excelente coraza."
+     }
+    },
+    "829": {
+     "names": {
+      "eng": "Lavasioth Fang+",
+      "fre": "Croc Lavasioth +",
+      "ger": "Lavasioth-Reißzahn+",
+      "ita": "Lavasioth: zanna+",
+      "spa": "Colmillo Lavasioth+"
+     },
+     "descriptions": {
+      "eng": "A sharp fang from a Lavasioth.\r\nIts size is unusual for a\r\nPiscine Wyvern.",
+      "fre": "Croc affûté de Lavasioth.\r\nSa taille est peu courante pour\r\nune wyverne des mers.",
+      "ger": "Scharfer Reißzahn des\r\nLavasioth. Die Größe ist\r\nfür Fischwyvern ungewöhnlich.",
+      "ita": "Zanna di Lavasioth acuminata.\r\nHa dimensioni inusuali per un\r\nwyvern acquatico.",
+      "spa": "Colmillo afilado de Lavasioth.\r\nTiene un tamaño poco habitual\r\npara un wyvern nadador."
+     }
+    },
+    "831": {
+     "names": {
+      "eng": "Lavasioth Fin+",
+      "fre": "Nageoire Lavasioth +",
+      "ger": "Lavasioth-Flosse+",
+      "ita": "Lavasioth: pinna+",
+      "spa": "Aleta de Lavasioth+"
+     },
+     "descriptions": {
+      "eng": "A high-quality fin that has been\r\nsharpened into a virtual weapon\r\ndue to the lava's heat.",
+      "fre": "De très grande qualité, elle\r\na été aiguisée par la chaleur\r\nde la lave qu'elle contient.",
+      "ger": "Hochwertige Flosse, die durch\r\nLavahitze zu einer Waffe\r\ngeschliffen wurde.",
+      "ita": "Pinna di alta qualità resa\r\naffilata come un'arma dal\r\ncalore della lava.",
+      "spa": "Aleta de calidad que el calor\r\nde la lava ha afilado hasta\r\nconvertirla en un arma virtual."
+     }
+    },
+    "840": {
+     "names": {
+      "eng": "Spongy Hide+",
+      "fre": "Peau-éponge +",
+      "ger": "SchwammigeLedrhaut+",
+      "ita": "Pelle spugnosa+",
+      "spa": "Piel esponja+"
+     },
+     "descriptions": {
+      "eng": "High-grade elastic hide that\r\nboasts a remarkable ability\r\nto retain water.",
+      "fre": "Cuir élastique de haute\r\nqualité. Retient étonnamment\r\nbien l'eau.",
+      "ger": "Eine hochwertige elastische\r\nHaut, die erstaunlich gut\r\nWasser aufnimmt.",
+      "ita": "Pregiata pelle elastica\r\ncon ottime capacità di\r\ntrattenere l'acqua.",
+      "spa": "Piel muy elástica con la\r\ncapacidad de almacenar agua."
+     }
+    },
+    "842": {
+     "names": {
+      "eng": "R.Ludroth Scale",
+      "fre": "Écaille Ludroth royal",
+      "ger": "KönigsLudrothSchuppe",
+      "ita": "Ludroth r: scaglia",
+      "spa": "Escama Lud. Real"
+     },
+     "descriptions": {
+      "eng": "A small scale that enables\r\ngraceful movement. Several are\r\nneeded to forge equipment.",
+      "fre": "Sa taille permet de bouger avec\r\ngrâce. Plusieurs sont requises\r\npour forger un équipement.",
+      "ger": "Kleine Schuppe, die anmutige\r\nBewegung ermöglicht. Eine\r\nreicht nicht für Ausrüstung.",
+      "ita": "Scaglia piccola per movimenti\r\nagili. Ne servono molte per\r\nforgiare equipaggiamenti.",
+      "spa": "Pequeña escama que permite\r\nmovimientos gráciles. Usa\r\nvarias para crear equipo."
+     }
+    },
+    "843": {
+     "names": {
+      "eng": "R.Ludroth Scale+",
+      "fre": "Écaille Ludroth royal +",
+      "ger": "KönigLudrothSchuppe+",
+      "ita": "Ludroth r: scaglia+",
+      "spa": "Escama Lud. Real+"
+     },
+     "descriptions": {
+      "eng": "A large, strong scale from a\r\nRoyal Ludroth. It reflects light\r\nin every direction.",
+      "fre": "Grande écaille de Ludroth\r\nroyal. Reflète la lumière\r\ndans toutes les directions.",
+      "ger": "Eine große, starke Königs-Lud-\r\nroth-Schuppe. Sie reflektiert\r\nLicht in alle Richtungen.",
+      "ita": "Scaglia grande e resistente\r\ndi Ludroth reale. Riflette\r\nin tutte le direzioni.",
+      "spa": "Escama grande y fuerte de un\r\nLudroth Real. Refleja la luz\r\nen todas las direcciones."
+     }
+    },
+    "844": {
+     "names": {
+      "eng": "R.Ludroth Shard",
+      "fre": "Éclat Ludroth royal",
+      "ger": "Königs-Ludroth-Scherbe",
+      "ita": "Frm. Ludroth r.",
+      "spa": "Piedra Ludro-R"
+     },
+     "descriptions": {
+      "eng": "The ultimate Royal Ludroth\r\nscale. A rainbow of colors\r\nshimmer on its surface.",
+      "fre": "L'écaille de Ludroth royal\r\npar excellence. Sa surface\r\nest comme un arc-en-ciel.",
+      "ger": "Die ultimative Königs-\r\nLudroth-Schuppe in allen\r\nFarben des Regenbogens.",
+      "ita": "Scaglia perfetta di Ludroth\r\nreale. La sua superficie\r\nbrilla di mille colori.",
+      "spa": "Escama suprema de Ludroth\r\nReal. Todo un arco iris\r\nbrilla en su superficie."
+     }
+    },
+    "846": {
+     "names": {
+      "eng": "R.Ludroth Claw+",
+      "fre": "Griffe Ludroth royal +",
+      "ger": "KönigsLudroth-Klaue+",
+      "ita": "Ludroth r: artiglio+",
+      "spa": "Garra Lud. Real+"
+     },
+     "descriptions": {
+      "eng": "A sharp, pointed Royal Ludroth\r\nclaw. It plunges deep into the\r\nearth with each step taken.",
+      "fre": "Très acérée, elle s'enfonce\r\nen profondeur dans la terre\r\nà chaque pas.",
+      "ger": "Eine scharfe, spitze Königs-\r\nLudroth-Klaue. Dringt beim\r\nGehen tief in die Erde ein.",
+      "ita": "Artiglio affilato e appuntito\r\ndi Ludroth reale. Affonda\r\nnel terreno a ogni passo.",
+      "spa": "Garra afilada de un Ludroth\r\nReal. Se hunde en la tierra\r\na cada paso."
+     }
+    },
+    "847": {
+     "names": {
+      "eng": "R.Ludroth Talon",
+      "fre": "Serre Ludroth royal",
+      "ger": "Königs-Ludroth-Kralle",
+      "ita": "Sper. Ludroth r.",
+      "spa": "Zarpa Ludroth-R"
+     },
+     "descriptions": {
+      "eng": "A menacingly powerful Royal\r\nLudroth claw that enables it\r\nto charge through any terrain.",
+      "fre": "Griffe effrayante de Ludroth\r\nroyal permettant d'attaquer\r\nsur tous les terrains.",
+      "ger": "Bedrohliche, mächtige\r\nKönigs-Ludroth-Klaue, die\r\ndurch jedes Gelände pflügt.",
+      "ita": "Artiglio potente e minaccioso\r\ndi Ludroth reale, permette\r\ndi caricare su ogni terreno.",
+      "spa": "Poderosa garra de Ludroth\r\nReal que le permite embestir\r\nen cualquier terreno."
+     }
+    },
+    "864": {
+     "names": {
+      "eng": "Nibelsnarf Scalp",
+      "fre": "Scalp Nibelsnarf",
+      "ger": "Nibelsnarf-Skalp",
+      "ita": "Nibelsnarf: calotta",
+      "spa": "Cuero cab. Nibels"
+     },
+     "descriptions": {
+      "eng": "A part of the skull that holds\r\nvarious organs. The useful bits\r\nmust be cut out carefully.",
+      "fre": "Partie du crâne contenant\r\ndifférents organes à\r\ndécouper avec précaution.",
+      "ger": "Ein Schädelteil, der einige\r\nOrgane enthält; Nützliches\r\nvorsichtig herausschneiden!",
+      "ita": "Parte del teschio che\r\ncontiene vari organi; va\r\nritagliata con attenzione.",
+      "spa": "Parte del cráneo que posee\r\nvarios órganos. Las piezas\r\nse deben cortar con cuidado."
+     }
+    },
+    "865": {
+     "names": {
+      "eng": "Nibelsnarf Crown",
+      "fre": "Couronne Nibelsnarf",
+      "ger": "Nibelsnarf-Krone",
+      "ita": "Nibelsnarf: corona",
+      "spa": "Corona de Nibelsnarf"
+     },
+     "descriptions": {
+      "eng": "The heavy scalp of a Nibelsnarf\r\nis difficult to work with but it's an\r\nextremely versatile material",
+      "fre": "Scalp lourd de Nibelsnarf.\r\nDifficile à travailler mais possède\r\nnéanmoins de nombreux usages.",
+      "ger": "Schwerer Kopfpanzer eines\r\nNibelsnarf. Schwer zu verar-\r\nbeiten, aber voller Potenzial.",
+      "ita": "Scalpo di Nibelsnarf, difficile da\r\nlavorare, ma molto versatile.",
+      "spa": "El cráneo duro de un Nibelsnarf.\r\nEs difícil de trabajar, pero muy\r\nversátil."
+     }
+    },
+    "888": {
+     "names": {
+      "eng": "Lagiacrus Plate",
+      "fre": "Plaque Lagiacrus",
+      "ger": "Lagiacrus-Platte",
+      "ita": "Lagiacrus: piastra",
+      "spa": "Placa Lagiacrus"
+     },
+     "descriptions": {
+      "eng": "The largest and most prized\r\nof Lagiacrus scales. Boosts\r\nthe efficacy of equipment.",
+      "fre": "Grande écaille très prisée.\r\nAméliore l'efficacité de\r\nl'équipement.",
+      "ger": "Die größte und wertvollste\r\nLagiacrus-Schuppe. Steigert\r\ndie Wirkung der Ausrüstung.",
+      "ita": "La scaglia di Lagiacrus più\r\ngrande e pregiata. Rende più\r\nefficace l'equipaggiamento.",
+      "spa": "La escama más grande y\r\npreciada de un Lagiacrus.\r\nMejora la eficacia de tu equipo."
+     }
+    },
+    "896": {
+     "names": {
+      "eng": "Agnaktor Scale",
+      "fre": "Écaille Agnaktor",
+      "ger": "Agnaktor-Schuppe",
+      "ita": "Agnaktor: scaglia",
+      "spa": "Escama Agnaktor"
+     },
+     "descriptions": {
+      "eng": "A scale so bright that it\r\nlooks like it's on fire. Not\r\nworth very much, though.",
+      "fre": "Écaille si éclatante qu'on la\r\ncroirait en feu. A peu de\r\nvaleur.",
+      "ger": "Die helle Schuppe wirkt,\r\nals stünde sie in Flammen.\r\nLeider ist ihr Wert gering.",
+      "ita": "Scaglia talmente radiosa da\r\nsembrare infuocata. Purtroppo\r\nnon è di grande valore.",
+      "spa": "Tan brillante que parece estar\r\nenvuelta en llamas, pero no\r\ntiene gran valor."
+     }
+    },
+    "899": {
+     "names": {
+      "eng": "Agnaktor Hide+",
+      "fre": "Peau Agnaktor +",
+      "ger": "Agnaktor-Lederhaut+",
+      "ita": "Agnaktor: pelle+",
+      "spa": "Piel Agnaktor+"
+     },
+     "descriptions": {
+      "eng": "Precious, high-quality Agnaktor\r\nhide tempered by frequent\r\nexposure to magma.",
+      "fre": "Cuir de haute qualité,\r\ntransformé par de fréquentes\r\nexpositions au magma.",
+      "ger": "Hochwertige Agnaktor-Haut.\r\nWertvoll und durch Magma-\r\nKontakt gut gehärtet.",
+      "ita": "Preziosa pelle di Agnaktor\r\ntemprata dal frequente\r\ncontatto con la lava.",
+      "spa": "Piel de primera de Agnaktor\r\nreforzada por la continua\r\nexposición al magma."
+     }
+    },
+    "907": {
+     "names": {
+      "eng": "Scalding Pleura+",
+      "fre": "Sternum brûlant",
+      "ger": "Siede-Pleura+",
+      "ita": "Pleura rovente+",
+      "spa": "Pleura hervida+"
+     },
+     "descriptions": {
+      "eng": "A chestplate made from ore fusing\r\ntogether over a number of years.\r\nWon't melt, despite the heat.",
+      "fre": "Cuirasse faite de minerai\r\nfusionné au cours des ans.\r\nNe fondra pas à la chaleur.",
+      "ger": "Brustplatte aus über Jahre\r\nverbundenem Erz. Schmilzt\r\ntrotz der Hitze nicht.",
+      "ita": "Piastra pettorale con minerali\r\nfusi insieme negli anni;\r\nnon si scioglie al calore.",
+      "spa": "Placa delantera hecha de\r\nminerales fundidos juntos.\r\nNo se derrite ni con calor."
+     }
+    },
+    "993": {
+     "names": {
+      "eng": "Ceanataur Carapace",
+      "fre": "Cuirasse Ceanataur",
+      "ger": "CeanataurRückenpanzr",
+      "ita": "Ceanataur: carapace",
+      "spa": "Coraza de Ceanataur"
+     },
+     "descriptions": {
+      "eng": "Harder than a Ceanataur\r\nShell, this carapace is\r\nharder to work with.",
+      "fre": "Très résistante et\r\ndifficile à travailler.",
+      "ger": "Härter als ein Ceanataur-\r\nPanzer... und schwerer zu\r\nbearbeiten.",
+      "ita": "Più duro della corazza di\r\nuno Shogun Ceanataur,\r\nè molto difficile da lavorare.",
+      "spa": "Más dura que un caparazón\r\nde Ceanataur, aunque también\r\nmás difícil de trabajar."
+     }
+    },
+    "995": {
+     "names": {
+      "eng": "Ceanataur Leg",
+      "fre": "Patte Ceanataur",
+      "ger": "Ceanataur-Bein",
+      "ita": "Ceanataur: zampa",
+      "spa": "Pata de Ceanataur"
+     },
+     "descriptions": {
+      "eng": "A Shogun Ceanataur leg.\r\nIncredibly strong to support\r\nthe beast's massive body.",
+      "fre": "Assez puissante pour\r\ndéplacer un corps massif.",
+      "ger": "Bein des Shogun Ceanataur.\r\nSehr stark, weil es einen\r\nRiesenkörper tragen muss.",
+      "ita": "Zampa di Shogun Ceanataur.\r\nNecessariamente forte per\r\nmuovere il suo enorme corpo.",
+      "spa": "Pata de Shogun Ceanataur.\r\nLo bastante fuerte como para\r\nsoportar un cuerpo gigantesco."
+     }
+    },
+    "996": {
+     "names": {
+      "eng": "Ceanataur Leg+",
+      "fre": "Patte Ceanataur +",
+      "ger": "Ceanataur-Bein+",
+      "ita": "Ceanataur: zampa+",
+      "spa": "Pata de Ceanataur+"
+     },
+     "descriptions": {
+      "eng": "A giant Shogun Ceanataur leg.\r\nExtremely strong to support\r\nthe beast's massive body.",
+      "fre": "Extrêmement puissante,\r\nelle est capable de\r\ndéplacer un corps massif.",
+      "ger": "Riesiges Shogun-Ceanataur-\r\nBein. Extrem stark, da diese\r\nBestien enormes Gewicht haben.",
+      "ita": "Grossa zampa di Shogun\r\nCeanataur, molto possente per\r\nsupportarne l'enorme corpo.",
+      "spa": "Pata de Shogun Ceanataur\r\ngigante. Tan fuerte como para\r\nsoportar su cuerpo colosal."
+     }
+    },
+    "997": {
+     "names": {
+      "eng": "Heavy Ceanataur Leg",
+      "fre": "Jambe Ceanataur lourde",
+      "ger": "Ceanataur-Stütze",
+      "ita": "Ceanataur: zampa pes.",
+      "spa": "Pata pesada Ceanataur"
+     },
+     "descriptions": {
+      "eng": "An extremely thick Shogun\r\nCeanataur leg. The shape is\r\nperfect for making weapons.",
+      "fre": "Jambe très épaisse de Ceanataur\r\nShogun. Sa forme est idéale pour\r\nconfectionner des armes.",
+      "ger": "Extrem dickes Shogun-Ceanataur-\r\nBein. Extrem stark, da diese\r\nBestien enormes Gewicht haben.",
+      "ita": "Gamba di Shogun Ceanataur\r\nmolto spessa, dalla forma\r\nperfetta per farne delle armi.",
+      "spa": "La gruesa pata de un gran Shogun\r\nCeanataur. La forma es perfecta\r\npara forjar armas."
+     }
+    },
+    "1004": {
+     "names": {
+      "eng": "Rustrazor Cortex",
+      "fre": "Cortex Brise-os",
+      "ger": "Rostklauen-Kortex",
+      "ita": "Acutus: corteccia",
+      "spa": "Placa Ceanataur Férreo"
+     },
+     "descriptions": {
+      "eng": "A thick and durable Rustrazor\r\nCeanataur carapace used only\r\nby the finest craftsmen.",
+      "fre": "Carapace solide et épaisse de\r\nCeanataur Brise-os. Seuls les\r\nmeilleurs peuvent la travailler.",
+      "ger": "Dicker, harter Panzer eines Rost-\r\nklauen-Ceanataur. Nur die besten\r\nHandwerker kommen damit klar.",
+      "ita": "Carapace spesso e resistente\r\ndi Acutus Ceanataur, usato\r\ndai migliori artigiani.",
+      "spa": "Caparazón de Ceanataur Férreo.\r\nTan duro que solo los mejores\r\nartesanos lo pueden trabajar."
+     }
+    },
+    "1005": {
+     "names": {
+      "eng": "Rustrazor Hardclaw",
+      "fre": "Serre Brise-os",
+      "ger": "Rostklauen-Kralle",
+      "ita": "Acutus: sperone",
+      "spa": "Zarpa Ceanataur Férreo"
+     },
+     "descriptions": {
+      "eng": "A hard Rustrazor Ceanataur\r\nclaw that possesses unrivaled\r\nbeauty and toughness.",
+      "fre": "Griffe de Ceanataur Brise-os\r\nà la beauté et à la solidité\r\nincomparables.",
+      "ger": "Riesige Rostklaue, die nicht nur\r\nschön anzusehen ist, sondern auch\r\nerstklassige Ausrüstung ergibt.",
+      "ita": "Duro artiglio di Acutus Ceanataur,\r\ndalla bellezza e coriaceità\r\nincomparabili.",
+      "spa": "Garra dura de Ceanataur Férreo\r\nque posee una belleza y una\r\ndureza sin igual."
+     }
+    },
+    "1035": {
+     "names": {
+      "eng": "Barroth Carapace",
+      "fre": "Cuirasse Barroth",
+      "ger": "Barroth-Rückenpanzer",
+      "ita": "Carapace Barroth",
+      "spa": "Caparazón de Barroth"
+     },
+     "descriptions": {
+      "eng": "A Barroth's carapace coated\r\nin multiple layers of mud,\r\nmaking it quite rigid.",
+      "fre": "Cuirasse de Barroth\r\nrecouverte de boue la\r\nrendant assez rigide.",
+      "ger": "Ein Barroth-Rückenpanzer,\r\ngehärtet durch zahlreiche\r\nSchlammschichten.",
+      "ita": "Carapace di un\r\nBarroth, irrigidito da\r\ndiversi strati di fango.",
+      "spa": "Caparazón de Barroth con\r\nmúltiples capas de barro que\r\nle dan rigidez."
+     }
+    },
+    "1037": {
+     "names": {
+      "eng": "Barroth Ridge+",
+      "fre": "Thorax Barroth",
+      "ger": "Barroth-Thorax",
+      "ita": "Spina Barroth+",
+      "spa": "Lomo Barroth+"
+     },
+     "descriptions": {
+      "eng": "A thick, sturdy part of a Barroth\r\nbackplate. Mud and sunlight have\r\nhelped to harden it further.",
+      "fre": "Bout épais provenant de la\r\nplaque arrière. Durci par\r\nla boue et le soleil.",
+      "ger": "Dicker, stabiler Teil einer\r\nBarroth-Rückenplatte. Durch\r\nSonne und Schlamm gehärtet. ",
+      "ita": "Parte spessa e resistente della\r\npiastra dorsale di un Barroth,\r\nindurita da fango e sole.",
+      "spa": "Parte gruesa y robusta del\r\nlomo de un Barroth. Curtida\r\npor el barro y el sol."
+     }
+    },
+    "1038": {
+     "names": {
+      "eng": "Barroth Chine",
+      "fre": "Échine Barroth",
+      "ger": "Barroth-Rückenkamm",
+      "ita": "Dorso Barroth",
+      "spa": "Espinazo de Barroth"
+     },
+     "descriptions": {
+      "eng": "The thickest part of a Barroth's\r\nbackplate. Mud, sun, and age\r\nhave made it rock-hard.",
+      "fre": "Partie la plus épaisse de\r\nla plaque arrière. Durcie\r\npar la boue et le temps.",
+      "ger": "Dickster Teil einer Barroth-\r\nRückenplatte. Durch Sonne,\r\nSchlamm und Alter steinhart.",
+      "ita": "Parte più spessa della piastra\r\ndorsale di un Barroth,\r\nindurita da età, fango e sole.",
+      "spa": "Parte más fina del lomo del\r\nBarroth. Dura por el barro,\r\nel sol y el paso del tiempo."
+     }
+    },
+    "1039": {
+     "names": {
+      "eng": "Barroth Claw+",
+      "fre": "Griffe Barroth +",
+      "ger": "Barroth-Klaue+",
+      "ita": "Art. Barroth+",
+      "spa": "Garra Barroth+"
+     },
+     "descriptions": {
+      "eng": "A polished claw sharpened by\r\nsand and dirt. It can dig through\r\neven the toughest earth.",
+      "fre": "Griffe polie aiguisée par le\r\nsable. Peut pénétrer dans\r\nles sols les plus durs.",
+      "ger": "Polierte Klaue, von Sand und\r\nSchmutz geschärft. Gräbt\r\nsich in den härtesten Boden.",
+      "ita": "Artiglio lucido, affilato\r\nda sabbia e terra. Affonda\r\nnei terreni più duri.",
+      "spa": "Garra afilada por la arena\r\ny mugre. Se clava incluso\r\nen la tierra más dura."
+     }
+    },
+    "1043": {
+     "names": {
+      "eng": "Barroth Tail",
+      "fre": "Queue Barroth",
+      "ger": "Barroth-Schwanz",
+      "ita": "Coda di Barroth",
+      "spa": "Cola de Barroth"
+     },
+     "descriptions": {
+      "eng": "Barroth tails aren't very\r\nvaluable, but the meat is\r\nhailed as a delicacy.",
+      "fre": "Sans grande valeur, mais\r\ndont la viande est un\r\nmets raffiné.",
+      "ger": "Nicht besonders wertvoll,\r\naber das Fleisch gilt\r\nals Delikatesse.",
+      "ita": "Non ha un grande valore,\r\nma la carne è considerata\r\nuna vera ghiottoneria.",
+      "spa": "Estas colas no son muy valiosas,\r\npero la carne es exquisita."
+     }
+    },
+    "1058": {
+     "names": {
+      "eng": "Uragaan Ruby",
+      "fre": "Rubis Uragaan",
+      "ger": "Uragaan-Rubin",
+      "ita": "Uragaan: rubino",
+      "spa": "Rubí Uragaan"
+     },
+     "descriptions": {
+      "eng": "A precious Uragaan gem. Prized\r\nfor its strengthening ability\r\nduring the forging process.",
+      "fre": "Gemme précieuse d'Uragaan.\r\nPropriétés raffermissantes\r\nappréciées pendant le forgeage.",
+      "ger": "Kostbarer Uragaan-Edelstein.\r\nGeschätzt aufgrund der Stärkung\r\nbeim Schmiedeprozess.",
+      "ita": "Preziosa gemma di Uragaan.\r\nRinforza i materiali se usata\r\nnel processo di forgiatura.",
+      "spa": "Piedra preciosa de Uragaan. \r\nApreciada por su capacidad de\r\nendurecimiento en el forjado."
+     }
+    },
+    "1063": {
+     "names": {
+      "eng": "Crystalbeard Scale+",
+      "fre": "Écaille Roi-cristal +",
+      "ger": "KristallbSchuppe+",
+      "ita": "Adamas: scaglia+",
+      "spa": "Escama Urag. Vítreo+"
+     },
+     "descriptions": {
+      "eng": "A high-quality Crystalbeard\r\nUragaan scale. Contains unique\r\nores that make it shine bright.",
+      "fre": "Écaille d'Uragaan Roi-cristal.\r\nAvec des minerais uniques qui\r\nla font briller. Grande qualité.",
+      "ger": "Hochwertige Kristallbart-\r\nSchuppe. Mit besonderen Erzen,\r\ndie sie hell leuchten lassen.",
+      "ita": "Scaglia pregiata di Adamas\r\nUragaan. Contiene minerali\r\nche la rendono splendente.",
+      "spa": "Escama de Uragaan Vítreo de\r\ncalidad. Contiene minerales\r\núnicos que la hacen relucir."
+     }
+    },
+    "1064": {
+     "names": {
+      "eng": "Crystalbeard Shard",
+      "fre": "Éclat Roi-cristal",
+      "ger": "Kristallbart-Scherbe",
+      "ita": "Adamas: frammento",
+      "spa": "Piedra Uragaan Vítreo"
+     },
+     "descriptions": {
+      "eng": "An exquisite Crystalbeard\r\nUragaan scale. Has exceptional\r\nshock-absorbing ability.",
+      "fre": "Magnifique écaille d'Uragaan\r\nRoi-cristal dotée d'une résistance\r\naux chocs incomparable.",
+      "ger": "Erlesene Kristallbart-Schuppe,\r\ndie Stöße außergewöhnlich\r\ngut abfedert.",
+      "ita": "Frammento meraviglioso di\r\nAdamas, con ottime abilità\r\nantiurto.",
+      "spa": "Escama de Uragaan Vítreo de\r\ngran calidad y con mucha\r\nresistencia a golpes."
+     }
+    },
+    "1105": {
+     "names": {
+      "eng": "Duram Sacrum",
+      "fre": "Sacrum Duramboros",
+      "ger": "Duramboros-Kreuzbein",
+      "ita": "Duramboros: os. sacro",
+      "spa": "Sacro Duramboros"
+     },
+     "descriptions": {
+      "eng": "A striking Duramboros sacrum.\r\nSuch tough, symmetrical bones\r\nare considered rare materials.",
+      "fre": "Incroyable sacrum. Ces os\r\nsymétriques sont considérés\r\ncomme des matériaux rares.",
+      "ger": "Beeindruckendes Duramboros-\r\nKreuzbein. Die symmetrischen\r\nKnochen sind sehr selten.",
+      "ita": "Osso sacro di Duramboros\r\ndall'incredibile simmetria;\r\nè un materiale raro.",
+      "spa": "Sublime sacro de Duramboros.\r\nEsos huesos simétricos y\r\nduros son bastante raros."
+     }
+    },
+    "1134": {
+     "names": {
+      "eng": "Narga Medulla",
+      "fre": "Medulla Narga",
+      "ger": "Nargacuga-Rückenmark",
+      "ita": "Nargacuga: midollo",
+      "spa": "Médula Nargacuga"
+     },
+     "descriptions": {
+      "eng": "A Nargacuga's medulla. Merely\r\ntouching it causes extreme pain,\r\nmaking crafting quite difficult.",
+      "fre": "Très douloureuse au toucher,\r\nce qui la rend difficile\r\nà travailler.",
+      "ger": "Nargacuga-Rückenmark. Schon\r\nBerühren tut sehr weh, daher\r\nschwierig zu verarbeiten.",
+      "ita": "Midollo di Nargacuga. Il solo\r\ntocco causa intenso dolore,\r\nquindi è difficile da lavorare.",
+      "spa": "Médula de Nargacuga. Solo\r\ncon tocarla causa dolor, lo\r\nque dificulta la creación."
+     }
+    },
+    "1139": {
+     "names": {
+      "eng": "Silverwind Scale+",
+      "fre": "Écaille Vent-acier +",
+      "ger": "Silberwind-Schuppe+",
+      "ita": "Ventus: scaglia+",
+      "spa": "Escama N. Argénteo+"
+     },
+     "descriptions": {
+      "eng": "Although extremely hard, this\r\nscale's lightness allows free\r\nand swift movement.",
+      "fre": "Écaille très dure mais dont la\r\nlégèreté garantit la liberté et\r\nla rapidité des mouvements.",
+      "ger": "Trotz der extremen Härte\r\nbietet die Leichtigkeit der\r\nSchuppe Bewegungsfreiheit.",
+      "ita": "Sebbene sia una scaglia molto\r\ndura, permette movenze agili\r\ngrazie alla sua leggerezza.",
+      "spa": "Es extremadamente dura, pero\r\nsu ligereza ofrece gran libertad\r\nde movimientos."
+     }
+    },
+    "1140": {
+     "names": {
+      "eng": "Silverwind Shard",
+      "fre": "Éclat Vent-acier",
+      "ger": "Silberwind-Scherbe",
+      "ita": "Ventus: frammento",
+      "spa": "Esquirla Narg Argénteo"
+     },
+     "descriptions": {
+      "eng": "A Silverwind Nargacuga scale.\r\nIts quality is denoted by its\r\nflexibility and strength.",
+      "fre": "Écaille de Nargacuga Vent-acier.\r\nSa flexibilité et sa résistance\r\nattestent de sa qualité.",
+      "ger": "Silberwind-Nargacuga-Schuppe.\r\nIhre Stärke und Flexibilität\r\nbezeugen ihre hohe Güte.",
+      "ita": "Scaglia di Ventus, la cui qualità\r\nsuperiore offre flessibilità e\r\nforza.",
+      "spa": "Escama de Nargacuga Argénteo.\r\nSu valor lo determinan su dureza\r\ny flexibilidad."
+     }
+    },
+    "1145": {
+     "names": {
+      "eng": "Barioth Cortex",
+      "fre": "Cortex Barioth",
+      "ger": "Barioth-Kortex",
+      "ita": "Cort. Barioth",
+      "spa": "Corteza de Barioth"
+     },
+     "descriptions": {
+      "eng": "A cortex from a formidable\r\nBarioth. Surprisingly strong\r\nand impressively lightweight.",
+      "fre": "Cortex d'un superbe Barioth.\r\nÉtonnamment puissant et\r\npourtant très léger.",
+      "ger": "Kortex eines beeindruckenden\r\nBarioth. Überraschend stark\r\nund trotzdem leicht. ",
+      "ita": "Corteccia di un formidabile\r\nBarioth, incredibilmente\r\nresistente e leggera.",
+      "spa": "Corteza de un Barioth\r\nimponente. Sorprenden su\r\nfuerza y ligereza."
+     }
+    },
+    "1150": {
+     "names": {
+      "eng": "Amber Fang+",
+      "fre": "Croc d'ambre +",
+      "ger": "Bernsteinhauer+",
+      "ita": "Zanne ambra+",
+      "spa": "Colmillo ámbar+"
+     },
+     "descriptions": {
+      "eng": "Amber tusks sharpened by\r\ncountless kills. They can smash\r\nthrough gigantic ice blocks.",
+      "fre": "Défenses d'ambre aiguisées\r\nà force de tuer. Peuvent\r\nbriser les blocs de glace.",
+      "ger": "Bernsteinhauer, von etlichen\r\nKämpfen geschärft. Können\r\ndicke Eisblöcke durchstoßen.",
+      "ita": "Zanne ambra affilate dall'uso\r\ne capaci di distruggere\r\nblocchi di ghiaccio.",
+      "spa": "Colmillos ámbar afilados por\r\nmuertes incontables. Rompen\r\nbloques de hielo gigantes."
+     }
+    },
+    "1152": {
+     "names": {
+      "eng": "Barioth Spike",
+      "fre": "Pointe Barioth",
+      "ger": "Barioth-Stachel",
+      "ita": "Punta di Barioth",
+      "spa": "Púa de Barioth"
+     },
+     "descriptions": {
+      "eng": "These come in many sizes and\r\nassist the Barioth in\r\nclinging to walls of ice.",
+      "fre": "De plusieurs tailles. Aide\r\nle Barioth à s'agripper\r\naux murs de glace.",
+      "ger": "Es gibt sie in vielen\r\nGrößen. Sie helfen\r\nBariothen beim Eisklettern.",
+      "ita": "Punte di più taglie, usate\r\ndai Barioth per aggrapparsi\r\nalle pareti ghiacciate.",
+      "spa": "Hay muchos tamaños. El Barioth\r\nse aferra con ellas a las paredes\r\nde hielo."
+     }
+    },
+    "1289": {
+     "names": {
+      "eng": "Astalos Plate",
+      "fre": "Plaque Astalos",
+      "ger": "Astalos-Platte",
+      "ita": "Astalos: piastra",
+      "spa": "Placa de Astalos"
+     },
+     "descriptions": {
+      "eng": "A scale carved from an\r\nAstalos. It glows a bright\r\ngreen and is very rare.",
+      "fre": "Grosse écaille d'un Astalos.\r\nBrille d'un vert vif. Très rare.",
+      "ger": "Eine Schuppe von einem\r\nAstalos. Sie leucht hellgrün\r\nund ist sehr selten.",
+      "ita": "Scaglia di Astalos. Emana un\r\nforte bagliore verde ed è\r\nmolto rara.",
+      "spa": "Escama extraída de un Astalos. \r\nEmite un brillo verde y es muy\r\npoco común."
+     }
+    },
+    "1290": {
+     "names": {
+      "eng": "Astalos Electrogem",
+      "fre": "Électrogemme Astalos",
+      "ger": "Astalos-Elektrojuwel",
+      "ita": "Astalos: fulmigemma",
+      "spa": "Electrogema Astalos"
+     },
+     "descriptions": {
+      "eng": "A brilliant green gem found\r\ninside an Astalos. It pulsates\r\nwith an intense energy.",
+      "fre": "Gemme verte brillante extraite\r\nd'un Astalos.\r\nGrosse énergie de palpitation.",
+      "ger": "Ein hellgrüner Edelstein,\r\ngefunden in einem Astalos.\r\nPulsiert mit starker Energie.",
+      "ita": "Gemma verde brillante di\r\nAstalos. È percorsa da\r\nun'energia intensa.",
+      "spa": "Gema verde brillante ubicada\r\nen las entrañas del Astalos.\r\nEmite una energía intensa."
+     }
+    },
+    "1291": {
+     "names": {
+      "eng": "Astalos Mantle",
+      "fre": "Mante Astalos",
+      "ger": "Astalos-Hülle",
+      "ita": "Astalos: mantello",
+      "spa": "Manto de Astalos"
+     },
+     "descriptions": {
+      "eng": "A legendary Astalos scale.\r\nThose who craft it rule the\r\nearth and seize the sky.",
+      "fre": "Écaille légendaire d'un Astalos.\r\nCelui qui la forge peut régner sur\r\nla terre et conquérir les cieux.",
+      "ger": "Legendäre Astalos-Schuppe.\r\nWer daraus Ausrüstung anfertigt,\r\nherrscht über Himmel und Erde.",
+      "ita": "Leggendaria scaglia di Astalos.\r\nSi dice che chi la lavora possa\r\nconquistare cielo e terra.",
+      "spa": "Escama legendaria de Astalos.\r\nLos que la usan rigen la tierra\r\ny el cielo."
+     }
+    },
+    "1294": {
+     "names": {
+      "eng": "Boltreaver Shard",
+      "fre": "Éclat Prince-orage",
+      "ger": "Blitzschlag-Scherbe",
+      "ita": "Fulmen: frammento",
+      "spa": "Esquirla de Fulmen"
+     },
+     "descriptions": {
+      "eng": "A Boltreaver Astalos scale,\r\nwhose rigidity and amazing\r\nductility make it highly coveted.",
+      "fre": "Écaille d'Astalos Prince-orage.\r\nRigide et hautement conductrice,\r\nelle est très convoitée.",
+      "ger": "Wertvolle Schuppe eines Blitz-\r\nschlag-Astalos. Ihre Härte und\r\nLeitfähigkeit sind unübertrefflich.",
+      "ita": "Scaglia preziosa di Fulmen\r\nAstalos molto ricercata per\r\nla sua robustezza e duttilità.",
+      "spa": "Escama de Fulmen Astalos que\r\nha sido muy refinada gracias a\r\nsu rigidez y maleabilidad."
+     }
+    },
+    "1296": {
+     "names": {
+      "eng": "Boltreaver Electric Barb",
+      "fre": "Poils de Prince-orage",
+      "ger": "BlitzschlagSchockstachel",
+      "ita": "Fulmen: elettrouncino",
+      "spa": "Electropúa Fulmen"
+     },
+     "descriptions": {
+      "eng": "A Boltreaver Astalos barb\r\nthat can withstand immense\r\nelectrical currents.",
+      "fre": "Touffe de poils d'Astalos Prince-\r\norage. Résiste à des décharges\r\nélectriques immenses.",
+      "ger": "Extrem spitzer Stachel eines\r\nBlitzschlag-Astalos. Kann selbst\r\nHochspannung widerstehen.",
+      "ita": "Un uncino di Fulmen Astalos\r\nche può sopportare intense\r\nscariche elettriche.",
+      "spa": "Púa de Fulmen Astalos que\r\npuede soportar corrientes\r\neléctricas de alta intensidad."
+     }
+    },
+    "1312": {
+     "names": {
+      "eng": "Gammoth Scalp",
+      "fre": "Scalp Gammoth",
+      "ger": "Gammoth-Skalp",
+      "ita": "Gammoth: scalpo",
+      "spa": "Cráneo de Gammoth"
+     },
+     "descriptions": {
+      "eng": "A shell from a Gammoth's\r\nhead. Difficult to work with,\r\nbut worth the effort.",
+      "fre": "Carapace d'une tête de Gammoth.\r\nDure à travailler, mais cela vaut\r\nla peine d'insister.",
+      "ger": "Schwer zu verarbeitender Teil\r\nvom Kopf eines Gammoth,\r\naber der Aufwand lohnt sich.",
+      "ita": "Corazza cranica di Gammoth.\r\nDifficile da lavorare, ma lo\r\nsforzo sarà ripagato.",
+      "spa": "Caparazón craneal de un\r\nGammoth. Difícil de trabajar,\r\npero hace que merezca la pena."
+     }
+    },
+    "1313": {
+     "names": {
+      "eng": "Gammoth Ice Orb",
+      "fre": "Orbe glace Gammoth",
+      "ger": "Gammoth-Eiskugel",
+      "ita": "Gammoth: gelosfera",
+      "spa": "Orbe hielo Gammoth"
+     },
+     "descriptions": {
+      "eng": "A gem from inside a Gammoth.\r\nNamed for its ice-like clarity\r\nand being as shiny as a jewel.",
+      "fre": "Gemme extraite d'un Gammoth.\r\nClaire comme la glace et\r\nbrillante comme un joyau.",
+      "ger": "Ein Juwel aus einem Gammoth.\r\nSo benannt wegen ihres\r\nGlanzes und ihrer Transparenz.",
+      "ita": "Gemma estratta da un Gammoth.\r\nÈ limpida come il ghiaccio e\r\nluccicante come un gioiello.",
+      "spa": "Gema interna del Gammoth.\r\nDebe su nombre a su claridad\r\ny brillo, propios de una joya."
+     }
+    },
+    "1314": {
+     "names": {
+      "eng": "Gammoth Pallium",
+      "fre": "Pallium Gammoth",
+      "ger": "Gammoth-Pallium",
+      "ita": "Gammoth: pallio",
+      "spa": "Palio de Gammoth"
+     },
+     "descriptions": {
+      "eng": "A legendary Gammoth shell.\r\nThose who craft it rule the\r\nearth and seize the sky.",
+      "fre": "Une carapace légendaire.\r\nCelui qui la forge peut régner sur\r\nla terre et conquérir les cieux.",
+      "ger": "Legendärer Gammoth-Panzer.\r\nWer daraus Ausrüstung anfertigt,\r\nherrscht über Himmel und Erde.",
+      "ita": "Leggendaria corazza di\r\nGammoth. Chi la crea può\r\nconquistare cielo e terra.",
+      "spa": "Caparazón legendario de\r\nGammoth. Los que lo usan\r\nrigen la tierra y el cielo."
+     }
+    },
+    "1317": {
+     "names": {
+      "eng": "Elderfrost Pelt",
+      "fre": "Toison Givre-ancien",
+      "ger": "Eiszapfen-Toison",
+      "ita": "Glacialis: pelle+",
+      "spa": "Piel Glacial"
+     },
+     "descriptions": {
+      "eng": "Hugely stout and supple to match,\r\nthis Elderfrost Gammoth pelt is a\r\ngreat material to work with.",
+      "fre": "Aussi souple que robuste, cette\r\npeau de Gammoth Givre-ancien\r\nest un régal à travailler.",
+      "ger": "Pelz eines Eiszapfen-Gammoth.\r\nUnverwüstlich, aber flexibel.\r\nDas perfekte Material.",
+      "ita": "Estremamente resistente e\r\nmolto duttile. È un materiale\r\neccezionale con cui lavorare.",
+      "spa": "Tan resistente como maleable,\r\nla piel de Gammoth Glacial es\r\nun material excelente."
+     }
+    },
+    "1319": {
+     "names": {
+      "eng": "Elderfrost Trunkspine",
+      "fre": "Épine Givre-ancien",
+      "ger": "Eiszapfen-Rüsseldorn",
+      "ita": "Glacialis: aculeo",
+      "spa": "Espina troncal Glacial"
+     },
+     "descriptions": {
+      "eng": "A spine taken from the trunk of\r\nan Elderfrost Gammoth. Artisans\r\nwould kill to work with it.",
+      "fre": "Épine venant de la trompe d'un\r\nGivre-ancien. Nombre d'artisans\r\nrêvent de mettre la main dessus.",
+      "ger": "Stachel vom Rüssel eines\r\nEiszapfen-Gammoth. Handwerker\r\nwürden alles dafür geben.",
+      "ita": "Aculeo di proboscide di Glacialis\r\nGammoth. Gli artigiani farebbero\r\ncarte false per poterlo lavorare.",
+      "spa": "Espina extraída de la trompa de\r\nun Gammoth Glacial. Cualquier\r\nartesano mataría por trabajarla."
+     }
+    },
+    "1337": {
+     "names": {
+      "eng": "Mizutsune Plate",
+      "fre": "Plaque Mizutsune",
+      "ger": "Mizutsune-Platte",
+      "ita": "Mizutsune: piastra",
+      "spa": "Placa de Mizutsune"
+     },
+     "descriptions": {
+      "eng": "A very old scale present since\r\nthe creature's birth. It can even\r\ncreate a rainbow from light.",
+      "fre": "Née avec la créature donneuse.\r\nFait des arcs-en-ciel sous\r\nl'effet de la lumière.",
+      "ger": "Besonders alte Schuppe, die seit\r\nGeburt der Kreatur vorhanden\r\nist. Kann Regenbogen erzeugen.",
+      "ita": "Scaglia antica che si forma\r\ngià alla nascita. Può persino\r\ngenerare arcobaleni di luce.",
+      "spa": "Escama muy antigua, data del\r\nnacimiento de la bestia. Con\r\nluz, puede crear un arco iris."
+     }
+    },
+    "1338": {
+     "names": {
+      "eng": "Mizutsune Water Orb",
+      "fre": "Orbe eau Mizutsune",
+      "ger": "Mizutsune-Wasserkugel",
+      "ita": "Mizutsune: acquisfera",
+      "spa": "Orbe agua Mizutsune"
+     },
+     "descriptions": {
+      "eng": "A multicolored orb formed\r\nfrom a crystalized Mizutsune\r\nscale and bubblefoam.",
+      "fre": "Orbe multicolore formée d'une\r\nécaille cristallisée de\r\nMizutsune et de mousse à bulles.",
+      "ger": "Eine vielfarbige Kugel aus\r\nkristallisierten Schuppen\r\nund Mizutsune-Schaum.",
+      "ita": "Sfera multicolore creata da\r\nuna scaglia cristallizzata di\r\nMizutsune e bollischiuma.",
+      "spa": "Orbe multicolor compuesto\r\npor una escama cristalizada\r\ny espuma de Mizutsune."
+     }
+    },
+    "1339": {
+     "names": {
+      "eng": "Mizutsune Pallium",
+      "fre": "Pallium Mizutsune",
+      "ger": "Mizutsune-Pallium",
+      "ita": "Mizutsune: mantello",
+      "spa": "Palio de Mizutsune"
+     },
+     "descriptions": {
+      "eng": "A legendary Mizutsune scale.\r\nThose who craft it rule the\r\nearth and seize the sky.",
+      "fre": "Une écaille légendaire.\r\nCelui qui la forge peut régner sur\r\nla terre et conquérir les cieux.",
+      "ger": "Legendäre Mizutsune-Schuppe.\r\nWer daraus Ausrüstung anfertigt,\r\nherrscht über Himmel und Erde.",
+      "ita": "Leggendaria scaglia di Mizutsune.\r\nSi dice che chi la lavora possa\r\nconquistare cielo e terra.",
+      "spa": "Caparazón legendario de\r\nMizutsune. Los que lo usan\r\nrigen la tierra y el cielo."
+     }
+    },
+    "1342": {
+     "names": {
+      "eng": "Soulseer Shard",
+      "fre": "Éclat Perce-âme",
+      "ger": "Karmaseher-Scherbe",
+      "ita": "Arcanum: frammento",
+      "spa": "Esquirla de Tengen"
+     },
+     "descriptions": {
+      "eng": "A Soulseer Mizutsune scale. Those\r\nwho gaze on its polished surface\r\nwill find their way once more.",
+      "fre": "Écaille de Mizutsune Perce-âme.\r\nAide ceux qui posent les yeux sur\r\nelle à retrouver leur voie.",
+      "ger": "Dicke Schuppe eines Karmaseher-\r\nMizutsune. Wer ihre Schönheit\r\nbetrachtet, verliert alle Illusionen.",
+      "ita": "Frammento di Arcanum Mizutsune.\r\nAmmirare la sua superficie lucida\r\ndona calma e fuga ogni dubbio.",
+      "spa": "Escama de Tengen Mizutsune.\r\nSu superficie pulida muestra\r\nel camino a quienes la miran."
+     }
+    },
+    "1344": {
+     "names": {
+      "eng": "Soulseer Tail",
+      "fre": "Queue Perce-âme",
+      "ger": "Karmaseher-Schwanz",
+      "ita": "Arcanum: coda",
+      "spa": "Cola Tengen"
+     },
+     "descriptions": {
+      "eng": "Those who touch this Soulseer\r\nMizutsune tail are captivated by\r\nits loveliness. A priceless article.",
+      "fre": "Quiconque touche cette queue\r\nde Mizutsune Perce-âme devient\r\ncaptivé par son raffinement.",
+      "ger": "Stattlicher Schwanz eines Karma-\r\nseher-Mizutsune. Wer ihn berührt,\r\nkann nicht genug bekommen.",
+      "ita": "Meravigliosa coda di Arcanum\r\nMizutsune. La sua finezza e il suo\r\nvalore non passano inosservati.",
+      "spa": "Quienes tocan esta piel de\r\nMizutsune quedan cautivados\r\npor su suavidad. Muy preciada."
+     }
+    },
+    "1363": {
+     "names": {
+      "eng": "Glavenus Plate",
+      "fre": "Plaque Glavenus",
+      "ger": "Glavenus-Platte",
+      "ita": "Glavenus: piastra",
+      "spa": "Placa de Glavenus"
+     },
+     "descriptions": {
+      "eng": "A sharp scale that grows near\r\nthe Glavenus's tail, it has\r\nthe same role -- a short blade.",
+      "fre": "Écaille aiguisée poussant près\r\nde la queue du Glavenus et qui\r\nsert aussi de petite lame.",
+      "ger": "Scharfe Schuppe, im Glavenus-\r\nSchwanzbereich zu finden. Dient\r\nebenfalls als kurze Klinge.",
+      "ita": "Scaglia caudale aguzza che\r\nviene utilizzata dal Glavenus\r\ncome un piccolo artiglio.",
+      "spa": "Escama afilada situada cerca\r\nde la cola y que tiene la misma\r\nfunción, una hoja corta."
+     }
+    },
+    "1364": {
+     "names": {
+      "eng": "Glavenus Fire Orb",
+      "fre": "Orbe feu Glavenus",
+      "ger": "Glavenus-Feuerkugel",
+      "ita": "Glavenus: pirosfera",
+      "spa": "Orbe fuego Glavenus"
+     },
+     "descriptions": {
+      "eng": "A red orb that grows within\r\na flaming bursa. One peek can\r\nset even your soul aflame.",
+      "fre": "Orbe rouge extraite d'une luette\r\nde flammes. On prendrait feu\r\nrien qu'en la regardant.",
+      "ger": "Rote Kugel, die im Inneren einer\r\nSolarbursa wächst. Ein Blick\r\nkann die Seele in Brand setzen.",
+      "ita": "Sfera rossa che cresce nella\r\nborsa ardente. Può ridurre in\r\ncenere al primo sguardo.",
+      "spa": "Orbe rojo que se desarrolla en\r\nla bolsa flamígera. Un vistazo\r\nbasta para incendiar tu alma."
+     }
+    },
+    "1365": {
+     "names": {
+      "eng": "Glavenus Pallium",
+      "fre": "Pallium Glavenus",
+      "ger": "Glavenus-Pallium",
+      "ita": "Glavenus: mantello",
+      "spa": "Palio de Glavenus"
+     },
+     "descriptions": {
+      "eng": "A legendary Glavenus scale.\r\nThose who craft it rule the\r\nearth and seize the sky.",
+      "fre": "Une écaille légendaire.\r\nCelui qui la forge peut régner sur\r\nla terre et conquérir les cieux.",
+      "ger": "Legendäre Glavenus-Schuppe.\r\nWer daraus Ausrüstung anfertigt,\r\nherrscht über Himmel und Erde.",
+      "ita": "Leggendaria scaglia di Glavenus.\r\nSi dice che chi la lavora possa\r\nconquistare cielo e terra.",
+      "spa": "Caparazón legendario de\r\nGlavenus. Los que lo usan\r\nrigen la tierra y el cielo."
+     }
+    },
+    "1369": {
+     "names": {
+      "eng": "Hellblade Scale+",
+      "fre": "Écaille Lame-chaos +",
+      "ger": "Zornklingen-Schuppe+",
+      "ita": "Ignis: scaglia+",
+      "spa": "Escama G. Inferno+"
+     },
+     "descriptions": {
+      "eng": "A superior Hellblade Glavenus\r\nscale. Explodes violently if\r\nnot handled with care.",
+      "fre": "Bonne écaille de Glavenus\r\nLame-chaos. Explose violemment\r\nsi non manipulée avec soin.",
+      "ger": "Eine bessere Schuppe des\r\nZornklingen-Glavenus. \r\nVorsicht! Explosiv!",
+      "ita": "Scaglia pregiata di Ignis\r\nGlavenus. Può esplodere se\r\nnon è maneggiata con cura.",
+      "spa": "Escama superior de Glavenus\r\nInferno. Explota violentamente\r\nsi no se maneja con cuidado."
+     }
+    },
+    "1370": {
+     "names": {
+      "eng": "Hellblade Shard",
+      "fre": "Éclat Lame-chaos",
+      "ger": "Zornklingen-Scherbe",
+      "ita": "Ignis: frammento",
+      "spa": "Esquirla de Inferno"
+     },
+     "descriptions": {
+      "eng": "A Hellblade Glavenus scale. A\r\nthoughtless slip with it will reduce\r\nthe surrounding land to rubble.",
+      "fre": "Écaille de Lame-chaos. Gare à ne\r\npas la laisser tomber sous peine\r\nde souffler les environs.",
+      "ger": "Erlesene Schuppe des Zorn-\r\nklingen-Glavenus. Ein Fehler\r\nkann Großbrände auslösen.",
+      "ita": "Frammento di Ignis Glavenus.\r\nUsarlo distrattamente provoca\r\ndanni immensi e irreparabili.",
+      "spa": "Escama de Glavenus Inferno.\r\nPuede destruir toda una zona\r\nde un descuido."
+     }
+    },
+    "1374": {
+     "names": {
+      "eng": "Hellblade Powder",
+      "fre": "Poudre Lame-chaos",
+      "ger": "Zornklingen-Pulver",
+      "ita": "Ignis: polvere",
+      "spa": "Polvo Glav. Inferno"
+     },
+     "descriptions": {
+      "eng": "Powder taken from a Hellblade\r\nGlavenus. Explodes violently\r\nif not handled with care.",
+      "fre": "Poudre extraite de Glavenus\r\nLame-chaos. Explose violemment\r\nsi non manipulée avec soin.",
+      "ger": "Pulver vom Zornklingen-Glavenus.\r\nBei unvorsichtiger Behandlung\r\ndroht eine heftige Explosion.",
+      "ita": "Polvere estratta da un Ignis\r\nGlavenus. Può esplodere se\r\nnon è maneggiata con cura.",
+      "spa": "Polvo extraído de un Glavenus\r\nInferno. Explota violentamente\r\nsi no se maneja con cuidado."
+     }
+    },
+    "1629": {
+     "names": {
+      "eng": "Azure Dragongem",
+      "fre": "Gem.dragon azur",
+      "ger": "Azurner Drachenstein",
+      "ita": "Gemmadrago blu",
+      "spa": "Gema celeste"
+     },
+     "descriptions": {
+      "eng": "The legend to beat all legends.\r\nIt is said to bring about the\r\nend of those who obtain it.",
+      "fre": "Une légende parmi les légendes.\r\nElle précipiterait la fin de\r\ncelui qui s'en procure.",
+      "ger": "Die Legende, die alle Legenden\r\nbesiegt. Wer sie findet, dessen\r\nEnde ist nah, so sagt man.",
+      "ita": "La leggenda che supera ogni\r\nleggenda. Si mormora condanni\r\nchiunque la possegga.",
+      "spa": "La leyenda entre leyendas.\r\nSe dice que supone el fin\r\nde aquel que se haga con ella."
+     }
+    },
+    "1641": {
+     "names": {
+      "eng": "Amatsu Pleura",
+      "fre": "Plexus Amatsu",
+      "ger": "Amatsu-Pleura",
+      "ita": "Amatsu: pleura",
+      "spa": "Pleura de Amatsu"
+     },
+     "descriptions": {
+      "eng": "A chestplate that is said to\r\nsteal the future of those who\r\nbathe in its passionate light.",
+      "fre": "Plastron qui aurait le pouvoir\r\nde voler le futur de quiconque\r\nse prélasse dans sa lumière.",
+      "ger": "Ein Brustpanzer, in dessen Licht\r\nzu baden dem Unvorsichtigen\r\ndie Zukunft raubt.",
+      "ita": "Piastra pettorale che si dice\r\nrubi il futuro a chi si\r\ninebria della sua calda luce.",
+      "spa": "Una placa pectoral. Se dice que\r\narrebata el futuro de quien sea\r\nirradiado por su luz apasionada."
+     }
+    },
+    "1643": {
+     "names": {
+      "eng": "Storm Vesicle",
+      "fre": "Vésicule de tempête",
+      "ger": "Sturm-Vesikel",
+      "ita": "Vescicola tempesta",
+      "spa": "Vesícula de Amatsu"
+     },
+     "descriptions": {
+      "eng": "Unique organ that stores large\r\namounts of water. Even a\r\nsliver can power up your gear.",
+      "fre": "Organe singulier renfermant de\r\ngrandes quantités d'eau.",
+      "ger": "Organ, das große Wassermengen\r\nspeichert. Schon ein Splitter\r\nverbessert deine Ausrüstung.",
+      "ita": "Sacca per l'accumulo d'acqua.\r\nNe basta un frammento per\r\npotenziare l'equipaggiamento.",
+      "spa": "Órgano único que almacena\r\ngran cantidad de agua. Con\r\nun pedazo se llena tu equipo."
+     }
+    },
+    "1646": {
+     "names": {
+      "eng": "Heavenly Dragonsphire",
+      "fre": "Sphère-dragon Ciel",
+      "ger": "Himmelsdrachensaphir",
+      "ita": "Perla Drago celeste",
+      "spa": "Esfera celestial"
+     },
+     "descriptions": {
+      "eng": "The root of the celestial\r\ngods' power. It grants their\r\nfar-reaching vision.",
+      "fre": "Source de la force des dieux\r\ncélestes leur octroyant le\r\npouvoir de prescience.",
+      "ger": "Machtquelle der Himmels-\r\ngötter. Verleiht dem\r\nBesitzer Allwissenheit.",
+      "ita": "La fonte di potere degli dei.\r\nGarantisce saggezza suprema\r\ne onniscienza terrena e divina.",
+      "spa": "La raíz del poder de los\r\ndioses celestiales. Otorga\r\nvisión divina."
+     }
+    },
+    "1674": {
+     "names": {
+      "eng": "Nakarkos Skull",
+      "fre": "Crâne Nakarkos",
+      "ger": "Nakarkos-Schädel",
+      "ita": "Nakarkos: teschio",
+      "spa": "Cráneo de Nakarkos"
+     },
+     "descriptions": {
+      "eng": "A horrifying skull that\r\nstrikes fear into the hearts\r\nof all who see it.",
+      "fre": "Crâne terrifiant qui glace le\r\nsang de tous ceux qui\r\ns'y exposent.",
+      "ger": "Ein schrecklicher Schädel,\r\ndessen Anblick bei allen\r\nFurcht hervorruft.",
+      "ita": "Terrificante teschio che fa\r\nsprofondare nel terrore\r\nchiunque lo veda.",
+      "spa": "Espeluznante cráneo que\r\ninfunde miedo en el corazón\r\nde todo el que lo ve."
+     }
+    },
+    "1676": {
+     "names": {
+      "eng": "Nakarkos Vertebra",
+      "fre": "Vertèbre Nakarkos",
+      "ger": "Nakarkos-Wirbel",
+      "ita": "Nakarkos: vertebra",
+      "spa": "Vértebra Nakarkos"
+     },
+     "descriptions": {
+      "eng": "The sound of this bone terrifies\r\nall who hear it. Surprisingly\r\neasy to work with.",
+      "fre": "Son bruit terrifie tous ceux qui\r\nl'entendent. Chose étonnante,\r\nelle se travaille facilement.",
+      "ger": "Der Klang dieses Knochen\r\nerschreckt jeden, der ihn hört.\r\nErstaunlich gut zu verarbeiten.",
+      "ita": "Il suono emesso da questo\r\nosso semina il terrore. È\r\nmolto malleabile.",
+      "spa": "El sonido de este hueso\r\naterra a todo el que lo oye.\r\nExtrañamente fácil de trabajar."
+     }
+    },
+    "1685": {
+     "names": {
+      "eng": "Nakarkos Soul Orb",
+      "fre": "Orbe âme Nakarkos",
+      "ger": "Nakarkos-Seelenkugel",
+      "ita": "Nakarkos: sferanima",
+      "spa": "Orbe almas Nakarkos"
+     },
+     "descriptions": {
+      "eng": "A jewel formed in a Nakarkos\r\nfrom the remains of the\r\nendless prey it has devoured.",
+      "fre": "Joyau formé naturellement dans\r\nun Nakarkos à partir des restes\r\nd'une lointaine proie.",
+      "ger": "Ein Juwel, das sich im Inneren\r\neines Nakarkos aus den\r\nResten seiner Beute bildete.",
+      "ita": "Gemma che si forma nel\r\nNakarkos dai resti delle sue\r\nnumerose prede.",
+      "spa": "Joya formada por el Nakarkos\r\ncon los restos de las incontables\r\npresas devoradas."
+     }
+    },
+    "1686": {
+     "names": {
+      "eng": "Nakarkos SecretSoulOrb",
+      "fre": "Orbe âme cachée Nak",
+      "ger": "Nakarkos-Geisterkugel",
+      "ita": "Nakarkos: sfer. segreta",
+      "spa": "Orbe espíritus Nakarkos"
+     },
+     "descriptions": {
+      "eng": "An extremely rare jewel formed\r\ninside a Narkakos from the\r\nremains of its prey.",
+      "fre": "Joyau rare formé naturellement\r\ndans un Nakarkos à partir des\r\nrestes d'une de ses proies.",
+      "ger": "Ein extrem seltenes Juwel, das\r\nsich im Nakarkos aus den\r\nResten seiner Beute bildete.",
+      "ita": "Una gemma estremamente rara\r\nche si forma dentro il Nakarkos\r\ndai residui delle sue prede.",
+      "spa": "Joya poco común formada por\r\nel Nakarkos con los restos de\r\nuna de sus presas."
+     }
+    },
+    "1702": {
+     "names": {
+      "eng": "Red Dragon Mindstone",
+      "fre": "Pierre-dragon rouge",
+      "ger": "Roter Drachengeiststein",
+      "ita": "Sfera dragone rossa",
+      "spa": "Piedra espiritual roja"
+     },
+     "descriptions": {
+      "eng": "The source of evil heavenly\r\nomens. The owner gains the\r\npower of the red comet.",
+      "fre": "La source de bien mauvais\r\nprésages. Qui l'acquiert obtient\r\nla puissance de la comète rouge.",
+      "ger": "Quelle himmlischer Zeichen. Wer\r\nihn besitzt, kann angeblich mit\r\nroter Kometenkraft fliegen.",
+      "ita": "L'origine dell'oscuro presagio che\r\npercorre i cieli. Chi la ottiene può\r\nvolare come una cometa.",
+      "spa": "Fuente de funestos presagios.\r\nQuien la lleve consigo obtendrá\r\nel poder del cometa rojo."
+     }
+    },
+    "1703": {
+     "names": {
+      "eng": "Ruby Dragon Mindstone",
+      "fre": "Pierre-dragon écarlate",
+      "ger": "Rubin-Drachengeiststein",
+      "ita": "Sfera drag. rossa brill.",
+      "spa": "Piedra espiritual rubí"
+     },
+     "descriptions": {
+      "eng": "The source of evil heavenly\r\nomens. The owner gains the\r\npower to bring disaster.",
+      "fre": "La source de bien mauvais\r\nprésages. Qui l'acquiert peut\r\nprovoquer de grands désastres.",
+      "ger": "Quelle himmlischer Zeichen. Wer\r\nihn besitzt, kann angeblich die\r\nSterne auf die Erde einladen.",
+      "ita": "L'origine dell'oscuro presagio che\r\npercorre i cieli. Chi la ottiene può\r\ndiventare messaggero di rovina.",
+      "spa": "Fuente de funestos presagios.\r\nQuien la posea obtendrá el\r\npoder de causar cataclismos."
+     }
+    },
+    "1713": {
+     "names": {
+      "eng": "Ahtal-Ka Alluring Gem",
+      "fre": "Joyau Ahtal-Ka ",
+      "ger": "Ahtal-Ka-Blendstein",
+      "ita": "Ahtal-Ka: gemma ammal.",
+      "spa": "Gema de Ahtal-Ka"
+     },
+     "descriptions": {
+      "eng": "A jewel that will bewitch a\r\nbeholder forever. Created after\r\nan eternity deep in the ruins.",
+      "fre": "Bijou ensorcelant à jamais\r\nquiconque s'en empare, fabriqué\r\nau cœur de ruines éternelles.",
+      "ger": "Mysteriöses Juwel, das jeden\r\nBetrachter verzaubert. Im Inneren\r\ndes Ruinenschlosses entstanden.",
+      "ita": "Gemma misteriosa che ammalia\r\nall'infinito chi la guarda. Formatasi\r\nnelle profondità di antiche rovine.",
+      "spa": "Esta joya confunde los sentidos\r\nde quien la contempla. Cristalizó\r\nen el corazón de vetustas ruinas."
+     }
+    }
+   }
+  }
+ }
+}

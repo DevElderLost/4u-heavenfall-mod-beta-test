@@ -8,6 +8,7 @@ of a text is the game's message count (MENU_MESSAGES) plus its position in the c
 `message_indices` give those indices to the code that shows the texts.
 """
 
+import functools
 import json
 from pathlib import Path
 
@@ -28,8 +29,16 @@ class ModTextError(ValueError):
 def load_texts(path: Path = SETTINGS_FILE) -> list[tuple[str, dict[str, str]]]:
     """The curated texts in message order: (key, {language: text}). Refuses an entry without a key or with a repeated
     one, a language missing or unknown, a text that is empty, has a line break (a row holds one line, a description
-    `HELP_LINES`) or more than one string slot (the code fills only the first)."""
-    raw = json.loads(Path(path).read_text(encoding="utf-8")).get("menu_texts")
+    `HELP_LINES`) or more than one string slot (the code fills only the first). Read and checked once for each state
+    of the file (its size and time), a copy for each caller."""
+    path = Path(path)
+    stat = path.stat()
+    return [(key, dict(texts)) for key, texts in _checked(path, stat.st_size, stat.st_mtime_ns)]
+
+
+@functools.lru_cache(maxsize=8)
+def _checked(path: Path, size: int, mtime_ns: int) -> tuple:
+    raw = json.loads(path.read_text(encoding="utf-8")).get("menu_texts")
     entries = raw.get("value") if isinstance(raw, dict) else None
     if not isinstance(entries, list) or not entries:
         raise ModTextError("mod_settings.json: menu_texts must be {\"value\": [entries], \"description\": ...}")
@@ -49,7 +58,7 @@ def load_texts(path: Path = SETTINGS_FILE) -> list[tuple[str, dict[str, str]]]:
             if text.count(SLOT_MARK) > 1:
                 raise ModTextError(f"mod_settings.json: menu_texts {key} {lang} has more than one {SLOT_MARK}")
         texts.append((key, {lang: entry[lang] for lang in LANGUAGES}))
-    return texts
+    return tuple(texts)
 
 
 def message_indices(texts: list[tuple[str, dict[str, str]]] | None = None) -> dict[str, int]:

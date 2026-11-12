@@ -2,6 +2,41 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
+## 0.2.0
+
+### Layered Gear
+- Layered Gear at the Smithy: wear the look of any armor, weapon or Felyne gear over your own.
+- A Relics list for the Guild Quests' relic gear.
+- A free color window for armor looks.
+- With Monster Hunter XX's game, its weapon and armor looks too, also from the web installer.
+- In multiplayer, players with the mod see each other's Layered Gear.
+
+### Extended Wyporium
+- A Rare Materials Exchange for turning common items into a monster's rare material.
+- With Monster Hunter XX's game, trades for XX's materials.
+
+### QoL
+- Start can skip the camera over a slain monster.
+- The camera can turn up to five times faster.
+- Manage Equipment and Equipment Sets from every item box.
+
+### Real Hardware
+- Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.
+
+### The program (PC only)
+- The Options page in three modules, each switched on or off whole.
+- Monster Hunter XX's file as an option on the Install page.
+- A start script for Linux; emulators from Flatpak or unpacked portable are found too.
+- HD texture packs keep working with the mod.
+
+### Fixes
+- The START menu's Guild Quests list now shows on the top screen (emulator only).
+- Turning the lock-on off in Mod Settings now hides the monster's face on the top screen.
+- Setting Field of View back to Default during a quest no longer zooms the camera in.
+- At very wide screen shapes the target marker is no longer drawn behind the item bar.
+- With a smaller HUD, the chat's text in a quest now shrinks together with its background.
+- With some HD texture packs, spaces in texts no longer show as dashes.
+
 ## 0.1.3
 
 ### One screen
@@ -54,6 +89,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Hunting
 - L plus D-pad up locks on to a large monster or switches targets, showing its face on top.
 - The top-screen HUD and the talk windows can shrink to 90, 80, 70 or 60 percent; it starts at 70.
+
 
 ### Cheats
 - 3D is off and glow and distant blur are gone by default, for a sharper picture.

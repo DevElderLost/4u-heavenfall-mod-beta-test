@@ -131,9 +131,25 @@ class GlavenusMode(str, Enum):
     EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
 
 
+class GreatMaccaoMode(str, Enum):
+    """Where Great Maccao (from MH XX) is met (core/monsters/great_maccao/great_maccao_quests.py)."""
+    OFF = "off"
+    QUESTS = "quests"            # three Gathering Hall quests of his own on the Primal Forest: 2★, 4★ and G★1
+    RANDOMIZED = "randomized"    # tier 1 among the randomized monsters, without his quests
+    EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
+
+
+class ValstraxMode(str, Enum):
+    """Where Valstrax (from MH XX) is met (core/monsters/valstrax/valstrax_quests.py)."""
+    OFF = "off"
+    QUESTS = "quests"            # two Gathering Hall quests of his own on the Tower Summit: ★7 and G★3
+    RANDOMIZED = "randomized"    # tier 7 among the randomized monsters, without his quests
+    EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
+
+
 @dataclass(frozen=True)
 class PortedOption:
-    """The option of one monster ported from MH Generations: an entry of PORTED_OPTIONS, the one place that names the
+    """The option of one ported monster: an entry of PORTED_OPTIONS, the one place that names the
     monsters whose option the code treats alike. A monster's `Settings` field is named `key`, which is his spec's key
     (monsters/porting/spec.py); the
     generic code finds his files by it: `alatreon/<key>_quests.py` (`TABLE`, when `quests` is set) and
@@ -153,6 +169,8 @@ class PortedOption:
     builds: tuple[Enum, ...] | None = None       # the modes that build him (files and code); None: all but `off`
     retired: tuple[Enum, ...] = ()               # modes loaded and regenerated, never offered (CLI, GUI)
     cli_help: str = ""                           # the help of his flag `--<key>`
+    game: str = "xx"                             # the game he is ported from (spec.game, monsters/porting/spec.py):
+    #                                              MH XX, whose decrypted .3ds a run needs
 
     def __post_init__(self):
         if self.builds is None:
@@ -166,23 +184,43 @@ PORTED_OPTIONS: tuple[PortedOption, ...] = (
     PortedOption(
         "alatreon", "Alatreon", AlatreonMode, AlatreonMode.OFF, pool=AlatreonMode.RANDOMIZED,
         retired=RETIRED_ALATREON_MODES,
-        cli_help="add Alatreon from MH Generations (switches the additional monsters on): in Gogmazios' urgent quest, "
-                 "in a quest of his own, or among the randomized monsters (needs --rom and --mhgen-rom)"),
+        cli_help="add Alatreon from MH XX (switches the additional monsters on): in Gogmazios' urgent quest, "
+                 "in a quest of his own, or among the randomized monsters (needs --rom and --xx-rom, "
+                 "MH XX's decrypted .3ds)",
+        game="xx"),
     PortedOption(
         "mizutsune", "Mizutsune", MizutsuneMode, MizutsuneMode.OFF, pool=MizutsuneMode.RANDOMIZED,
         quests=MizutsuneMode.QUESTS, extended=MizutsuneMode.EXTENDED,
-        cli_help="add Mizutsune from MH Generations (switches the additional monsters on): three quests of his own on "
+        cli_help="add Mizutsune from MH XX (switches the additional monsters on): three quests of his own on "
                  "the Primal Forest (low rank 3 stars, high rank 6 stars and G rank 1 star), only among the "
                  "randomized monsters, or `extended`: his quests, randomized like any quest, and among the "
-                 "randomized monsters (needs --rom and --mhgen-rom)"),
+                 "randomized monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
     PortedOption(
         "glavenus", "Glavenus", GlavenusMode, GlavenusMode.OFF, pool=GlavenusMode.RANDOMIZED,
         quests=GlavenusMode.QUESTS, extended=GlavenusMode.EXTENDED,
-        cli_help="add Glavenus from MH Generations (switches the additional monsters on): four quests of his own on "
+        cli_help="add Glavenus from MH XX (switches the additional monsters on): four quests of his own on "
                  "the Volcanic Hollow (low rank 3 stars, high rank 6 stars, G rank 1 star) and, with --mizutsune, "
                  "G rank 2 stars with Mizutsune on the Sunken Hollow, only among the randomized monsters, "
                  "or `extended`: his quests, randomized like any quest, and among the randomized monsters "
-                 "(needs --rom and --mhgen-rom)"),
+                 "(needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    PortedOption(
+        "great_maccao", "Great Maccao", GreatMaccaoMode, GreatMaccaoMode.OFF, pool=GreatMaccaoMode.RANDOMIZED,
+        quests=GreatMaccaoMode.QUESTS, extended=GreatMaccaoMode.EXTENDED,
+        cli_help="add Great Maccao from MH XX (switches the additional monsters on): three quests of his own on "
+                 "the Primal Forest (low rank 2 stars, high rank 4 stars, G rank 1 star), only among the "
+                 "randomized monsters, or `extended`: his quests, randomized like any quest, and among the "
+                 "randomized monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    PortedOption(
+        "valstrax", "Valstrax", ValstraxMode, ValstraxMode.OFF, pool=ValstraxMode.RANDOMIZED,
+        quests=ValstraxMode.QUESTS, extended=ValstraxMode.EXTENDED,
+        cli_help="add Valstrax from MH XX (switches the additional monsters on): two quests of his own on "
+                 "the Tower Summit (high rank 7 stars and G rank 3 stars), only among the randomized "
+                 "monsters, or `extended`: his quests, randomized like any quest, and among the randomized "
+                 "monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
 )
 
 
@@ -201,7 +239,7 @@ def ported_option(key: str) -> PortedOption:
 
 class AlatreonMusic(str, Enum):
     """Alatreon's music (core/music/mhw/music.py)."""
-    ORIGINAL = "original"  # his MH Generations theme; alatreon_slain_theme when his death ends the quest
+    ORIGINAL = "original"  # his own theme from MH XX; alatreon_slain_theme when his death ends the quest
     MODERN = "modern"      # World's alatreon_battle_theme, Proof of a Hero at 10 % health, then Fatalis' slain theme
 
 
@@ -257,8 +295,11 @@ CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(
                                                          for ratio in load_ratios()}}, type=str)
 
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
-                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a",
-                   "layered_equipment", "layered_by_rank", "mhw_fatalis_music", "alatreon_music", "cheat_3d_mode",
+                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
+                   "box_equipment", "system_keyboard",
+                   "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "mhw_fatalis_music",
+                   "alatreon_music",
+                   "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
                    "cheat_aspect_allowed", "cheat_aspect_ratio")
@@ -270,7 +311,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
 # between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
                  "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                 "cheat_aspect_allowed", "cheat_aspect_ratio")
+                 "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -364,7 +405,7 @@ class Settings:
     randomize_models: bool = False
     model_mode: ModelMode = ModelMode.FAMILIES
     models_use_each_once: bool = False
-    # MH Generations' models join the model shuffle and layered equipment's looks (its ROM)
+    # the models pack (made from MH XX's files) joins the model shuffle and layered equipment's looks
     mhgen_models: bool = False
     allow_op_equipment: bool = False      # no stat limits: the game accepts quests with any worn gear
 
@@ -405,13 +446,32 @@ class Settings:
     # quest rewards and the Wyporium's claim items panel, where A takes an item and the cursor goes on to the next
     # (core/gameplay/hold_a/hold_a.py)
     hold_a: bool = False
+    # The camera's top turning speed with the buttons: the cap of how long a turn has been held, 10 the game's own
+    # (core/interface/mod_settings/mod_options.py CAMERA_CAP; its values in curated/mod_settings.json)
+    camera_speed: int = 10
+    # Manage Equipment and Equipment Sets at every item box, not only at home (the Hall's box's lines:
+    # curated/mod_settings.json; core/interface/mod_settings/mod_options.py BOX_LINES)
+    box_equipment: bool = False
+    # Names, chat and guild card texts are typed in the 3DS system keyboard, which the emulator shows as a text box for
+    # the computer's keyboard (core/interface/system_keyboard/system_keyboard.py); emulator only. No edition offers it:
+    # the emulation waits while the text box is open
+    system_keyboard: bool = False
     # "Layered Equipment" at the Smithy: choose the look of each armor part and weapon class over what is worn
     # (core/equipment/layered/layered_equipment.py)
     layered_equipment: bool = False
-    # With layered equipment: the selector offers the looks of the ranks the player has unlocked (low from the start,
-    # high after the Hall's star 3 urgent, G after the urgent that opens Dundorma). Off: every look from the start. The
-    # GUI starts with it on (curated/gui_defaults.json).
+    # With layered equipment: the forge-style screens offer the looks of the ranks the player has unlocked, and the
+    # Wyporium's new trades open by rank too (low from the start, high after the Hall's star 3 urgent, G after the
+    # urgent that opens Dundorma; curated layered_looks.json `rank_unlocks`). Off: every look and every new trade from
+    # the start. The GUI starts with it on
+    # (curated/gui_defaults.json).
     layered_by_rank: bool = False
+    # "Rare Materials Exchange" at the Wyporium: hand over a number of the items of the monsters that drop a rare
+    # material, on a screen of its own, and get that material (core/gameplay/wyporium/rare_exchange.py)
+    rare_exchange: bool = False
+    # The switch of an edition's quality-of-life module (gui_presets.json `install.modules`; core/app/presets.py
+    # apply_modules): off, the controls, fast text, the item boxes and the cheats of that module take the game's own
+    # values and leave the START menu's page. An edition without modules fixes it on
+    quality_of_life: bool = True
     # Monster Hunter World's music for Black and Crimson Fatalis: its battle theme, phase 2 from half health, Proof of
     # a Hero from 10 %, its slain theme when that death ends the quest (core/music/mhw/music.py)
     mhw_fatalis_music: bool = False
@@ -438,8 +498,8 @@ class Settings:
     # 11-24, 101 and 102 cleared, their story flags) and the first Palico equipped. Ignored without skip_intro
     skip_caravan_tutorial: bool = False
 
-    # Additional monsters, from the player's MH Generations ROM (core/monsters). Master switch: off, every option below
-    # is ignored
+    # Additional monsters, from the player's MH XX ROM (core/monsters). Master switch: off, every option below is
+    # ignored
     additional_monsters: bool = False
     # Alatreon: in Gogmazios' urgent quest, in a quest of his own, or among the randomized monsters
     alatreon: AlatreonMode = AlatreonMode.OFF
@@ -449,6 +509,10 @@ class Settings:
     # Glavenus: three quests of his own on the Volcanic Hollow, one per rank, and one with Mizutsune on the Sunken
     # Hollow
     glavenus: GlavenusMode = GlavenusMode.OFF
+    # Great Maccao, from the player's MH XX ROM: three quests of his own on the Primal Forest, one per rank
+    great_maccao: GreatMaccaoMode = GreatMaccaoMode.OFF
+    # Valstrax, from the player's MH XX ROM: two quests of his own on the Tower Summit (high rank and G rank)
+    valstrax: ValstraxMode = ValstraxMode.OFF
 
     # Debug
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster
@@ -503,8 +567,9 @@ class Settings:
 
     @property
     def uses_mhgen_models(self) -> bool:
-        """MH Generations' models join the model shuffle or layered equipment's
-        looks: they need its ROM and the game ROM."""
+        """The models pack (made from MH XX's files) joins the model shuffle or
+        layered equipment's looks: it needs XX's ROM and the
+        game ROM."""
         return self.mhgen_models and (self.randomize_equipment and self.randomize_models or self.layered_equipment)
 
     @property
@@ -522,6 +587,15 @@ class Settings:
         if mode is option.pool and not (self.randomize_quests and self.randomize_monsters):
             return option.off
         return mode
+
+    def dropped_pool_monsters(self) -> list[str]:
+        """The names of the ported monsters whose field asks for his pool mode while the quests' large monsters are not
+        randomized, so that mode_of counts him as off (the command line refuses such settings)."""
+        if not self.additional_monsters:
+            return []
+        return [option.name for option in PORTED_OPTIONS
+                if option.pool is not None and getattr(self, option.key) is option.pool
+                and self.mode_of(option.key) is option.off]
 
     def has_quests(self, key: str) -> bool:
         """The ported monster `key` adds his quest table (his quests or extended mode)."""
@@ -543,7 +617,7 @@ class Settings:
 
     def builds(self, key: str) -> bool:
         """The ported monster `key`: his files and his code go into the mod, with his quests in his quests mode (they
-        need MH Generations' ROM and the game ROM)."""
+        need MH XX's ROM and the game ROM)."""
         return self.mode_of(key) in ported_option(key).builds
 
     @property
@@ -577,9 +651,36 @@ class Settings:
         return self.builds("glavenus")
 
     @property
+    def great_maccao_mode(self) -> GreatMaccaoMode:
+        """mode_of("great_maccao")."""
+        return self.mode_of("great_maccao")
+
+    @property
+    def builds_great_maccao(self) -> bool:
+        """builds("great_maccao")."""
+        return self.builds("great_maccao")
+
+    @property
+    def valstrax_mode(self) -> ValstraxMode:
+        """mode_of("valstrax")."""
+        return self.mode_of("valstrax")
+
+    @property
+    def builds_valstrax(self) -> bool:
+        """builds("valstrax")."""
+        return self.builds("valstrax")
+
+    @property
     def builds_ported(self) -> bool:
-        """A monster from MH Generations goes into the mod (any of PORTED_OPTIONS)."""
+        """A ported monster goes into the mod (any of PORTED_OPTIONS)."""
         return any(self.builds(option.key) for option in ported_options())
+
+    @property
+    def needs_xx(self) -> bool:
+        """The run needs MH XX's decrypted .3ds (`xx_rom`) beside the other games': a monster is ported (his gear's
+        models are made from XX's files, whichever game his monster comes from) or the models pack is on
+        (`uses_mhgen_models`). It is the only other game a run reads."""
+        return self.builds_ported or self.uses_mhgen_models
 
     def quest_seed(self, quest_id: int) -> str:
         """Seed of one quest's random streams: the seed itself unless the quest was rerolled."""

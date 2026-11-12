@@ -7,18 +7,22 @@ title: Azahar and Luma apply it with or without the update installed.
 
 from pathlib import Path
 
+from core.memo import remember
+
 MH4U_EUR = "0004000000126100"
 MH4U_USA = "0004000000126300"
 MH4U_EUR_UPDATE = "0004000e00126100"
 MH4U_USA_UPDATE = "0004000e00126300"
 MHGEN_EUR = "0004000000185b00"
 MHGEN_USA = "0004000000187000"
+MHXX_JPN = "0004000000197100"       # MH XX (Double Cross), the Japanese release: a source game of the ported monsters
 
-EUR, USA = "eur", "usa"
+EUR, USA, JPN = "eur", "usa", "jpn"
 
 MH4U_REGIONS = {MH4U_EUR: EUR, MH4U_USA: USA}
 MH4U_UPDATES = {MH4U_EUR_UPDATE: EUR, MH4U_USA_UPDATE: USA}
 MHGEN_REGIONS = {MHGEN_EUR: EUR, MHGEN_USA: USA}
+MHXX_REGIONS = {MHXX_JPN: JPN}
 
 
 def normal(title_id: str) -> str:
@@ -44,14 +48,15 @@ def mod_title(region: str) -> str:
 
 # ---- which game a title or a file is ---------------------------------------------------------------------------------
 
-MH4U, MH4U_UPDATE, MHGEN = "mh4u", "mh4u_update", "mhgen"
+MH4U, MH4U_UPDATE, MHGEN, MHXX = "mh4u", "mh4u_update", "mhgen", "mhxx"
 
 
 def identify(title_id: str) -> tuple[str, str] | None:
-    """(game, region) of a title the mod knows: MH4U, MH4U_UPDATE or MHGEN, and "eur" or "usa"; None for anything
-    else (another game, another region, DLC)."""
+    """(game, region) of a title the mod knows: MH4U, MH4U_UPDATE, MHGEN or MHXX, and "eur", "usa" or (MH XX) "jpn";
+    None for anything else (another game, another region, DLC)."""
     title_id = normal(title_id)
-    for game, table in ((MH4U, MH4U_REGIONS), (MH4U_UPDATE, MH4U_UPDATES), (MHGEN, MHGEN_REGIONS)):
+    for game, table in ((MH4U, MH4U_REGIONS), (MH4U_UPDATE, MH4U_UPDATES), (MHGEN, MHGEN_REGIONS),
+                        (MHXX, MHXX_REGIONS)):
         if title_id in table:
             return game, table[title_id]
     return None
@@ -69,15 +74,15 @@ def file_title(path) -> str | None:
 
 
 def _file_title(path: str, size: int, mtime: int) -> str | None:
-    key = (path, size, mtime)
-    if key not in _FILE_TITLES:
+    def make():
         from core.game.executable.containers import ExtractError
         from core.game.executable.extract import ncch_identity
         try:
-            _FILE_TITLES[key] = ncch_identity(Path(path))[0]
+            return ncch_identity(Path(path))[0]
         except (ExtractError, OSError):
-            _FILE_TITLES[key] = None
-    return _FILE_TITLES[key]
+            return None
+
+    return remember(_FILE_TITLES, (path, size, mtime), make)
 
 
 def file_kind(path) -> tuple[str, str] | None:

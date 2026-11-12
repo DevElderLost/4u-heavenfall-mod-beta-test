@@ -13,3 +13,5 @@ Programs and libraries inside the _internal folder:
 * PyInstaller (GPL version 2 with the exception that allows bundling any program), https://pyinstaller.org
 * python-zstandard and Zstandard (BSD licence), https://github.com/indygreg/python-zstandard, for Azahar's
   compressed game files
+* CityHash (MIT licence, Copyright (c) 2011 Google, Inc.), https://github.com/google/cityhash, ported to Python for
+  HD texture packs

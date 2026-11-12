@@ -1,0 +1,6 @@
+Third-party code in this folder
+
+miniz 3.0.2 (vendor/miniz/miniz.c, miniz.h, LICENSE): a single-file deflate / inflate library by Rich Geldreich,
+RAD Game Tools and Valve Software, MIT licence (compatible with this project's GPL-3.0-or-later). Source:
+https://github.com/richgel999/miniz, release 3.0.2. Unmodified; zlib_mini.c compiles it with the stdio, time and archive
+parts left out.

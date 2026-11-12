@@ -11,11 +11,52 @@
   }
  },
  "interface": {
+  "target_marker_priority": {
+   "value": 24,
+   "description": "Aspect ratio option: the draw priority of the target marker (ui211_target, 0x13 in the game); above the item bar's 0x17, which the wider picture moves out to the corner, so the marker is never drawn under it (cheats/aspect_ratio.py MARKER_SITE). A whole number 0 to 255; the HUD's panels run 0x14 to 0x17."
+  },
   "talk_window_quest_modes": {
    "value": [
     1
    ],
    "description": "HUD size: the game modes (the game control's byte +0x2B, 0 to 31: 1 a quest, 5 its results, 2 the Gathering Hall) in which the talk windows shrink with the HUD; in every other mode (the villages, the Gathering Hall) they keep their full size (interface/hud/code_patch.py patch_talk_size)."
+  }
+ },
+ "felyne_face": {
+  "coplanar": {
+   "value": 0.06,
+   "description": "Felyne helms: a helm surface this close (skeleton unit) to a sample of the base's eyes or ears shares its depth with it and wins or loses pixels frame by frame; the converter sinks such a surface. The depth buffer settles about 0.001, the test checks 0.05."
+  },
+  "parallel": {
+   "value": 0.8,
+   "description": "Felyne helms: a surface near an eye or ear sample only shares its depth with it over an area when it faces the same way: the cosine of the angle between the two surfaces' normals is at least this (0.8 is about 37 degrees). A surface that crosses an eye or an ear at a steeper angle meets it along a line and is left alone."
+  },
+  "extra_sinks": {
+   "value": [
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.8,
+    1.0,
+    1.2,
+    1.6
+   ],
+   "description": "Felyne helms: the depths (same unit), tried in this order, by which a surface that lies within 'coplanar' of the eyes or ears is moved behind its front; the first that clears every sample is kept."
+  },
+  "head_lifts": {
+   "value": [
+    0.15,
+    0.2,
+    0.3,
+    0.4,
+    0.6,
+    0.8
+   ],
+   "description": "Felyne helms that show the base head's skin: the depths (same unit), tried in this order, by which a surface of the helm that hugs the head (within 'coplanar') is moved in front of its own surface so it stops sharing its depth with the head; the first that clears every sample is kept, none: the one that left the fewest. Each step swells the mesh a little: a longer list clears more helms and bends their hair more."
   }
  }
 }

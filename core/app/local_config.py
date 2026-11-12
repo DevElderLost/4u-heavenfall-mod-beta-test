@@ -22,13 +22,19 @@ KEYS = {
     "mh4u_romfs": "RomFS dump folder of MH4U (optional: setup_local.py --extract --romfs makes one)",
     "mhgen_rom": "decrypted EUR .3ds of MH Generations",
     "mhgen_romfs": "RomFS dump folder of MH Generations (optional: setup_local.py --extract --romfs)",
+    "mhxx_rom": "decrypted JPN .3ds of MH XX (Double Cross, 0004000000197100)",
+    "mhxx_romfs": "RomFS dump folder of MH XX (Input/0004000000197100, an emulator dump, or --extract --romfs mhxx)",
+    "mhgu_romfs": "RomFS folder of MH Generations Ultimate (Switch, extracted: Input/nativeNX; only research/porting/"
+                  "xx_names.py)",
     "mh4u_rom_usa": "decrypted USA .3ds of MH4U (0004000000126300; version maps)",
     "mh4u_update_usa": "decrypted USA update content of MH4U (0004000E00126300)",
     "mhgen_rom_usa": "decrypted USA .3ds of MH Generations (0004000000187000)",
     "arm_toolchain": "bin folder of devkitARM or the Arm GNU Toolchain",
+    "tools_3ds": "folder with makerom and bannertool, for the launcher app's CIA (default <work_dir>/tools/3ds)",
     "ghidra": "Ghidra install folder (the one with support/analyzeHeadless.bat)",
     "ghidra_projects": "folder of the Ghidra projects (default <work_dir>/ghidra)",
     "jdk": "JDK 21 folder, used as JAVA_HOME for Ghidra",
+    "zig": "folder of zig.exe (winget install zig.zig --version 0.17.0), the C compiler of tools/build/build_native.py",
     "emulator_dir": "Azahar/Citra user folder (default %APPDATA%/Azahar)",
     "work_dir": "derived inputs and scratch (default work/ in the main checkout)",
     "beta_repo": "Heavenfall Beta's repository (tools/release/export_edition.py; default ../4u-heavenfall-mod-beta "
@@ -43,6 +49,8 @@ INPUTS = {
     "mhgen_code": "mhgen_code.bin",
     "romfs": "romfs",
     "mhgen_romfs": "mhgen_romfs",
+    "mhxx_code": "mhxx_code.bin",
+    "mhxx_romfs": "mhxx_romfs",
     "code_usa": "code_usa.bin",
     "code_usa_update": "code_usa_update.bin",
     "mhgen_usa_code": "mhgen_usa_code.bin",
@@ -162,6 +170,10 @@ def env_values(config: LocalConfig) -> dict[str, Path]:
         "MHGEN_ROM": _first_existing(config.get("mhgen_rom")),
         "MHGEN_ROMFS": _first_existing(config.get("mhgen_romfs"), config.input("mhgen_romfs")),
         "MHGEN_CODE_BIN": _first_existing(config.input("mhgen_code")),
+        "MHXX_ROM": _first_existing(config.get("mhxx_rom")),
+        "MHXX_ROMFS": _first_existing(config.get("mhxx_romfs"), config.input("mhxx_romfs")),
+        "MHXX_CODE_BIN": _first_existing(config.input("mhxx_code")),
+        "MHGU_ROMFS": _first_existing(config.get("mhgu_romfs")),
         "MH4U_USA_ROM": _first_existing(config.get("mh4u_rom_usa")),
         "MH4U_USA_CODE_BIN": _first_existing(config.input("code_usa")),
         "MH4U_USA_UPDATE_CODE_BIN": _first_existing(config.input("code_usa_update")),
@@ -169,6 +181,7 @@ def env_values(config: LocalConfig) -> dict[str, Path]:
         "MHGEN_USA_ROM": _first_existing(config.get("mhgen_rom_usa")),
         "MHGEN_USA_CODE_BIN": _first_existing(config.input("mhgen_usa_code")),
         "ARM_TOOLCHAIN": _first_existing(config.get("arm_toolchain")),
+        "MH4U_3DS_TOOLS": _first_existing(config.get("tools_3ds"), config.work_dir / "tools" / "3ds"),
     }
     return {name: path for name, path in candidates.items() if path is not None}
 
@@ -187,3 +200,16 @@ def arm_toolchain(checkout: Path = CHECKOUT, environ=os.environ) -> Path | None:
     if environ.get("ARM_TOOLCHAIN"):
         return Path(environ["ARM_TOOLCHAIN"])
     return load(checkout, environ).values.get("arm_toolchain")
+
+
+def zig(checkout: Path = CHECKOUT, environ=os.environ) -> Path | None:
+    """zig's executable: ZIG (the file or its folder), else local.ini's zig folder, else zig on the PATH."""
+    import shutil
+    for place in (environ.get("ZIG"), load(checkout, environ).values.get("zig")):
+        if place:
+            place = Path(place)
+            found = shutil.which("zig", path=str(place)) if place.is_dir() else str(place)
+            if found and Path(found).is_file():
+                return Path(found)
+    found = shutil.which("zig", path=environ.get("PATH", ""))
+    return Path(found) if found else None

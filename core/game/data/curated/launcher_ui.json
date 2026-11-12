@@ -1,0 +1,17 @@
+{
+  "description": "The 3DS launcher's screen tuning: tools/build/gen_launcher_tuning.py writes it with the PC program's colours (core/gui/qt/theme.py) into tools/build/installer_3ds/source/hf_tuning.h. Speeds and times are the first install's guesses, replaced by the console's own once it has installed (timings.json); install_kib_s is a New 3DS XL's CIA route (1.8 MB/s); mod_title_per_set is the guess of the mod title's size over its patch set's (the title's exact size replaces it once the set is open).",
+  "download_kib_s": 300,
+  "install_kib_s": 1800,
+  "finish_s": 10,
+  "finish_cap_permille": 990,
+  "cancel_window_ms": 3000,
+  "backlight_idle_s": 30,
+  "battery_low_level": 2,
+  "sd_spare_mb": 64,
+  "mod_title_per_set": 3,
+  "fps_menu": 30,
+  "fps_task": 5,
+  "input_hz": 60,
+  "safe_mode_frames": 30,
+  "restart_notice_s": 3
+}

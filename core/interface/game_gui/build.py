@@ -39,6 +39,9 @@ LAYOUT_SCREENS = {
     "ui511": "bottom",      # Mensajero: the StreetPass menus: index 39, no table
     "ui510": "top",         # its information panels: top by byte and binder
     "ui530": "bottom",      # Multijugador en línea: index 33, table 0xE02FD0
+    # the Guild Quests page of the START menu (Registered Quests / Quest Pool): the lobby list's index 31 (0xEFE01F),
+    # no binder table; FUN_00600ae8 (0x600B20) binds its groups to the touch screen
+    "ui532": "bottom",
     "ui060": "bottom",      # Búsqueda de cazador: the common list's (0xEFDC60 / 0xEFDCE8) index 29, table 0xDFCAE8
     # the quests and Arena theme: bound from plain hash lists (FUN_009e6910, the select scene's FUN_00ae63c8 loop),
     # which keep the loader's screen

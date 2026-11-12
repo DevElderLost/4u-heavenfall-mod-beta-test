@@ -8,7 +8,8 @@
 @   - a group of the ui601 binder (0x1085650: panel00, panel01, target00):
 @     its copy gets the same (panel00 / panel01 -> the copy of panel00, the
 @     only face shown on the top screen; target00 -> the copy of target00),
-@     but it is only shown while the HUD is. Every frame the panel update
+@     but it is only shown while the HUD is and the lock-on is not off (hide_face): the game shows the
+@     panels again in frames after the mirror ran, so the mirror's hiding alone left the face. Every frame the panel update
 @     (FUN_00b93788) hides the three groups and shows the needed ones, so the
 @     copies end every frame as the touch-screen panel does;
 @   - the HUD's health bar (ui202_tairyoku, *(0x1083EDC), in the ui202
@@ -30,6 +31,7 @@
     .equ BINDER, target_binder        @ ui601 binder: panel00, panel01, target00
     .equ HUD_REF, health_binder       @ ui202 binder: ui202_tairyoku (code_patch.HUD_REF)
     .equ COPY_INDEX, 0x5C0            @ code_patch.COPY_INDEX
+    .equ HIDE_FACE, 52                @ mod_options_state's hide_face (mod_settings/mod_options.c)
 
 _start:
     ldr     r12, [r0, #0x44]
@@ -60,6 +62,10 @@ panels:
     ldr     r12, [r12, #0x44]
     tst     r12, #0x400
     beq     done
+    ldr     r12, hide_face
+    ldr     r12, [r12, #HIDE_FACE]
+    cmp     r12, #0
+    bne     done                      @ the lock-on is off: the copies stay hidden
 find:
     ldr     r12, binder
     mov     r4, #0
@@ -108,3 +114,5 @@ hud_ref:
     .word HUD_REF
 gui_pointer:
     .word GUI_POINTER
+hide_face:
+    .word mod_options_state

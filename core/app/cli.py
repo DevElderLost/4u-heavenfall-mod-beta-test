@@ -3,13 +3,18 @@
     python -m core --rom game.3ds --out mod_folder [options]
 
 Without options it builds what the program's Options page starts with (game/data/curated/gui_defaults.json):
-single-screen mode, the lock-on with L, holding A, fast text, the HUD at 70 % and the cheats' defaults; each option
-below changes one of them. Every mod also has Select's kick and the game's START menu page Mod Settings, where the
-player changes the cheats, the lock-on, holding A and fast text during play: what is chosen here is what a character
-with no choice of its own gets.
+single-screen mode, the lock-on with L, holding A, fast text, Layered Gear (its looks unlocked by rank), the Rare
+Materials Exchange, the HUD at 70 % and the cheats' defaults; each option below changes one of them. They come in three
+modules, each with a switch: --single-screen (with the HUD size, the lock-on, the aspect ratio and Select's kick),
+--layered-equipment (with its unlocking by rank and the Rare Materials Exchange) and --quality-of-life (holding A, fast
+text, the camera, the item boxes and the cheats); a module switched off leaves the game as it is in all it holds. The
+game's START menu page Mod Settings lets the player change the lock-on, holding A, fast text and the cheats during play:
+what is chosen here is what a character with no choice of its own gets.
 The game is your decrypted base game, European or American (.3ds, .cia, .zcci, .zcia...), never modified; the update is
 not needed. The output folder is a mod folder: copy its contents into the emulator's load/mods/<title>/
 (0004000000126100 for the European game, 0004000000126300 for the American one).
+--xx-rom (MH XX's decrypted game, optional) adds the looks of XX's weapons and armor to Layered Gear and the Wyporium's
+trades of the new materials they cost.
 Advanced: --code, an executable of any version with a map (a code.bin or a game file: developers and tests).
 """
 
@@ -29,6 +34,18 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="core", description=f"{edition().window_title}: the mod in a folder")
     parser.add_argument("--rom", type=Path, help="your decrypted game file; never modified (required)")
     parser.add_argument("--out", type=Path, help="output (mod) folder (required)")
+    parser.add_argument("--xx-rom", type=Path,
+                        help="MH XX's decrypted game file (optional, never modified): Layered Gear adds XX's looks")
+    parser.add_argument("--layered-equipment", action=argparse.BooleanOptionalAction,
+                        help="the Smithy's Layered Gear: looks bought once and worn over what you wear")
+    parser.add_argument("--layered-by-rank", action=argparse.BooleanOptionalAction,
+                        help="Layered Gear's looks and the Wyporium's new trades open with their rank (off: all at "
+                             "once)")
+    parser.add_argument("--rare-exchange", action=argparse.BooleanOptionalAction,
+                        help="the Wyporium's Rare Materials Exchange (with Layered Gear)")
+    parser.add_argument("--quality-of-life", action=argparse.BooleanOptionalAction,
+                        help="the quality-of-life module: holding A, fast text, the camera, the item boxes and the "
+                             "cheats (off: the game's own)")
     parser.add_argument("--code", type=Path,
                         help="advanced: the executable to build from (a code.bin or game file of any version with a "
                              "map); taken from --rom by default")
@@ -40,6 +57,11 @@ def main(argv=None) -> int:
                         help="holding A repeats picking up and gathering and moves on through reward panels")
     parser.add_argument("--fast-text", action=argparse.BooleanOptionalAction,
                         help="holding B runs through the conversations at high speed")
+    parser.add_argument("--box-equipment", action=argparse.BooleanOptionalAction,
+                        help="every item box has Manage Equipment and Equipment Sets (Change Appearance stays "
+                             "at home)")
+    parser.add_argument("--camera-speed", type=int, metavar="CAP",
+                        help="the camera's top turning speed with the buttons (10: the game's own; 50: five times)")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")
     parser.add_argument("--cheat-3d-mode", choices=[value.value for value in Cheat3D],
                         help="3D: off (the game's own), dither_off or dither_on (3D forced off)")
@@ -67,13 +89,16 @@ def main(argv=None) -> int:
     low, high = presets.field_range("cheat_fov")
     if args.cheat_fov is not None and not low <= args.cheat_fov <= high:
         parser.error(f"--cheat-fov must be between {low} and {high}")
+    low, high = presets.field_range("camera_speed")
+    if args.camera_speed is not None and not low <= args.camera_speed <= high:
+        parser.error(f"--camera-speed must be between {low} and {high}")
     defaults = presets.personal_defaults()
     chosen = {name: value for name, value in vars(args).items() if name in defaults and value is not None}
     if args.cheat_aspect_ratio:
         chosen["cheat_aspect_allowed"] = True
     settings = presets.install_settings({**defaults, **chosen})
     try:
-        result = run(args.rom, args.out, settings, code_path=args.code)
+        result = run(args.rom, args.out, settings, code_path=args.code, xx_rom=args.xx_rom)
     except (UnsupportedVersion, RebaseError, ValueError) as error:     # not a game the mod can be built for
         print(f"Refused: {error}", file=sys.stderr)
         return 1

@@ -20,7 +20,7 @@ All the files are located in `core/game/data/curated/game_gui/`:
 | File | Contents | Edit it? |
 |---|---|---|
 | `blocks.json` | Every block, its layout, groups and default placement | Yes |
-| `screens/<theme>.json` | Every screen, its number, visibility rule and block placements. There is one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, monnyan and loading. | Yes |
+| `screens/<theme>.json` | Every screen, its number, visibility rule and block placements. There is one file per theme: title, town, facilities, palico, quests, help, guild_help, multiplayer, courier, guild_quests, monnyan and loading. | Yes |
 | `names_en.json` | English names for every screen, block and screen to record | When adding one |
 | `fixes.json` | Non-positional layout changes, such as hiding panes, stretching backgrounds, moving panes within their groups or applying fills | Rarely |
 | `settings.json` | Placement limits (scale 0.25 to 2.0, with block corners allowed up to 120 pixels outside the screen) and photo mode buttons | Rarely |

@@ -17,8 +17,8 @@ from core.app import presets
 from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
     AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatAspect, CheatFps, DuplicateMode, FrenzyChance, Frequency,
-    GlavenusMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode, RewardSource, StatMode,
-    StructureMode, SubQuestMode, TextMode,
+    GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode,
+    RewardSource, StatMode, StructureMode, SubQuestMode, TextMode, ValstraxMode,
 )
 from core.gui.i18n import EMPTY, T
 
@@ -26,6 +26,8 @@ from core.gui.i18n import EMPTY, T
 _GATHER_PERCENT = round(GATHER_SPEED * 100)
 _FOV_MIN, _FOV_MAX = presets.field_range("cheat_fov")  # curated/gui_presets.json, "ranges"
 _FOV_STEP = presets.field_step("cheat_fov")             # the values of its list in the game's menu
+_CAMERA_MIN, _CAMERA_MAX = presets.field_range("camera_speed")
+_CAMERA_STEP = presets.field_step("camera_speed")
 # What every group of options the game's START menu holds too says (curated/gui_presets.json, "in_game")
 _ALSO_IN_GAME_ES = ("Es el valor con el que empieza cada personaje; dentro del juego se cambia en el menú START, "
                     "tercera página, Ajustes del mod.")
@@ -545,13 +547,14 @@ EQUIPMENT_SECTIONS: tuple[Section, ...] = (
                    T("Se usan todos los modelos y ninguno se repite mientras sea posible.",
                      "Every model is used and none is repeated while possible."),
                    requires="randomize_models"),
-            Option("mhgen_models", T("Modelos de MH Generations", "MH Generations models"),
-                   T("Añade al sorteo las armas y armaduras de MH Generations que MH4U no tiene (unas 1500), y al "
-                     "equipo superpuesto una línea «Generations» con ellas. Necesita la ROM de MH Generations "
-                     "(europea o americana). Por familias, solo las armaduras.",
-                     "Adds MH Generations' weapons and armor that MH4U lacks (about 1500) to the draw, and a "
-                     "\"Generations\" line with them to layered equipment. Needs the MH Generations ROM (European "
-                     "or American). By families, armor only."),
+            Option("mhgen_models", T("Modelos de MH XX", "MH XX models"),
+                   T("Añade al sorteo las armas y armaduras de MH XX que MH4U no tiene (unas 1500), y al "
+                     "equipo superpuesto una línea «MH XX» con ellas y otra con el equipo de Felyne de MH XX para "
+                     "tus gatos. Necesita la ROM descifrada de Monster Hunter XX (japonesa). Por familias, solo "
+                     "las armaduras.",
+                     "Adds MH XX's weapons and armor that MH4U lacks (about 1500) to the draw, and to layered "
+                     "equipment an \"MH XX\" line with them and another with MH XX's Felyne gear for your cats. "
+                     "Needs your decrypted Monster Hunter XX ROM (Japanese). By families, armor only."),
                    requires="randomize_models", also_with="layered_equipment"),
         )),
         Group(T("Modo", "Mode"), (
@@ -717,6 +720,14 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         ), _ALSO_IN_GAME),
     )),
     Section(T("Acciones", "Actions"), (
+        Group(T("Otros y calidad de vida", "Other and quality of life"), (
+            Option("quality_of_life", T("Activar este módulo", "Turn this module on"),
+                   T("Los controles, el texto rápido, las cajas de objetos y los trucos de esta pestaña. Desactivado, "
+                     "el juego queda como el original en todo esto y la página «Ajustes del mod» del menú START no "
+                     "muestra sus opciones.",
+                     "The controls, fast text, item boxes and cheats of this tab. Off, the game stays as the original "
+                     "in all of them and the START menu's Mod Settings page does not show their options.")),
+        )),
         Group(T("Recolección", "Gathering"), (
             Option("fast_gathering", T(f"Recolectar al {_GATHER_PERCENT} %",
                                        f"Gather, mine and carve at {_GATHER_PERCENT}% speed"),
@@ -738,6 +749,32 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "takes an item and the cursor moves to the next; hold A to keep taking. The swap and exit "
                      "menus still need a press each.")),
         ), _ALSO_IN_GAME),
+        Group(T("Cámara", "Camera"), (
+            Option("camera_speed", T("Velocidad de giro de la cámara", "Camera turn speed"),
+                   T("La velocidad máxima a la que gira la cámara mientras mantienes pulsado un botón para girarla. "
+                     "El juego usa 10: 20 la dobla y 50 la multiplica por cinco; tarda un poco más en alcanzarla.",
+                     "The top speed the camera turns at while you hold a button to turn it. The game uses 10: 20 "
+                     "doubles it and 50 makes it five times as fast; it takes a little longer to get there."),
+                   minimum=_CAMERA_MIN, maximum=_CAMERA_MAX, step=_CAMERA_STEP),
+        ), _ALSO_IN_GAME),
+        Group(T("Caja de objetos", "Item box"), (
+            Option("box_equipment", T("Gestionar el equipo en cualquier caja", "Manage equipment at any item box"),
+                   T("Las cajas de objetos de fuera de casa, como la de la Sala del Gremio, también tienen «Gestionar "
+                     "equipo» y «Sets de equipo», como la de casa. «Cambiar aspecto» sigue solo en casa.",
+                     "Item boxes away from home, such as the Gathering Hall's, also have Manage Equipment and "
+                     "Equipment Sets, as the one at home does. Change Appearance stays at home.")),
+        ), _ALSO_IN_GAME),
+        Group(T("Wyporio", "Wyporium"), (
+            Option("rare_exchange", T("Canjear raros", "Rare Materials Exchange"),
+                   T("El Wyporio tiene una línea nueva, «Canjear raros»: eliges un material raro de un monstruo "
+                     "y entregas varios de los objetos que sueltan los monstruos que lo sueltan, de su mismo rango, "
+                     "hasta completar los que pide; el material raro llega al baúl. "
+                     "Pensada para el equipo superpuesto, que pide esos materiales.",
+                     "The Wyporium gets a new line, \"Rare Materials Exchange\": pick a monster's rare "
+                     "material and hand over several of the items dropped by the monsters that drop it, of the same "
+                     "rank, until you have given the amount it asks; the rare material arrives in the "
+                     "item box. Made for Layered Gear, which asks for those materials.")),
+        )),
     )),
     Section(T("Música", "Music"), (
         Group(T("Monster Hunter World", "Monster Hunter World"), (
@@ -754,24 +791,25 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         ), T("La música viene con el randomizer.", "The music comes with the randomizer.")),
     )),
     Section(T("Aspecto", "Looks"), (
-        Group(T("Equipo superpuesto", "Layered equipment"), (
-            Option("layered_equipment", T("Equipo superpuesto", "Layered equipment"),
-                   T("La herrería tiene una entrada nueva, «Equipo superpuesto», para elegir el aspecto de cada "
-                     "pieza de armadura (o de un conjunto entero) y de cada tipo de arma, entre los del "
-                     "juego, sin cambiar lo que llevas puesto. Tu cazador lleva ese aspecto "
-                     "en el pueblo y en las misiones, y se guarda con la partida; la vista previa lo muestra al "
-                     "elegir (el stick lo gira).",
-                     "The Smithy gets a new line, \"Layered Equipment\", to choose the look of each armor piece "
-                     "(or a whole set) and of each weapon class, from the looks in the game, "
-                     "without changing what you wear. Your hunter wears that look in the village and in quests, "
-                     "and it is kept with the save; the preview shows it as you choose (the stick turns it).")),
-            Option("layered_by_rank", T("Desbloquear looks por rango", "Unlock looks by rank"),
-                   T("Los aspectos de rango bajo están desde el principio; los de rango alto, tras la misión "
-                     "urgente de ★3 del Gremio (o la de ★7 de la Caravana); los de rango G, tras la urgente que "
-                     "abre Dundorma. Desactivado, todos los aspectos están desde el principio.",
-                     "Low rank looks are there from the start; high rank looks come after the Hall's ★3 urgent "
-                     "quest (or the Caravan's ★7); G rank looks after the urgent quest that opens Dundorma. "
-                     "Off, every look is there from the start."),
+        Group(T("Equipo superpuesto", "Layered gear"), (
+            Option("layered_equipment", T("Equipo superpuesto", "Layered gear"),
+                   T("La herrería tiene una entrada nueva, «Equipo superpuesto», con pantallas como las de la "
+                     "forja para armaduras, armas y Felynes: cada aspecto se compra una vez con "
+                     "materiales y dinero y se lleva sin cambiar lo que llevas puesto. Tu cazador lo lleva "
+                     "en el pueblo y en las misiones, y se guarda con la partida; Y lo prueba en el modelo "
+                     "(el stick lo gira).",
+                     "The Smithy gets a new line, \"Layered Gear\", with forge-style screens for armor, weapons "
+                     "and Felynes: each look is bought once with materials and money and worn "
+                     "without changing what you wear. Your hunter wears it in the village and in quests, "
+                     "and it is kept with the save; Y tries it on the model (the stick turns it).")),
+            Option("layered_by_rank", T("Desbloquear por rango", "Unlock by rank"),
+                   T("Los aspectos de rango bajo y los trueques nuevos del Wyporio están desde el principio; los "
+                     "de rango alto, tras la misión urgente de ★3 del Gremio (o la de ★7 de la Caravana); los de "
+                     "rango G, tras la urgente que abre Dundorma. Desactivado, todos los aspectos y trueques "
+                     "están desde el principio.",
+                     "Low rank looks and the Wyporium's new trades are there from the start; high rank ones come "
+                     "after the Hall's ★3 urgent quest (or the Caravan's ★7); G rank ones after the urgent quest "
+                     "that opens Dundorma. Off, every look and trade is there from the start."),
                    requires="layered_equipment"),
         )),
     )),
@@ -915,12 +953,12 @@ NEW_GAME_SECTIONS: tuple[Section, ...] = (
 )
 
 NEW_MONSTER_SECTIONS: tuple[Section, ...] = (
-    Section(T("Monstruos de MH Generations", "Monsters from MH Generations"), (
+    Section(T("Monstruos de MH XX", "Monsters from MH XX"), (
         Group(T("Alatreon", "Alatreon"), (
             Option("alatreon", T("Alatreon", "Alatreon"),
-                   T("Alatreon de Monster Hunter Generations, con su modelo, sus ataques, su música y sus sonidos. "
+                   T("Alatreon de Monster Hunter XX, con su modelo, sus ataques, su música y sus sonidos. "
                      "Elige dónde aparece.",
-                     "Alatreon from Monster Hunter Generations, with his model, attacks, music and sounds. Choose "
+                     "Alatreon from Monster Hunter XX, with his model, attacks, music and sounds. Choose "
                      "where he appears."),
                    choices=(
                        Choice(AlatreonMode.OFF, T("No", "No")),
@@ -956,9 +994,9 @@ NEW_MONSTER_SECTIONS: tuple[Section, ...] = (
                    T("La música de su combate.", "The music of his fight."),
                    choices=(
                        Choice(AlatreonMusic.ORIGINAL, T("Original", "Original"),
-                              T("Su tema de MH Generations. Si su muerte termina la misión, suena el tema de "
+                              T("Su tema de MH XX. Si su muerte termina la misión, suena el tema de "
                                 "Alatreon abatido de Monster Hunter World.",
-                                "His MH Generations theme. If his death ends the quest, Monster Hunter World's "
+                                "His MH XX theme. If his death ends the quest, Monster Hunter World's "
                                 "Alatreon slain theme plays.")),
                        Choice(AlatreonMusic.MODERN, T("Moderna", "Modern"),
                               T("Su tema de Monster Hunter World; con un 10 % de vida, «Proof of a Hero», y si su "
@@ -966,17 +1004,17 @@ NEW_MONSTER_SECTIONS: tuple[Section, ...] = (
                                 "His Monster Hunter World theme; at 10 % health \"Proof of a Hero\", and if his "
                                 "death ends the quest, the Fatalis slain theme.")),
                    ), requires="alatreon"),
-        ), T("Se construye a partir de tu ROM descifrada de MH Generations (elígela al lado); el mod no "
-             "lleva nada de ese juego. Es un monstruo nuevo, con su nombre, su icono (provisional) y su música; "
-             "no sustituye a ningún otro.",
-             "It is built from your decrypted MH Generations ROM (choose it alongside); the mod carries nothing "
-             "of that game. He is a new "
+        ), T("Se construye a partir de tu ROM descifrada de Monster Hunter XX (japonesa), que se elige en la página "
+             "Instalar; el mod no lleva nada de ese juego. Es un monstruo nuevo, con su nombre, su icono "
+             "(provisional) y su música; no sustituye a ningún otro.",
+             "It is built from your decrypted Monster Hunter XX ROM (Japanese), chosen on the Install page; the mod "
+             "carries nothing of that game. He is a new "
              "monster, with his own name, icon (a placeholder) and music; he replaces no other.")),
         Group(T("Mizutsune", "Mizutsune"), (
             Option("mizutsune", T("Mizutsune", "Mizutsune"),
-                   T("Mizutsune de Monster Hunter Generations, con su modelo, sus ataques, sus burbujas, su música y "
+                   T("Mizutsune de Monster Hunter XX, con su modelo, sus ataques, sus burbujas, su música y "
                      "sus sonidos. Cambia de zona por la Selva Jurásica como un monstruo de MH4U.",
-                     "Mizutsune from Monster Hunter Generations, with his model, attacks, bubbles, music and sounds. "
+                     "Mizutsune from Monster Hunter XX, with his model, attacks, bubbles, music and sounds. "
                      "He changes area on the Primal Forest as an MH4U monster does."),
                    choices=(
                        Choice(MizutsuneMode.OFF, T("No", "No")),
@@ -1006,16 +1044,16 @@ NEW_MONSTER_SECTIONS: tuple[Section, ...] = (
                                 "the monster shuffle. Needs \"Randomize quests\" and \"Randomize large monsters\" to "
                                 "join the shuffle.")),
                    )),
-        ), T("Como Alatreon, se construye a partir de tu ROM de MH Generations. Es un monstruo nuevo, con su nombre, "
+        ), T("Como Alatreon, se construye a partir de tu ROM de MH XX. Es un monstruo nuevo, con su nombre, "
              "su icono y su música; no sustituye a ningún otro.",
-             "As Alatreon, he is built from your MH Generations ROM. He is a new "
+             "As Alatreon, he is built from your MH XX ROM. He is a new "
              "monster, with his own name, icon and music; he replaces no other.")),
         Group(T("Glavenus", "Glavenus"), (
             Option("glavenus", T("Glavenus", "Glavenus"),
-                   T("Glavenus de Monster Hunter Generations, con su modelo, sus ataques de fuego, su cola-espada, su "
+                   T("Glavenus de Monster Hunter XX, con su modelo, sus ataques de fuego, su cola-espada, su "
                      "música y sus sonidos. Cambia de zona por el Hoyo Volcán y la Sima Hueca como un monstruo de "
                      "MH4U.",
-                     "Glavenus from Monster Hunter Generations, with his model, fire attacks, blade tail, music and "
+                     "Glavenus from Monster Hunter XX, with his model, fire attacks, blade tail, music and "
                      "sounds. He changes area on the Volcanic Hollow and the Sunken Hollow as an MH4U monster does."),
                    choices=(
                        Choice(GlavenusMode.OFF, T("No", "No")),
@@ -1047,11 +1085,89 @@ NEW_MONSTER_SECTIONS: tuple[Section, ...] = (
                                 "monster shuffle. Needs \"Randomize quests\" and \"Randomize large monsters\" to join "
                                 "the shuffle.")),
                    )),
-        ), T("Como los otros, se construye a partir de tu ROM de MH Generations. Es un monstruo nuevo, con su nombre, "
+        ), T("Como los otros, se construye a partir de tu ROM de MH XX. Es un monstruo nuevo, con su nombre, "
              "su icono y su música; no sustituye a ningún otro.",
-             "Like the others, he is built from your MH Generations ROM. He is a new "
+             "Like the others, he is built from your MH XX ROM. He is a new "
              "monster, with his own name, icon and music; he replaces no other.")),
-    ), inputs=("mhgen",)),
+        Group(T("Gran Maccao", "Great Maccao"), (
+            Option("great_maccao", T("Gran Maccao", "Great Maccao"),
+                   T("Gran Maccao de Monster Hunter XX, con su modelo, sus ataques, su música y sus sonidos. Cambia "
+                     "de zona por la Estepa Ancestral, la Sima Hueca y la Selva Jurásica como un monstruo de MH4U.",
+                     "Great Maccao from Monster Hunter XX, with his model, attacks, music and sounds. He changes "
+                     "area on the Ancestral Steppe, the Sunken Hollow and the Primal Forest as an MH4U monster "
+                     "does."),
+                   choices=(
+                       Choice(GreatMaccaoMode.OFF, T("No", "No")),
+                       Choice(GreatMaccaoMode.QUESTS, T("Sus misiones", "His quests"),
+                              T("Tres misiones nuevas de la sala de reunión, con el Gran Maccao en la Selva Jurásica: "
+                                "rango bajo 2★, rango alto 4★ y rango G G★1, con las recompensas de las misiones de "
+                                "Congalala, Gypceros púrpura y Najarala de ese rango. Aparecen al superar la misión "
+                                "urgente que abre su rango (la de 2★, al superar «Bug Burger»). Las demás misiones "
+                                "no cambian.",
+                                "Three new Gathering Hall quests with Great Maccao on the Primal Forest: low rank 2★, "
+                                "high rank 4★ and G rank G★1, with the rewards of the Congalala, Purple Gypceros "
+                                "and Najarala quests of that rank. They show once the urgent quest that opens their "
+                                "rank is cleared (the 2★ one, once \"Bug Burger\" is). The other quests do not "
+                                "change.")),
+                       Choice(GreatMaccaoMode.RANDOMIZED, T("Solo en el randomizer", "Randomizer only"),
+                              T("Entra en el reparto de monstruos en el nivel 1, con cualquier monstruo, sin "
+                                "misiones propias. Solo aparece en la Estepa Ancestral, la Sima Hueca y la Selva "
+                                "Jurásica y en los mapas de una sola zona (arenas), donde sabe moverse. Necesita "
+                                "«Randomizar misiones» y «Randomizar monstruos grandes».",
+                                "He joins the monster shuffle at tier 1, with any monster, without quests of his "
+                                "own. He only appears on the Ancestral Steppe, the Sunken Hollow and the Primal "
+                                "Forest and on single-area maps (arenas), where he knows how to move. Needs "
+                                "\"Randomize quests\" and \"Randomize large monsters\".")),
+                       Choice(GreatMaccaoMode.EXTENDED, T("Sus misiones, randomizadas", "His quests, randomized"),
+                              T("Sus misiones existen y el randomizer las cambia como cualquier otra; además entra "
+                                "en el reparto de monstruos. Necesita «Randomizar misiones» y «Randomizar monstruos "
+                                "grandes» para entrar en el reparto.",
+                                "His quests exist and the randomizer changes them as any other; he also joins the "
+                                "monster shuffle. Needs \"Randomize quests\" and \"Randomize large monsters\" to join "
+                                "the shuffle.")),
+                   )),
+        ), T("Necesita además tu ROM descifrada de Monster Hunter XX (japonesa), que se elige en la página Instalar; "
+             "el mod no lleva nada de ese juego. Es un monstruo nuevo, con su nombre, su icono y su música; no "
+             "sustituye a ningún otro.",
+             "It also needs your decrypted Monster Hunter XX ROM (Japanese), chosen on the Install page; the mod "
+             "carries nothing of that game. He is a new monster, with his own name, icon and music; he replaces no "
+             "other.")),
+        Group(T("Valstrax", "Valstrax"), (
+            Option("valstrax", T("Valstrax", "Valstrax"),
+                   T("Valstrax de Monster Hunter XX, el dragón anciano que cae como un cometa, con su modelo, sus "
+                     "ataques, su música y sus sonidos.",
+                     "Valstrax from Monster Hunter XX, the elder dragon that falls like a comet, with his model, "
+                     "attacks, music and sounds."),
+                   choices=(
+                       Choice(ValstraxMode.OFF, T("No", "No")),
+                       Choice(ValstraxMode.QUESTS, T("Sus misiones", "His quests"),
+                              T("Dos misiones nuevas de la sala de reunión, con el Valstrax en la Cima Torre: "
+                                "rango alto 7★ y rango G G★2, con las recompensas de las misiones de Kushala Daora "
+                                "de ese rango. Aparecen al superar la misión urgente que abre su rango («Mineral "
+                                "exquisito» para la de 7★, «Vidente de espadas» para la de G★2). Las demás misiones "
+                                "no cambian.",
+                                "Two new Gathering Hall quests with Valstrax on the Tower Summit: high rank 7★ and "
+                                "G rank G★2, with the rewards of the Kushala Daora quests of that rank. They show "
+                                "once the urgent quest that opens their rank is cleared (\"Ore D'oeuvre\" for the "
+                                "7★ one, \"Seer of Swords\" for the G★2 one). The other quests do not change.")),
+                       Choice(ValstraxMode.RANDOMIZED, T("Solo en el randomizer", "Randomizer only"),
+                              T("Entra en el reparto de monstruos en el nivel 7, con cualquier monstruo, sin "
+                                "misiones propias. Necesita «Randomizar misiones» y «Randomizar monstruos grandes».",
+                                "He joins the monster shuffle at tier 7, with any monster, without quests of his "
+                                "own. Needs \"Randomize quests\" and \"Randomize large monsters\".")),
+                       Choice(ValstraxMode.EXTENDED, T("Sus misiones, randomizadas", "His quests, randomized"),
+                              T("Sus misiones existen y el randomizer las cambia como cualquier otra; además entra "
+                                "en el reparto de monstruos. Necesita «Randomizar misiones» y «Randomizar monstruos "
+                                "grandes» para entrar en el reparto.",
+                                "His quests exist and the randomizer changes them as any other; he also joins the "
+                                "monster shuffle. Needs \"Randomize quests\" and \"Randomize large monsters\" to join "
+                                "the shuffle.")),
+                   )),
+        ), T("Necesita tu ROM descifrada de Monster Hunter XX (japonesa), como los demás de esta sección. Es un "
+             "monstruo nuevo, con su nombre, su icono y su música; no sustituye a ningún otro.",
+             "He needs your decrypted Monster Hunter XX ROM (Japanese), as the others in this section. He is a new "
+             "monster, with his own name, icon and music; he replaces no other.")),
+    ), inputs=("xx",)),
 )
 
 AREAS: tuple[Area, ...] = (
@@ -1166,9 +1282,36 @@ def _find(field: str) -> Option:
     return next(o for o in all_options() if o.field == field)
 
 
+# The tabs of an edition's modules (gui_presets.json install.modules), by module key
+MODULE_TITLES = {
+    "single_screen": T("Pantalla única", "Single screen"),
+    "layered_gear": T("Equipo superpuesto", "Layered gear"),
+    "quality_of_life": T("Otros / calidad de vida", "Other / QoL"),
+}
+
+
+def module_sections(sections: tuple[Section, ...], layout: dict[str, list[str]]) -> tuple[Section, ...]:
+    """One tab per module of `layout` (presets.modules: its switch first, then what it holds), in its order: the groups
+    of `sections` holding its options, the switch's group first, each option that requires nothing now requiring the
+    switch. Names without an option (rows of the START menu's page only) show nothing."""
+    groups = [group for section in sections for group in section.groups]
+    result = []
+    for key, members in layout.items():
+        switch, wanted = members[0], set(members)
+
+        def under(option: Option, switch: str = switch) -> Option:
+            return option if option.field == switch or option.requires else replace(option, requires=switch)
+        kept = [replace(g, options=tuple(under(o) for o in g.options if o.field in wanted)) for g in groups]
+        kept = sorted((g for g in kept if g.options), key=lambda g: g.options[0].field != switch)
+        result.append(Section(MODULE_TITLES[key], tuple(kept)))
+    return tuple(result)
+
+
 def _install_sections() -> tuple[Section, ...]:
     kept = set(presets.section("install_options"))
     sections = _filter(INTERFACE_SECTIONS + NEW_GAME_SECTIONS + NEW_MONSTER_SECTIONS, lambda field: field in kept)
+    if presets.modules():
+        sections = module_sections(sections, presets.modules())
     links = presets.install_links()
     swaps = {
         "skip_intro": Option(
@@ -1205,8 +1348,8 @@ def _randomizer_areas() -> tuple[Area, ...]:
     drop = presets.fixed_fields("randomizer") | presets.installer_fields() | {"alatreon"}
     new_monsters = Section(T("Monstruos nuevos", "New monsters"), (
         Group(T("Alatreon", "Alatreon"), (_alatreon_option(),),
-              T("Se construye a partir de tu ROM descifrada de MH Generations. «Jefe final» es lo recomendado.",
-                "It is built from your decrypted MH Generations ROM. \"Final boss\" is the recommended one.")),
+              T("Se construye a partir de tu ROM descifrada de MH XX. «Jefe final» es lo recomendado.",
+                "It is built from your decrypted MH XX ROM. \"Final boss\" is the recommended one.")),
     ))
     return (
         Area(AREAS[0].title, prune(QUEST_SECTIONS, drop) + (new_monsters,), AREAS[0].master),

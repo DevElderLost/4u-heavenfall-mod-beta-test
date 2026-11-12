@@ -1,0 +1,50 @@
+{
+ "description": "The Wyporium's additions (core/gameplay/wyporium/wyporium_data.py). 'counterparts': an XX monster whose materials the game's own trades never pair -> the MH4U monster whose items they trade for, chosen by likeness (the same power or difficulty, the same size and way of moving, present at the ranks the materials need), 'monster' for every rank, a rank name (low, high, G) overriding it, 'why' the reason; a deviant needs none (he takes his base's counterpart's variant that drops at the rank, 'variants': the choice among several, else the lowest id, else the base). 'quest_ranks': a quest the knowledge base lacks (a Caravan's) -> the rank (low, high, G) of the trades it opens, where the rows before it would say another (tools/build/build_wyporium_trades.py). A counterpart must appear at the rank it is used at, by Kiranico's per-rank data. 'trade_items': a game's Wyporium item whose name carries no monster -> the XX monster it is a material of (it counts for that monster's game trades). 'unlock_quest': per rank (low, high, G) the quest that opens the game's first trades of that rank, with its id (the Caravan's quests are not in the knowledge base: low is the first row of the game's trade table); the code no longer reads it (the new trades open with their rank, trade_rows.c), only a test checks it against the game's table. 'rare_percent': the best chance (percent) up to which an item of a monster of its own rank is a rare material of the exchange, besides his rarest. 'units': the items handed over for one rare material, by rank (low, high, G); 'scrap_units': for a rare material that is a scrap (the item's category in the knowledge base, a scrap of a ported monster by the curated ported equipment), at every rank. 'excluded': rare items (MH4U's ids) left out of the exchange. 'abundant': MH4U items an owner sheds in quantity, never a pool item that pays a rare material (a pool of body parts only): the items a monster gives as a dropped item (drop_b) at 50 percent or more or in stacks of four or more at a rank of a row's pool (Wyvern Claw from the Raths' breaks, Zinogre's Fulgurbug, Dalamadur's Glaives and Shattered Omen, Dah'renstone, Dash Extract), and the bugs, slimes and extracts that fall off in twos (Dracophage Bug, Mystery, Glowing and Flashpoint Slime, Pale Extract); real body parts that come in pairs from a break are not in it.",
+ "counterparts": {
+  "Plesioth": {"monster": "Zamtrios", "why": "leviathan of the water, in every rank"},
+  "Bulldrome": {"monster": "Velocidrome", "why": "bird wyvern of the Drome pack, in every rank"},
+  "Giadrome": {"monster": "Iodrome", "why": "bird wyvern of the Drome pack, in every rank (Great Jaggi has no G)"},
+  "Malfestio": {"monster": "Gypceros", "why": "showy feathered bird wyvern, in every rank; Nightcloak Malfestio takes Purple Gypceros"},
+  "Astalos": {"monster": "Seregios", "low": "Rathalos", "why": "a fast, aggressive flying wyvern of the same power and size as Seregios in high and G rank and as Rathalos in low rank (Seregios has no low rank); Boltreaver Astalos takes Seregios"},
+  "Gammoth": {"monster": "Ukanlos", "low": "Gravios", "why": "a huge, slow beast of ice or heavy armor of the same power and size as Ukanlos in high and G rank and as Gravios in low rank (Ukanlos has no low rank); Elderfrost Gammoth takes Ukanlos"},
+  "Nakarkos": {"monster": "Dah'ren Mohran", "why": "a gigantic, slow elder-class colossus of the same power and size, in every rank"},
+  "Valstrax": {"monster": "Shagaru Magala", "low": "Gore Magala", "why": "a swift flying dragon that charges and dives, of the same power as Shagaru Magala in high and G rank and as Gore Magala in low rank (Shagaru Magala has no low quest)"},
+  "Ahtal-Ka": {"monster": "Gogmazios", "high": "Dalamadur (Head)", "why": "a final boss of colossal size and slow, heavy movement: Gogmazios in G rank, Dalamadur in high rank (Gogmazios has no high rank)"},
+  "Mizutsune": {"monster": "Zinogre", "why": "a fast, leaping fanged wyvern that spins and charges, close in size to Mizutsune, in every rank; Soulseer Mizutsune takes Stygian Zinogre"},
+  "Glavenus": {"monster": "Brachydios", "why": "a big, heavy wyvern of slow, powerful blows (a sword-tail against slime fists) that burns and explodes, of the same power; Hellblade Glavenus takes Brachydios, and Raging Brachydios in G rank"},
+  "Alatreon": {"monster": "Dalamadur", "why": "the game's own trades already pay his items with Dalamadur's, the same power; his looks start at high rank, so he needs no low counterpart"},
+  "Great Maccao": {"monster": "Great Jaggi", "G": "Yian Kut-Ku", "why": "an agile bird wyvern of the leading-pack kind and the same power: Great Jaggi in low and high rank, Yian Kut-Ku in G rank (Great Jaggi has no G)"}
+ },
+ "variants": {"Soulseer Mizutsune": "Stygian Zinogre", "Hellblade Glavenus": "Raging Brachydios"},
+ "quest_ranks": {"611": "low"},
+ "trade_items": {
+  "Vivid Fluid": "Nibelsnarf",
+  "Dazzling Fluid": "Nibelsnarf",
+  "Heavenly Dragongem": "Amatsu",
+  "Deathly Shocker": "Lagiacrus"
+ },
+ "unlock_quest": {
+  "low": {"quest": "Caravan 3* Swing into Action", "quest_id": 301},
+  "high": {"quest": "Guild 4* Material Effect", "quest_id": 10419},
+  "G": {"quest": "Guild 8* Advanced: Terrible Twins", "quest_id": 10817}
+ },
+ "rare_percent": 10,
+ "units": [12, 14, 18],
+ "scrap_units": 3,
+ "excluded": [],
+ "abundant": [
+  {"item": 278, "name": "Wyvern Claw"},
+  {"item": 259, "name": "Fulgurbug"},
+  {"item": 539, "name": "Dracophage Bug"},
+  {"item": 548, "name": "Mystery Slime"},
+  {"item": 1486, "name": "Glowing Slime"},
+  {"item": 1740, "name": "Flashpoint Slime"},
+  {"item": 299, "name": "Dash Extract"},
+  {"item": 300, "name": "Pale Extract"},
+  {"item": 687, "name": "Shattered Omen"},
+  {"item": 681, "name": "Dalamadur Glaive"},
+  {"item": 1370, "name": "Dalamadur Glaive+"},
+  {"item": 1378, "name": "S.Dalamadur Glaive+"},
+  {"item": 658, "name": "Dah'renstone"}
+ ]
+}

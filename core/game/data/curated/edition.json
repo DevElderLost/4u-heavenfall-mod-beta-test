@@ -1,5 +1,5 @@
 {
-  "description": "Which product this checkout builds (core/app/edition.py): Heavenfall Beta, the single-screen module of Heavenfall. Its names in the program and the Windows build, its pages and platforms, the developer tools' language, the preferences folder, the mod folder's marker, the GitHub repository its releases are published in, the name of its updater, and the names it used before (none).",
+  "description": "Which product this checkout builds (core/app/edition.py): Heavenfall Beta, the single-screen module of Heavenfall. Its names in the program and the Windows build, its pages and platforms, whether MH XX is optional, the developer tools' language, the preferences folder, the mod folder's marker, the GitHub repository its releases are published in, the name of its updater, and the names it used before (none).",
   "name": "Heavenfall Beta",
   "window_title": "Heavenfall Beta: Monster Hunter 4 Ultimate on one screen",
   "app_name": "HeavenfallBeta",
@@ -8,7 +8,6 @@
   "app_user_model_id": "HeavenfallBeta.MH4U.GUI",
   "pages": ["install", "options"],
   "platforms": ["emulator"],
-  "needs_mhgen": false,
   "tools_language": "en",
   "user_folder": ".heavenfall_beta",
   "marker": "heavenfall_beta_mod.json",
@@ -16,5 +15,20 @@
   "updater_name": "HeavenfallBeta-update",
   "legacy_user_folders": [],
   "legacy_markers": [],
-  "legacy_build_markers": []
+  "legacy_build_markers": [],
+  "xx_optional": true,
+  "console_title": {
+    "title_ids": {"eur": "0004000006969300", "usa": "0004000006969400"},
+    "short_name": "Heavenfall Beta",
+    "long_name": "Monster Hunter 4 Ultimate: Heavenfall Beta",
+    "publisher": "Heavenfall"
+  },
+  "console_release": {
+    "app_cia": "HeavenfallBeta-3ds.cia",
+    "app_3dsx": "HeavenfallBeta-3ds.3dsx",
+    "patch_eur": "HeavenfallBeta-3ds-EUR.hfpatch",
+    "patch_usa": "HeavenfallBeta-3ds-USA.hfpatch",
+    "patch_eur_xx": "HeavenfallBeta-3ds-EUR-XX.hfpatch",
+    "patch_usa_xx": "HeavenfallBeta-3ds-USA-XX.hfpatch"
+  }
 }

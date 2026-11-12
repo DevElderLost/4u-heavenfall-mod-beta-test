@@ -36,13 +36,24 @@ TITLE = T("Instalar", "Install")
 # ---- texts ----------------------------------------------------------------------------------------------------------
 
 T_FILES = T("Archivos del juego", "Game files")
-T_FILES_HELP = T("Se leen sin modificarlos. Hacen falta los dos, europeos o americanos y ya descifrados (.3ds, .cia o "
-                 "los comprimidos de Azahar). El mod se instala para la región de tu Monster Hunter 4 Ultimate.",
-                 "They are only read, never changed. Both are needed, European or American and already decrypted "
-                 "(.3ds, .cia or Azahar's compressed files). The mod is installed for the region of your Monster "
-                 "Hunter 4 Ultimate.")
+T_FILES_HELP = T("Se leen sin modificarlos. Hace falta Monster Hunter 4 Ultimate, europeo o americano y ya descifrado "
+                 "(.3ds, .cia o los comprimidos de Azahar). El mod se instala para la región de tu Monster Hunter 4 "
+                 "Ultimate.",
+                 "They are only read, never changed. Monster Hunter 4 Ultimate is needed, European or American and "
+                 "already decrypted (.3ds, .cia or Azahar's compressed files). The mod is installed for the region of "
+                 "your Monster Hunter 4 Ultimate.")
+T_XX_HELP = T("Con monstruos de otros juegos o con los modelos extra activados (página Opciones) hace falta además "
+              "Monster Hunter XX, la versión japonesa y ya descifrada.",
+              "With the extra monsters or the extra models on (Options page) Monster Hunter XX is needed too, the "
+              "Japanese version, already decrypted.")
+T_XX_OPTIONAL = T("Monster Hunter XX es opcional: con él, el equipo superpuesto añade los aspectos de sus armas y "
+                  "armaduras, y el Wyporio canjea los materiales raros nuevos que piden. Sin él, solo los de "
+                  "Monster Hunter 4 Ultimate.",
+                  "Monster Hunter XX is optional: with it, Layered Gear adds the looks of its weapons and armor, "
+                  "and the Wyporium trades the new rare materials they ask for. Without it, only Monster Hunter 4 "
+                  "Ultimate's.")
 T_MH4U = T("Monster Hunter 4 Ultimate", "Monster Hunter 4 Ultimate")
-T_MHGEN = T("Monster Hunter Generations", "Monster Hunter Generations")
+T_MHXX = T("Monster Hunter XX (japonés)", "Monster Hunter XX (Japanese)")
 T_CHOOSE = T("Elegir…", "Choose…")
 T_NOT_CHOSEN = T("Sin elegir", "Not chosen")
 T_CHECKING = T("Comprobando…", "Checking…")
@@ -64,9 +75,10 @@ T_OTHERS = T("Otros archivos encontrados", "Other files found")
 T_WHY_NO_MH4U = T("Falta el archivo de Monster Hunter 4 Ultimate.", "The Monster Hunter 4 Ultimate file is missing.")
 T_WHY_BAD_MH4U = T("El archivo de Monster Hunter 4 Ultimate no sirve (mira el motivo arriba).",
                    "The Monster Hunter 4 Ultimate file cannot be used (see the reason above).")
-T_WHY_NO_MHGEN = T("Falta el archivo de Monster Hunter Generations.", "The Monster Hunter Generations file is missing.")
-T_WHY_BAD_MHGEN = T("El archivo de Monster Hunter Generations no sirve (mira el motivo arriba).",
-                    "The Monster Hunter Generations file cannot be used (see the reason above).")
+T_WHY_NO_MHXX = T("Falta el archivo de Monster Hunter XX (tus opciones lo necesitan).",
+                  "The Monster Hunter XX file is missing (your options need it).")
+T_WHY_BAD_MHXX = T("El archivo de Monster Hunter XX no sirve (mira el motivo arriba).",
+                   "The Monster Hunter XX file cannot be used (see the reason above).")
 T_WHY_CHECKING = T("Comprobando los archivos del juego…", "Checking the game files…")
 T_WHY_NO_EMU = T("No hay un emulador donde instalar: elige su carpeta.",
                  "There is no emulator to install into: choose its folder.")
@@ -101,8 +113,10 @@ T_ASK_RANDOM = T(
     "Ahí hay un juego randomizado (semilla {seed}). Si sigues, se sustituye por la instalación normal. ¿Continuar?",
     "A randomized game is installed there (seed {seed}). Continuing replaces it with the normal install. Continue?")
 T_ASK_UNKNOWN = T(
-    "Esa carpeta tiene archivos que no son de este instalador. Si sigues, se reemplazan. ¿Continuar?",
-    "That folder holds files that are not from this installer. Continuing replaces them. Continue?")
+    "Esa carpeta tiene archivos que no son de este instalador (quizá otro mod). Si sigues, se borra todo lo que hay en "
+    "ella, sin copia. ¿Continuar?",
+    "That folder holds files that are not from this installer (perhaps another mod). Continuing deletes everything in "
+    "it, with no backup. Continue?")
 T_ASK_UNINSTALL = T(f"Se quitará {edition().name} de esa carpeta. ¿Continuar?",
                     f"{edition().name} will be removed from that folder. Continue?")
 T_ASK_TITLE = T("Confirmar", "Confirm")
@@ -164,6 +178,9 @@ class Discovery:
         """The game files found in the emulators and the player's folders (a worker's job: it reads disks)."""
         if self.game_finder is not None:
             return self.game_finder()
+        if self.emulator_targets is None:
+            from core.install.targets import forget_portable
+            forget_portable()               # a new search looks for portable emulators again, off the window's thread
         return find_games.find(emulators=self.emulators(), stop=stop)
 
 
@@ -182,9 +199,9 @@ class ExportOutcome:
 class Jobs:
     """The work run in workers (heavy imports inside); tests subclass it to record or replace calls."""
 
-    def check(self, rom: Path | None, mhgen: Path | None) -> list[str]:
+    def check(self, rom: Path | None, xx: Path | None = None, need_xx: bool = False) -> list[str]:
         from core.install.build import check_inputs
-        return check_inputs(rom, mhgen)
+        return check_inputs(rom, xx_rom=xx, need_xx=need_xx)
 
     def install(self, request: jobs.InstallRequest, report: Reporter):
         return jobs.run_install(request, report)
@@ -195,8 +212,8 @@ class Jobs:
     def export(self, request: jobs.InstallRequest, dest: Path, report: Reporter) -> ExportOutcome:
         from core.install.build import build
         from core.install.console import export_ftp
-        result = build(request.rom, request.mhgen_rom, request.settings, console=True, kind=request.kind,
-                       progress=report.progress, stage=report.stage)
+        result = build(request.rom, request.settings, console=True, kind=request.kind,
+                       progress=report.progress, stage=report.stage, xx_rom=request.xx_rom)
         code = result.checksum.code if result.checksum else ""
         report.stage("install")
         pack, app = export_ftp(result.output_dir, dest, request.kind, result.seed, code,
@@ -490,11 +507,12 @@ class InstallPage(Page):
         self.job = InstallJob(state, self.runner, self)
         self._tasks: list[Task] = []
         self._check_serial = 0
-        self._problems: dict[str, list[str] | None] = {"rom": None, "mhgen": None}   # None: not checked yet
+        self._problems: dict[str, list[str] | None] = {"rom": None, "xx": []}   # None: not checked yet
         self._status_updaters: list[Callable[[], None]] = []
         self._targets: list = []
         self._action, self._request, self._dest = "install", None, None
-        self._found: dict[str, list[find_games.Candidate]] = {"rom": [], "mhgen": []}   # what the search found
+        self._found: dict[str, list[find_games.Candidate]] = {"rom": [], "xx": []}   # what was found
+        self._rows: dict[str, QWidget] = {}         # each picker's widgets (the XX one shows only when needed)
         self._found_labels: dict[str, QLabel] = {}
         self._found_combos: dict[str, QComboBox] = {}
         self._searching = False
@@ -533,15 +551,16 @@ class InstallPage(Page):
         frame, box = card(T_FILES)
         box.addWidget(label(T_FILES_HELP, "muted"))
         self.rom_edit, self.rom_status = self._file_row(box, T_MH4U, "rom")
-        if self.needs_mhgen:
-            self.mhgen_edit, self.mhgen_status = self._file_row(box, T_MHGEN, "mhgen")
-        else:   # an edition without MH Generations (edition.json needs_mhgen): the row is made, never shown
-            self._mhgen_row = QWidget()
-            self.mhgen_edit, self.mhgen_status = self._file_row(QVBoxLayout(self._mhgen_row), T_MHGEN, "mhgen")
+        box.addWidget(label(T_XX_OPTIONAL if edition().xx_optional else T_XX_HELP, "muted"))
+        self.xx_edit, self.xx_status = self._file_row(box, T_MHXX, "xx")
         layout.addWidget(frame)
 
     def _file_row(self, box: QVBoxLayout, title: T, which: str) -> tuple[QLineEdit, QLabel]:
-        box.addWidget(label(title))
+        holder = QWidget()                            # the picker's widgets together, to show or hide them
+        inner = QVBoxLayout(holder)
+        inner.setContentsMargins(0, 0, 0, 0)
+        inner.setSpacing(box.spacing())
+        inner.addWidget(label(title))
         row = QHBoxLayout()
         edit = QLineEdit()
         edit.setReadOnly(True)
@@ -550,20 +569,37 @@ class InstallPage(Page):
         pick.clicked.connect(lambda: self._pick_file(which, title))
         row.addWidget(edit, 1)
         row.addWidget(pick)
-        box.addLayout(row)
+        inner.addLayout(row)
         status = label(lambda _lang: "", "muted")
-        box.addWidget(status)
+        inner.addWidget(status)
         found = label(lambda _lang: "", "muted")      # where the search found this file
-        box.addWidget(found)
+        inner.addWidget(found)
         others = QComboBox()                          # the other files it found, when there are some
         translator.bind(others, others.setPlaceholderText, T_OTHERS)
         others.activated.connect(lambda index: self._other_picked(which, index))
         others.hide()
-        box.addWidget(others)
+        inner.addWidget(others)
+        box.addWidget(holder)
+        self._rows[which] = holder
         self._found_labels[which], self._found_combos[which] = found, others
         self._status_updaters.append(lambda: self._show_file_status(which, status))
         self._status_updaters.append(lambda: self._show_found(which))
         return edit, status
+
+    @property
+    def wants_xx(self) -> bool:
+        """The player's options need MH XX (a ported monster, the models pack): its file is asked for and checked."""
+        return self.state.needs_xx
+
+    @property
+    def shows_xx(self) -> bool:
+        """MH XX's picker is shown: needed, or offered for what it adds (`State.offers_xx`)."""
+        return self.wants_xx or self.state.offers_xx
+
+    @property
+    def uses_xx(self) -> bool:
+        """MH XX's file is checked and used: needed, or offered and chosen."""
+        return self.wants_xx or (self.state.offers_xx and bool(self.state.xx_rom_path))
 
     def _build_destination(self, layout: QVBoxLayout) -> None:
         frame, box = card(T_DEST)
@@ -638,19 +674,19 @@ class InstallPage(Page):
 
     # -- finding the games (a worker: the window never waits for the disks)
     def _path(self, which: str) -> str:
-        return self.state.rom_path if which == "rom" else self.state.mhgen_rom_path
+        return {"rom": self.state.rom_path, "xx": self.state.xx_rom_path}[which]
 
     def _set_path(self, which: str, path: str) -> None:
         if which == "rom":
             self.state.rom_path = path
         else:
-            self.state.mhgen_rom_path = path
+            self.state.xx_rom_path = path
 
     def _find_games(self) -> None:
         """Fill the pickers that are empty, or whose saved file is gone, with the games found in the emulators and the
         player's folders (install/find_games.py): the best one of each, the others in the picker's list. A picker the
         player fills meanwhile is left alone."""
-        started = {"rom": self.state.rom_path, "mhgen": self.state.mhgen_rom_path}
+        started = {"rom": self.state.rom_path, "xx": self.state.xx_rom_path}
         finder, stop = self.finder, self._stop_search
 
         def work(report):
@@ -671,7 +707,7 @@ class InstallPage(Page):
         self._searching = False
         gone, found = result
         for which in gone if found is not None else []:
-            candidates = list(found.mh4u if which == "rom" else found.mhgen)
+            candidates = list(found.mh4u if which == "rom" else found.xx)
             self._found[which] = candidates
             if candidates and self._path(which) == started[which]:
                 self._set_path(which, str(candidates[0].path))
@@ -718,8 +754,8 @@ class InstallPage(Page):
         if self.state.busy:
             return []
         reasons = []
-        for which, missing, bad in (("rom", T_WHY_NO_MH4U, T_WHY_BAD_MH4U), ("mhgen", T_WHY_NO_MHGEN, T_WHY_BAD_MHGEN)):
-            if which == "mhgen" and not self.needs_mhgen:
+        for which, missing, bad in (("rom", T_WHY_NO_MH4U, T_WHY_BAD_MH4U), ("xx", T_WHY_NO_MHXX, T_WHY_BAD_MHXX)):
+            if which == "xx" and not self.uses_xx:
                 continue
             problems = self._problems[which]
             if not self._path(which):
@@ -742,7 +778,7 @@ class InstallPage(Page):
 
     # -- state
     def _state_changed(self, key: str) -> None:
-        if key in ("rom_path", "mhgen_rom_path"):
+        if key in ("rom_path", "xx_rom_path", "personal"):
             self._validate()
             self._update_buttons()
         elif key == "busy":
@@ -815,26 +851,25 @@ class InstallPage(Page):
 
     def _pick_file(self, which: str, title: T) -> None:
         path = choose_file(self, translator.text(title))
-        if not path:
-            return
-        if which == "rom":
-            self.state.rom_path = path
-        else:
-            self.state.mhgen_rom_path = path
+        if path:
+            self._set_path(which, path)
 
     # -- validation of the game files (a worker: opening a .3ds takes a moment)
     def _validate(self) -> None:
-        rom, mhgen = self.state.rom_path, self.state.mhgen_rom_path
+        rom, xx = self.state.rom_path, self.state.xx_rom_path
+        need_xx = self.uses_xx
         self.rom_edit.setText(rom)
-        self.mhgen_edit.setText(mhgen)
+        self.xx_edit.setText(xx)
+        self._rows["xx"].setVisible(self.shows_xx)
         self._check_serial += 1
         serial = self._check_serial
-        if not rom and not mhgen:
-            self._problems = {"rom": None, "mhgen": None}
+        if not rom and not (xx and need_xx):
+            self._problems = {"rom": None, "xx": [] if not need_xx else None}
             self._update_texts()
             return
-        self._problems = {"rom": None if rom else [], "mhgen": None if mhgen else []}
-        task = Task(lambda report: self.runner.check(Path(rom) if rom else None, Path(mhgen) if mhgen else None), self)
+        self._problems = {"rom": None if rom else [], "xx": None if xx and need_xx else []}
+        task = Task(lambda report: self.runner.check(Path(rom) if rom else None, Path(xx) if xx else None, need_xx),
+                    self)
         self._tasks.append(task)
         task.done.connect(lambda problems: self._checked(serial, problems, task))
         task.failed.connect(lambda text: self._checked(serial, [text.strip().splitlines()[-1]], task))
@@ -846,26 +881,22 @@ class InstallPage(Page):
             self._tasks.remove(task)
         if serial != self._check_serial:
             return
-        rom, mhgen = bool(self.state.rom_path), bool(self.state.mhgen_rom_path)
+        rom = bool(self.state.rom_path)
+        xx = bool(self.state.xx_rom_path) and self.uses_xx
         mine = [p for p in problems if p.startswith("Monster Hunter 4 Ultimate")]
-        other = [p for p in problems if p not in mine]
-        self._problems = {"rom": mine if rom else [], "mhgen": other if mhgen else []}
+        theirs = [p for p in problems if p.startswith("Monster Hunter XX")]
+        self._problems = {"rom": mine if rom else [], "xx": theirs if xx else []}
         self._update_texts()
         self._update_buttons()
 
     @property
-    def needs_mhgen(self) -> bool:
-        """MH Generations' game is asked for (edition.json `needs_mhgen`)."""
-        return edition().needs_mhgen
-
-    @property
     def files_ok(self) -> bool:
-        needed = ("rom", "mhgen") if self.needs_mhgen else ("rom",)
+        needed = ("rom", "xx") if self.uses_xx else ("rom",)
         return all(self._problems[k] == [] for k in needed) and all(self._path(k) for k in needed)
 
     def _show_file_status(self, which: str, widget: QLabel) -> None:
         language = translator.language
-        path = self.state.rom_path if which == "rom" else self.state.mhgen_rom_path
+        path = self._path(which)
         problems = self._problems[which]
         if not path:
             text = T_NOT_CHOSEN(language)
@@ -948,10 +979,10 @@ class InstallPage(Page):
             request = dataclasses.replace(resolve_request(self.state, self.finder), console=True)
         except jobs.NoTarget:
             from core.app.presets import install_settings
-            request = jobs.InstallRequest(Path(self.state.rom_path),
-                                          Path(self.state.mhgen_rom_path) if self.state.mhgen_rom_path else None,
-                                          install_settings(self.state.personal), "install", True, Path(folder),
-                                          rom_title(self.state))
+            settings = install_settings(self.state.personal)
+            xx = self.state.xx_rom_for(settings)
+            request = jobs.InstallRequest(Path(self.state.rom_path), settings, "install", True, Path(folder),
+                                          rom_title(self.state), xx_rom=Path(xx) if xx else None)
         self._start("export", request, Path(folder))
 
     def _start(self, action: str, request: jobs.InstallRequest, dest: Path | None = None) -> None:

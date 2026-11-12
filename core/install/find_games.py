@@ -1,10 +1,12 @@
 """Finding the player's game files where an emulator knows them, so the Install page opens with both pickers filled.
 
 Where, in this order (the first is the best):
-  1. each emulator user folder `targets.emulator_targets` finds: the game folders listed in its `config/qt-config.ini`
-     (Qt's `Paths\\gamedirs\\<n>\\path` and `deep_scan` keys; `INSTALLED` and `SYSTEM` are not folders) and the titles
-     installed in `sdmc/Nintendo 3DS/<id>/<id>/title/00040000/<low>/content/00000000.app`;
-  2. the player's Downloads, Desktop and Documents, a few folders deep.
+  1. each emulator user folder `targets.emulator_targets` finds: the game folders listed in its qt-config.ini
+     (`targets.settings_file`: its `config/`, or Linux's settings folder; Qt's `Paths\\gamedirs\\<n>\\path` and
+     `deep_scan` keys; `INSTALLED` and `SYSTEM` are not folders) and the titles installed in
+     `sdmc/Nintendo 3DS/<id>/<id>/title/00040000/<low>/content/00000000.app`;
+  2. the player's Downloads, Desktop and Documents (wherever Windows or a Linux desktop keeps them), a few folders
+     deep.
 Only files with an accepted extension (`containers.EXTENSIONS`) are opened, and only for their NCCH header
 (`extract.ncch_identity`); encrypted files, the games' updates, other games and anything unreadable are left out. The
 search is bounded (curated/find_games.json: files read, entries listed, seconds) and never raises: a folder it cannot
@@ -34,7 +36,7 @@ LIMITS_PATH = CURATED_DIR / "find_games.json"
 EMULATOR_FOLDER, EMULATOR_INSTALLED, USER_FOLDER = "emulator_folder", "emulator_installed", "user_folder"
 _TIER = {EMULATOR_FOLDER: 0, EMULATOR_INSTALLED: 0, USER_FOLDER: 1}
 
-QT_CONFIG = Path("config") / "qt-config.ini"
+_XDG_USER_DIR = re.compile(r'^XDG_(?:DESKTOP|DOWNLOAD|DOCUMENTS)_DIR="(.*)"$')
 _GAMEDIR = re.compile(r"^Paths\\gamedirs\\(\d+)\\(path|deep_scan)=(.*)$")
 _INSTALLED_PATH, _SYSTEM_PATH = "INSTALLED", "SYSTEM"
 PROGRAM_CONTENT = "00000000.app"       # the program of an installed title (its manual and DLC are other contents)
@@ -61,8 +63,8 @@ class Limits(NamedTuple):
 
 class Candidate(NamedTuple):
     path: Path
-    game: str        # titles.MH4U or titles.MHGEN
-    region: str      # titles.EUR or titles.USA
+    game: str        # titles.MH4U or titles.MHXX
+    region: str      # titles.EUR or titles.USA (MH XX: titles.JPN)
     source: str      # EMULATOR_FOLDER, EMULATOR_INSTALLED or USER_FOLDER
     place: str       # the emulator's folder name ("Azahar"), or the home folder's ("Downloads")
 
@@ -71,7 +73,7 @@ class Candidate(NamedTuple):
 class Found:
     """What a search found, each list best first. `checked`: files whose header was read (a search's cost)."""
     mh4u: list[Candidate] = field(default_factory=list)
-    mhgen: list[Candidate] = field(default_factory=list)
+    xx: list[Candidate] = field(default_factory=list)
     checked: int = 0
 
 
@@ -88,8 +90,9 @@ def _qt_string(value: str) -> str:
 def config_folders(base: Path) -> list[tuple[Path, bool]]:
     """(folder, deep scan) of the game folders `base`'s qt-config.ini lists, in its order. The `INSTALLED` and
     `SYSTEM` entries are not folders. Nothing for a missing or unreadable file."""
+    from core.install.targets import settings_file
     try:
-        text = (Path(base) / QT_CONFIG).read_text(encoding="utf-8", errors="replace")
+        text = settings_file(base).read_text(encoding="utf-8", errors="replace")
     except OSError:
         return []
     entries: dict[int, dict[str, str]] = {}
@@ -106,8 +109,8 @@ def config_folders(base: Path) -> list[tuple[Path, bool]]:
 
 
 def installed_programs(base: Path) -> list[Path]:
-    """The `00000000.app` of each MH4U and MH Generations title installed in the emulator's virtual SD card."""
-    lows = sorted({title[8:] for table in (titles.MH4U_REGIONS, titles.MHGEN_REGIONS) for title in table})
+    """The `00000000.app` of each MH4U and MH XX title installed in the emulator's virtual SD card."""
+    lows = sorted({title[8:] for table in (titles.MH4U_REGIONS, titles.MHXX_REGIONS) for title in table})
     found = []
     for first in _listing(Path(base) / "sdmc" / "Nintendo 3DS"):
         for second in _listing(first):
@@ -153,13 +156,37 @@ def _windows_known_folders() -> list[Path]:
     return folders
 
 
+def xdg_user_folders(home: Path, config: Path | None = None) -> list[Path]:
+    """The Desktop, Downloads and Documents a Linux desktop names (user-dirs.dirs in `config`, default XDG_CONFIG_HOME
+    or ~/.config; translated names such as ~/Descargas), in the file's order. One set to the home folder itself is
+    disabled, so left out. Nothing without the file."""
+    home = Path(home)
+    config = Path(config or os.environ.get("XDG_CONFIG_HOME") or home / ".config")
+    try:
+        text = (config / "user-dirs.dirs").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    folders = []
+    for line in text.splitlines():
+        match = _XDG_USER_DIR.match(line.strip())
+        if not match:
+            continue
+        value = match[1]
+        if value.rstrip("/") == "$HOME":
+            continue
+        folder = home / value[len("$HOME/"):] if value.startswith("$HOME/") else Path(value)
+        if folder.is_absolute():
+            folders.append(folder)
+    return folders
+
+
 def user_folders(limits: Limits | None = None, home: Path | None = None,
                  known: Sequence[Path] | None = None) -> list[Path]:
-    """The player's folders to search: the system's own (`known`, else asked of Windows) and the names of the limits
-    under the home folder, those that exist, once each."""
+    """The player's folders to search: the system's own (`known`, else asked of Windows and of the Linux desktop) and
+    the names of the limits under the home folder, those that exist, once each."""
     limits = limits or Limits.load()
     home = Path.home() if home is None else Path(home)
-    candidates = list(_windows_known_folders() if known is None else known)
+    candidates = list(_windows_known_folders() + xdg_user_folders(home) if known is None else known)
     candidates += [home / name for name in limits.user_folders]
     found, seen = [], set()
     for folder in candidates:
@@ -217,7 +244,7 @@ class _Search:
                     continue
 
     def file(self, path: Path, source: str, place: str) -> None:
-        """Read `path`'s header and keep it when it is a decrypted base MH4U or MH Generations."""
+        """Read `path`'s header and keep it when it is a decrypted base MH4U or MH XX."""
         key = os.path.normcase(os.path.abspath(path))
         if key in self.seen:
             return
@@ -228,7 +255,7 @@ class _Search:
         except Exception:   # a damaged, cut or foreign file is just not a game: the search goes on
             return
         kind = titles.identify(title)
-        if not decrypted or kind is None or kind[0] not in (titles.MH4U, titles.MHGEN):
+        if not decrypted or kind is None or kind[0] not in (titles.MH4U, titles.MHXX):
             return
         self.order += 1
         rank = (_TIER[source], 0 if kind[1] == titles.EUR else 1, self.order)
@@ -256,5 +283,5 @@ def find(emulators: Iterable | None = None, folders: Iterable[Path] | None = Non
     for folder in user_folders(limits) if folders is None else folders:
         search.folder(Path(folder), limits.user_depth, USER_FOLDER, Path(folder).name)
     ranked = sorted(search.candidates, key=lambda item: item[0])
-    return Found([c for _, c in ranked if c.game == titles.MH4U], [c for _, c in ranked if c.game == titles.MHGEN],
+    return Found([c for _, c in ranked if c.game == titles.MH4U], [c for _, c in ranked if c.game == titles.MHXX],
                  search.checked)

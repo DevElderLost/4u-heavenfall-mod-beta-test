@@ -99,8 +99,9 @@ def mod_folders(targets: Iterable | None = None, chosen: str = "auto") -> list[P
     return found
 
 
-def find_games(title: str, preferences, search: Callable | None, need_mhgen: bool) -> tuple[Path | None, Path | None]:
-    """The player's MH4U file of the region of the mod folder `title` and, when the edition needs it, MH Generations':
+def find_games(title: str, preferences, search: Callable | None, want_xx: bool) -> tuple[Path | None, Path | None]:
+    """The player's MH4U file of the region of the mod folder `title` and, when `want_xx` (the saved options need it,
+    or the edition offers it), MH XX's:
     the ones the program remembers, else the first found (install/find_games.py). None for what is missing."""
     from core.game.executable import titles
     from core.install import find_games as finder
@@ -118,10 +119,10 @@ def find_games(title: str, preferences, search: Callable | None, need_mhgen: boo
     rom = remembered(preferences.rom_path, titles.MH4U)
     if rom is None or titles.mod_title_of_file(rom) != title:
         rom = next((c.path for c in found().mh4u if titles.mod_title(c.region) == title), None)
-    mhgen = None
-    if need_mhgen:
-        mhgen = remembered(preferences.mhgen_rom_path, titles.MHGEN) or next((c.path for c in found().mhgen), None)
-    return rom, mhgen
+    xx = None
+    if want_xx:
+        xx = remembered(preferences.xx_rom_path, titles.MHXX) or next((c.path for c in found().xx), None)
+    return rom, xx
 
 
 def _every_tenth(show: Callable[[int], None]) -> Callable[[int, int], None]:
@@ -173,15 +174,16 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
         elif marker.get("version") == version and not marker.get("incomplete"):
             tell("current", folder=folder, version=version)
         else:
-            rom, mhgen = find_games(folder.name.upper(), preferences, search, current.needs_mhgen)
-            if rom is None or (current.needs_mhgen and mhgen is None):
+            settings = settings_from_marker(marker.get("settings"))
+            needs_xx = settings.needs_xx    # MH XX's file: needed by the saved options, or offered by the edition
+            rom, xx = find_games(folder.name.upper(), preferences, search, needs_xx or current.xx_optional)
+            if rom is None or (needs_xx and xx is None):
                 tell("no_game", folder=folder)
                 report.left.append(folder)
                 continue
-            settings = settings_from_marker(marker.get("settings"))
             tell("rebuilding", folder=folder, old=marker.get("version") or "?", new=version)
             try:
-                result = build(rom, mhgen, settings, build_dir=build_dir, kind="install",
+                result = build(rom, settings, build_dir=build_dir, kind="install", xx_rom=xx,
                                progress=_every_tenth(lambda percent: tell("progress", percent=percent)))
                 code = result.checksum.code if result.checksum else ""
                 install(result.output_dir, folder, "install", seed=result.seed, checksum=code,

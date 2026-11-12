@@ -12,6 +12,7 @@ from pathlib import Path
 from core.game.executable.containers import (
     ENCRYPTED, MEDIA_UNIT, NCCH_MAGICS, NO_EXECUTABLE, NOT_A_GAME_FILE, TRUNCATED, ExtractError, open_container,
 )
+from core.native import kernels
 
 NO_CRYPTO = 0x04
 
@@ -19,7 +20,13 @@ NO_CRYPTO = 0x04
 @lru_cache(maxsize=4)
 def blz_decompress(data: bytes) -> bytes:
     """Nintendo bottom-up LZ77 used for compressed ExeFS code. Kept for the last few inputs: a run reads the same
-    executable twice and decompressing it takes over a second."""
+    executable twice. The native kernel does it when it can, else _blz_decompress."""
+    out = kernels.blz_decompress(data)
+    return out if out is not None else _blz_decompress(data)
+
+
+def _blz_decompress(data: bytes) -> bytes:
+    """blz_decompress in Python (over a second for the game's executable): the native kernel's twin."""
     buffer_top_and_bottom, extra_size = struct.unpack_from("<II", data, len(data) - 8)
     header_len = buffer_top_and_bottom >> 24
     compressed_len = buffer_top_and_bottom & 0xFFFFFF

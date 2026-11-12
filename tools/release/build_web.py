@@ -120,11 +120,14 @@ def bundle() -> bytes:
 
 
 def write_site(out: Path, cache: Path | None) -> dict:
-    """The whole site in `out`, emptied first; `cache` None leaves Pyodide out. Returns what build.json says."""
+    """The whole site in `out`, emptied first; `cache` None leaves Pyodide out. Returns what build.json says. A folder
+    that is not empty and holds no site (no build.json) is refused, never emptied."""
     from core import __version__
     from core.app import web
     out = Path(out)
     if out.exists():
+        if any(out.iterdir()) and not (out / "build.json").is_file():
+            raise SystemExit(f"{out} is not empty and holds no site: choose another --out")
         shutil.rmtree(out)
     out.mkdir(parents=True)
     for name in PAGE_FILES:

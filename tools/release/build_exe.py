@@ -49,8 +49,7 @@ UPDATER_NAME = edition().updater_name   # "Heavenfall-update": beside the app in
 ZIP_NAME = edition().zip_name
 ICON_ENV = "HEAVENFALL_ICON"       # the .ico `main` makes for the spec
 
-# What the program reads at run time, relative to core/ (a folder: every file in it that is not code).
-# The folders of data files the program reads, bundled whole.
+# The folders of data files the program reads, bundled whole (relative to core/).
 ASSET_FOLDERS = (
     "game/data",                    # the knowledge base: curated rules, generated data
     "interface/monster_icons/icons",
@@ -59,18 +58,30 @@ ASSET_FOLDERS = (
     "install/installer_3ds",        # the 3DS app
     "interface/single_screen/layout/images",
 )
+# What the program reads at run time, relative to core/ (a folder: every file in it that is not code).
 RESOURCES = ASSET_FOLDERS + (
     "gui/qt/assets",                # the logo (gui/qt/resources.py)
+    # the installed title's HOME Menu icons (install/title/smdh.py)
+    "install/title/icon_48.png",
+    "install/title/icon_24.png",
+    "install/title/certs.bin",      # the CIA's certificate chain (install/title/cia.py)
     # code_space.json: the code added to the executable, and the game versions' maps
     "game/executable/generated",
     # the ported monsters' recordings of what the game's code does with its files
     "monsters/alatreon/recordings.json",
     "monsters/glavenus/recordings_em080.json",
     "monsters/mizutsune/recordings_em082.json",
+    "monsters/great_maccao/recordings_em085.json",
+    "monsters/maccao/recordings_ems046.json",
+    "monsters/valstrax/recordings_em086.json",
     # read for the sizes of the shells' point tables (monsters/porting/proof_blocks.py)
     "monsters/alatreon/em050/statics.c",
     "monsters/glavenus/em080/statics.c",
     "monsters/mizutsune/em082/statics.c",
+    "monsters/great_maccao/em085/statics.c",
+    "monsters/maccao/ems046/static.c",       # Maccao has no shells: his spec's statics, read the same way
+    "monsters/valstrax/em086/static.c",
+    "native/lib",                   # the native kernels' library
 )
 # Files outside the package, to the bundle's top (where the modules that use them look: the checkout's top).
 ROOT_RESOURCES = ("extra_ost_volumes.json",)
@@ -83,7 +94,8 @@ EXCLUDES = ("numpy", "pytest", "_pytest", "xdist", "execnet", "unicorn", "capsto
 # the commands of tools/ui/ui.py, which need numpy. Nothing the program runs may import them
 # (tests/tools/release/test_packaging.py).
 TOOLS_ONLY = ("core.interface.game_gui.check", "core.interface.game_gui.edit", "core.interface.game_gui.fidelity",
-              "core.interface.game_gui.gallery", "core.interface.game_gui.render")
+              "core.interface.game_gui.gallery", "core.interface.game_gui.render",
+              "core.install.title.patchset")           # the release patch sets' writer (numpy): tools/release only
 # The command line has no Qt.
 CLI_EXCLUDES = ("PySide6", "shiboken6")
 # The updater (tools/release/exe/heavenfall_update.py) is one file with the standard library and these modules of the

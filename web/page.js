@@ -1,5 +1,6 @@
 // The page: its texts, the options (options.json, drawn here), and the worker that checks the game and builds the mod.
-// document.body.dataset.state says where it is: loading, idle, checking, ready, refused, building, built or failed.
+// document.body.dataset.state says where it is: loading, idle, checking, ready, refused, building, built or failed;
+// document.body.dataset.xx, MH XX's optional file: "" (none), checking, good or bad.
 
 const TEXTS = {
   es: {
@@ -15,13 +16,21 @@ const TEXTS = {
     deckMissing: "Si el navegador no ve la tarjeta SD, copia el juego a Descargas o dale permiso con Flatseal, que se "
       + "instala desde Discover.",
     pcMissing: "Búscalo donde lo guardaste: el navegador puede abrir cualquier carpeta de tu PC.",
+    xxHelp: "Opcional: tu copia descifrada de Monster Hunter XX (japonesa). Con ella, el equipo superpuesto tiene "
+      + "también los aspectos de XX. El mod tarda más en crearse.",
+    chooseXx: "Elegir Monster Hunter XX",
+    xxChecking: "Comprobando Monster Hunter XX…",
+    xxGood: "✓ Monster Hunter XX: {name}",
+    xxBad: "✗ {problem}. El mod se creará sin Monster Hunter XX.",
+    xxRemove: "Quitar",
     engine: "Preparando el motor (la primera vez descarga unos 15 MB)…",
     checking: "Comprobando el juego…",
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
     gameBad: "✗ {problem}",
     optionsTitle: "2. Opciones",
     optionsHelp: "Las opciones por defecto valen para casi todo el mundo: pantalla única, HUD al 70 % e imagen más "
-      + "nítida. Los trucos, fijar monstruos con L y mantener A también se cambian dentro del juego: menú START, "
+      + "nítida. Cada módulo (pantalla única, equipo superpuesto, otros) tiene su interruptor: apagado, el juego queda "
+      + "como el original en todo lo suyo. Los trucos, fijar monstruos con L y mantener A también se cambian dentro del juego: menú START, "
       + "tercera página, Ajustes del mod.",
     optionsShow: "Ver y cambiar opciones",
     reset: "Restablecer",
@@ -101,13 +110,21 @@ const TEXTS = {
     deckMissing: "If the browser can't see the SD card, copy the game to Downloads or give it permission with Flatseal, "
       + "which you can install from Discover.",
     pcMissing: "Look for it where you saved it: the browser can open any folder on your PC.",
+    xxHelp: "Optional: your decrypted copy of Monster Hunter XX (Japanese). With it, Layered Gear also has XX's "
+      + "looks. The mod takes longer to make.",
+    chooseXx: "Choose Monster Hunter XX",
+    xxChecking: "Checking Monster Hunter XX…",
+    xxGood: "✓ Monster Hunter XX: {name}",
+    xxBad: "✗ {problem}. The mod will be made without Monster Hunter XX.",
+    xxRemove: "Remove",
     engine: "Getting the engine ready (the first time downloads about 15 MB)…",
     checking: "Checking the game…",
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
     gameBad: "✗ {problem}",
     optionsTitle: "2. Options",
-    optionsHelp: "The default options suit most players: single screen, the HUD at 70% and a sharper picture. The "
-      + "cheats, the lock-on with L and holding A can also be changed inside the game: START menu, third page, "
+    optionsHelp: "The default options suit most players: single screen, the HUD at 70% and a sharper picture. Each "
+      + "module (single screen, Layered gear, other) has its own switch: off, the game stays as the original in "
+      + "everything it holds. The cheats, the lock-on with L and holding A can also be changed inside the game: START menu, third page, "
       + "Mod Settings.",
     optionsShow: "See and change options",
     reset: "Reset",
@@ -188,6 +205,8 @@ const page = {
   values: {},             // the player's options by field
   file: null,             // the chosen game
   game: null,             // what core/app/web.py said of it (its text is in the language asked)
+  xxFile: null,           // MH XX's file, optional
+  xx: null,               // what core/app/web.py (check_xx) said of it
   worker: null,
   engineSeconds: null,
   building: null,         // while building: {began, text, timer, lock}
@@ -208,9 +227,18 @@ function fill(template, values) {
 
 function setState(state) {
   document.body.dataset.state = state;
-  $("#build").disabled = !page.game?.ok || state === "building" || state === "checking";
+  refreshBuild();
   $("#game").disabled = state === "building";
+  $("#xx").disabled = state === "building";
+  $("#xx-remove").disabled = state === "building";
   $("#progress").hidden = state !== "building";
+}
+
+// The button waits for the game's check and for MH XX's, when one was chosen
+function refreshBuild() {
+  const state = document.body.dataset.state;
+  $("#build").disabled = !page.game?.ok || state === "building" || state === "checking"
+    || document.body.dataset.xx === "checking";
 }
 
 function setStatus(selector, message, kind = "") {
@@ -455,6 +483,14 @@ const HANDLERS = {
   started({ seconds }) {
     page.engineSeconds = seconds;
     if (document.body.dataset.state === "checking") setStatus("#game-status", text("checking"));
+    if (document.body.dataset.xx === "checking") setStatus("#xx-status", text("xxChecking"));
+    drawDiagnostics();
+  },
+  checkedXx({ result }) {
+    page.xx = result;
+    document.body.dataset.xx = result.ok ? "good" : "bad";
+    showXx();
+    refreshBuild();
     drawDiagnostics();
   },
   checked({ result }) {
@@ -526,6 +562,43 @@ function forgetMod() {
   $("#download").hidden = true;
 }
 
+function showXx() {
+  if (!page.xx) return;
+  if (page.xx.ok) setStatus("#xx-status", text("xxGood", { name: page.xxFile.name }), "good");
+  else setStatus("#xx-status", text("xxBad", { problem: page.xx.problem }), "bad");
+}
+
+// A mod made without (or with) MH XX is not the one asked for any more
+function xxChanged() {
+  forgetMod();
+  if (["built", "failed"].includes(document.body.dataset.state) && page.game?.ok) {
+    setStatus("#build-status", "");
+    setState("ready");
+  }
+}
+
+function checkXx() {
+  xxChanged();
+  page.xx = null;
+  document.body.dataset.xx = "checking";
+  $("#xx-remove").hidden = false;
+  setStatus("#xx-status", page.worker ? text("xxChecking") : text("engine"));
+  refreshBuild();
+  theWorker().postMessage({ type: "checkXx", file: page.xxFile, language: page.language });
+  drawDiagnostics();
+}
+
+function removeXx() {
+  xxChanged();
+  page.xxFile = null;
+  page.xx = null;
+  document.body.dataset.xx = "";
+  $("#xx-remove").hidden = true;
+  setStatus("#xx-status", "");
+  refreshBuild();
+  drawDiagnostics();
+}
+
 function checkGame() {
   forgetMod();
   page.game = null;
@@ -550,7 +623,8 @@ async function startBuilding() {
   page.building.timer = setInterval(showElapsed, 1000);
   showElapsed();
   setState("building");
-  theWorker().postMessage({ type: "build", file: page.file, personal: page.values, language: page.language });
+  theWorker().postMessage({ type: "build", file: page.file, xx: page.xx?.ok ? page.xxFile : null,
+                            personal: page.values, language: page.language });
   try {
     // the screen stays on: a phone that sleeps may stop the page; a browser without it just skips this
     const lock = await navigator.wakeLock?.request("screen");
@@ -579,6 +653,9 @@ function drawDiagnostics() {
     `Screen stays on: ${"wakeLock" in navigator ? "yes" : "no"}. Folder writing: ${"showDirectoryPicker" in window ? "yes" : "no"}.`,
   ];
   if (page.file) lines.push(`Game: ${megabytes(page.file.size)}`);
+  if (page.xxFile) {
+    lines.push(`MH XX: ${megabytes(page.xxFile.size)}, ${page.xx ? (page.xx.ok ? "used" : "refused") : "checking"}`);
+  }
   if (page.engineSeconds !== null) lines.push(`Engine started in ${page.engineSeconds.toFixed(1)} s`);
   if (page.result) {
     lines.push(`Mod: ${page.result.title}, ${page.result.version}, ${page.result.files} files, `
@@ -597,6 +674,8 @@ function connect() {
     drawTexts();
     if (page.result) showBuilt();
     else if (page.file && ["ready", "refused"].includes(document.body.dataset.state)) checkGame();
+    if (page.xx?.ok) showXx();
+    else if (page.xx) checkXx();       // its refusal, told again in the new language
   });
   for (const tab of document.querySelectorAll(".tab")) {
     tab.addEventListener("click", () => {
@@ -614,7 +693,18 @@ function connect() {
     page.file = file;
     stopWorker();
     checkGame();
+    if (page.xxFile && !page.xx) checkXx();      // its check went with the stopped worker
   });
+  $("#xx").addEventListener("click", (event) => {
+    event.target.value = "";
+  });
+  $("#xx").addEventListener("change", (event) => {
+    const [file] = event.target.files;
+    if (!file) return;
+    page.xxFile = file;
+    checkXx();
+  });
+  $("#xx-remove").addEventListener("click", removeXx);
   $("#reset").addEventListener("click", () => {
     save(SAVED_OPTIONS, {});
     page.values = startingValues();

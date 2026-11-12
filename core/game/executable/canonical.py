@@ -9,6 +9,7 @@ refuse a site in one. The way back (`from_canonical`) is another module's.
 import struct
 
 from core.game.executable.versions import VersionMap
+from core.native import kernels
 
 BASE = 0x100000           # virtual address of code.bin's first byte (every version of both games)
 TRAP = 0xE7F000F0         # ARM's permanently undefined instruction: not zero, not a branch, never game code
@@ -74,9 +75,16 @@ def _canonical_of(version: VersionMap, address: int, what: str) -> int:
 def to_canonical(code: bytes, version: VersionMap) -> bytes:
     """`code` (the decompressed code.bin of `version`) as the canonical executable of its game: the same length,
     every byte at its canonical address. Branch slots at an odd address are Thumb BL/BLX pairs (at the address
-    minus one)."""
+    minus one). The native kernel does it when it can, else _to_canonical."""
     if version.is_canonical:
         return bytes(code)
+    out = kernels.to_canonical(code, version, BASE, TRAP)
+    return out if out is not None else _to_canonical(code, version)
+
+
+def _to_canonical(code: bytes, version: VersionMap) -> bytes:
+    """to_canonical in Python, for a version that is not canonical: the native kernel's twin. CanonicalError for a
+    slot that does not fit the executable."""
     end = BASE + len(code)
     out = bytearray(len(code))
     for run in version.runs:
