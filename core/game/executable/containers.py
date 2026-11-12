@@ -11,6 +11,10 @@
 The format is told by the file's content, never by its extension. Every reader of the game files (`ncch_identity`,
 `extract_code`, `RomFS`, `extract_exheader`) opens its file with `open_container`, so a new format needs no code of its
 own anywhere else. Refusals are `ExtractError`s with a `kind`, which the GUI translates (gui/strings.py).
+
+Within `kept_reads()` (a run: core/app/pipeline.py) a plain file is read a block at a time and the blocks stay for the
+next read until it ends: a run reads thousands of small files of the games, side by side or the same again, and a
+browser pays for each read of the player's file.
 """
 
 import bisect
@@ -19,6 +23,7 @@ import os
 import struct
 import threading
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
 
 import zstandard
@@ -130,6 +135,19 @@ class _View(io.RawIOBase):
         raise NotImplementedError
 
 
+def _read_file(raw, position: int, size: int) -> bytes:
+    """`size` bytes of the open file `raw` from `position`, fewer only at its end."""
+    raw.seek(position)
+    pieces = []
+    while size > 0:
+        piece = raw.read(size)
+        if not piece:
+            break
+        pieces.append(piece)
+        size -= len(piece)
+    return pieces[0] if len(pieces) == 1 else b"".join(pieces)
+
+
 class _Window(_View):
     """Bytes [start, start + size) of `parent`, which it closes with itself."""
 
@@ -198,24 +216,103 @@ Z3DS_VERSION = 1                                # metadata size, compressed size
 SKIPPABLE_MAGIC, SEEKABLE_MAGIC = 0x184D2A5E, 0x8F92EAB1
 SEEK_FOOTER = struct.Struct("<IBI")            # frames, descriptor, seekable magic
 CHECKSUM_FLAG, RESERVED_BITS = 0x80, 0x7C
-# Decompressed frames kept for the next read (a RomFS reads many small files of the same frame; a CIA's frames hold
-# 32 MB), and parsed seek tables.
-FRAME_CACHE_BYTES = 128 * 1024 * 1024
+# Decompressed frames, and a plain file's blocks within kept_reads, kept for the next read (a RomFS reads many small
+# files of the same frame or block; a CIA's frames hold 32 MB), and parsed seek tables.
+CACHE_BYTES = 128 * 1024 * 1024
 INDEX_CACHE = 4
+BLOCK = 256 * 1024              # a plain file's piece kept within kept_reads (a .zcci's frame)
+_BLOCK_KEY = "block"            # first item of a block's key in _kept (a frame's is its file's key)
 
 _lock = threading.Lock()
-_frames: OrderedDict[tuple, bytes] = OrderedDict()
-_frames_size = 0
+_kept: OrderedDict[tuple, bytes] = OrderedDict()
+_kept_size = 0
 _indexes: OrderedDict[tuple, "_Index"] = OrderedDict()
+_keeping = 0                    # kept_reads() open now (they nest)
 
 
 def clear_caches() -> None:
-    """Forget the decompressed frames and the seek tables kept between reads."""
-    global _frames_size
+    """Forget the decompressed frames, the blocks and the seek tables kept between reads."""
+    global _kept_size
     with _lock:
-        _frames.clear()
+        _kept.clear()
         _indexes.clear()
-        _frames_size = 0
+        _kept_size = 0
+
+
+def _cached(key: tuple) -> bytes | None:
+    with _lock:
+        data = _kept.get(key)
+        if data is not None:
+            _kept.move_to_end(key)
+        return data
+
+
+def _keep(key: tuple, data: bytes) -> None:
+    """`data` kept for the next read, the oldest pieces dropped past CACHE_BYTES."""
+    global _kept_size
+    if len(data) > CACHE_BYTES:
+        return
+    with _lock:
+        if key not in _kept:
+            _kept[key] = data
+            _kept_size += len(data)
+        while _kept_size > CACHE_BYTES:
+            _, dropped = _kept.popitem(last=False)
+            _kept_size -= len(dropped)
+
+
+@contextmanager
+def kept_reads():
+    """While it is open (also as a decorator), the plain game files open_container opens are read a block at a time and
+    the blocks stay for the next read; they are dropped when the outermost one ends, so a file replaced afterwards is
+    read anew."""
+    global _keeping, _kept_size
+    with _lock:
+        _keeping += 1
+    try:
+        yield
+    finally:
+        with _lock:
+            _keeping -= 1
+            if not _keeping:
+                for key in [key for key in _kept if key[0] == _BLOCK_KEY]:
+                    _kept_size -= len(_kept.pop(key))
+
+
+class _Blocks(_View):
+    """A plain file (`raw`, unbuffered) read a block at a time, the blocks kept (_keep) under `key` (the file's path,
+    size and time); a read longer than a block comes straight from the file."""
+
+    def __init__(self, raw, key: tuple, size: int):
+        super().__init__(size)
+        self._raw = raw
+        self._key = key
+
+    def _block(self, number: int) -> bytes:
+        key = (_BLOCK_KEY, self._key, number)
+        data = _cached(key)
+        if data is None:
+            data = _read_file(self._raw, number * BLOCK, min(BLOCK, self.size - number * BLOCK))
+            _keep(key, data)
+        return data
+
+    def _read_at(self, position: int, size: int) -> bytes:
+        if size > BLOCK:
+            return _read_file(self._raw, position, size)
+        first, last = position // BLOCK, (position + size - 1) // BLOCK
+        data = self._block(first) if first == last else self._block(first) + self._block(last)
+        start = position - first * BLOCK
+        return data[start:start + size]
+
+    def close(self) -> None:
+        if not self.closed:
+            self._raw.close()
+        super().close()
+
+
+def _file_key(raw, path: Path) -> tuple:
+    status = os.fstat(raw.fileno())
+    return os.path.abspath(path), status.st_size, status.st_mtime_ns
 
 
 class _Index:
@@ -294,27 +391,16 @@ class _ZstdFile(_View):
         self._index = index
 
     def _frame(self, number: int) -> bytes:
-        global _frames_size
         index = self._index
         key = (index.key, number)
-        with _lock:
-            plain = _frames.get(key)
-            if plain is not None:
-                _frames.move_to_end(key)
-                return plain
-        self._raw.seek(index.compressed_at[number])
-        data = self._raw.read(index.compressed_size[number])
+        plain = _cached(key)
+        if plain is not None:
+            return plain
+        data = _read_file(self._raw, index.compressed_at[number], index.compressed_size[number])
         if len(data) != index.compressed_size[number]:
             raise ExtractError.of(TRUNCATED, "inside a compressed frame")
         plain = _decompress_frame(data, index.plain_at[number + 1] - index.plain_at[number])
-        if len(plain) <= FRAME_CACHE_BYTES:
-            with _lock:
-                if key not in _frames:
-                    _frames[key] = plain
-                    _frames_size += len(plain)
-                while _frames_size > FRAME_CACHE_BYTES:
-                    _, dropped = _frames.popitem(last=False)
-                    _frames_size -= len(dropped)
+        _keep(key, plain)
         return plain
 
     def _read_at(self, position: int, size: int) -> bytes:
@@ -336,12 +422,11 @@ class _ZstdFile(_View):
 
 
 def _open_z3ds(raw, path: Path) -> _ZstdFile:
-    status = os.fstat(raw.fileno())
-    key = (os.path.abspath(path), status.st_size, status.st_mtime_ns)
+    key = _file_key(raw, path)
     with _lock:
         index = _indexes.get(key)
     if index is None:
-        index = _read_index(raw, key, status.st_size)
+        index = _read_index(raw, key, key[1])
         with _lock:
             _indexes[key] = index
             while len(_indexes) > INDEX_CACHE:
@@ -362,12 +447,17 @@ def looks_like_container(path: Path) -> bool:
 def open_container(path: Path):
     """The game file as a seekable binary file whose offset 0 is the NCSD or NCCH, whatever the format (see the module
     text). Close it, or use `with`. Raises ExtractError for a file that is none of the formats, is encrypted, cut
-    short or damaged; OSError when it cannot be opened."""
+    short or damaged; OSError when it cannot be opened. Within kept_reads() a plain file is read in kept blocks."""
     path = Path(path)
-    raw = path.open("rb")
+    keeping = _keeping > 0
+    raw = path.open("rb", buffering=0) if keeping else path.open("rb")
     try:
-        f = raw
-        head = raw.read(HEAD)
+        if keeping:
+            key = _file_key(raw, path)
+            f = _Blocks(raw, key, key[1])
+        else:
+            f = raw
+        head = f.read(HEAD)
         if head[:4] == Z3DS_MAGIC:
             f = _open_z3ds(raw, path)
             head = f.read(HEAD)
