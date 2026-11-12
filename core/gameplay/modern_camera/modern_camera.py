@@ -70,7 +70,7 @@ TICKS_PER_SECOND = 60.0         # the camera's frame time (sMhCamera + 0xE2C) co
 PITCH_LIMIT = 0x3F00            # FUN_00bfd028's pitch limit, both ways
 AIMS = ("shoulder", "scope", "bow")     # modern_camera.c enum aim
 AIM_PITCH_SPAN = {"shoulder": 45.0, "scope": 45.0, "bow": 60.0}   # FUN_00b2041c: the degrees of 100 pitch steps up
-AIM_RESPONSE = ("expo", "speed_up_seconds", "slow_down_seconds")   # each aim's curve and times, as the camera's
+AIM_RESPONSE = ("expo", "ramp_seconds")   # each aim's curve and ramp time, as the camera's
 PITCH_STEPS_PER_SPAN = 100.0    # FUN_00b1ea04: the pitch in hundredths of its span
 
 
@@ -85,8 +85,8 @@ def _value(raw: dict, key: str) -> Any:
     return entry["value"]
 
 
-KEYS = ("dead_zone", "full_tilt", "expo", "yaw_degrees_per_second", "pitch_degrees_per_second", "speed_up_seconds",
-        "slow_down_seconds", "stop_degrees_per_second", "longest_frame_seconds", "direct", "aim_degrees_per_second",
+KEYS = ("dead_zone", "full_tilt", "expo", "yaw_degrees_per_second", "pitch_degrees_per_second", "ramp_seconds",
+        "stop_degrees_per_second", "longest_frame_seconds", "direct", "aim_degrees_per_second",
         "aim_response")
 
 
@@ -100,7 +100,7 @@ def load_tuning(path: Path = TUNING_FILE) -> dict:
         raise ModernCameraError("modern_camera.json: 0 <= dead_zone < full_tilt <= 1 and 0 <= expo <= 1")
     if any(not tuning[key] > 0 for key in ("yaw_degrees_per_second", "pitch_degrees_per_second",
                                            "longest_frame_seconds")) or \
-            any(tuning[key] < 0 for key in ("speed_up_seconds", "slow_down_seconds", "stop_degrees_per_second")):
+            any(tuning[key] < 0 for key in ("ramp_seconds", "stop_degrees_per_second")):
         raise ModernCameraError("modern_camera.json: speeds and the longest frame above 0, times and the stop not "
                                 "below 0")
     aims = tuning["aim_degrees_per_second"]
@@ -136,7 +136,7 @@ def data_block(tuning: dict | None = None) -> bytes:
     tuning = tuning or load_tuning()
     data = struct.pack("<9f3I", tuning["dead_zone"], tuning["full_tilt"], tuning["expo"],
                        _units(tuning["yaw_degrees_per_second"]), _units(tuning["pitch_degrees_per_second"]),
-                       tuning["speed_up_seconds"] * TICKS_PER_SECOND, tuning["slow_down_seconds"] * TICKS_PER_SECOND,
+                       tuning["ramp_seconds"] * TICKS_PER_SECOND, tuning["ramp_seconds"] * TICKS_PER_SECOND,
                        _units(tuning["stop_degrees_per_second"]), tuning["longest_frame_seconds"] * TICKS_PER_SECOND,
                        int(bool(tuning["direct"])), OPTION_IDS[SPEED_OPTION], OPTION_IDS[ACCELERATION_OPTION])
     aims, responses = tuning["aim_degrees_per_second"], tuning["aim_response"]
@@ -144,8 +144,8 @@ def data_block(tuning: dict | None = None) -> bytes:
         response = responses[aim]
         data += struct.pack("<6f", _units(aims[aim]["yaw"]), _pitch_steps(aims[aim]["pitch"], aim),
                             _pitch_steps(tuning["stop_degrees_per_second"], aim), response["expo"],
-                            response["speed_up_seconds"] * TICKS_PER_SECOND,
-                            response["slow_down_seconds"] * TICKS_PER_SECOND)
+                            response["ramp_seconds"] * TICKS_PER_SECOND,
+                            response["ramp_seconds"] * TICKS_PER_SECOND)
     if len(data) != MODERN_CAMERA_DATA_SIZE:
         raise ModernCameraError(f"modern_camera_data holds {MODERN_CAMERA_DATA_SIZE} bytes, made {len(data)}")
     return data

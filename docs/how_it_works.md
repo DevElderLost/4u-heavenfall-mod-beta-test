@@ -143,9 +143,11 @@ the program's Options page (it starts at `gui_defaults.json`'s), written into th
 option with a `default` of its own in that file (skipping the death camera or a monster's intro) is the page's only, with
 that value. In
 single-screen mode the page's description panel stands at the bottom left, in a quest too: a place of `help_top` that waits for
-the byte `mod_settings_state` + 5, up only while the page is open. Its lists show ten rows a page, the game's list widgets
-(five and eight lines) with the panes `interface/mod_settings/ten_rows.py` adds to `ui020` (more lines, a taller frame,
-hidden until the page shows them); Up and Down go round a page's rows, Left and Right turn the pages.
+the byte `mod_settings_state` + 5, up only while the page is open. Its lists show up to ten rows a page, each page in a
+frame of as many rows as it has: the game's list widgets (five and eight lines, frames of 2 to 5 rows and of 8) with the panes
+`interface/mod_settings/ten_rows.py` adds to `ui020` (more lines, a frame of every other size from 1 to 10, row strips
+shown row by row, hidden until the page shows them); Up and Down go round a page's rows, Left and Right turn the pages. In
+single-screen mode a list of nine or ten rows goes up as far as keeps its last row clear of the description.
 
 ## Locking on with L
 
@@ -179,7 +181,7 @@ it also sets `death_camera_skip_state`, which `select_kick`'s menu gate counts d
 ## Better Camera
 
 Its code is called `modern_camera`; Mod Settings shows it as Better Camera, a row that opens a list of three: the option
-`modern_camera` (Enabled or Disabled), Max Speed and Acceleration.
+`modern_camera` (Use Better Camera: Yes or No), Max Speed and Acceleration.
 
 The game turns the camera by four buttons: FUN_00b3cc64 turns the D-pad and the C-stick into "camera up, down, left,
 right", and FUN_00bfd028 turns the camera's angles by them, one axis a frame. Block `modern_camera`

@@ -7,17 +7,18 @@ functions from the game's menu code.
  * A on the row: mod_menu_pick makes the menu a sub-screen of our kind, so FUN_005f6ae4 calls mod_menu_frame each frame.
  * The sub-screen has two levels, in mod_settings_state:
  *   - a list: the game's small list (FUN_00611b10, FUN_005e87b4, FUN_0060fbc0, FUN_005e84f0, as its kind 0xE uses them)
- *     with one row per entry of the table's current list. A list needs two rows to have a frame, so a list of one has a
- *     grey "- - - - -" row the cursor never reaches. Up and Down go round the page's rows, A opens the row's list (the
- *     same widget, closed and filled again: FUN_005e87b4 sets it up whole) or its screen, B goes back: to the row of the
- *     list above, or from the top list by FUN_005e86b0, FUN_006201dc(1), FUN_0060f220 and return 2, which FUN_005f6ae4
- *     takes as back to the page. A page has ten rows: the game's five lines and ui020's five more (ten_rows.py), which
- *     this code writes, colours and shows with a frame of ten rows while the list is open (hidden again on every way
- *     out: the game's own lists use the same groups). A list of 11 to 20 rows has two pages: Left and Right turn them,
- *     and the menu's title bar says "1/2" or "2/2" instead of its "3/3";
+ *     with one row per entry of the table's current list. Up and Down go round the page's rows, A opens the row's list
+ *     (the same widget, closed and filled again: FUN_005e87b4 sets it up whole) or its screen, B goes back: to the row
+ *     of the list above, or from the top list by FUN_005e86b0, FUN_006201dc(1), FUN_0060f220 and return 2, which
+ *     FUN_005f6ae4 takes as back to the page. A page has up to ten rows: the game's five lines and ui020's five more
+ *     (ten_rows.py), which this code writes and colours. A page of n rows shows exactly n in a frame of n: the game's
+ *     own for 2 to 5 rows, ui020's of ours for 1 and 6 to 10, which this code shows in place of the game's while the
+ *     list is open (and hides again on every way out: the game's own lists use the same groups). A list of 11 to 20
+ *     rows has two pages: Left and Right turn them, and the menu's title bar says "1/2" or "2/2" instead of its "3/3";
  *   - a screen: the aspect ratios (aspect_list.c) or an option's values (option_list.c), on the game's big list. The
  *     mod_list_* functions drive that widget (its groups, title, ten rows, cursor and pager) as FUN_0060bf60 and
- *     FUN_0061ae20 do for Weapon Controls, with ui020's two rows more and its frame of ten rows.
+ *     FUN_0061ae20 do for Weapon Controls, with ui020's two rows more, in the game's frame of eight rows or ui020's of
+ *     ours for the page's rows (mod_list_rows).
  *
  * START at any level closes the whole menu through the game's own code (FUN_00624ddc), which unbinds the list's widgets
  * and runs FUN_0060d058, where mod_menu_closed ends our bind of the pager; a new pick starts on the top list's first
@@ -34,7 +35,7 @@ typedef short s16;
 
 #define ACTION 0x14             /* mod_settings.py ACTION */
 #define KIND 0x2F               /* mod_settings.py KIND */
-#define MAX_LISTS 8             /* mod_settings.py MAX_LISTS */
+#define MAX_LISTS 10            /* mod_settings.py MAX_LISTS */
 #define MAX_TABLE 64            /* mod_settings.py MAX_TABLE */
 #define SUBLIST_ROWS 5          /* mod_settings.py SUBLIST_ROWS: the game's own lines of its small list */
 #define PAGE_LIST_ROWS 10       /* mod_settings.py LIST_PAGE_ROWS: a page of a small list */
@@ -90,7 +91,9 @@ typedef short s16;
 #define GROUP_ICON_BACK 0x10
 #define GROUP_ROWS 0x12
 #define GROUP_CURSOR 0x11
-#define GROUP_SMALL_FRAME 7     /* the small list's groups FUN_005e87b4 places: its frames and strips, lines, cursor */
+#define GROUP_SMALL_FRAME 7     /* the small list's groups FUN_005e87b4 places: its frames and strips (4 to 5 rows, */
+#define GROUP_SMALL_FRAME_3 8   /* 3 rows, 2 rows), lines, cursor */
+#define GROUP_SMALL_FRAME_2 9
 #define GROUP_SMALL_LINES 0xB
 #define GROUP_SMALL_CURSOR 10
 #define GROUP_Y 0x2C            /* a group's y (the binder holds a group's pointer at +4 k) */
@@ -102,11 +105,13 @@ typedef short s16;
 #define COLOUR_ROW 0xFFC3C3C3u  /* FUN_005e84f0's colours: a row, the row under the cursor, a grey row (FUN_0060caec) */
 #define COLOUR_SELECTED 0xFFF0F0F0u
 #define COLOUR_OFF 0xFF646464u
-#define TEN_SMALL 1             /* mod_settings_state.ten: the small list's panes of ten rows are up */
+#define TEN_SMALL 1             /* mod_settings_state.ten: the small list's panes of ours are up */
 #define TEN_BIG 2               /* ... the big list's */
 
-/* ten_rows.py HASHED: the panes found by their name hash in a group's first level */
-enum { SMALL_FRAME, SMALL_FRAME_TEN, SMALL_STRIPS_TEN, BIG_FRAME, BIG_FRAME_TEN, BIG_STRIPS_TEN, BIG_BACKS_TEN, PANES };
+/* ten_rows.py NAMED: the panes found by their name hash in a group's first level */
+enum { SMALL_FRAME_4, SMALL_FRAME_5, SMALL_STRIPS, SMALL_STRIPS_OURS, BIG_FRAME, BIG_STRIPS, BIG_BACKS, BIG_STRIPS_OURS,
+       BIG_BACKS_OURS, PANES };
+#define STRIP_SPRITES 2         /* a row's sprites in a strips null; a backings null has one */
 
 #define TEXT_SLOT 0             /* the string slot a message's number node takes (FUN_005a99a8) */
 
@@ -139,17 +144,20 @@ struct mod_list {
 struct mod_settings_data {      /* the curated table (mod_settings.py settings_data) */
     u16 lines[8][2];            /* the page's line table */
     u16 line_help;
-    u16 placeholder;            /* the grey row's message */
+    u16 placeholder;            /* the grey row's message (the page's rows; the lists have none) */
     u16 file;
     s16 pager_x, pager_y;       /* where the lists' pager goes (FUN_005edcf4) */
     struct mod_list lists[MAX_LISTS];
     struct mod_entry entries[MAX_TABLE];
     u32 panes[PANES];           /* their name hashes */
-    s16 ten_raise;              /* how far up a small list of ten rows goes (single-screen mode, else 0) */
+    u32 small_frames[PAGE_LIST_ROWS];   /* the hash of our small list's frame of n rows at n - 1, 0: the game's frame */
+    u32 big_frames[BIG_ROWS];           /* ... the big list's */
+    u8 raise[PAGE_LIST_ROWS];   /* how far up a small list goes, by its first page's rows - 1 (single-screen mode, else 0) */
     u16 pad;
 };
-_Static_assert(sizeof(struct mod_settings_data) == 748, "blocks.py MOD_SETTINGS_DATA_SIZE");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 716, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(sizeof(struct mod_settings_data) == 852, "blocks.py MOD_SETTINGS_DATA_SIZE");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 724, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 840, "blocks.py MOD_SETTINGS_PANE_HASHES");
 
 enum { LEVEL_LIST, LEVEL_SCREEN };
 
@@ -178,7 +186,6 @@ void start_sublist_begin(void);                                 /* FUN_00611b10 
 void start_top_cursor(int shown);                               /* FUN_006201dc */
 void start_sublist_open(int action, int rows);                  /* FUN_005e87b4 */
 void start_sublist_text(int row, int kind, int file, int message);      /* FUN_0060fbc0 */
-void start_sublist_enable(int row, int enabled);                /* FUN_0060caec */
 void start_sublist_cursor(int row);                             /* FUN_005e84f0: also steps the cursor's animation */
 void start_sublist_close(void);                                 /* FUN_005e86b0 */
 void start_sublist_end(void);                                   /* FUN_0060f220 */
@@ -231,26 +238,27 @@ static void mark_redraw(void *group, char *pane)
         pane_redraw(group, pane);
 }
 
-/* ---- ui020's panes of ten rows (ten_rows.py) */
+/* ---- ui020's panes of every list size (ten_rows.py) */
 
 static char *group_of(int group)
 {
     return pointer_at(start_list_ui, 4 * group);
 }
 
-/* The pane of ten_rows.py HASHED `which` in the first level of the binder's group `group`, 0 if it has none */
-static char *pane_in(int group, int which)
+/* The pane whose name hash is `hash` in the first level of the binder's group `group`, 0 if it has none */
+static char *pane_named(int group, u32 hash)
 {
     char *pane = group_of(group) != 0 ? pointer_at(group_of(group), 8) : 0;
 
-    while (pane != 0 && word_at(pane, 0) != mod_settings_data.panes[which])
+    while (pane != 0 && word_at(pane, 0) != hash)
         pane = pointer_at(pane, PANE_NEXT);
     return pane;
 }
 
-static void show_null(int group, int which, int shown)
+/* A null of the group's first level shown or hidden; a hash of 0 (a size whose frame is the game's) names none */
+static void show_hashed(int group, u32 hash, int shown)
 {
-    char *pane = pane_in(group, which);
+    char *pane = hash != 0 ? pane_named(group, hash) : 0;
     u32 *flags;
 
     if (pane == 0 || pointer_at(pane, SPRITE_DATA) == 0)
@@ -258,6 +266,34 @@ static void show_null(int group, int which, int shown)
     flags = (u32 *)(pointer_at(pane, SPRITE_DATA) + NULL_SHOWN);
     *flags = shown ? *flags | 1u : *flags & ~1u;
     mark_redraw(group_of(group), pane);
+}
+
+static void show_null(int group, int which, int shown)
+{
+    show_hashed(group, mod_settings_data.panes[which], shown);
+}
+
+/* A null of ours that holds a page's rows of strips or backings (`per_row` sprites a row, row by row): shown with the
+ * sprites of its first `rows` rows, as FUN_00d94bd4 shows a sprite; 0 rows hides it */
+static void show_rows(int group, int which, int rows, int per_row)
+{
+    char *null = pane_named(group, mod_settings_data.panes[which]);
+    char *sprite;
+    int row = 0, in_row = 0;
+
+    show_null(group, which, rows > 0);
+    if (null == 0 || rows == 0)
+        return;
+    for (sprite = pointer_at(null, PANE_FIRST_CHILD); sprite != 0; sprite = pointer_at(sprite, PANE_NEXT)) {
+        u32 *flags = (u32 *)(pointer_at(sprite, SPRITE_DATA) + DATA_SHOW);
+
+        *flags = row < rows ? *flags | SPRITE_SHOWN : *flags & ~SPRITE_SHOWN;
+        mark_redraw(group_of(group), sprite);
+        if (++in_row == per_row) {
+            in_row = 0;
+            row++;
+        }
+    }
 }
 
 /* The ref of the small list's line `row` (5 to 9: ui020's, after the game's fifth) */
@@ -315,34 +351,36 @@ static void raise_group(int group, float by)
         *(float *)(group_of(group) + GROUP_Y) += by;
 }
 
-/* The small list's frame of ten rows and its strips for the five lines more, in place of the game's 5-row frame that
- * FUN_005e87b4 showed; in single-screen mode, the list goes up (its groups and its cursor's base) */
-static void small_ten_up(void)
+/* A page of `rows` rows, a size the game has no frame for (1, or 6 to 10), after FUN_005e87b4 set the list up for one
+ * row or five: our frame of `rows` rows and our strips of its rows in place of the game's 4- and 5-row frames (which
+ * FUN_005e87b4 sets again for its own lists) and strips. For one row FUN_005e87b4 leaves the frames' group hidden: it
+ * goes up where it puts the group for four or five rows, the cursor's base */
+static void small_ours_up(int rows)
 {
-    float by = (float)mod_settings_data.ten_raise;
-
-    show_null(GROUP_SMALL_FRAME, SMALL_FRAME, 0);
-    show_null(GROUP_SMALL_FRAME, SMALL_FRAME_TEN, 1);
-    show_null(GROUP_SMALL_FRAME, SMALL_STRIPS_TEN, 1);
-    if (by != 0.0f) {
-        raise_group(GROUP_SMALL_FRAME, by);
-        raise_group(GROUP_SMALL_LINES, by);
-        raise_group(GROUP_SMALL_CURSOR, by);
-        *(float *)(start_menu + M_SUB_BASE) += by;
+    if (rows == 1 && group_of(GROUP_SMALL_FRAME) != 0) {
+        start_list_group(start_list_ui, GROUP_SMALL_FRAME, 1);
+        *(float *)(group_of(GROUP_SMALL_FRAME) + GROUP_Y) = *(const float *)(start_menu + M_SUB_BASE);
     }
+    show_null(GROUP_SMALL_FRAME, SMALL_FRAME_4, 0);
+    show_null(GROUP_SMALL_FRAME, SMALL_FRAME_5, 0);
+    show_null(GROUP_SMALL_FRAME, SMALL_STRIPS, 0);
+    show_hashed(GROUP_SMALL_FRAME, mod_settings_data.small_frames[rows - 1], 1);
+    show_rows(GROUP_SMALL_FRAME, SMALL_STRIPS_OURS, rows, STRIP_SPRITES);
     mod_settings_state.ten |= TEN_SMALL;
 }
 
-/* Every way out of a small list of ten: our panes hidden and our lines blank, before a game's list can use the groups
- * (the 5-row frame and the groups' places are FUN_005e87b4's to set again) */
-static void small_ten_down(void)
+/* Every way out of a page in a frame of ours: our panes hidden, the game's strips back and our lines blank, before a
+ * game's list can use the groups (its frames and the groups' places are FUN_005e87b4's to set again) */
+static void small_ours_down(void)
 {
     int row;
 
     if (!(mod_settings_state.ten & TEN_SMALL))
         return;
-    show_null(GROUP_SMALL_FRAME, SMALL_FRAME_TEN, 0);
-    show_null(GROUP_SMALL_FRAME, SMALL_STRIPS_TEN, 0);
+    for (row = 0; row < PAGE_LIST_ROWS; row++)
+        show_hashed(GROUP_SMALL_FRAME, mod_settings_data.small_frames[row], 0);
+    show_rows(GROUP_SMALL_FRAME, SMALL_STRIPS_OURS, 0, STRIP_SPRITES);
+    show_null(GROUP_SMALL_FRAME, SMALL_STRIPS, 1);
     for (row = SUBLIST_ROWS; row < PAGE_LIST_ROWS; row++)
         line_blank(row);
     mod_settings_state.ten &= ~TEN_SMALL;
@@ -350,7 +388,7 @@ static void small_ten_down(void)
 
 static void close_small(void)
 {
-    small_ten_down();
+    small_ours_down();
     start_sublist_close();
 }
 
@@ -446,45 +484,56 @@ static void list_page_numbers(void)
 }
 
 /* The cursor on its row of the page: the game's function places it (at any row: its base minus 18 a row) and colours
- * the game's five lines; this code colours ui020's lines past them */
+ * the game's five lines; this code colours ui020's lines past them that the page has */
 static void small_cursor(void)
 {
-    int page = list_page(), row = mod_settings_state.cursor - page * PAGE_LIST_ROWS, line;
+    int page = list_page(), row = mod_settings_state.cursor - page * PAGE_LIST_ROWS, rows = rows_on(page), line;
 
     start_sublist_cursor(row);
-    if (!(mod_settings_state.ten & TEN_SMALL))
+    for (line = SUBLIST_ROWS; line < rows; line++)
+        line_colour(line, line == row ? COLOUR_SELECTED : COLOUR_ROW);
+}
+
+/* Single-screen mode: the list goes up as far as its first page needs to stay clear of the description's place
+ * (curated, by that page's rows), its frames' group, lines and cursor and the cursor's base together. Every page of a
+ * list goes as far, so turning a page does not move it */
+static void small_raise(int rows)
+{
+    int tallest = current_list()->count < PAGE_LIST_ROWS ? current_list()->count : PAGE_LIST_ROWS;
+    float by = (float)mod_settings_data.raise[tallest - 1];
+
+    if (by == 0.0f)
         return;
-    for (line = SUBLIST_ROWS; line < PAGE_LIST_ROWS; line++)
-        line_colour(line, line >= rows_on(page) ? COLOUR_OFF : line == row ? COLOUR_SELECTED : COLOUR_ROW);
+    raise_group(rows == 2 ? GROUP_SMALL_FRAME_2 : rows == 3 ? GROUP_SMALL_FRAME_3 : GROUP_SMALL_FRAME, by);
+    raise_group(GROUP_SMALL_LINES, by);
+    raise_group(GROUP_SMALL_CURSOR, by);
+    *(float *)(start_menu + M_SUB_BASE) += by;
 }
 
 /* The small list of the current list, on the page of its cursor. Both this and FUN_005e86b0 set the whole widget, so a list
- * or a page can follow another in the same frame. A list of more than five rows is the game's list of five and ui020's
- * lines past them, in our frame of ten rows, with grey rows past its end (also on the last page of a list of two); a list
- * of one row has a grey row, since a frame needs two */
+ * or a page can follow another in the same frame. A page of n rows shows its n rows and nothing more, in a frame of n:
+ * the game's list of n for 2 to 5 rows, FUN_005e87b4's of one row or five and our frame for the rest (ui020's lines past
+ * the fifth written here) */
 static void open_list(void)
 {
     const struct mod_settings_data *data = &mod_settings_data;
     const struct mod_list *list = current_list();
     int first = list_page() * PAGE_LIST_ROWS;
-    int count = rows_on(list_page());
-    int rows, row;
+    int rows = rows_on(list_page());
+    int row;
 
-    rows = list_pages() > 1 || count > SUBLIST_ROWS ? PAGE_LIST_ROWS : count < 2 ? 2 : count;
     start_sublist_open(0, rows > SUBLIST_ROWS ? SUBLIST_ROWS : rows);
+    if (data->small_frames[rows - 1] != 0)
+        small_ours_up(rows);
+    small_raise(rows);
     for (row = 0; row < rows; row++) {
-        int message = row < count ? data->entries[list->first + first + row].name : data->placeholder;
+        int message = data->entries[list->first + first + row].name;
 
-        if (row >= SUBLIST_ROWS) {
+        if (row < SUBLIST_ROWS)
+            start_sublist_text(row, KIND_TEXT, data->file, message);
+        else
             line_text(row, message);
-            continue;
-        }
-        start_sublist_text(row, KIND_TEXT, data->file, message);
-        if (row >= count)
-            start_sublist_enable(row, 0);
     }
-    if (rows > SUBLIST_ROWS)
-        small_ten_up();
     small_cursor();
     list_page_numbers();
     start_help_show(HELP_ON, HELP_PRIORITY);
@@ -506,18 +555,15 @@ void mod_menu_pick(char *menu)
     open_list();
 }
 
-static void big_ten(int up);
+static void big_ours_down(void);
 static void big_blank_more(void);
 
 /* FUN_0060d058, on every close of the menu: the pager's bind ends here when the player left without going back, and
- * ui020's panes of ten rows go (FUN_005e86b0 closes the small list right after) */
+ * ui020's panes of ours go (FUN_005e86b0 closes the small list right after) */
 void mod_menu_closed(void)
 {
-    small_ten_down();
-    if (mod_settings_state.ten & TEN_BIG) {
-        big_blank_more();
-        big_ten(0);
-    }
+    small_ours_down();
+    big_ours_down();
     mod_settings_state.open = 0;
     if (mod_settings_state.list_numbers) {      /* the menu reopens on its own page, with its own count */
         start_menu[M_PAGE_COUNT] = MENU_PAGES;
@@ -537,21 +583,35 @@ static void show_screen_groups(char *ui, int shown)
     start_list_group(ui, GROUP_CURSOR, shown);
 }
 
-/* The big list's frame of ten rows, its strips and backings for the two rows more, in place of the game's 8-row frame;
- * down, the game's frame back for its own big lists */
-static void big_ten(int up)
+/* The big list's frame for a page of `rows` rows (1 to 10), each time a screen draws one (aspect_list.c,
+ * option_list.c): the game's frame, strips and backings for its eight; for another size our frame of `rows` rows and
+ * our strips and backings of its rows in their place */
+void mod_list_rows(int rows)
 {
-    show_null(GROUP_FRAME, BIG_FRAME, !up);
-    show_null(GROUP_FRAME, BIG_FRAME_TEN, up);
-    show_null(GROUP_FRAME, BIG_STRIPS_TEN, up);
-    show_null(GROUP_ICON_BACK, BIG_BACKS_TEN, up);
-    if (up)
-        mod_settings_state.ten |= TEN_BIG;
-    else
-        mod_settings_state.ten &= ~TEN_BIG;
+    int game = rows == BIG_GAME_ROWS, size;
+
+    show_null(GROUP_FRAME, BIG_FRAME, game);
+    show_null(GROUP_FRAME, BIG_STRIPS, game);
+    show_null(GROUP_ICON_BACK, BIG_BACKS, game);
+    for (size = 1; size <= BIG_ROWS; size++)
+        show_hashed(GROUP_FRAME, mod_settings_data.big_frames[size - 1], !game && size == rows);
+    show_rows(GROUP_FRAME, BIG_STRIPS_OURS, game ? 0 : rows, STRIP_SPRITES);
+    show_rows(GROUP_ICON_BACK, BIG_BACKS_OURS, game ? 0 : rows, 1);
 }
 
-/* The widget's groups on, its cursor bound and the pager bound, hidden until its first frame */
+/* Every way out of a screen: the game's frame, strips and backings back for its own big lists, ours hidden and the
+ * rows past the eighth blank */
+static void big_ours_down(void)
+{
+    if (!(mod_settings_state.ten & TEN_BIG))
+        return;
+    big_blank_more();
+    mod_list_rows(BIG_GAME_ROWS);
+    mod_settings_state.ten &= ~TEN_BIG;
+}
+
+/* The widget's groups on, its cursor bound and the pager bound, hidden until its first frame; its frame comes with the
+ * screen's first page (mod_list_rows) */
 void mod_list_open(void)
 {
     char *ui = start_list_ui;
@@ -560,7 +620,7 @@ void mod_list_open(void)
     close_small();
     menu_page_numbers();        /* the title bar is the menu's again: the screen binds its pager there */
     show_screen_groups(ui, 1);
-    big_ten(1);
+    mod_settings_state.ten |= TEN_BIG;
     if (owner != 0)
         gui_anim_bind(ui + UI_CURSOR_PANE, pointer_at(ui, UI_CURSOR_ANIM), owner, 0);
     start_pager_bind(mod_settings_data.pager_x, mod_settings_data.pager_y);
@@ -571,8 +631,7 @@ void mod_list_open(void)
 
 void mod_list_close(void)
 {
-    big_blank_more();
-    big_ten(0);
+    big_ours_down();
     show_screen_groups(start_list_ui, 0);
     start_pager_hide();
     pager_release();

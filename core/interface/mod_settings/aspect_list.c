@@ -1,6 +1,7 @@
 /* The list of aspect ratios, the screen Mod Settings opens (interface/mod_settings/mod_settings.c; docs/cheats/
- * aspect_ratio.md, "The list in the game"): one page of the game's big list, the ratio in use marked and under the cursor
- * when it opens. A uses the row's ratio at once, for this character: the picture changes the next frame. B goes back.
+ * aspect_ratio.md, "The list in the game"): one page of the game's big list in a frame of as many rows as there are
+ * ratios, the ratio in use marked and under the cursor when it opens. A uses the row's ratio at once, for this
+ * character: the picture changes the next frame. B goes back.
  *
  * Build: a unit of the block mod_settings_code (tools/build/build_code_space.py).
  */
@@ -36,6 +37,7 @@ void mod_list_title(int message);
 void mod_list_help(int message);
 void mod_list_slot_text(int row, int message, int text);
 void mod_list_blank(int row);
+void mod_list_rows(int rows);
 void mod_list_frame(int row_on_page, int page, int pages);
 int aspect_saved(void);                                         /* cheats/aspect_ratio.c */
 int aspect_ratios(void);
@@ -48,6 +50,7 @@ static void draw_rows(void)
     int count = aspect_ratios();
     int row;
 
+    mod_list_rows(count);
     for (row = 0; row < PAGE_ROWS; row++)
         if (row < count)
             mod_list_slot_text(row, row == selected ? aspect_list_data.marked : aspect_list_data.row,

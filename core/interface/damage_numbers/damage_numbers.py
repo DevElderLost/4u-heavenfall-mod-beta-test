@@ -1,6 +1,6 @@
 """Damage Numbers: a number over the monster at each hit. The executable's side:
 the hooks (damage_numbers_stub.s), the code (damage_numbers.c), its data and its state; the game files' side is
-layout.py. The option is the START menu's (Mod Settings > Other > Damage Numbers: on or off, all damage, the
+layout.py. The option is the START menu's (Mod Settings > Interface > Damage Numbers: on or off, all damage, the
 style, the size, the duration; core/interface/mod_settings), so every mod with that page carries it and a character's
 choice acts at once.
 

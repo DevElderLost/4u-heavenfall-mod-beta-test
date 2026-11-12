@@ -1,8 +1,8 @@
 /* The list of an option's values, the screen a row of Mod Settings opens (interface/mod_settings/mod_settings.c): the
-game's big list, a page of ten values and the pager when there are more, the value
- * in use marked and under the cursor when it opens. Up and Down go round the page's values, Left and Right turn the pages
- * (on the same row, or the page's last). A uses the row's value at once, for this character (mod_option_choose; mod_frame
- * applies it the next frame). B goes back.
+game's big list, a page of up to ten values in a frame of as many rows (a list of
+ * 13: 10, then 3) and the pager when there are more, the value in use marked and under the cursor when it opens. Up
+ * and Down go round the page's values, Left and Right turn the pages (on the same row, or the page's last). A uses the
+ * row's value at once, for this character (mod_option_choose; mod_frame applies it the next frame). B goes back.
  *
  * Build: a unit of the block mod_settings_code (tools/build/build_code_space.py).
  */
@@ -40,6 +40,7 @@ void mod_list_title(int message);
 void mod_list_help(int message);
 void mod_list_slot_text(int row, int message, int text);
 void mod_list_blank(int row);
+void mod_list_rows(int rows);
 void mod_list_frame(int row_on_page, int page, int pages);
 int mod_option_saved(void);                                     /* mod_options.c */
 int mod_option_value(int id);
@@ -69,6 +70,7 @@ static void draw_rows(void)
     int first = option_list_state.page * PAGE_ROWS;
     int row;
 
+    mod_list_rows(rows_on(option_list_state.page));
     for (row = 0; row < PAGE_ROWS; row++)
         if (first + row < count)
             mod_list_slot_text(row, mod_option_text(first + row == selected ? TEXT_MARKED : TEXT_ROW),

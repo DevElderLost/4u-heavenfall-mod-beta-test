@@ -110,8 +110,8 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 748
-MOD_SETTINGS_PANE_HASHES = (716, 744)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 852
+MOD_SETTINGS_PANE_HASHES = (724, 840)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
 MOD_OPTIONS_DATA_SIZE = 16 + 24 * 164
 MOD_RAW_TABLE_SIZE = 64
@@ -1559,7 +1559,6 @@ GAME_SYMBOLS |= {
     "start_top_cursor": 0x6201DC,       # FUN_006201dc(shown): the page's cursor runs or stops
     "start_sublist_open": 0x5E87B4,     # FUN_005e87b4(action, rows): opens the small list beside the line of the action
     "start_sublist_text": 0x60FBC0,     # FUN_0060fbc0(row, 0, file, message): a row's text
-    "start_sublist_enable": 0x60CAEC,   # FUN_0060caec(row, enabled): 0 greys the row (FUN_005e86b0 undoes it)
     "start_sublist_cursor": 0x5E84F0,   # FUN_005e84f0(row): moves the cursor and steps its animation, once per frame
     "start_sublist_close": 0x5E86B0,    # FUN_005e86b0(): closes the small list and restores its colours
     "start_sublist_end": 0x60F220,      # FUN_0060f220(): after the small list closes

@@ -772,7 +772,7 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "si se ve todo el daño del monstruo, no solo el tuyo. El de los Felynes no sale nunca.",
                      "Each hit on a monster shows a number with its damage, physical and elemental together, as in "
                      "MH Wilds and Rise: gold on a weak spot, grey when it bounces. In the game, Mod Settings > "
-                     "Other > Damage Numbers picks the style (Wilds, Rise or Classic), the size, how long it stays "
+                     "Interface > Damage Numbers picks the style (Wilds, Rise or Classic), the size, how long it stays "
                      "and whether all the monster's damage shows, not only yours. Felynes' damage never shows.")),
         ), _ALSO_IN_GAME),
         Group(T("Wyporio", "Wyporium"), (

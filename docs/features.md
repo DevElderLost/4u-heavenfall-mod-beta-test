@@ -56,21 +56,21 @@
 - The C-Stick (New 3DS) turns the camera smoothly in any direction, diagonals too, faster the further you push it.
 - It aims bowguns and the bow the same way, each at its own speed.
 - The D-pad turns the camera as in the original game.
-- In the game (START, third page, Mod Settings, Gameplay, Better Camera) you can turn it on or off, set **Max Speed** from x0.25 to x4 for the camera and the aims, and set **Acceleration** from 25 % to 400 %: how fast the turn reaches its speed and stops, relative to the speed.
-- It is on by default, with Max Speed x1 and Acceleration 100 %. Camera Turn Speed no longer changes it.
+- In the game (START, third page, Mod Settings, Camera, Better Camera) you can turn it on or off, set **Max Speed** from x0.25 to x4 for the camera and the aims, and set **Acceleration** from 25 % to 400 %: how fast the turn reaches its speed and stops, relative to the speed.
+- It is on by default, with Max Speed x1 and Acceleration 100 %. Camera Speed (D-pad) no longer changes it.
 
 **Damage numbers**
 
 - Each of your hits shows its damage over the monster: gold on a weak spot, white elsewhere, grey when it bounces off. Poison is grey; blast and a mount's finish are gold.
 - Three styles: Wilds, Rise and Classic, each with its own mark for critical hits.
-- They are off by default. Turn them on in the **Options** page or in the game: START, third page, Mod Settings, Other, Damage Numbers, which also has the style, the size, how long they stay and Show All Damage (every hit on the monster, not only yours). Felynes' damage never shows.
+- They are off by default. Turn them on in the **Options** page or in the game: START, third page, Mod Settings, Interface, Damage Numbers, which also has the style, the size, how long they stay and Show All Damage (every hit on the monster, not only yours). Felynes' damage never shows.
 
 **Hunting Horn songs**
 
 - With a Hunting Horn in a quest, the top screen lists its songs at its right edge, under the minimap: each song's notes,
   then its name.
 - The songs that start with the notes you just played light up, and a song you just completed lights up brighter.
-- It is on by default. Turn it off in the game: START, third page, Mod Settings, Gameplay, Hunting Horn Songs.
+- It is on by default. Turn it off in the game: START, third page, Mod Settings, Interface, Hunting Horn Songs.
 
 **Layered Gear and the Wyporium**
 

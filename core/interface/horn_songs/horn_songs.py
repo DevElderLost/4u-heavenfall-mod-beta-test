@@ -1,7 +1,7 @@
 """The Hunting Horn's songs on the top screen. The executable's side: the code
 (horn_songs.c), its data and its state, and its entry in the quest's layouts (interface/quest_layouts/, the hooks it
 shares with Damage Numbers); the game files' side is layout.py. The option is the START menu's (Mod Settings >
-Gameplay > Hunting Horn Songs, the page's only, on by default; core/interface/mod_settings), so every mod with that
+Interface > Hunting Horn Songs, the page's only, on by default; core/interface/mod_settings), so every mod with that
 page carries it and a character's choice acts at once.
 
 This feature changes no instruction of its own; through the quest's shared hooks (quest_layouts.py), FUN_00af52a0

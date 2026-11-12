@@ -19,12 +19,13 @@ The game's START menu has two pages of eight lines each. These functions change,
 - FUN_0060d058, which every close of the menu runs: its call of FUN_005e86b0 (at CLOSE) goes through the stub, which
   first ends the bind of the big list's pager if a screen of ours held it.
 
-From there it is the game's own widgets, driven as its sub-screens drive them, with ui020's panes for ten rows
-(ten_rows.py): the small list, ten rows a page, refilled for each list of the table and for each page of a list of up to
-20 rows (the menu's title bar then says "1/2" or "2/2"), and from a list's row the big list of ten rows a page with its
-title (aspect_list.c, the aspect ratios; option_list.c, an option's values). Up and Down go round the page's rows, Left
-and Right turn its pages. The small lists come from the curated mod_settings.json, in the data block (`settings_data`),
-so a new row or a new level costs only data. Message indices come from `mod_texts`.
+From there it is the game's own widgets, driven as its sub-screens drive them, with ui020's panes for every list size
+(ten_rows.py): the small list, up to ten rows a page, refilled for each list of the table and for each page of a list of
+up to 20 rows (the menu's title bar then says "1/2" or "2/2"), and from a list's row the big list of up to ten rows a
+page with its title (aspect_list.c, the aspect ratios; option_list.c, an option's values). A page of n rows shows its n
+rows in a frame of n, no empty row. Up and Down go round the page's rows, Left and Right turn its pages. The small
+lists come from the curated mod_settings.json, in the data block (`settings_data`), so a new row or a new level costs
+only data. Message indices come from `mod_texts`.
 """
 
 import json
@@ -49,7 +50,7 @@ KIND = 0x2F                     # the menu's sub-screen kind (+0xA) while the li
 SUBLIST_ROWS = 5                # the game's own rows of its small list (FUN_0060caec, FUN_005e87b4, FUN_0060fbc0)
 LIST_PAGE_ROWS = 10             # a page of a small list: the game's rows and ui020's five more (ten_rows.py)
 MAX_ROWS = 2 * LIST_PAGE_ROWS   # a list's rows: two pages, with the page numbers in the menu's title bar
-MAX_LISTS = 8                   # the small lists the data block has room for (mod_settings.c)
+MAX_LISTS = 10                  # the small lists the data block has room for (mod_settings.c)
 MAX_TABLE = 64                  # their rows, together: the top list and three full lists below it
 NO_LIST = 0xFF                  # in a list: it has no parent; in an entry: it opens a screen
 # The screens an entry can open, by their number in mod_settings.c: the aspect ratios (aspect_list.c) and an
@@ -162,8 +163,8 @@ def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None 
     line = _value(raw, "line")
     entries = small_list(_value(raw, "entries"))
     lift = _value(raw, "ten_row_raise")
-    if not isinstance(lift, int) or isinstance(lift, bool) or not 0 <= lift < 0x8000:
-        raise ModSettingsError("mod_settings.json: ten_row_raise must be a whole number of pixels, 0 or more")
+    if not isinstance(lift, int) or isinstance(lift, bool) or not 0 <= lift < 0x100:
+        raise ModSettingsError("mod_settings.json: ten_row_raise must be a whole number of pixels, 0 to 255")
     settings = {"line": {"name": message(line["name"]), "help": message(line["help"])}, "pager": place("pager_place"),
                 "entries": entries, "raise": lift}
     _flat_table(settings)
@@ -191,13 +192,24 @@ def _flat_table(settings: dict) -> tuple[list[tuple], list[tuple]]:
     return lists, table
 
 
+def list_raises(lift: int) -> tuple[int, ...]:
+    """How far up a small list goes in single-screen mode, by the rows of its first page (1 to LIST_PAGE_ROWS, in
+    order): `lift` (the curated `ten_row_raise`) for a page of ten, and for a shorter one as far as keeps its last row
+    as high as that one's, none once it is that high where the game puts it (beside the page's first row). Every page of
+    a list goes as far as its first."""
+    from core.interface.mod_settings.ten_rows import PITCH
+
+    return tuple(max(0, lift - PITCH * (LIST_PAGE_ROWS - rows)) for rows in range(1, LIST_PAGE_ROWS + 1))
+
+
 def settings_data(settings: dict | None = None, single_screen: bool = False) -> bytes:
     """The block `mod_settings_data` (struct mod_settings_data in mod_settings.c): the page's line table, 8 of (u16
     file, u16 message), the first the line's and the rest the placeholder; the line's help, the placeholder and the file
     (u16 each); the pager's place (s16 x, y); MAX_LISTS of (u8 first row, rows, parent list, its row); MAX_TABLE of (u16
-    name, help, title, u8 list, screen, option, 0); then, 4-aligned, the name hashes of ten_rows.HASHED (u32 each) and
-    how far up a small list of ten rows goes (s16: the curated `ten_row_raise` in single-screen mode, else 0) and a
-    pad. What is unused stays zero."""
+    name, help, title, u8 list, screen, option, 0); then, 4-aligned, the name hashes of ten_rows.hashes() (u32 each:
+    the named panes, then each size's frame of ours in the small and the big list, 0 for the game's) and how far up a
+    small list goes by its first page's rows (u8 each: list_raises of the curated `ten_row_raise` in single-screen mode,
+    else 0) and a pad. What is unused stays zero."""
     from core.interface.mod_settings import ten_rows
 
     settings = settings or load_settings()
@@ -209,12 +221,13 @@ def settings_data(settings: dict | None = None, single_screen: bool = False) -> 
     data += b"".join(struct.pack("<4B", *entry) for entry in lists).ljust(4 * MAX_LISTS, b"\0")
     data += b"".join(struct.pack("<3H3BB", *entry, 0) for entry in table).ljust(10 * MAX_TABLE, b"\0")
     data = data.ljust(-(-len(data) // 4) * 4, b"\0")
-    hashes = struct.pack(f"<{len(ten_rows.HASHED)}I", *ten_rows.hashes())
+    hashes = struct.pack(f"<{len(ten_rows.hashes())}I", *ten_rows.hashes())
     if (len(data), len(data) + len(hashes)) != MOD_SETTINGS_PANE_HASHES:      # the leak detector's exemption
         raise ModSettingsError(f"the pane hashes go at {len(data)}, blocks.py MOD_SETTINGS_PANE_HASHES says "
                                f"{MOD_SETTINGS_PANE_HASHES}")
     data += hashes
-    data += struct.pack("<hH", settings["raise"] if single_screen else 0, 0)
+    raises = list_raises(settings["raise"]) if single_screen else (0,) * LIST_PAGE_ROWS
+    data += struct.pack(f"<{LIST_PAGE_ROWS}BH", *raises, 0)
     if len(data) > MOD_SETTINGS_DATA_SIZE:
         raise ModSettingsError(f"mod_settings_data holds {MOD_SETTINGS_DATA_SIZE} bytes, the table makes {len(data)}")
     return data.ljust(MOD_SETTINGS_DATA_SIZE, b"\0")

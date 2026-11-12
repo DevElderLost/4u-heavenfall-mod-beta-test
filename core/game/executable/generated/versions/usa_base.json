@@ -258,7 +258,7 @@
   ["0xebfd90", "0xec0000", -48],
   ["0xec0000", "0x104df38", 0],
   ["0x104df40", "0x10ed000", -8],
-  ["0x10ed000", "0x1269000", 0]
+  ["0x10ed000", "0x126a000", 0]
 ],
 "holes": [
   ["0x100054", "0x100080"],
@@ -1007,7 +1007,6 @@
   "GAME_SYMBOLS.start_sublist_begin": "run",
   "GAME_SYMBOLS.start_sublist_close": "run",
   "GAME_SYMBOLS.start_sublist_cursor": "run",
-  "GAME_SYMBOLS.start_sublist_enable": "run",
   "GAME_SYMBOLS.start_sublist_end": "run",
   "GAME_SYMBOLS.start_sublist_open": "run",
   "GAME_SYMBOLS.start_sublist_text": "run",

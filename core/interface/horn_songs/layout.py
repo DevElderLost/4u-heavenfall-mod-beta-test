@@ -9,7 +9,8 @@ in its box) and NOTES note sprites (the HUD's own note pictures, qst00), left of
 and shows them. The bars touch: the shown rows are one dark block. The records are copies of the HUD's: the horn's
 notes group, a note's null and its picture (ui202_hue, ui202_onpu00, ui202_jyakushi00) and the item selector's name
 (ui205_m_00), in the same language. The places come from the curated horn_songs.json, at the HUD's full size: the
-list flush with the screen's right edge, its top `minimap_gap` pixels under the minimap's bottom edge. The group has
+list flush with the screen's right edge, its top `minimap_gap` pixels under the lowest thing the minimap draws
+(`minimap_bottom`: the frame's place 16 pixels under the screen's top plus the frame and its overhang). The group has
 a scale of its own at each HUD size (`list_scale`: a smaller HUD keeps the list readable), applied about the top right
 corner (scale.py) with its top placed from the minimap's scaled bottom edge, and a wider picture moves it with the
 HUD's top right (interface/hud/anchors.py hud_entries).
@@ -41,7 +42,10 @@ TEMPLATE_TEXT = "ui205_m_00"
 ROWS, NOTES = 8, 4                      # horn_songs.c ROWS, NOTES
 ANCHOR = Anchor.TOP_RIGHT
 SCREEN_WIDTH = 2 * SCREEN_HALF_WIDTH
-MINIMAP_SIDE = 128.0                    # the minimap: 128 x 128 at the top right corner
+MINIMAP_SIDE = 128.0                    # the minimap's frame: 128 x 128
+MINIMAP_TOP = 16.0                      # the game places every map group 16 pixels under the screen's top (place y -16)
+MINIMAP_OVERHANG = 6.0                  # drawn under the frame: area panes reach 5.2 pixels, an icon (12 x 12, centred
+                                        # on a point of the map) 6; scaled with the HUD
 NOTE_CELL = 16 / 512                    # a note's cell in qst00 (512 x 512): the template's region w, h
 NOTE_INK = 10 / 16                      # the note's drawn width in its 16-texel cell (texels 3-12), outline included
 TEXT_ROOM = 32                          # the name's characters of room: the longest of the five languages has 27
@@ -108,12 +112,19 @@ def list_scale(factor: float, tuning: dict | None = None) -> float:
     return table[-1][1]
 
 
+def minimap_bottom(factor: float = 1.0) -> float:
+    """The lowest pixel the minimap draws at the HUD size `factor` and the game's 5:3 shape: its frame's place under
+    the screen's top, the frame and what overhangs it (area numbers, icons, markers), the last two scaled by the HUD
+    (the map layouts scale about the frame's top right corner)."""
+    return MINIMAP_TOP + (MINIMAP_SIDE + MINIMAP_OVERHANG) * factor
+
+
 def list_box(tuning: dict | None = None, factor: float = 1.0) -> tuple[float, float, float, float]:
     """The list with all its rows, in top-screen pixels at the HUD size `factor` and the game's 5:3 shape (left, top,
     right, bottom): flush with the screen's right edge, its top `minimap_gap` under the minimap's (scaled) bottom."""
     tuning = tuning or load_tuning()
     scale = list_scale(factor, tuning)
-    right, top = SCREEN_WIDTH, MINIMAP_SIDE * factor + tuning["minimap_gap"]
+    right, top = SCREEN_WIDTH, minimap_bottom(factor) + tuning["minimap_gap"]
     row = tuning["row"]
     return (right - row_width(tuning) * scale, top, right,
             top + ((ROWS - 1) * row["pitch"] + row["height"]) * scale)
@@ -177,7 +188,7 @@ def build_layout(hud: bytes, names: bytes, factor: float = 1.0, edge: tuple[floa
     scale = list_scale(factor, tuning)
     # laid out at the list's full size, then scaled by `scale` about the corner: the top is where it lands under the
     # minimap, which the HUD size scales on its own
-    top = (MINIMAP_SIDE * factor + tuning["minimap_gap"]) / scale
+    top = (minimap_bottom(factor) + tuning["minimap_gap"]) / scale
     right = SCREEN_WIDTH
     group = layout.find(GROUP)
     holder = layout.insert_null(group, null_t, LIST, (SCREEN_HALF_WIDTH - right, SCREEN_HALF_HEIGHT - top))
@@ -260,5 +271,4 @@ def remove_horn_songs_files(mod_dir: Path) -> None:
 
 __all__ = ["ANCHOR", "ARC", "GROUP", "LAYOUT_PATH", "LIST", "NAME", "NOTES", "NOTE_CELL", "ROWS", "TEXTURE",
            "build_layout", "horn_songs_files", "horn_songs_paths", "list_box", "list_scale", "load_tuning",
-           "pane_names",
-           "patch_arc", "remove_horn_songs_files", "row_name", "row_width", "texture"]
+           "minimap_bottom", "pane_names", "patch_arc", "remove_horn_songs_files", "row_name", "row_width", "texture"]
