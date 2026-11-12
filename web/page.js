@@ -40,8 +40,10 @@ const TEXTS = {
     stageRom: "Leyendo tu juego…",
     stageWrite: "Creando el mod…",
     stageZip: "Empaquetándolo…",
-    elapsed: "{text} {seconds} s. En un móvil puede tardar varios minutos, más con Monster Hunter XX: deja esta página "
-      + "delante y la pantalla encendida.",
+    elapsed: "{text} {seconds} s.",
+    elapsedXx: "{text} {seconds} s. Con Monster Hunter XX puede tardar unos minutos.",
+    elapsedPhone: "{text} {seconds} s. En un móvil puede tardar varios minutos, más con Monster Hunter XX: deja esta "
+      + "página delante y la pantalla encendida.",
     built: "✓ Mod creado: {files} archivos, {size} MB, en {seconds} s.",
     leftOut: "Se ha dejado fuera: {notices}",
     download: "Descargar {name}",
@@ -135,8 +137,10 @@ const TEXTS = {
     stageRom: "Reading your game…",
     stageWrite: "Making the mod…",
     stageZip: "Packing it…",
-    elapsed: "{text} {seconds} s. On a phone it may take several minutes, more with Monster Hunter XX: keep this page "
-      + "in front and the screen on.",
+    elapsed: "{text} {seconds} s.",
+    elapsedXx: "{text} {seconds} s. With Monster Hunter XX it may take a few minutes.",
+    elapsedPhone: "{text} {seconds} s. On a phone it may take several minutes, more with Monster Hunter XX: keep this "
+      + "page in front and the screen on.",
     built: "✓ Mod ready: {files} files, {size} MB, in {seconds} s.",
     leftOut: "Left out: {notices}",
     download: "Download {name}",
@@ -616,9 +620,11 @@ function checkGame() {
   drawDiagnostics();
 }
 
+// The phone's warning on the phone's tab only; on a PC or a Steam Deck only MH XX makes the wait worth telling
 function showElapsed() {
   const seconds = Math.round((performance.now() - page.building.began) / 1000);
-  setStatus("#build-status", text("elapsed", { text: page.building.text, seconds }));
+  const key = page.platform === "android" ? "elapsedPhone" : page.building.xx ? "elapsedXx" : "elapsed";
+  setStatus("#build-status", text(key, { text: page.building.text, seconds }));
 }
 
 function startBuilding() {
@@ -626,11 +632,12 @@ function startBuilding() {
   page.failure = null;
   page.read = null;
   page.hidden = 0;
-  page.building = { began: performance.now(), text: text("stageRom"), timer: null, lock: null };
+  page.building = { began: performance.now(), text: text("stageRom"), xx: Boolean(page.xx?.ok), timer: null,
+                    lock: null };
   page.building.timer = setInterval(showElapsed, 1000);
   showElapsed();
   setState("building");
-  theWorker().postMessage({ type: "build", file: page.file, xx: page.xx?.ok ? page.xxFile : null,
+  theWorker().postMessage({ type: "build", file: page.file, xx: page.building.xx ? page.xxFile : null,
                             personal: page.values, language: page.language });
   keepScreenOn();
 }
@@ -705,6 +712,7 @@ function connect() {
     tab.addEventListener("click", () => {
       page.platform = tab.dataset.platform;
       drawInstall();
+      if (page.building) showElapsed();
     });
   }
   // emptied each time, or choosing the same file again (after a failure) would change nothing and do nothing
