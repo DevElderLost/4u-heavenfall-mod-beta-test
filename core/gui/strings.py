@@ -165,8 +165,12 @@ FIX_INPUTS = T("Faltan archivos del juego:\n{problems}", "Some game files are mi
 # Why a game file was refused (game/executable/containers.py MESSAGES: the English texts are the same, a test checks
 # it).
 EXTRACT_ERRORS = {
-    "encrypted": T("el archivo está cifrado; descífralo primero (p. ej. con GodMode9)",
-                   "the file is encrypted; decrypt it first (e.g. with GodMode9)"),
+    "encrypted": T("el archivo está cifrado; indica su archivo de claves (aes_keys.txt o 3dskeys.txt) o descífralo "
+                   "primero (p. ej. con GodMode9)",
+                   "the file is encrypted; give its key file (aes_keys.txt or 3dskeys.txt) or decrypt it first "
+                   "(e.g. with GodMode9)"),
+    "missing_keys": T("el archivo está cifrado y el archivo de claves no tiene la clave que necesita",
+                      "the file is encrypted and the key file does not have the key it needs"),
     "not_a_game_file": T("no es un juego de 3DS descifrado (.3ds, .cci, .cxi, .app, .cia, .zcci, .zcxi o .zcia)",
                          "not a decrypted 3DS game file (.3ds, .cci, .cxi, .app, .cia, .zcci, .zcxi or .zcia)"),
     "truncated": T("el archivo está incompleto (una descarga o copia cortada)",

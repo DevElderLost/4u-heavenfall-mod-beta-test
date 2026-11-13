@@ -1,8 +1,9 @@
 """Extract the decompressed executable (ExeFS ".code") from 3DS containers.
 
-Supported inputs (decrypted only, NCCH "NoCrypto" flag): .3ds / .cci (the first partition), .app / .cxi (a single
-NCCH, e.g. an installed update's 00000000.app), .cia, and Azahar's .zcci / .zcxi / .zcia; `containers.open_container`
-opens them all.
+Supported inputs (decrypted: NCCH "NoCrypto" flag; or encrypted, when the player's key file is there, aes_keys.txt or
+3dskeys.txt: `containers.open_container` then shows them decrypted): .3ds / .cci (the first partition), .app / .cxi (a
+single NCCH, e.g. an installed update's 00000000.app), .cia, and Azahar's .zcci / .zcxi / .zcia;
+`containers.open_container` opens them all.
 """
 
 import struct
@@ -10,7 +11,8 @@ from functools import lru_cache
 from pathlib import Path
 
 from core.game.executable.containers import (
-    ENCRYPTED, MEDIA_UNIT, NCCH_MAGICS, NO_EXECUTABLE, NOT_A_GAME_FILE, TRUNCATED, ExtractError, open_container,
+    ENCRYPTED, MEDIA_UNIT, MISSING_KEYS, NCCH_MAGICS, NO_EXECUTABLE, NOT_A_GAME_FILE, TRUNCATED, ExtractError,
+    open_container,
 )
 from core.native import kernels
 
@@ -94,11 +96,11 @@ def read_exactly(f, size: int, what: str) -> bytes:
 
 def ncch_identity(path: Path) -> tuple[str, bool]:
     """(title id as lowercase hex, whether it is decrypted) of a game file in any accepted format (containers.py;
-    an encrypted CIA is told apart by its TMD)."""
+    an encrypted CIA is told apart by its TMD). An encrypted file that the player's keys open counts as decrypted."""
     try:
         f = open_container(path)
     except ExtractError as error:
-        if error.kind == ENCRYPTED and error.title_id:
+        if error.kind in (ENCRYPTED, MISSING_KEYS) and error.title_id:
             return error.title_id, False
         raise
     with f:

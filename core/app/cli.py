@@ -10,7 +10,8 @@ modules, each with a switch: --single-screen (with the HUD size, the lock-on, th
 text, the camera, the item boxes and the cheats); a module switched off leaves the game as it is in all it holds. The
 game's START menu page Mod Settings lets the player change the lock-on, holding A, fast text and the cheats during play:
 what is chosen here is what a character with no choice of its own gets.
-The game is your decrypted base game, European or American (.3ds, .cia, .zcci, .zcia...), never modified; the update is
+The game is your base game, European or American (.3ds, .cia, .zcci, .zcia...), never modified, decrypted or encrypted
+(an encrypted one is read with --keys aes_keys.txt / 3dskeys.txt); the update is
 not needed. The output folder is a mod folder: copy its contents into the emulator's load/mods/<title>/
 (0004000000126100 for the European game, 0004000000126300 for the American one).
 --xx-rom (MH XX's decrypted game, optional) adds the looks of XX's weapons and armor to Layered Gear and the Wyporium's
@@ -36,6 +37,10 @@ def main(argv=None) -> int:
     parser.add_argument("--out", type=Path, help="output (mod) folder (required)")
     parser.add_argument("--xx-rom", type=Path,
                         help="MH XX's decrypted game file (optional, never modified): Layered Gear adds XX's looks")
+    parser.add_argument("--keys", type=Path, metavar="FILE",
+                        help="aes_keys.txt or 3dskeys.txt (or the folder with it and seeddb.bin): reads a game file "
+                             "that is still encrypted. Without it the keys are looked for beside the game, in "
+                             "HEAVENFALL_KEYS and in the emulators' sysdata folders")
     parser.add_argument("--layered-equipment", action=argparse.BooleanOptionalAction,
                         help="the Smithy's Layered Gear: looks bought once and worn over what you wear")
     parser.add_argument("--layered-by-rank", action=argparse.BooleanOptionalAction,
@@ -86,6 +91,12 @@ def main(argv=None) -> int:
     if args.rom is None or args.out is None:
         parser.error("the following arguments are required: --rom, --out")
 
+    if args.keys is not None:
+        from core.game.executable import crypto
+        try:
+            crypto.use_keys(crypto.load_keys(args.keys))
+        except (OSError, ValueError) as error:
+            parser.error(f"--keys: {error}")
     low, high = presets.field_range("cheat_fov")
     if args.cheat_fov is not None and not low <= args.cheat_fov <= high:
         parser.error(f"--cheat-fov must be between {low} and {high}")
