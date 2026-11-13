@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Heavenfall Beta</string>
+    <string name="tagline">Monster Hunter 4 Ultimate on one screen, for Azahar</string>
+    <string name="privacy">Your game file is only read, never modified or uploaded: everything happens on this phone.</string>
+    <string name="tab_install">Install</string>
+    <string name="tab_options">Options</string>
+
+    <string name="storage_title">Storage access</string>
+    <string name="storage_help">Optional, Android 11 and newer. With \"All files access\" the game is read where it is and the mod is written as plain files, so nothing is copied twice and installing again only writes what changed. Without it the app uses the file picker, which also works. A folder inside another app\'s Android/data always goes through the picker.</string>
+    <string name="storage_grant">Allow access to all files</string>
+    <string name="storage_granted">All files access is on.</string>
+
+    <string name="game_title">1. Your game</string>
+    <string name="game_help">The decrypted European or American Monster Hunter 4 Ultimate (.3ds, .cia). The update is not needed.</string>
+    <string name="choose_game">Choose game file</string>
+    <string name="game_none">No file chosen.</string>
+    <string name="game_ok">%1$s (%2$s)</string>
+
+    <string name="dest_title">2. Azahar\'s folder</string>
+    <string name="dest_help">Choose Azahar\'s user folder (the one with load/mods inside; it shows in the picker\'s side menu). The mod goes to load/mods/&lt;title&gt;. If it is not offered, use \"Save as zip\" and extract it there with a file manager.</string>
+    <string name="choose_dest">Choose Azahar folder</string>
+    <string name="dest_none">No folder chosen.</string>
+    <string name="dest_chosen">Folder: %1$s</string>
+
+    <string name="install">Install</string>
+    <string name="save_zip">Save as zip…</string>
+    <string name="install_hint">Choose a valid game file and the Azahar folder to install.</string>
+
+    <string name="working_loading">Starting Python…</string>
+    <string name="working_checking">Checking the game…</string>
+    <string name="working_copying">Copying the game file (the picker gave no direct access)…</string>
+    <string name="stage_rom">Reading the game…</string>
+    <string name="stage_write">Building the mod…</string>
+    <string name="stage_zip">Packing the mod…</string>
+    <string name="stage_install">Copying the mod to Azahar: %1$d / %2$d files</string>
+
+    <string name="done_installed">Installed in load/mods/%1$s. Restart emulation if the game was running, and choose the Single Screen layout in Azahar.</string>
+    <string name="done_zip_saved">Zip saved. Extract it so that load/mods/&lt;title&gt;/romfs exists inside Azahar\'s user folder.</string>
+    <string name="notices_title">Left out:</string>
+    <string name="err_generic">Something went wrong.</string>
+    <string name="err_destination">Azahar\'s folder cannot be written. Choose it again.</string>
+
+    <string name="replace_title">Replace the existing folder?</string>
+    <string name="replace_text">That folder has files that were not added by Heavenfall Beta. They will be deleted.</string>
+    <string name="replace_yes">Replace</string>
+    <string name="replace_no">Cancel</string>
+</resources>

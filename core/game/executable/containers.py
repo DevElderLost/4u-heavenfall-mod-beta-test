@@ -8,6 +8,9 @@
                     file_derived.* in azahar-emu/azahar, PR #1208): a 0x20-byte header, a metadata block and seekable
                     zstd (facebook/zstd contrib/seekable_format)     decompressed one frame at a time
 
+An encrypted file (NCCH or CIA) is opened as a decrypted one when the player's key file is there (aes_keys.txt or
+3dskeys.txt: crypto.py, decrypt.py); without it, an encrypted file is refused as before.
+
 The format is told by the file's content, never by its extension. Every reader of the game files (`ncch_identity`,
 `extract_code`, `RomFS`, `extract_exheader`) opens its file with `open_container`, so a new format needs no code of its
 own anywhere else. Refusals are `ExtractError`s with a `kind`, which the GUI translates (gui/strings.py).
@@ -26,19 +29,25 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
 
-import zstandard
+try:
+    import zstandard
+except ImportError:    # a build without the package (the Android app may lack its wheel): only .zcci/.zcia need it
+    zstandard = None
 
 # Every extension a player's game file may have: the file pickers and tools/build/setup_local.py list them.
 EXTENSIONS = (".3ds", ".cci", ".cxi", ".app", ".cia", ".zcci", ".zcxi", ".zcia")
 
 ENCRYPTED, NOT_A_GAME_FILE, TRUNCATED = "encrypted", "not_a_game_file", "truncated"
+MISSING_KEYS = "missing_keys"     # encrypted, and the key file has not the key (the message adds which)
 UNSUPPORTED_COMPRESSION, DAMAGED = "unsupported_compression", "damaged"
 NO_EXECUTABLE, NO_ROMFS, INVALID_ROMFS = "no_executable", "no_romfs", "invalid_romfs"
 OTHER = "other"   # a refusal with its own text (not in MESSAGES)
 
 # The English text of each kind; gui/strings.py has the same kinds in the GUI's languages.
 MESSAGES = {
-    ENCRYPTED: "the file is encrypted; decrypt it first (with GodMode9 on a 3DS, or a 3DS decryptor on a PC)",
+    ENCRYPTED: "the file is encrypted; give its key file (aes_keys.txt or 3dskeys.txt) or decrypt it first "
+               "(e.g. with GodMode9)",
+    MISSING_KEYS: "the file is encrypted and the key file does not have the key it needs",
     NOT_A_GAME_FILE: "not a decrypted 3DS game file (" + ", ".join(EXTENSIONS[:-1]) + " or " + EXTENSIONS[-1] + ")",
     TRUNCATED: "the file is incomplete (the download or copy was interrupted)",
     UNSUPPORTED_COMPRESSION: "this compressed file uses a format version that this program cannot read",
@@ -170,8 +179,8 @@ def _looks_like_cia(head: bytes) -> bool:
     return len(head) >= 8 and struct.unpack_from("<IH", head, 0) == (CIA_HEADER_SIZE, 0)
 
 
-def _cia_content(f) -> _Window:
-    """A window onto content 0 of the CIA `f`, which must be plain (not encrypted)."""
+def _cia_content(f, path: Path | None = None):
+    """A window onto content 0 of the CIA `f`; an encrypted one is decrypted with the player's keys (decrypt.py)."""
     f.seek(0)
     head = f.read(0x20)
     if len(head) < 0x20:
@@ -194,14 +203,31 @@ def _cia_content(f) -> _Window:
     if not struct.unpack_from(">H", tmd, section + 0x9E)[0]:
         raise ExtractError.of(NOT_A_GAME_FILE, "a CIA with no content")
     title_id = tmd[section + 0x4C:section + 0x54].hex()
-    _, _, content_type, content_size = struct.unpack_from(">IHHQ", tmd, record_at)
+    _, content_index, content_type, content_size = struct.unpack_from(">IHHQ", tmd, record_at)
+    keys = None
     if content_type & CONTENT_ENCRYPTED:
-        raise ExtractError.of(ENCRYPTED, "the CIA's content is encrypted", title_id)
+        from core.game.executable import crypto
+        keys = crypto.keys_for(path)
+        if keys is None:
+            raise ExtractError.of(ENCRYPTED, "the CIA's content is encrypted", title_id)
     if content_size < HEAD:
         raise ExtractError.of(NOT_A_GAME_FILE, "a CIA whose first content is not an NCCH")
     if total < content_at + content_size:
         raise ExtractError.of(TRUNCATED, "inside the CIA's content")
     content = _Window(f, content_at, content_size)
+    if keys is not None:
+        ticket_at = _align(header_size, CIA_ALIGNMENT) + _align(cert_size, CIA_ALIGNMENT)
+        f.seek(ticket_at)
+        ticket = f.read(ticket_size)
+        ticket_section = TMD_SIGNATURE_SECTION.get(struct.unpack_from(">I", ticket, 0)[0]) if len(ticket) >= 4 else None
+        if ticket_section is None:
+            raise ExtractError.of(NOT_A_GAME_FILE, "a CIA with an unreadable ticket")
+        from core.game.executable import decrypt
+        content = decrypt.decrypt_cia_content(content, keys, ticket, ticket_section, content_index)
+        if content.read(HEAD)[0x100:0x104] != b"NCCH":
+            raise decrypt.missing_keys(["the title key did not decrypt the content: wrong common key?"], title_id)
+        content.seek(0)
+        return content
     if content.read(HEAD)[0x100:0x104] != b"NCCH":
         raise ExtractError.of(NOT_A_GAME_FILE, "a CIA whose first content is not an NCCH")
     content.seek(0)
@@ -427,7 +453,11 @@ class _ZstdFile(_View):
 
 
 def _open_z3ds(raw, path: Path) -> _ZstdFile:
-    key = _file_key(raw, path)
+    if zstandard is None:
+        raise ExtractError("compressed game files (.zcci, .zcxi, .zcia) need the zstandard package, which this build "
+                           "does not include; use the .3ds or .cia file instead")
+    status = os.fstat(raw.fileno())
+    key = (os.path.abspath(path), status.st_size, status.st_mtime_ns)
     with _lock:
         index = _indexes.get(key)
     if index is None:
@@ -447,6 +477,25 @@ def looks_like_container(path: Path) -> bool:
     with Path(path).open("rb") as f:
         head = f.read(HEAD)
     return head[:4] == Z3DS_MAGIC or head[0x100:0x104] in NCCH_MAGICS or _looks_like_cia(head)
+
+
+def _plain(f, path: Path):
+    """`f` as it is when its NCCH is decrypted; when it is encrypted and the player's keys are there, `f` decrypted
+    as it is read (decrypt.py). Without keys, `f` as it is: the readers refuse it (extract.read_ncch)."""
+    f.seek(0)
+    head = f.read(HEAD)
+    f.seek(0)
+    if head[0x100:0x104] != b"NCCH" and head[0x100:0x104] != b"NCSD":
+        return f
+    from core.game.executable import crypto, decrypt
+    start = decrypt.ncch_start(f)
+    f.seek(start)
+    ncch = f.read(HEAD)
+    f.seek(0)
+    if len(ncch) < HEAD or ncch[0x100:0x104] != b"NCCH" or ncch[0x18F] & decrypt.NO_CRYPTO:
+        return f
+    keys = crypto.keys_for(path)
+    return f if keys is None else decrypt.open_decrypted(f, keys)
 
 
 def open_container(path: Path):
@@ -470,9 +519,9 @@ def open_container(path: Path):
             head = f.read(HEAD)
         if head[0x100:0x104] in NCCH_MAGICS:
             f.seek(0)
-            return f
+            return _plain(f, path)
         if _looks_like_cia(head):
-            return _cia_content(f)
+            return _plain(_cia_content(f, path), path)
         raise ExtractError.of(NOT_A_GAME_FILE)
     except BaseException:
         raw.close()

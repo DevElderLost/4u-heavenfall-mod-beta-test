@@ -21,3 +21,10 @@ __pycache__/
 *.app
 *.arc
 *.cst
+
+# Android app (android/README.md)
+android/.gradle/
+android/.kotlin/
+android/local.properties
+*.apk
+*.jks

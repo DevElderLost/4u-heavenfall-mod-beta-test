@@ -1,6 +1,7 @@
 // The page: its texts, the options (options.json, drawn here), and the worker that checks the game and builds the mod.
 // document.body.dataset.state says where it is: loading, idle, checking, ready, refused, building, built or failed;
 // document.body.dataset.xx, MH XX's optional file: "" (none), checking, good or bad.
+// page.keysFiles, the optional key files (aes_keys.txt or 3dskeys.txt, seeddb.bin) of a game that is still encrypted.
 
 const TEXTS = {
   es: {
@@ -8,8 +9,8 @@ const TEXTS = {
     tagline: "Crea el mod de pantalla única en tu navegador, sin instalar nada.",
     privacy: "Todo se hace en este dispositivo: tu juego no se sube a ningún sitio.",
     gameTitle: "1. Elige tu juego",
-    gameHelp: "Tu copia descifrada de Monster Hunter 4 Ultimate, europea o americana (.3ds, .cia, .zcci o .zcia). "
-      + "El archivo no se modifica.",
+    gameHelp: "Tu copia de Monster Hunter 4 Ultimate, europea o americana (.3ds, .cia, .zcci o .zcia), descifrada o, "
+      + "con tus claves (abajo), todavía cifrada. El archivo no se modifica.",
     choose: "Elegir archivo",
     gameMissing: "¿No ves tu juego?",
     androidMissing: "Abre el menú lateral del selector y entra en el almacenamiento del móvil o en la tarjeta SD.",
@@ -23,6 +24,16 @@ const TEXTS = {
     xxGood: "✓ Monster Hunter XX: {name}",
     xxBad: "✗ {problem}. El mod se creará sin Monster Hunter XX.",
     xxRemove: "Quitar",
+    keysHelp: "Solo si tu juego sigue cifrado: tus claves (aes_keys.txt o 3dskeys.txt) y, si el juego las usa, "
+      + "seeddb.bin. Puedes elegir varios archivos a la vez. Se leen en este dispositivo: no se suben a ningún sitio.",
+    chooseKeys: "Elegir claves",
+    keysChecking: "Leyendo las claves…",
+    keysGood: "✓ Claves: {count} ({names})",
+    keysSeeds: "; {seeds} semillas",
+    keysBad: "✗ {problem}",
+    keysEmpty: "Esos archivos no tienen claves que el programa use: elige aes_keys.txt o 3dskeys.txt.",
+    keysUnreadable: "No se pudieron leer los archivos de claves.",
+    keysRemove: "Quitar",
     engine: "Preparando el motor (la primera vez descarga unos 15 MB)…",
     checking: "Comprobando el juego…",
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
@@ -105,8 +116,8 @@ const TEXTS = {
     tagline: "Make the single-screen mod in your browser, with nothing to install.",
     privacy: "Everything happens on this device: your game is never uploaded.",
     gameTitle: "1. Choose your game",
-    gameHelp: "Your decrypted copy of Monster Hunter 4 Ultimate, European or American (.3ds, .cia, .zcci or .zcia). "
-      + "The file is never modified.",
+    gameHelp: "Your copy of Monster Hunter 4 Ultimate, European or American (.3ds, .cia, .zcci or .zcia), decrypted or, "
+      + "with your keys (below), still encrypted. The file is never modified.",
     choose: "Choose file",
     gameMissing: "Can't see your game?",
     androidMissing: "Open the picker's side menu and go to your phone's storage or SD card.",
@@ -120,6 +131,16 @@ const TEXTS = {
     xxGood: "✓ Monster Hunter XX: {name}",
     xxBad: "✗ {problem}. The mod will be made without Monster Hunter XX.",
     xxRemove: "Remove",
+    keysHelp: "Only if your game is still encrypted: your keys (aes_keys.txt or 3dskeys.txt) and, if the game uses "
+      + "them, seeddb.bin. You can choose several files at once. They are read on this device: they are never uploaded.",
+    chooseKeys: "Choose keys",
+    keysChecking: "Reading the keys…",
+    keysGood: "✓ Keys: {count} ({names})",
+    keysSeeds: "; {seeds} seeds",
+    keysBad: "✗ {problem}",
+    keysEmpty: "Those files have no keys this program uses: choose aes_keys.txt or 3dskeys.txt.",
+    keysUnreadable: "The key files could not be read.",
+    keysRemove: "Remove",
     engine: "Getting the engine ready (the first time downloads about 15 MB)…",
     checking: "Checking the game…",
     gameGood: "✓ Monster Hunter 4 Ultimate, {region}: {name}",
@@ -213,6 +234,8 @@ const page = {
   game: null,             // what core/app/web.py said of it (its text is in the language asked)
   xxFile: null,           // MH XX's file, optional
   xx: null,               // what core/app/web.py (check_xx) said of it
+  keysFiles: [],          // the key files of an encrypted game, optional
+  keys: null,             // what core/app/web.py (use_keys) said of them
   worker: null,
   engineSeconds: null,
   building: null,         // while building: {began, text, timer, lock}
@@ -239,6 +262,8 @@ function setState(state) {
   $("#game").disabled = state === "building";
   $("#xx").disabled = state === "building";
   $("#xx-remove").disabled = state === "building";
+  $("#keys").disabled = state === "building";
+  $("#keys-remove").disabled = state === "building";
   $("#progress").hidden = state !== "building";
 }
 
@@ -494,6 +519,11 @@ const HANDLERS = {
     if (document.body.dataset.xx === "checking") setStatus("#xx-status", text("xxChecking"));
     drawDiagnostics();
   },
+  checkedKeys({ result }) {
+    page.keys = result;
+    showKeys();
+    drawDiagnostics();
+  },
   checkedXx({ result }) {
     page.xx = result;
     document.body.dataset.xx = result.ok ? "good" : "bad";
@@ -593,7 +623,7 @@ function checkXx() {
   $("#xx-remove").hidden = false;
   setStatus("#xx-status", page.worker ? text("xxChecking") : text("engine"));
   refreshBuild();
-  theWorker().postMessage({ type: "checkXx", file: page.xxFile, language: page.language });
+  theWorker().postMessage({ type: "checkXx", file: page.xxFile, keys: page.keysFiles, language: page.language });
   drawDiagnostics();
 }
 
@@ -608,6 +638,36 @@ function removeXx() {
   drawDiagnostics();
 }
 
+function showKeys() {
+  if (!page.keys || !page.keysFiles.length) return;
+  if (page.keys.ok) {
+    const names = page.keysFiles.map((file) => file.name).join(", ");
+    const seeds = page.keys.seeds ? text("keysSeeds", { seeds: page.keys.seeds }) : "";
+    setStatus("#keys-status", text("keysGood", { count: page.keys.keys.length, names }) + seeds, "good");
+  } else {
+    const reason = page.keys.reason === "empty" ? "keysEmpty" : "keysUnreadable";
+    setStatus("#keys-status", text("keysBad", { problem: text(reason) }), "bad");
+  }
+}
+
+// The keys changed (chosen, or removed): the game and MH XX are read again with them, and a mod made before is not the
+// one asked for any more
+function keysChanged() {
+  page.keys = null;
+  if (page.keysFiles.length) {
+    $("#keys-remove").hidden = false;
+    setStatus("#keys-status", page.worker ? text("keysChecking") : text("engine"));
+    theWorker().postMessage({ type: "checkKeys", keys: page.keysFiles });
+  } else {
+    $("#keys-remove").hidden = true;
+    setStatus("#keys-status", "");
+    if (page.worker) page.worker.postMessage({ type: "checkKeys", keys: [] });
+  }
+  if (page.file) checkGame();
+  if (page.xxFile) checkXx();
+  drawDiagnostics();
+}
+
 function checkGame() {
   forgetMod();
   page.game = null;
@@ -615,7 +675,7 @@ function checkGame() {
   setState("checking");
   setStatus("#game-status", page.worker ? text("checking") : text("engine"));
   setStatus("#build-status", "");
-  theWorker().postMessage({ type: "check", file: page.file, language: page.language });
+  theWorker().postMessage({ type: "check", file: page.file, keys: page.keysFiles, language: page.language });
   drawInstall();
   drawDiagnostics();
 }
@@ -638,7 +698,7 @@ function startBuilding() {
   showElapsed();
   setState("building");
   theWorker().postMessage({ type: "build", file: page.file, xx: page.building.xx ? page.xxFile : null,
-                            personal: page.values, language: page.language });
+                            keys: page.keysFiles, personal: page.values, language: page.language });
   keepScreenOn();
 }
 
@@ -685,6 +745,10 @@ function drawDiagnostics() {
   if (page.xxFile) {
     lines.push(`MH XX: ${megabytes(page.xxFile.size)}, ${page.xx ? (page.xx.ok ? "used" : "refused") : "checking"}`);
   }
+  if (page.keysFiles.length) {
+    lines.push(`Keys: ${page.keysFiles.map((file) => file.name).join(", ")}, `
+      + `${page.keys ? (page.keys.ok ? `${page.keys.keys.length} keys, AES ${page.keys.aes}` : `refused (${page.keys.reason})`) : "reading"}`);
+  }
   if (page.engineSeconds !== null) lines.push(`Engine started in ${page.engineSeconds.toFixed(1)} s`);
   if (page.result) {
     lines.push(`Mod: ${page.result.title}, ${page.result.version}, ${page.result.files} files, `
@@ -707,6 +771,7 @@ function connect() {
     else if (page.file && ["ready", "refused"].includes(document.body.dataset.state)) checkGame();
     if (page.xx?.ok) showXx();
     else if (page.xx) checkXx();       // its refusal, told again in the new language
+    showKeys();
   });
   for (const tab of document.querySelectorAll(".tab")) {
     tab.addEventListener("click", () => {
@@ -737,6 +802,19 @@ function connect() {
     checkXx();
   });
   $("#xx-remove").addEventListener("click", removeXx);
+  $("#keys").addEventListener("click", (event) => {
+    event.target.value = "";
+  });
+  $("#keys").addEventListener("change", (event) => {
+    const files = [...event.target.files];
+    if (!files.length) return;
+    page.keysFiles = files;
+    keysChanged();
+  });
+  $("#keys-remove").addEventListener("click", () => {
+    page.keysFiles = [];
+    keysChanged();
+  });
   $("#reset").addEventListener("click", () => {
     save(SAVED_OPTIONS, {});
     page.values = startingValues();
