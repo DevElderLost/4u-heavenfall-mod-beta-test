@@ -42,9 +42,18 @@
 @   for the gate and for the system keyboard's block, whose hook replaced the first (`push {r4, r5, r6, lr}`).
 @
 @ gate_*: a call of the game that another block took (hold A, fast text, fast gathering, the lock-on's D-pad filter, the
-@   death camera skip's call of FUN_00c03d70 in the camera manager's frame) goes here first: with the option off it
-@   makes the game's own call, else it goes on to the block's entry. Only the flags change (r12 is kept), so the callee
-@   gets its registers and stack arguments as they came.
+@   death camera skip's call of FUN_00c03d70 in the camera manager's frame, the modern camera's calls of FUN_00bfd028
+@   and its question in FUN_00b3cc64, its aim's two instructions and calls of FUN_00b1ea04 in FUN_00b2041c, the intro
+@   skip's call of FUN_00292ea4 in the touch bar's input) goes here
+@   first: with the option off it makes the game's own call, else it goes on to the block's entry. Only the flags
+@   change (r12 is kept), so the callee gets its registers and stack arguments as they came.
+@
+@ modern_stick_game: FUN_00b3cc64's `blx r2` (the hunter's vtable + 0x98, r0 the hunter, r1 1: "is the C-stick
+@   tilted") for gate_modern_stick: the game's call, lr the hook's.
+@
+@ aim_commands_game, aim_scope_game: FUN_00b2041c's (the hunter's aim) `ldr r0, [r2, #0x3e4]` (its commands over the
+@   shoulder and the Bow's) and `tst r0, #0x3c` (the scope's C-stick bits) for gate_aim_commands and gate_aim_scope,
+@   the modern camera's aim hooks: the game's instruction, then back.
 @
 @ Build: tools/build/build_code_space.py (devkitARM), which places and links it.
 
@@ -55,17 +64,21 @@
     .global mod_frame_stub, mod_bloom, mod_fov_reset, mod_fov_other, mod_net_waits, mod_net_polls_a, mod_net_polls_b
     .global mod_raw_a, mod_raw_b, mod_camera_cap, mod_box_kind, mod_box_lines
     .global gate_hold_a_field, gate_hold_a_rewards, gate_hold_a_claim, gate_fast_text, gate_fast_motion
-    .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera
+    .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera, gate_intro_skip
+    .global gate_intro_music, gate_intro_end
+    .global gate_modern_turn, gate_modern_stick, modern_stick_game
+    .global gate_aim_commands, gate_aim_scope, gate_aim_view, aim_commands_game, aim_scope_game
 
     @ struct mod_options_state (mod_options.c checks the offsets)
-    .equ NET_WAITS, 16
-    .equ NET_POLLS, 20
-    .equ FOV_ONE, 24
-    .equ FOV_OTHER, 28
-    .equ RAW_BASE, 32
+    @ NET_WAITS and NET_POLLS are halfwords
+    .equ NET_WAITS, 28
+    .equ NET_POLLS, 30
+    .equ FOV_ONE, 32
+    .equ FOV_OTHER, 36
+    .equ RAW_BASE, 40
     .equ CAMERA_CAP, 56
-    .equ BOX_LINES, 60
-    .equ BOX_AWAY, 61
+    .equ BOX_LINES, 64
+    .equ BOX_AWAY, 65
     @ the options' places in mod_options_state.values (mod_options.py OPTION_IDS)
     .equ OPT_BLOOM, 1
     .equ OPT_LOCK, 6
@@ -75,6 +88,8 @@
     .equ OPT_BOX, 11
     .equ OPT_KEYBOARD, 12
     .equ OPT_DEATH_CAMERA, 13
+    .equ OPT_MODERN_CAMERA, 19
+    .equ OPT_INTRO_SKIP, 21
     .equ GAME_FOV_ONE, 0x42480000       @ 50.0, the game's literal of the reset case "not equal" and of FUN_00c06a14
     .equ GAME_FOV_OTHER, 0x42680000     @ 58.0, the reset case "equal"
     .equ GAME_CAMERA_CAP, 0x41200000    @ 10.0, FUN_00bfd028's cap
@@ -126,19 +141,19 @@ mod_fov_other:
 mod_net_waits:
     push    {r12}
     ldr     r12, =mod_options_state
-    ldr     r12, [r12, #NET_WAITS]
+    ldrh    r12, [r12, #NET_WAITS]
     cmp     r2, r12
     pop     {r12}
     b       net_waits_return
 
 mod_net_polls_a:
     ldr     r0, =mod_options_state
-    ldr     r0, [r0, #NET_POLLS]
+    ldrh    r0, [r0, #NET_POLLS]
     b       net_polls_a_return
 
 mod_net_polls_b:
     ldr     r0, =mod_options_state
-    ldr     r0, [r0, #NET_POLLS]
+    ldrh    r0, [r0, #NET_POLLS]
     b       net_polls_b_return
 
 mod_raw_a:
@@ -206,6 +221,27 @@ mod_box_lines:
     gate    gate_lock, OPT_LOCK, dpad_filter_entry, dpad_actions
     gate    gate_system_keyboard, OPT_KEYBOARD, system_keyboard_poll, keyboard_poll_game
     gate    gate_death_camera, OPT_DEATH_CAMERA, death_camera_step, camera_play
+    gate    gate_modern_turn, OPT_MODERN_CAMERA, modern_camera_turn, camera_turn_by_input
+    gate    gate_modern_stick, OPT_MODERN_CAMERA, modern_camera_stick, modern_stick_game
+    gate    gate_aim_commands, OPT_MODERN_CAMERA, aim_commands_hook, aim_commands_game
+    gate    gate_aim_scope, OPT_MODERN_CAMERA, aim_scope_hook, aim_scope_game
+    gate    gate_aim_view, OPT_MODERN_CAMERA, modern_aim_view, aim_pitch_view
+    gate    gate_intro_skip, OPT_INTRO_SKIP, intro_skip_button, touch_bar_button
+    gate    gate_intro_music, OPT_INTRO_SKIP, intro_skip_music, cutscene_sound_stop
+    gate    gate_intro_end, OPT_INTRO_SKIP, intro_skip_end, event_sound_end
+
+    @ modern_stick_game is one word: it goes before keyboard_poll_game, never right before the literal pool, so that a
+    @ two-word branch put over it (a debugger's, an emulator's) cannot overwrite the gates' literal
+modern_stick_game:
+    bx      r2
+
+aim_commands_game:
+    ldr     r0, [r2, #0x3e4]
+    bx      lr
+
+aim_scope_game:
+    tst     r0, #0x3c
+    bx      lr
 
 keyboard_poll_game:
     push    {r4, r5, r6, lr}

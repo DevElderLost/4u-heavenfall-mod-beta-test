@@ -38,6 +38,8 @@ from core.game.files.gui.lyt import LYT_TYPE_HASH, Layout, Pane, PaneKind, name_
 from core.interface.game_gui import geometry
 from core.interface.hud.build import CODE_PATCH_LAYOUTS, HUD_LAYOUTS, LANGUAGES, MAP_ARC, GameFiles, short_name
 from core.interface.hud.code_patch import FACE_ANCHOR, FACE_LAYOUT
+from core.interface.horn_songs.layout import ANCHOR as HORN_ANCHOR
+from core.interface.horn_songs.layout import NAME as HORN_LAYOUT
 from core.interface.hud.scale import NO_EDGE, SCREEN_HALF_WIDTH, Anchor, anchor_all
 
 LEFT, CENTRE, RIGHT = -1, 0, 1
@@ -155,9 +157,9 @@ def group_span(layout: Layout, root: Pane) -> tuple[float, float] | None:
 
 def hud_owned_layouts() -> set[str]:
     """The layouts whose files the HUD's edges already move, or the code places (interface/hud/build.py; the target
-    face's copy of its touch panel, code_patch.face_params)."""
+    face's copy of its touch panel, code_patch.face_params; the Hunting Horn's songs, horn_songs/layout.py)."""
     return {*(name for layouts in HUD_LAYOUTS.values() for name in layouts),
-            *(name for layouts in CODE_PATCH_LAYOUTS.values() for name in layouts), FACE_LAYOUT}
+            *(name for layouts in CODE_PATCH_LAYOUTS.values() for name in layouts), FACE_LAYOUT, HORN_LAYOUT}
 
 
 def _whole_box(root: Pane) -> geometry.Box | None:
@@ -252,12 +254,13 @@ def corner_code(anchor: Anchor) -> int:
 
 def hud_entries(layouts: Mapping[str, Layout]) -> dict[str, tuple[int, int]]:
     """Root group -> what the table says of each group of the HUD. Its files are at the sides of the installer's ratio
-    (scale.py), and so is the target face, which the code places beside the item selector (code_patch.face_params);
-    the executable takes them from there to the ratio chosen in the game. What stays in place is left out."""
+    (scale.py), and so are the target face, which the code places beside the item selector (code_patch.face_params),
+    and the Hunting Horn's songs under the minimap (horn_songs/layout.py); the executable takes them from there to the
+    ratio chosen in the game. What stays in place is left out."""
     specs = [(name, spec) for by_arc in (HUD_LAYOUTS, CODE_PATCH_LAYOUTS) for by_layout in by_arc.values()
              for name, spec in by_layout.items()]
     out: dict[str, tuple[int, int]] = {}
-    for name, spec in [*specs, (FACE_LAYOUT, FACE_ANCHOR)]:
+    for name, spec in [*specs, (FACE_LAYOUT, FACE_ANCHOR), (HORN_LAYOUT, HORN_ANCHOR)]:
         if name in layouts:
             anchors = spec if isinstance(spec, Mapping) else anchor_all(layouts[name], spec)
             out.update((group, (hud_code(anchor),) * 2) for group, anchor in anchors.items()

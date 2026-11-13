@@ -64,8 +64,8 @@ class ItemBook:
             slot = record.slot
             ids = item_ids(record)
             for spec in record.items:
-                if not spec.is_new:
-                    self.ids[record.key, spec.key] = spec.mh4u
+                if not spec.is_new:       # MH4U's, or another monster's (`of`: the same id as in his record)
+                    self.ids[record.key, spec.key] = ids[spec.key]
                     self.english[record.key, spec.key] = spec.name or mh4u[spec.mh4u]
                     continue
                 if slot in taken or slot >= MAX_ITEM_SLOTS:

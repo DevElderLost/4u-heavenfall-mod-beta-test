@@ -56,13 +56,26 @@ EXT_START = 0x111E000
 # + Layered Gear's Relics and the split title's two RomFS beside Valstrax and the pack (1 page for both)
 # + each layered look's zenny a u32, for the relics priced by their monster (2 pages: the block layered_rules to
 #   0x12000)
-EXT_SIZE = 0x145000
+# + the modern camera giving the C-stick's question the game's answer and a skipped intro's music stopped by its
+#   voices (1 page)
+# + Mod Settings' lists of every size, their frames' name hashes (1 page)
+# + the rooms for the next ports: Felyne model numbers, armor ids, create recipes, break and carve tables (2 pages)
+# + the new weapons' room from 40 to 80 ids per class and the save's marks of the ids past a class's bits (7 pages:
+#   equipment/new_gear/new_weapon_room.py, weapon_marks.py)
+# + Astalos' class and data with MH XX's shell bases 14 and 15 (55 pages)
+# + Boltreaver Astalos' blocks, his shell classes, MH XX's shell base 50 and the variants' blocks (43 pages)
+# + Hellblade Glavenus' blocks: his images, shell 01, own data and the variant's data blocks (23 pages)
+# + Soulseer Mizutsune's blocks: his images, shells, his class on base 26, own data and the variant's data blocks (32
+#   pages); his own shell 01 and slot 113's table (1 page:
+#   "SG3: the finish")
+EXT_SIZE = 0x1EC000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
 # uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
-# records, em data slots and save records.
-EXT_VARS_SIZE = 2 * PAGE
+# records, em data slots and save records; a third for Damage Numbers'
+# state.
+EXT_VARS_SIZE = 3 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000

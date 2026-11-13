@@ -204,6 +204,11 @@ GAME_PROBLEMS = {
     "unreadable": T("no se puede leer el archivo (¿está en uso, sin permiso o en una unidad desconectada?)",
                     "the file cannot be read (check that it is not in use, that you have permission to open it, and "
                     "that its drive is connected)"),
+    "misnamed_encrypted": T("su nombre dice que está descifrado, pero no lo está (un emulador con las claves de la "
+                            "consola lo juega igualmente); los descifradores se saltan un archivo cuyo nombre dice "
+                            "decrypted, así que cámbiale el nombre antes",
+                            "its name says it is decrypted, but it is not (an emulator with the console's keys plays "
+                            "it anyway); decryptors skip a file whose name says decrypted, so rename it first"),
 }
 # The other refusals of the install path: (regular expression of the whole English message, its translation with the
 # named groups as fields). install/deploy.py, install/build.py and gui/qt/jobs.py write the English; a test raises the

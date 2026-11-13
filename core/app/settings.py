@@ -147,6 +147,24 @@ class ValstraxMode(str, Enum):
     EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
 
 
+class AstalosMode(str, Enum):
+    """Where Astalos (from MH XX) is met (core/monsters/astalos/astalos_quests.py)."""
+    OFF = "off"
+    QUESTS = "quests"            # three Gathering Hall quests of his own on the Ancestral Steppe: 3★, 6★ and G★1
+    RANDOMIZED = "randomized"    # tier 3 among the randomized monsters, without his quests
+    EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
+
+
+class DeviantMode(str, Enum):
+    """Where a Deviant (Boltreaver Astalos, Hellblade Glavenus, Soulseer Mizutsune: MH XX's variant 4 of a ported base)
+    is met; one enum for the three (core/monsters/porting/spec.py BOLTREAVER, HELLBLADE, SOULSEER; docs/monsters/
+    deviants.md, "V4: identity")."""
+    OFF = "off"
+    QUESTS = "quests"            # his one Gathering Hall quest (G★3 for now)
+    RANDOMIZED = "randomized"    # tier 6 among the randomized monsters, without his quest
+    EXTENDED = "extended"        # his quest, randomized as any quest, and he joins the randomized monsters
+
+
 @dataclass(frozen=True)
 class PortedOption:
     """The option of one ported monster: an entry of PORTED_OPTIONS, the one place that names the
@@ -169,6 +187,8 @@ class PortedOption:
     builds: tuple[Enum, ...] | None = None       # the modes that build him (files and code); None: all but `off`
     retired: tuple[Enum, ...] = ()               # modes loaded and regenerated, never offered (CLI, GUI)
     cli_help: str = ""                           # the help of his flag `--<key>`
+    base: str = ""                               # a Deviant's base monster (his key): the Deviant is off whenever
+    #                                              the base's mode is off (Settings.mode_of)
     game: str = "xx"                             # the game he is ported from (spec.game, monsters/porting/spec.py):
     #                                              MH XX, whose decrypted .3ds a run needs
 
@@ -221,6 +241,42 @@ PORTED_OPTIONS: tuple[PortedOption, ...] = (
                  "monsters, or `extended`: his quests, randomized like any quest, and among the randomized "
                  "monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
         game="xx"),
+    # Astalos has no installer or GUI option: he will be fixed on in both presets (curated/gui_presets.json `fixed`, as
+    # Great Maccao) once phase G puts him in spec.BUILT; until then a run that asks for him is refused
+    PortedOption(
+        "astalos", "Astalos", AstalosMode, AstalosMode.OFF, pool=AstalosMode.RANDOMIZED,
+        quests=AstalosMode.QUESTS, extended=AstalosMode.EXTENDED,
+        cli_help="add Astalos from MH XX (switches the additional monsters on): three quests of his own on "
+                 "the Ancestral Steppe (low rank 3 stars, high rank 6 stars and G rank 1 star), only among the "
+                 "randomized monsters, or `extended`: his quests, randomized like any quest, and among the "
+                 "randomized monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    # The Deviants: no installer or GUI option, fixed on like Astalos once each is in
+    # spec.BUILT (the link tasks flip curated/gui_presets.json), and off whenever the base is off. Order: Boltreaver,
+    # Hellblade, Soulseer.
+    # `quests` and `extended` (`core/monsters/<key>/<key>_quests.TABLE`) and `pool` (`<key>_monster.RECORD`) are set
+    # (QP task); the presets keep them off until the link tasks flip them.
+    PortedOption(
+        "boltreaver", "Boltreaver Astalos", DeviantMode, DeviantMode.OFF, base="astalos",
+        pool=DeviantMode.RANDOMIZED, quests=DeviantMode.QUESTS, extended=DeviantMode.EXTENDED,
+        cli_help="add Boltreaver Astalos from MH XX (switches the additional monsters on): a quest of his own, "
+                 "only among the randomized monsters, or `extended`; off while --astalos is off (needs --rom and "
+                 "--xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    PortedOption(
+        "hellblade", "Hellblade Glavenus", DeviantMode, DeviantMode.OFF, base="glavenus",
+        pool=DeviantMode.RANDOMIZED, quests=DeviantMode.QUESTS, extended=DeviantMode.EXTENDED,
+        cli_help="add Hellblade Glavenus from MH XX (switches the additional monsters on): a quest of his own, "
+                 "only among the randomized monsters, or `extended`; off while --glavenus is off (needs --rom and "
+                 "--xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    PortedOption(
+        "soulseer", "Soulseer Mizutsune", DeviantMode, DeviantMode.OFF, base="mizutsune",
+        pool=DeviantMode.RANDOMIZED, quests=DeviantMode.QUESTS, extended=DeviantMode.EXTENDED,
+        cli_help="add Soulseer Mizutsune from MH XX (switches the additional monsters on): a quest of his own, "
+                 "only among the randomized monsters, or `extended`; off while --mizutsune is off (needs --rom and "
+                 "--xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
 )
 
 
@@ -268,6 +324,11 @@ class CheatFps(str, Enum):
     """The frame rate cheat (core/cheats/cheats.py): the game's own, or a fixed rate."""
     GAME = "off"
     F30 = "30"
+    F35 = "35"                # every 5 between 30 and 60: the frames alternate one and two vsyncs
+    F40 = "40"
+    F45 = "45"
+    F50 = "50"
+    F55 = "55"
     F60 = "60"                # higher rates did not work in Azahar
 
     @classmethod
@@ -296,7 +357,7 @@ CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(
 
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
-                   "box_equipment", "system_keyboard",
+                   "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "mhw_fatalis_music",
                    "alatreon_music",
                    "cheat_3d_mode",
@@ -452,6 +513,10 @@ class Settings:
     # Manage Equipment and Equipment Sets at every item box, not only at home (the Hall's box's lines:
     # curated/mod_settings.json; core/interface/mod_settings/mod_options.py BOX_LINES)
     box_equipment: bool = False
+    # A number over the monster at each hit, as MH Wilds and Rise show (core/interface/damage_numbers/); its style,
+    # size, duration and Show All Damage are the START menu's (curated
+    # mod_settings.json)
+    damage_numbers: bool = False
     # Names, chat and guild card texts are typed in the 3DS system keyboard, which the emulator shows as a text box for
     # the computer's keyboard (core/interface/system_keyboard/system_keyboard.py); emulator only. No edition offers it:
     # the emulation waits while the text box is open
@@ -513,6 +578,13 @@ class Settings:
     great_maccao: GreatMaccaoMode = GreatMaccaoMode.OFF
     # Valstrax, from the player's MH XX ROM: two quests of his own on the Tower Summit (high rank and G rank)
     valstrax: ValstraxMode = ValstraxMode.OFF
+    # Astalos, from the player's MH XX ROM: three quests of his own on the Ancestral Steppe, one per rank (no option in
+    # the GUI: fixed on once he is built)
+    astalos: AstalosMode = AstalosMode.OFF
+    # The Deviants (no option in the GUI: fixed on once built, off while their base is off): the quest at G★3 for now
+    boltreaver: DeviantMode = DeviantMode.OFF
+    hellblade: DeviantMode = DeviantMode.OFF
+    soulseer: DeviantMode = DeviantMode.OFF
 
     # Debug
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster
@@ -583,6 +655,8 @@ class Settings:
         option = ported_option(key)
         if not self.additional_monsters:
             return option.off
+        if option.base and self.mode_of(option.base) is ported_option(option.base).off:
+            return option.off
         mode = getattr(self, key)
         if mode is option.pool and not (self.randomize_quests and self.randomize_monsters):
             return option.off
@@ -596,6 +670,15 @@ class Settings:
         return [option.name for option in PORTED_OPTIONS
                 if option.pool is not None and getattr(self, option.key) is option.pool
                 and self.mode_of(option.key) is option.off]
+
+    def deviants_without_base(self) -> list[tuple[str, str]]:
+        """(Deviant's name, his base's name) of each Deviant whose field is not off while his base's mode counts as
+        off, so that mode_of counts him as off (the command line refuses such settings)."""
+        if not self.additional_monsters:
+            return []
+        return [(option.name, ported_option(option.base).name) for option in PORTED_OPTIONS
+                if option.base and getattr(self, option.key) is not option.off
+                and self.mode_of(option.base) is ported_option(option.base).off]
 
     def has_quests(self, key: str) -> bool:
         """The ported monster `key` adds his quest table (his quests or extended mode)."""
@@ -669,6 +752,16 @@ class Settings:
     def builds_valstrax(self) -> bool:
         """builds("valstrax")."""
         return self.builds("valstrax")
+
+    @property
+    def astalos_mode(self) -> AstalosMode:
+        """mode_of("astalos")."""
+        return self.mode_of("astalos")
+
+    @property
+    def builds_astalos(self) -> bool:
+        """builds("astalos")."""
+        return self.builds("astalos")
 
     @property
     def builds_ported(self) -> bool:

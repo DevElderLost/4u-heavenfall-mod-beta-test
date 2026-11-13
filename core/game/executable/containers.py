@@ -330,8 +330,13 @@ class _Blocks(_View):
         start = position - first * BLOCK
         return data[start:start + size]
 
+    def release(self) -> None:
+        """Give the file up without closing it: another reader takes it over (a Z3DS file's frames are kept instead
+        of its blocks). Once dropped, this view would otherwise close it under that reader."""
+        self._raw = None
+
     def close(self) -> None:
-        if not self.closed:
+        if not self.closed and self._raw is not None:
             self._raw.close()
         super().close()
 
@@ -508,6 +513,8 @@ def open_container(path: Path):
             f = raw
         head = f.read(HEAD)
         if head[:4] == Z3DS_MAGIC:
+            if f is not raw:
+                f.release()
             f = _open_z3ds(raw, path)
             head = f.read(HEAD)
         if head[0x100:0x104] in NCCH_MAGICS:

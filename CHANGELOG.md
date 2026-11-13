@@ -7,6 +7,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### The program
 - The web installer reads your game files far less, so phones make the mod much faster.
 - While the web installer makes the mod, the screen stays on even after you leave and come back.
+- The web installer and the program make the mod from Azahar's compressed games (.zcci, .zcia) again.
+- A game file whose name says it is decrypted but is not now says so, and how to decrypt it.
 
 ## 0.2.0
 
@@ -23,8 +25,17 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### QoL
 - Start can skip the camera over a slain monster.
+- Start can skip a monster's intro scene and its music when the game allows it, as the touch screen's Skip does.
 - The camera can turn up to five times faster.
+- Better Camera: the New 3DS C-Stick turns and stops the camera and aim smoothly, at your speed and acceleration.
+- With a Hunting Horn, its songs show under the minimap and light up as you play them.
+- A horn song whose effect you have turns green, or purple after an encore, blinking at its end.
+- Mod Settings can colour an active horn song's name or its background.
+- The frame rate can be set from 30 to 60 FPS in fives (emulator only).
 - Manage Equipment and Equipment Sets from every item box.
+- Damage numbers over monsters, in three styles; switch them on in Mod Settings.
+- Mod Settings sorts its options into Display, Camera, Interface, QoL and Other.
+- Mod Settings' lists show each page in a frame its size, with no empty rows.
 
 ### Real Hardware
 - Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.
@@ -64,6 +75,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### Cheats
 - The cheats can also be changed in the game: START menu, third page, Mod Settings.
+- Mod Settings' lists show ten rows a page; Left and Right turn the pages.
 - Each character keeps its own choices; one with none yet starts with what the Options page says.
 - Cheats can also show weapons' true attack instead of the inflated number.
 - Cheats can fit the game and its menus to screens from 4:3 to 32:9; experimental.

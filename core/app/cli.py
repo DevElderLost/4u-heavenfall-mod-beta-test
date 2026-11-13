@@ -65,6 +65,9 @@ def main(argv=None) -> int:
     parser.add_argument("--box-equipment", action=argparse.BooleanOptionalAction,
                         help="every item box has Manage Equipment and Equipment Sets (Change Appearance stays "
                              "at home)")
+    parser.add_argument("--damage-numbers", action=argparse.BooleanOptionalAction,
+                        help="a number over the monster at each hit; its style, size and duration are in the game's "
+                             "Mod Settings")
     parser.add_argument("--camera-speed", type=int, metavar="CAP",
                         help="the camera's top turning speed with the buttons (10: the game's own; 50: five times)")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")
@@ -73,7 +76,7 @@ def main(argv=None) -> int:
     parser.add_argument("--cheat-no-bloom-dof", action=argparse.BooleanOptionalAction,
                         help="no glow (bloom) and no distant blur (depth of field)")
     parser.add_argument("--cheat-fps", choices=[value.value for value in CheatFps],
-                        help="frame rate: off (the game's own), 30 or 60")
+                        help="frame rate: off (the game's own) or every 5 from 30 to 60")
     parser.add_argument("--cheat-fov", type=int, metavar="DEGREES", help="camera field of view (50: the game's own)")
     parser.add_argument("--cheat-net-fix", action=argparse.BooleanOptionalAction,
                         help="longer waits for the online connection")

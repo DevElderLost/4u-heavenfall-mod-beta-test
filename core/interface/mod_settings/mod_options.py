@@ -23,9 +23,10 @@ These functions change, in the update's executable (canonical):
   at the Hall's box) takes the option's count at a box away from home, so Manage Equipment and Equipment Sets are at
   every box, drawn, and Change Appearance stays at the house's;
 - FUN_002b58e8, the poll of the game's keyboard: through a gate to the system keyboard (system_keyboard);
-- the calls of hold A, fast text, fast gathering, the lock-on's D-pad filter and the death camera skip (FUN_00c006f4's
-  call of a camera sequence's frame) go through a gate (the modules' own patches, `gated`), which makes the game's call
-  when the option is off.
+- the calls of hold A, fast text, fast gathering, the lock-on's D-pad filter, the death camera skip (FUN_00c006f4's
+  call of a camera sequence's frame), the modern camera (FUN_00b3cc64's question "is the C-stick tilted", the
+  cameras' calls of FUN_00bfd028) and the intro skip (FUN_002951fc's call of a touch bar button's frame) go through
+  a gate (the modules' own patches, `gated`), which makes the game's call when the option is off.
 
 The game's per-frame writes (3D, the frame rate, the camera) are mod_frame's. Update's executable only; the version maps
 carry it to the base games.
@@ -50,9 +51,15 @@ VARIABLES = ("mod_options_state", "option_list_state")
 OPTION_IDS = {
     "cheat_3d_mode": 0, "cheat_no_bloom_dof": 1, "cheat_fps": 2, "cheat_fov": 3, "cheat_net_fix": 4,
     "cheat_raw_unbloat": 5, "touchless_target": 6, "hold_a": 7, "fast_text": 8, "fast_gathering": 9,
-    "camera_speed": 10, "box_equipment": 11, "system_keyboard": 12, "skip_death_camera": 13,
+    "camera_speed": 10, "box_equipment": 11, "system_keyboard": 12, "skip_death_camera": 13, "damage_numbers": 14,
+    "damage_numbers_other": 15, "damage_numbers_style": 16, "damage_numbers_size": 17, "damage_numbers_duration": 18,
+    "modern_camera": 19,
+    "horn_songs": 20,
+    "skip_monster_intro": 21,
+    "modern_camera_speed": 22, "modern_camera_acceleration": 23,
+    "horn_songs_colour": 24,
 }
-MAX_OPTIONS = 16                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 16)
+MAX_OPTIONS = 28                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 28)
 MAX_VALUES = 16                 # a list of values: two pages
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
 ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (0 to 8: the item wheel's, 9: the ratio)
@@ -222,9 +229,19 @@ def supports_option(code: bytes, key: str) -> bool:
         return _static_ok(code, (BOX_KIND, BOX_LINES))
     from core.interface.system_keyboard.system_keyboard import supports_system_keyboard
     from core.gameplay.death_camera_skip.death_camera_skip import supports_death_camera_skip
+    from core.gameplay.modern_camera.modern_camera import supports_modern_camera
+    from core.gameplay.intro_skip.intro_skip import supports_intro_skip
+    from core.interface.damage_numbers.damage_numbers import OPTIONS, supports_damage_numbers
+    if key in OPTIONS:
+        return supports_damage_numbers(code)
+    if key in ("horn_songs", "horn_songs_colour"):
+        from core.interface.horn_songs.horn_songs import supports_horn_songs
+        return supports_horn_songs(code)
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,
               "fast_gathering": supports_fast_gathering, "system_keyboard": supports_system_keyboard,
-              "skip_death_camera": supports_death_camera_skip}
+              "skip_death_camera": supports_death_camera_skip, "modern_camera": supports_modern_camera,
+              "modern_camera_speed": supports_modern_camera, "modern_camera_acceleration": supports_modern_camera,
+              "skip_monster_intro": supports_intro_skip}
     return checks[key](code) if key in checks else True
 
 
@@ -256,7 +273,7 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
         raise CodeSpaceError("the options' sites are not the update's words: already patched or another game")
     layout = layout or load_layout()
     table = load_settings(available=available, aspect=aspect)
-    out = bytearray(patch_mod_settings(code, layout, table))
+    out = bytearray(patch_mod_settings(code, layout, table, bool(getattr(settings, "single_screen", False))))
     layout.place(out, STUB)
     layout.place(out, DATA, options_data(settings, available))
     layout.place(out, RAW_TABLE, raw_table())
@@ -285,9 +302,12 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
     from core.interface.fast_text.fast_text import patch_fast_text
     from core.interface.system_keyboard.system_keyboard import patch_system_keyboard
     from core.gameplay.death_camera_skip.death_camera_skip import patch_death_camera_skip
+    from core.gameplay.modern_camera.modern_camera import patch_modern_camera
+    from core.gameplay.intro_skip.intro_skip import patch_intro_skip
     for key, patch in (("hold_a", patch_hold_a), ("fast_text", patch_fast_text),
                        ("fast_gathering", patch_fast_gathering), ("system_keyboard", patch_system_keyboard),
-                       ("skip_death_camera", patch_death_camera_skip)):
+                       ("skip_death_camera", patch_death_camera_skip), ("modern_camera", patch_modern_camera),
+                       ("skip_monster_intro", patch_intro_skip)):
         if key in available:
             out = bytearray(patch(bytes(out), layout, gated=True))
     return bytes(out)

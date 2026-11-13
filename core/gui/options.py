@@ -764,6 +764,17 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "Item boxes away from home, such as the Gathering Hall's, also have Manage Equipment and "
                      "Equipment Sets, as the one at home does. Change Appearance stays at home.")),
         ), _ALSO_IN_GAME),
+        Group(T("Números de daño", "Damage numbers"), (
+            Option("damage_numbers", T("Mostrar el daño de cada golpe", "Show the damage of each hit"),
+                   T("Cada golpe a un monstruo muestra un número con su daño, físico y elemental juntos, como en "
+                     "MH Wilds y Rise: dorado en un punto débil, gris si rebota. En el juego, Ajustes del mod > "
+                     "Otros > Números de daño elige el estilo (Wilds, Rise o Clásico), el tamaño, cuánto dura y "
+                     "si se ve todo el daño del monstruo, no solo el tuyo. El de los Felynes no sale nunca.",
+                     "Each hit on a monster shows a number with its damage, physical and elemental together, as in "
+                     "MH Wilds and Rise: gold on a weak spot, grey when it bounces. In the game, Mod Settings > "
+                     "Interface > Damage Numbers picks the style (Wilds, Rise or Classic), the size, how long it stays "
+                     "and whether all the monster's damage shows, not only yours. Felynes' damage never shows.")),
+        ), _ALSO_IN_GAME),
         Group(T("Wyporio", "Wyporium"), (
             Option("rare_exchange", T("Canjear raros", "Rare Materials Exchange"),
                    T("El Wyporio tiene una línea nueva, «Canjear raros»: eliges un material raro de un monstruo "

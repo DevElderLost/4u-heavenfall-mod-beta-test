@@ -24,8 +24,13 @@ GAME_PROBLEMS = {
     "is_mhxx": "this is Monster Hunter XX, not the game asked for here",
     "unreadable": "the file cannot be read (check that it is not in use, that you have permission to open it, and "
                   "that its drive is connected)",
+    # After the refusal of an encrypted file whose name says it is decrypted: an emulator with the console's keys
+    # plays it, and a decryptor may skip it by its name (Batch CIA 3DS Decryptor Redux does, without a word).
+    "misnamed_encrypted": "its name says it is decrypted, but it is not (an emulator with the console's keys plays "
+                          "it anyway); decryptors skip a file whose name says decrypted, so rename it first",
 }
-WRONG_MH4U, WRONG_MHGEN, IS_UPDATE, IS_MH4U, IS_MHGEN, WRONG_MHXX, IS_MHXX, UNREADABLE = GAME_PROBLEMS.values()
+(WRONG_MH4U, WRONG_MHGEN, IS_UPDATE, IS_MH4U, IS_MHGEN, WRONG_MHXX, IS_MHXX, UNREADABLE,
+ MISNAMED_ENCRYPTED) = GAME_PROBLEMS.values()
 
 
 class InputsError(Exception):
@@ -37,6 +42,7 @@ class InputsError(Exception):
 def _game_problem(path: Path | None, label: str, wanted: str) -> str | None:
     """What is wrong with the file picked for the game `wanted` (titles.MH4U, MHGEN or MHXX); None when it is that
     game."""
+    from core.game.executable.containers import ENCRYPTED
     from core.game.executable.extract import ExtractError
     from core.game.executable.romfs import RomFS
     from core.game.executable import titles
@@ -45,6 +51,8 @@ def _game_problem(path: Path | None, label: str, wanted: str) -> str | None:
     try:
         title = RomFS(Path(path)).title_id
     except ExtractError as error:
+        if error.kind == ENCRYPTED and "decrypt" in Path(path).name.lower():
+            return f"{label}: {error}; {MISNAMED_ENCRYPTED}"
         return f"{label}: {error}"
     except OSError:
         return f"{label}: {UNREADABLE}"

@@ -34,7 +34,8 @@ MAX_SCRAP_PERCENT = 30
 # The monsters in the order their gear takes ids: a monster's weapons, armor and Felyne pieces take the fixed block of
 # ids after the blocks of the monsters before it (blocks.py), so an id never depends on which monsters are on. Only
 # ever append (with a block in blocks.BLOCKS).
-ORDER = ("mizutsune", "alatreon", "great_maccao", "glavenus", "valstrax")
+ORDER = ("mizutsune", "alatreon", "great_maccao", "glavenus", "valstrax", "astalos",
+         "boltreaver", "hellblade", "soulseer")     # the Deviants
 
 
 class CuratedError(ValueError):
@@ -61,10 +62,13 @@ class ItemSpec:
     colour: int | None = None
     description: str | None = None
     shared: bool = False        # a game-wide item he drops (the Wyvern Tears of his shiny drop), not a material of his
+    # the key of the monster whose item this is (a Deviant's recipes and drops ask his base's G materials): the item is
+    # that record's item of the same key, not a new one; `name` is its English name; always `shared`
+    of: str | None = None
 
     @property
     def is_new(self) -> bool:
-        return self.mh4u is None
+        return self.mh4u is None and self.of is None
 
     @property
     def is_scrap(self) -> bool:
@@ -161,6 +165,9 @@ class MonsterRecord:
     # (rank, scrap key, percent) added to the ordinary reward tables of his quests of that rank that hold his materials:
     # scraps are rewards, never carves
     reward_scraps: tuple[tuple[str, str, int], ...] = ()
+    # rank -> (his item key, percent, quantity) of the capture reward table (flag 0x4) of box A that his quests of that
+    # rank get when they have none (XX's `bui` capture list; rows add up to 100). Empty: the quests keep theirs.
+    reward_capture: Mapping[str, tuple[tuple[str, int, int], ...]] = field(default_factory=dict)
     # English name of an item, weapon, armor or Felyne piece as the plan makes it -> {language: name} replacing the
     # name in those languages (abbreviations that fit the box)
     names: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
@@ -263,6 +270,8 @@ def _monster(key: str, m: dict) -> MonsterRecord:
         carve_tail={rank: tuple((k, int(p)) for k, p in rows) for rank, rows in carves.get("tail", {}).items()},
         carve_body={rank: tuple((k, int(p)) for k, p in rows) for rank, rows in carves.get("body", {}).items()},
         reward_scraps=tuple((r, k, int(p)) for r, k, p in rewards.get("scraps", ())),
+        reward_capture={rank: tuple((k, int(p), int(q)) for k, p, q in rows)
+                        for rank, rows in rewards.get("capture", {}).items()},
         names={eng: dict(by_lang) for eng, by_lang in m.get("names", {}).items()},
         breaks=tuple(_break_bit(bit) for bit in m.get("breaks", ())), shiny=_shiny(m.get("shiny")),
         carve_low=dict(carves.get("low", {})), source=m.get("source", "gen"),
@@ -280,9 +289,12 @@ def check(record: MonsterRecord) -> None:
     if not 0 <= record.slot < MAX_ITEM_SLOTS:
         raise CuratedError(f"{record.key}: item slot {record.slot}")
     for item in record.items:
-        sources = [item.mhgen is not None, item.mh4u is not None, item.names is not None]
+        sources = [item.mhgen is not None, item.mh4u is not None, item.names is not None, item.of is not None]
         if sum(sources) != 1:
-            raise CuratedError(f"{record.key}: item {item.key} needs one of mhgen, mh4u or names")
+            raise CuratedError(f"{record.key}: item {item.key} needs one of mhgen, mh4u, names or of")
+        if item.of is not None and not (item.name and item.shared and item.of != record.key):
+            raise CuratedError(f"{record.key}: item {item.key} is another monster's: it needs his key in `of`, its "
+                               "English `name` and `shared`")
         if item.names is not None:
             missing = {"rarity", "sell", "buy", "carry", "shape", "colour"} - {
                 n for n in ("rarity", "sell", "buy", "carry", "shape", "colour") if getattr(item, n) is not None}
@@ -329,6 +341,10 @@ def check(record: MonsterRecord) -> None:
         if key not in scraps or rank not in RANKS or not 1 <= percent <= MAX_SCRAP_PERCENT:
             raise CuratedError(f"{record.key}: scrap reward {rank} {key} {percent}: a scrap of his, 1-"
                                f"{MAX_SCRAP_PERCENT} percent")
+    for rank, rows in record.reward_capture.items():
+        if rank not in RANKS or not rows or sum(p for _, p, _ in rows) != 100 or any(
+                k not in keys or p < 1 or not 1 <= q <= 0xFFFF for k, p, q in rows):
+            raise CuratedError(f"{record.key}: capture reward of rank {rank!r}: his items, adding up to 100")
     unrewarded = scraps - {k for _, k, _ in record.reward_scraps}
     if unrewarded:
         raise CuratedError(f"{record.key}: scraps {sorted(unrewarded)} are in no quest reward (rewards.scraps)")
@@ -491,7 +507,12 @@ def item_ids(record: MonsterRecord) -> dict[str, int]:
     order the file lists them. Needs nothing of the games, so the quest and reward code can use it."""
     out, slot = {}, record.slot
     for item in record.items:
-        if item.is_new:
+        if item.of is not None:
+            base = load_curated().get(item.of)
+            if base is None or item.key not in item_ids(base):
+                raise CuratedError(f"{record.key}: item {item.key} is {item.of}'s, who has no such item")
+            out[item.key] = item_ids(base)[item.key]
+        elif item.is_new:
             out[item.key] = FIRST_NEW_ID + slot
             slot += 1
         else:

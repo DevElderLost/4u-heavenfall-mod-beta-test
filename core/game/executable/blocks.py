@@ -110,9 +110,10 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 468
-ASPECT_LIST_DATA_SIZE = 24
-MOD_OPTIONS_DATA_SIZE = 16 + 16 * 164
+MOD_SETTINGS_DATA_SIZE = 852
+MOD_SETTINGS_PANE_HASHES = (724, 840)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+ASPECT_LIST_DATA_SIZE = 28
+MOD_OPTIONS_DATA_SIZE = 16 + 28 * 164
 MOD_RAW_TABLE_SIZE = 64
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
@@ -121,6 +122,27 @@ ASPECT_ANCHORS_SIZE = 0x3000
 # Settings, which every mod carries, so that build does not take the aspect ratio's pages; its variable goes after the
 # debug ones with Bubbleblight's (tools/build/build_code_space.py pack_variables).
 SPLIT_ROMFS = "split_romfs"
+# Damage Numbers (interface/damage_numbers/damage_numbers.py): the hooks' stubs, the C
+# and its data (struct dmg_data). Packed last, so it moves no other block; its state is in the extension's variables.
+DAMAGE_NUMBERS = "damage_numbers"
+DAMAGE_NUMBERS_DATA_SIZE = 932
+DAMAGE_NUMBERS_STATE_SIZE = 1480
+# The modern camera (gameplay/modern_camera/modern_camera.py): its code, its tuning
+# (struct modern_camera_data) and its state in the extension's variables (struct modern_camera_state). Packed before
+# Mod Settings, so the installed title's update RomFS and the aspect ratio stay last.
+MODERN_CAMERA = "modern_camera"
+MODERN_CAMERA_DATA_SIZE = 120
+MODERN_CAMERA_STATE_SIZE = 72
+# The quest's layouts of our own (interface/quest_layouts/quest_layouts.py): the frame, load and free hooks Damage
+# Numbers and the horn's songs share, their code and their table
+# (struct quest_layouts).
+QUEST_LAYOUTS = "quest_layouts"
+QUEST_LAYOUTS_DATA_SIZE = 128
+# The Hunting Horn's songs (interface/horn_songs/horn_songs.py): the C and its data
+# (struct horn_data); its state is in the extension's variables.
+HORN_SONGS = "horn_songs"
+HORN_SONGS_DATA_SIZE = 312
+HORN_SONGS_STATE_SIZE = 60
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -130,6 +152,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     before."""
     from core.monsters.porting.called_small import c_defines as pack_defines
     from core.monsters.porting.hf_records import C_DEFINES as RECORDS_DEFINES, STUBS_SIZE as RECORDS_STUBS
+    from core.monsters.porting.motion_places import C_DEFINES as PLACES_DEFINES, table_size as places_table_size
     from core.monsters.porting.new_id_data import C_DEFINES as NEW_ID_DEFINES
     from core.monsters.porting.new_id_data import block_specs as new_id_blocks
     from core.monsters.porting.proof_blocks import SHARED, monster_block_specs, shared_block_specs
@@ -137,6 +160,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.equipment.new_gear import gear_space as gear
     from core.equipment.tables import item_data
     from core.equipment.new_gear import new_weapon_room
+    from core.equipment.mhgen.felyne_pack import FELYNE_IDS, FIRST_MODEL, SOUND_SLOT
     from core.equipment.new_gear.felyne_data import FEATURE as FELYNE
     from core.equipment.new_gear.felyne_data import block_specs as felyne_blocks
     from core.gameplay.quests.quest_lists import HALL_LIST_LENGTH, NEW_QUEST_ROOM, SAVE_LIST_LENGTH
@@ -145,8 +169,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
-                   GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MOD_SETTINGS,
-                   SPLIT_ROMFS, ASPECT_RATIO)
+                   GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
+                   MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -195,6 +219,10 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # START skips a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.py): one entry, for the
     # camera manager's call of a camera sequence's frame
     BlockSpec("death_camera_skip", "skip_death_camera", "gameplay/death_camera_skip/death_camera_skip.c", region="ext"),
+    # START does what the touch screen's Skip does (gameplay/intro_skip/intro_skip.py):
+    # three entries, for the touch bar input's call of a button's frame and the event player's two calls of the sound
+    # control
+    BlockSpec("intro_skip", "skip_monster_intro", "gameplay/intro_skip/intro_skip.c", region="ext"),
     # The virtual map of monster_routes (monsters/routes/patch.py): its hooks, its
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
@@ -238,21 +266,23 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("rod_effects", "mhgen_models", size=3 * 256, region="ext"),
     # tables.HAIR_ROW_ROOM rows of 0x70 bytes, plus the bytes to reach the game's row grid
     BlockSpec("hair_rows", "mhgen_models", size=224 * 0x70 + 0x70 - 4, region="ext"),
-    # MHGen's Felyne models at numbers of their own (equipment/mhgen/felyne_pack.py), FELYNE_IDS = 333: the head and
+    # MHGen's Felyne models at numbers of their own (equipment/mhgen/felyne_pack.py), FELYNE_IDS (336): the head and
     # body masks (FELYNE_IDS u16 each), the helm cloth bits (FELYNE_IDS
     # bytes) and the weapons' sound table (FELYNE_IDS pointers) moved
     # to hold the new numbers, and the new weapons' sound paths (SOUND_SLOT bytes per number from FIRST_MODEL to
     # FELYNE_IDS - 1)
-    BlockSpec("felyne_head_masks", "felyne_models", size=2 * 333, region="ext"),
-    BlockSpec("felyne_body_masks", "felyne_models", size=2 * 333, region="ext"),
-    BlockSpec("felyne_head_cloth", "felyne_models", size=333, region="ext"),
-    BlockSpec("felyne_sound_table", "felyne_models", size=4 * 333, region="ext"),
-    BlockSpec("felyne_sound_paths", "felyne_models", size=(333 - 114) * 32, region="ext"),
+    BlockSpec("felyne_head_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_body_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_head_cloth", "felyne_models", size=FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_sound_table", "felyne_models", size=4 * FELYNE_IDS, region="ext"),
+    BlockSpec("felyne_sound_paths", "felyne_models", size=(FELYNE_IDS - FIRST_MODEL) * SOUND_SLOT, region="ext"),
     # New quests with ids of their own (gameplay/quests/new_quests.py): the availability
     # hook, its (id, unlocking quest) pairs, and the Gathering Hall's load list and the save's quest list moved to hold
     # the new ids (NEW_QUEST_ROOM at most, the free bits of the save)
     BlockSpec("quest_unlock", "new_quests", "gameplay/quests/quest_unlock.s", region="ext"),
     BlockSpec("new_quest_unlocks", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
+    # the quests' special level: records of two u16 (quest id, level), the last zero (the SDK's quest_special_level)
+    BlockSpec("quest_special_levels", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
     BlockSpec("hall_quest_list", "new_quests", size=2 * (HALL_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
     BlockSpec("save_quest_list", "new_quests", size=2 * (SAVE_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
     # Black and Crimson Fatalis and Alatreon at low health (gameplay/monster_phases/monster_phases.py): their speed,
@@ -386,6 +416,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # functions' entries and the four hooks of the save)
     BlockSpec("hf_records_code", SHARED, "monsters/porting/hf_records.c", region="ext", defines=RECORDS_DEFINES),
     BlockSpec("hf_records_stubs", SHARED, size=RECORDS_STUBS, region="ext"),
+    # Motion list 9 of a ported monster's variant (core/monsters/porting/motion_places.py): the function uEnemy's
+    # resource setup calls for each motion list place, and the run's bases'
+    # variants blocks it reads
+    BlockSpec("motion_places_code", SHARED, "monsters/porting/motion_places.c", region="ext", defines=PLACES_DEFINES),
+    BlockSpec("motion_places_bases", SHARED, size=places_table_size(BUILT), region="ext"),
     # Each one's own (feature his spec's key, for each of spec.BUILT, Mizutsune's for his probes;
     # proof_blocks.monster_block_specs): his class's code (Alatreon's monsters/alatreon/alatreon.c, Mizutsune's
     # monsters/mizutsune/mizutsune.c) and the data the patcher fills (product.py): his id, his vtable (97 slots), his
@@ -430,6 +465,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("new_weapon_stats", new_weapon_room.FEATURE, size=new_weapon_room.STATS_BYTES, region="ext"),
     BlockSpec("new_weapon_upgrades", new_weapon_room.FEATURE, size=new_weapon_room.UPGRADE_BYTES, region="ext"),
     BlockSpec("new_sharpness", new_weapon_room.FEATURE, size=new_weapon_room.SHARPNESS_BYTES, region="ext"),
+    # The save's marks of the new ids past a class's own bits (equipment/new_gear/weapon_marks.py; docs/equipment/
+    # equipment_data.md, "The save"): the function that gives an id its bit, its table and the six accessors' stubs
+    BlockSpec("weapon_marks_code", new_weapon_room.FEATURE, "equipment/new_gear/weapon_marks.c", region="ext",
+              defines=new_weapon_room.MARK_DEFINES),
+    BlockSpec("weapon_marks_table", new_weapon_room.FEATURE, size=new_weapon_room.MARK_TABLE_BYTES, region="ext"),
+    BlockSpec("weapon_marks_stubs", new_weapon_room.FEATURE, size=new_weapon_room.MARK_STUBS_BYTES, region="ext"),
     # The ported monsters' hunter equipment (equipment/new_gear/new_armor.py, new_recipes.py): the armor lookup's and
     # the create recipes' hooks; the new armor records (gear.ARMOR_ROOM per part, parts in layout.ARMOR_PARTS order) and
     # each type's first new id and table base; the new create recipes (gear.*_RECIPE_ROOM) and the runs where they sit
@@ -493,6 +534,20 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
     BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
     BlockSpec("aspect_anchors", ASPECT_RATIO, size=ASPECT_ANCHORS_SIZE, region="ext"),
+    BlockSpec("damage_numbers_stub", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers_stub.s", region="ext"),
+    BlockSpec("damage_numbers_code", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers.c", region="ext"),
+    BlockSpec("damage_numbers_data", DAMAGE_NUMBERS, size=DAMAGE_NUMBERS_DATA_SIZE, region="ext"),
+    # The C-stick turns the camera and the aims analogically: the entries for FUN_00b3cc64's question "is the C-stick
+    # tilted", for the cameras' calls of FUN_00bfd028 and for the aim's hooks in FUN_00b2041c, and the curated tuning
+    # (modern_camera.py data_block)
+    BlockSpec(MODERN_CAMERA, MODERN_CAMERA, "gameplay/modern_camera/modern_camera.c", region="ext",
+              defines=(f"DATA_SIZE={MODERN_CAMERA_DATA_SIZE}", f"STATE_SIZE={MODERN_CAMERA_STATE_SIZE}")),
+    BlockSpec("modern_camera_data", MODERN_CAMERA, size=MODERN_CAMERA_DATA_SIZE, region="ext"),
+    BlockSpec("quest_layouts_stub", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts_stub.s", region="ext"),
+    BlockSpec("quest_layouts_code", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts.c", region="ext"),
+    BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext"),
+    BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext"),
+    BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
 )
 
 
@@ -513,14 +568,16 @@ VARIABLES = (
     VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
-    VariableSpec("mod_options_state", MOD_SETTINGS, 64),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 68, region="ext_vars"),
+    VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
     VariableSpec("fast_gathering_state", "fast_gathering", 4),  # fast_gathering.s: the mPlayerSpeed it last wrote
     VariableSpec("select_kick_state", "select_kick", 4),     # select_kick.c: Select held (1), seen by the menu (2)
     VariableSpec("save_redirect_state", "save_redirect", 4),  # game_redirect.c: bit n: file kind n is read from MH4U's
-    # death_camera_skip.c -> select_kick.c: frames left in which START belongs to the death camera
+    # death_camera_skip.c, intro_skip.c -> select_kick.c: frames left in which START belongs to the death camera or to
+    # the touch screen's Skip
     VariableSpec("death_camera_skip_state", "skip_death_camera", 4),
     # bubbleblight.s: the local hunter's bubbles (+0 state, +4 timer, +8 unused) and bubble_bind.s' slide velocity
     # (x, z) of the large bubbles at +8 / +12 (`bubble_state + 8`): one variable, because bss_tail had 4 bytes left
@@ -597,6 +654,13 @@ VARIABLES = (
     # The log of Heavenfall's own save files: every call of the file task's two operations (core/save/game_redirect.c
     # struct save_log: 16 + 160 notes of 16 bytes); patch_game_redirect calls Layout.reserve
     VariableSpec("save_redirect_log", "save_redirect", 0xA10, align=0x10, region="ext_vars"),
+    # Damage Numbers' events, numbers and monsters (damage_numbers.c struct dmg_state); patch_damage_numbers reserves it
+    VariableSpec("damage_numbers_state", DAMAGE_NUMBERS, DAMAGE_NUMBERS_STATE_SIZE, align=0x10, region="ext_vars"),
+    # The modern camera's kept C-stick, each camera input's turn and the aim's (modern_camera.c struct
+    # modern_camera_state); patch_modern_camera reserves it
+    VariableSpec("modern_camera_state", MODERN_CAMERA, MODERN_CAMERA_STATE_SIZE, region="ext_vars"),
+    # The horn's songs' rows and lights (horn_songs.c struct horn_state); patch_horn_songs reserves it
+    VariableSpec("horn_songs_state", HORN_SONGS, HORN_SONGS_STATE_SIZE, align=0x10, region="ext_vars"),
     # gameplay/monster_phases/monster_phases.s: the phases of 77, 78 and 124 and the monster whose theme played last
     VariableSpec("monster_phase", "monster_phases", 4),
     # adapter, engine side: the effect player's own managers, which MH4U lacks (core/monsters/porting/sdk/proof_api.h):
@@ -764,11 +828,13 @@ GAME_SYMBOLS = {
     "gypceros_construct": 0x703364,   # Gypceros' family's constructor (ids 9, 10; Great Maccao's host, spec.GYPCEROS)
     "jaggi_construct": 0x8660B8,      # Jaggi's constructor (id 56 alone; Maccao's host, spec.JAGGI)
     "seregios_construct": 0x8B65B4,   # Seregios' family's constructor (ids 88, 122; Valstrax's host, spec.SEREGIOS)
+    "rathian_construct": 0x6EC8D4,    # Rathian's family's constructor (ids 1-6; Astalos' host, spec.RATHIAN)
     "uenemy_vtable": 0xE6B058,
     "uEnemy_construct": 0x955FF4,
     "enemy_set_status": 0x9167EC,
     "enemy_play_motion": 0x9190C4,
     "enemy_motion_ended": 0xB05DF4,
+    "model_motion_list_set": 0x95997C,  # FUN_0095997c(model, list, n): uModel's list slot n (motion_places.c)
     # ... the functions Alatreon's decompiled code calls (sdk/em_api.h)
     "anim_find": 0xCFBA14,
     "part_play_anim": 0x636B64,
@@ -778,6 +844,7 @@ GAME_SYMBOLS = {
     "enemy_bits_test": 0x936418,
     "enemy_bits_5893": 0x938620,
     "enemy_act_script": 0x9197C0,
+    "enemy_fight_reset": 0x93A6B8,      # (this, n): the fight level's reset (XX 0x8C2AE0, Gen 0x8D38A4)
     "enemy_set_action_0_7": 0x911AD0,
     "enemy_set_float_5c": 0x916140,
     "enemy_data_float_10": 0x93E7B4,
@@ -1126,6 +1193,7 @@ GAME_SYMBOLS |= {
 GAME_SYMBOLS |= {
     "uEnemy_step": 0x955E5C,            # uEnemy's slot 10 (0x8F22FC is uFestaEnemy's)
     "enemy_is_tired": 0x92E998,         # 0xAEF830
+    "enemy_homing_point_on_left": 0x91E130,  # 0x8B8AE4 (voted pair, em080/pairs.py; Hellblade's turn choices)
     "enemy_motion_at_frame": 0x941DBC,  # 0x8DA7A0
     "enemy_set_parts_vital": 0x93CFD4,  # 0x8D5DA8
     "enemy_flag_4c7_clear": 0x939090,   # 0x8D24CC
@@ -1380,6 +1448,8 @@ GAME_SYMBOLS |= {
     "creation_resume": 0xB74854,        # FUN_00B74748(scene, mode): after the goal target x load (hook 0xB74850)
     "creation_page_body": 0x22CEC4,     # FUN_0022cec4(owner, kind): the creation menu's page change (0x22CDB4)
     "gui_group_show": 0xAE53E0,         # FUN_00ae53e0(group, shown): shows or hides a GUI group (bit 0x400 of +0x44)
+    "monster_hit_damage": 0x921F74,     # FUN_00921f74(uEnemy, region, total, flag): a hit's damage into the frame's
+    "blast_damage": 0x9178E8,           # FUN_009178e8(uEnemy): a blast's damage into the region of the last blast hit
     "cursor_step": 0x5E70BC,            # FUN_005e70bc(cursor, count, pressed, prev, next): a cursor step
     "creation_cursor": 0x22B96C,        # FUN_0022b96c(owner, mode, pad, cells, columns): the creation menu's cursor
 }
@@ -1508,7 +1578,6 @@ GAME_SYMBOLS |= {
     "start_top_cursor": 0x6201DC,       # FUN_006201dc(shown): the page's cursor runs or stops
     "start_sublist_open": 0x5E87B4,     # FUN_005e87b4(action, rows): opens the small list beside the line of the action
     "start_sublist_text": 0x60FBC0,     # FUN_0060fbc0(row, 0, file, message): a row's text
-    "start_sublist_enable": 0x60CAEC,   # FUN_0060caec(row, enabled): 0 greys the row (FUN_005e86b0 undoes it)
     "start_sublist_cursor": 0x5E84F0,   # FUN_005e84f0(row): moves the cursor and steps its animation, once per frame
     "start_sublist_close": 0x5E86B0,    # FUN_005e86b0(): closes the small list and restores its colours
     "start_sublist_end": 0x60F220,      # FUN_0060f220(): after the small list closes
@@ -1576,6 +1645,8 @@ GAME_SYMBOLS |= {
     "enemy_mgr_kind_record": 0x683590,      # 0x1C3084: (sEnemy, kind, variant) -> its 0x50-byte record, or 0
     "enemy_set_action_1": 0x91F744,         # 0x8AC0A4: setAction(st, no, 1, player) unless dead (state 11)
     "enemy_restart_flag_clear": 0x932EE4,   # 0x8BBD60: (this, 0): em+0x1DC = 0
+    "enemy_fight_reset": 0x93A6B8,          # 0x8C2AE0 (Generations 0x8D38A4): (this, n), the fight level's reset
+    "enemy_set_cancel_frames": 0x933DD0,    # Generations 0x8CD910: (this, a, b), the cancel frames
     "enemy_em5883_set_1": 0x922090,         # 0x8AEAE0: em+0x7984 = 1 once, and notice 3 to sEnemy
     "enemy_em5883_set_2": 0x9150FC,         # 0x8A3A78: em+0x7984 = 2 (none for the ids of rocks and objects)
     "enemy_em58e4_positive": 0x9239FC,      # 0x8AFDC8: em+0x7A34 > 0 (enemy_positive_58e4)
@@ -1622,6 +1693,99 @@ GAME_SYMBOLS |= {
     "camera_play": 0xC03D70,            # FUN_00c03d70(manager, slot, n): one frame of an event camera, 0 when over
 }
 
+# Astalos' MH4U engine calls whose function is the same code (phase G2n; the comment
+# holds the MH XX address; each pair is a verified row of em081/pairs.py, engine_pairs.json, and the bytes the test of
+# tests/monsters/astalos/test_astalos_pairs.py reads)
+GAME_SYMBOLS |= {
+    "enemy_set_action_kept": 0x92B178,  # 0x8B3820: (this, act_st, act_no): the set action unless mActSt is 0xB
+    # 0x8A4840: (this, v): em+0x180 += v x unit_delta, then em+0x1C7 = 1 (em+0x5C, 0x1B9 in XX)
+    "enemy_height_step": 0x915D7C,
+    # 0x8A6E38: (this): layer 1's weight 0 and the floats em+0x394.. zeroed (em+0x308.. in XX)
+    "enemy_clear_em_308": 0x918F28,
+    # 0x89A65C: (model, joint, m[16]): the joint record's quaternion from the matrix, +0x58 (+0x60 in XX)
+    "model_joint_set_mtx": 0xB05754,
+    "enemy_move_turned_land": 0x9165A4,  # 0x8A4AFC: (this, s0): enemy_move_by_rate_turned, then enemy_ground_landed
+    # 0x8A6DA0: (this, target, step): em+0x394 toward target by step x unit_delta, clamped to -1..1
+    "enemy_approach_f308": 0x918E80,
+    "enemy_play_motion_layered": 0x919058,  # 0x8A6F0C: a motion on layer 0 and layer 1 (engine_pairs.json)
+    "enemy_motion_no_is": 0x91B250,  # 0x8A8898: (this, no): the motion number is `no`
+    "enemy_em4c1_set_2": 0x91B268,  # 0x8A88B0: (this): the byte em+0x539 = 2 (em+0x4C1 in XX)
+    # 0x8B673C: (this, max, min, speed): the distance to the homing point / speed, clamped
+    "enemy_homing_frames_clamped": 0x92E440,
+    # 0x8B68A4: (this, flags): re-picks the route point by his facing every n calls
+    "enemy_pick_route_point_by_yaw": 0x92E530,
+    # 0x8BD78C: (this, step, offset, point): 1 when facing the point plus offset, after turning
+    "enemy_turn_to_point": 0x934AC8,
+    # 0x8BF178: (this, motion+, motion-, f, sign): layer 1's motion by em+0x394
+    "enemy_play_layer1_motion_by_f308": 0x935FF0,
+    "enemy_homing_run_start": 0x938780,  # 0x8C0B4C: (this, rec): plays the record's motion and saves mPos
+    # 0x8C0BF8: (this, rec, r2): runs toward the homing point, its layer motions blended
+    "enemy_homing_run_step": 0x93886C,
+    # 0x8C2E68: (this, fixed, out[4], kind, ...): the position to home on by the homing kind
+    "enemy_homing_target_pos": 0x93AAB4,
+    # 0x8C5E28: (this, now): stops the quake when the homing hunter 0 is the local player
+    "enemy_camera_quake_stop": 0x93E590,
+    "enemy_set_timer_310": 0x9427FC,  # 0x8CB244: (this, n, f): layer 1's weight 0, then em+0x39C = n
+    # 0x8CD098: a vector turned by his joint's delta (0x936960) added to his position
+    "enemy_move_by_turned_vector": 0x94461C,
+    # 0x8D1024: (this): the factor em+0x404 = 1.0 and a second factor = 1.0 (em+0x7908)
+    "enemy_reset_factors": 0x947258,
+    # 0x8DE50C: (this, s16 angle, step, clamp): angle + step x unit_delta, kept within -0x3F49..0x4000
+    "enemy_angle_add_scaled_clamp": 0x94D73C,
+    "enemy_set_draw_ofs_scaled": 0x94E358,  # 0x8DE7E0: (this, v): draw offset (em+0xD10) = v x enemy_size_ratio, w = 0
+    # 0x8E58E0: (this, step): mPos.y toward the homing point's y by step, or onto it when closer
+    "enemy_approach_homing_y": 0x955A94,
+    # two names of an address already named above or by Valstrax's phase G2e
+    "mt_powf": 0xD13E38,                        # 0xAFC3B8: math_powf_4u's address, the name his C and the table use
+    "em081_move_turned_ground": 0x91B468,       # 0x8A8EDC: enemy_move_turned_at's address (D14's second name: it
+                                                # returns the ground clamp's result, the dive tests it)
+    # the shells' bases 14 and 15 (effect_player/gen_symbols.py PENDING_4U's three found here: the same instructions)
+    "mt_atanf": 0xD1302C,                       # 0xAFAAE8: atanf (s0), XX's blocks in the same order, same constants
+    "random_init": 0xB72354,                    # 0x9924F4: (generator, seed): the xorshift's four words, 100 steps;
+                                                # XX's instructions with two registers swapped
+    "random_next": 0xB723EC,                    # 0x9924B8: (generator): its next 32 bits, the same fifteen words
+    # an adapter's callee (stage_area_position, 0x895240: em081.h)
+    "stage_area_position_4u": 0x6C3AF8,         # (sStage, area, out[4]): the area's x, y, z (s16 at sStage+0x166 + 24 x
+                                                # the area number) as floats; the adapter sets out[3] = 0
+    # phase G2e (em081/engine_4u.c): a joint's matrix his slots call directly, and the line check's callee
+    "festachar_joint_matrix": 0xB052EC,         # 0x1E32B0: (out, model, joint) the joint's 4x4 matrix from its record's
+                                                # quaternion and translation; XX's adds a warning call, MH4U's records
+                                                # are 0xA8 bytes (XX 0xA0)
+    "collision_line_4u": 0x2B9CD4,              # 0x2CF17C: (sCollision, this, from, to, area, out, normal, record, b),
+                                                # s0 the radius; XX's two virtual calls on `this` are direct uEnemy
+                                                # calls (0x911D34, 0x91DFC0); its Rathian calls it at 0x6D6034
+}
+
+# The C-stick turns the camera analogically (gameplay/modern_camera/modern_camera.c)
+GAME_SYMBOLS |= {
+    "camera_turn_by_input": 0xBFD028,   # FUN_00bfd028(camera, input, flags): sMhCamera::turnByInput, the turn by
+    #                                     the camera's buttons; 0xFF no button, 0 the pitch turned, 1 the yaw
+    "is_gunner": 0xD04DD4,              # FUN_00d04dd4(hunter, kind): the weapon is a bowgun (kind 0), ranged (1), the
+    #                                     Bow (2)
+    "aim_speed": 0xB3FE50,              # FUN_00b3fe50(hunter, kind): the Aim Speed option's factor (a float in s0) for
+    #                                     the scope (0), over the shoulder (1), the Bow (2)
+    "camera_zoom": 0xC00038,            # FUN_00c00038(camera, &zooming, &zoom): the scope's zoom, 0 to 1 (the widest)
+    "aim_pitch_view": 0xB1EA04,         # FUN_00b1ea04(hunter, pitch, up, down): the aim's pitch angle (weapon work +
+    #                                     0x50E) from its pitch steps; up, down (s0, s1) the degrees of 100 steps
+}
+
+# START does what the touch screen's Skip does (gameplay/intro_skip/intro_skip.c): the
+# touch menu bar, its Skip button's handler, the skip checks and calls the handler makes; the calls that stop a
+# skipped cutscene's music and sounds
+GAME_SYMBOLS |= {
+    "touch_bar": 0x109A350,             # the touch menu bar's object (ui002; + 0xCF which skip its Skip button makes)
+    "touch_bar_button": 0x292EA4,       # FUN_00292ea4(position, button, kind): a bar button's frame (kind 7, 8, 9, 0xB)
+    "event_control": 0xFB5EDC,          # the variable holding the event player (cutscenes)
+    "event_skip_offered": 0x1A1CB8,     # FUN_001a1cb8(event): a cutscene plays and the player may skip it
+    "event_skip": 0x1A2D4C,             # FUN_001a2d4c(event): asks the event player to skip (70 frames or more left)
+    "camera_skip_offered": 0xD0CCB4,    # FUN_00d0ccb4(sCamera): an event camera the player may skip plays
+    "camera_skip": 0xBFD3F0,            # FUN_00bfd3f0(sCamera): ends it
+    "cutscene_sound_stop": 0x30CB5C,    # FUN_0030cb5c(sound control): a skipped event's sound: fades the event
+    #                                     players' streams out (by their records), stops the sounds
+    "event_sound_end": 0x30CD10,        # FUN_0030cd10(sound control): the sound control's part of an event's end
+    "sound_fade_out": 0xBCAC00,         # FUN_00bcac00(driver, queue, request, set, fade, 0): fades a stream out
+}
+
 # The split title's RomFS (install/title/split_romfs.c, split_romfs_stub.s): the SDK's pieces of a RomFS mount, as the
 # update's FUN_00108930 mounts `patch:`, the running title's id, and
 # nn::fs::FileStream::TryInitialize
@@ -1639,4 +1803,15 @@ GAME_SYMBOLS |= {
     "default_allocator": 0x10BDC88,     # the variable holding the SDK's default allocator (+0x20 allocate, +0x38 free)
     "file_stream_open_body": 0x10BAFC,  # nn::fs::FileStream::TryInitialize (FUN_0010baf8) after its first instruction
     "fs_is_not_found": 0xDC0AD8,        # FUN_00dc0ad8(result): an FS "not found" (module 17, descriptions 100-179)
+}
+
+# The Hunting Horn's songs (interface/horn_songs/horn_songs.c): the
+# tables the equipment menu's list (FUN_00277e68) and the notes' match (FUN_00cbab58) read, and the HUD's note pictures
+GAME_SYMBOLS |= {
+    "horn_song_notes": 0xF31E3A,        # u8[75][4]: each song's notes, newest first, 0 none (FUN_00cbab58)
+    "horn_note_triplets": 0xF31DA4,     # u8[50][3]: a horn's three notes by its note set (work +0x16C; FUN_00cbd81c)
+    "horn_song_names": 0xED256A,        # u8[75]: a song's name index (FUN_00277e68 at 0x278120)
+    "horn_name_messages": 0xED2858,     # u32[]: a name index's message of the Menu file (common file 3)
+    "hud_note_cells": 0xB90EFC,         # u8[9]: a note's cell in the HUD's picture (FUN_00b8f58c's literal)
+    "horn_song_effects": 0x100C44C,     # u8[75]: a song's effect (FUN_00b29140); the effects' durations just before
 }

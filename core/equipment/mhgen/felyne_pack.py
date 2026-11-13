@@ -37,9 +37,15 @@ GAME_MODELS = 114              # MH4U's Felyne models 0-113: what its per-model 
 FIRST_MODEL = 114              # the first number a MHGen model takes
 FIRST_LOOK = 118               # model N of MH XX's folders is number FIRST_LOOK + N (117 is Valstrax's)
 LAST_SOURCE = 214              # the highest folder of MH XX with a named piece (215 holds only DUMMY records)
-FELYNE_IDS = FIRST_LOOK + LAST_SOURCE + 1      # entries of the moved tables, and the numbers in use
+SPARE_MODELS = 3               # numbers past the looks for the next sets (FELYNE_IDS stays in 42 bytes of bits)
+FELYNE_IDS = FIRST_LOOK + LAST_SOURCE + 1 + SPARE_MODELS      # entries of the moved tables, and the numbers in use
 # The ported monsters' sets keep the numbers they first took, so a set never changes number (fix mode).
-MODEL_SLOTS = {124: 114, 119: 115, 121: 116, 191: 117}     # 191: Valstrax (XX only; the last spare number)
+# 191: Valstrax, 122: Astalos (both XX only). 114-117 were the spares before the
+# looks (118 on); the next ported sets take the numbers past the last look: FIRST_LOOK + LAST_SOURCE + 1 (333) on
+# The Deviants' sets (folders 184 Boltreaver, 151 Hellblade, 185 Soulseer) wear the number of their own look
+# (FIRST_LOOK + folder): the files are the same, so a run with both writes them once (`merged`); no spare is used.
+MODEL_SLOTS = {124: 114, 119: 115, 121: 116, 191: 117, 122: 333, 184: FIRST_LOOK + 184, 151: FIRST_LOOK + 151,
+               185: FIRST_LOOK + 185}
 PARTS = {"helm": "h", "body": "b", "we": "w"}   # MH4U's archive prefix `o_<part>` -> MHGen's file
 
 # The update's tables (VA; file offset + CODE_BASE) and the literal words their readers load them from. All

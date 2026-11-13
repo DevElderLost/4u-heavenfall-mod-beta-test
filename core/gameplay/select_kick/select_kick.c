@@ -24,14 +24,14 @@
  *       as the game does; when Select was pressed this frame in a quest with Kick it also sets Start (0x400) in the
  *       menu's copy of the pressed GUI buttons (menu + 0x558, which the line before the call filled) and returns 0, so
  *       the game's own test lets this press open or close the menu. Start keeps being refused. While a slain monster's
- *       death camera plays with its skip on (death_camera_skip_state, set by gameplay/death_camera_skip/
- *       death_camera_skip.c) it counts that state down and answers Kick: in a quest Start then ends the camera and
- *       does not open the menu.
+ *       death camera plays with its skip on, or just after START did the touch screen's Skip (death_camera_skip_state,
+ *       set by gameplay/death_camera_skip/death_camera_skip.c and gameplay/intro_skip/intro_skip.c), it counts that
+ *       state down and answers Kick: in a quest Start then ends the camera or the scene and does not open the menu.
  *   select_plain_step(status)         the two SDK calls instead of the kick's steps, in a mod without Select's kick
  *   select_plain_step_hid(status)     (Heavenfall Beta with its single-screen module off): Select stays the game's, a
  *       second Start everywhere (the original call is made as it was), and in a town it also presses the kick's
  *       button, which Layered Gear's Armor screen reads as Select (a town has no kick). select_kick_gate keeps the
- *       menu's call: select_kick_state stays 0, so it only answers Kick while the death camera plays with its skip on.
+ *       menu's call: select_kick_state stays 0, so it only answers Kick while death_camera_skip_state is set.
  * The entries keep the registers the calls they replace keep (r4 and up; r0-r3 and ip are scratch there). Nothing else
  * changes: START in the menus and in the town, and the touch panel's kick, do as before.
  *
@@ -71,7 +71,8 @@ extern u8 *const pad_control;           /* the variable holding the pad object *
 extern u8 start_menu[];                 /* the Game Menu's object */
 extern volatile u32 select_kick_state;  /* the variable */
 /* Frames left in which START belongs to a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.c
- * keeps it set while the camera plays with its option on; 0 in a mod without it) */
+ * keeps it set while the camera plays with its option on) or to the touch screen's Skip (gameplay/intro_skip/
+ * intro_skip.c sets it when START did it); 0 in a mod without them */
 extern volatile u32 death_camera_skip_state;
 
 /* Game functions */

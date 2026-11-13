@@ -30,6 +30,9 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 
 - **Single Screen Mode** (emulators): every menu of the bottom screen on the top screen.
 - **Lock-on with L**, **Kick on Select**, **holding A** to keep gathering, **faster text** and a **faster camera**.
+- **Damage numbers** over monsters, in three styles (off unless you switch them on).
+- **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, and a
+  **Hunting Horn's songs** under the minimap.
 - **A smaller HUD**, from 90% to 60%.
 - **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange.
 - **Built-in cheats**: 3D, glow and blur off, frame rate, field of view and more.
@@ -52,6 +55,7 @@ The full list is in **[what the mod adds](docs/features.md)**, and every change 
 - **Developed by:** popzol and BlitzWOLF.
 - **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The visual and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
 - **Game data reference:** [Kiranico](https://mh4u.kiranico.com/).
+- **Damage numbers:** their features and options follow PurplefinNeptuna's Monster Hunter Generations Ultimate mod "Damage Numbers"; the digits are drawn from Open Sans (SIL Open Font License 1.1).
 - **Linux start script:** based hndll56 contributions.
 
 **License:** [GNU General Public License v3.0 or later](LICENSE). Monster Hunter is a trademark of Capcom. This is an unofficial fan project, not affiliated with or endorsed by Capcom.

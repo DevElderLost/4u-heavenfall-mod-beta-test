@@ -28,6 +28,13 @@
 - When the camera shows a slain monster at the end of a quest, press Start to skip it.
 - You can turn it off in the game: START, third page, Mod Settings.
 
+**Skipping a monster's intro**
+
+- Start does what the touch screen's Skip button does: it skips a monster's intro scene (Fatalis, Dalamadur and the others the game lets you skip).
+- The scene's music stops with it, so the fight starts with its own music.
+- Story scenes cannot be skipped, as in the original game.
+- You can turn it off in the game: START, third page, Mod Settings.
+
 **Holding A**
 
 - Holding A with your weapon sheathed keeps picking up, gathering and carving, without pressing it again.
@@ -43,6 +50,31 @@
 
 - The camera can turn up to five times faster while you hold a button to turn it. The game's own speed is the default.
 - Change it on the **Options** page or in the game: START, third page, Mod Settings.
+
+**Better Camera**
+
+- The C-Stick (New 3DS) turns the camera smoothly in any direction, diagonals too, faster the further you push it.
+- It aims bowguns and the bow the same way, each at its own speed.
+- The D-pad turns the camera as in the original game.
+- In the game (START, third page, Mod Settings, Camera, Better Camera) you can turn it on or off, set **Max Speed** from x0.25 to x4 for the camera and the aims, and set **Acceleration** from 25 % to 400 %: how fast the turn reaches its speed and stops, relative to the speed.
+- It is on by default, with Max Speed x1 and Acceleration 100 %. Camera Speed (D-pad) no longer changes it.
+
+**Damage numbers**
+
+- Each of your hits shows its damage over the monster: gold on a weak spot, white elsewhere, grey when it bounces off. Poison is grey; blast and a mount's finish are gold.
+- Three styles: Wilds, Rise and Classic, each with its own mark for critical hits.
+- They are off by default. Turn them on in the **Options** page or in the game: START, third page, Mod Settings, Interface, Damage Numbers, which also has the style, the size, how long they stay and Show All Damage (every hit on the monster, not only yours). Felynes' damage never shows.
+
+**Hunting Horn songs**
+
+- With a Hunting Horn in a quest, the top screen lists its songs at its right edge, under the minimap: each song's notes,
+  then its name.
+- The songs that start with the notes you just played light up, and a song you just completed lights up brighter.
+- A song whose effect you have (from your horn or another hunter's) is green until the effect runs out, and purple once
+  that effect had its encore (the song played again while it was on); it blinks in the last five seconds. A weaker
+  version of an effect you have stronger is coloured too; instant songs (healing, Sonic Waves) never are.
+- In the game: START, third page, Mod Settings, Interface, Hunting Horn Songs. Show Horn Songs turns the list off (on by
+  default); Highlight colours the song's name (Text, the default) or its band (Background).
 
 **Layered Gear and the Wyporium**
 
@@ -60,7 +92,7 @@
 
 - Choose them on the **Options** page, and change them during play, for each character: START, third page, Mod Settings.
 - 3D, glow and distant blur are off by default for a sharper image.
-- Other available cheats are disabled by default: a fixed frame rate (30 or 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
+- Other available cheats are disabled by default: a fixed frame rate (every 5 from 30 to 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
 - **⚠️ EXPERIMENTAL, expect problems:** turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. It is disabled by default, and menus, prompts or backgrounds may be out of place or stretched. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). You can also change it during play: START, third page, Mod Settings. Please report any problem you see.
 
 The full list of changes can be found in the **[changelog](../CHANGELOG.md)**.
