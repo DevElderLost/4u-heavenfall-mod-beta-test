@@ -11,6 +11,7 @@ export class Engine {
     this.py = py;
     this.web = web;
     this.keysMounted = false;
+    this.read = { pieces: 0, bytes: 0 };    // what the last build read of the game files
   }
 
   // Python started from `indexURL`, with the zstandard package and `bundle` (the mod's code as a zip's bytes).
@@ -31,6 +32,7 @@ export class Engine {
     } else {
       FS.mkdirTree(folder);
     }
+    this.counted(FS.filesystems[kind].stream_ops);
     FS.mount(FS.filesystems[kind], options, folder);
     return `${folder}/${name}`;
   }
@@ -51,6 +53,19 @@ export class Engine {
     }
     return this.plain(this.web.use_keys(files.length ? KEYS_FOLDER : null));
   }
+  // Each read of a file of `ops`'s file system counted in this.read: a phone's browser pays for each read of the
+  // player's file, so their number is in the page's technical details.
+  counted(ops) {
+    ops.counter = this.read;
+    if (ops.uncounted) return;
+    ops.uncounted = ops.read;
+    ops.read = function read(...args) {
+      const done = ops.uncounted.apply(this, args);
+      ops.counter.pieces += 1;
+      ops.counter.bytes += done;
+      return done;
+    };
+  }
 
   // A Python dict as a plain object.
   plain(result) {
@@ -68,8 +83,9 @@ export class Engine {
   }
 
   // The mod: `result` (core/app/web.py, build) and `bytes`, the zip (null when it was refused). `xx`: MH XX's file's
-  // path, or null.
+  // path, or null. this.read says what it read of the game files.
   build(game, personal, language, stage, xx = null) {
+    Object.assign(this.read, { pieces: 0, bytes: 0 });
     const options = this.py.toPy(personal);
     const result = this.plain(this.web.build(game, ZIP_PATH, options, language, stage, xx));
     options.destroy();

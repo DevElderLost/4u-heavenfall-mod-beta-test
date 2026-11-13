@@ -2,12 +2,15 @@
  * gameplay/select_kick/select_kick.py).
  *
  * The game gives Select no button of its own: the SDK's pad step (FUN_00485708) turns a held SELECT into START in the
- * 3DS pad status (FUN_00571e58). With the option at Kick the game takes START away from the Game Menu in a quest
- * (FUN_005ecf60) and turns it into the kick (FUN_00b169bc). Two entries, each a `bl` of the game replaced by a `bl` to
- * this block:
- *   select_kick_step(status)         0x4857F0 in FUN_00485708 (the `bleq` of FUN_00571e58, once per pad read, before the
- *       pad update FUN_00694ccc maps the buttons). At the title or with no save loaded it does nothing: Select stays a
- *       Select, which the game maps to no button. Otherwise:
+ * 3DS pad status. It reads the pad on one of two paths, each with its own call that does it: with an extra pad
+ * answering (the New 3DS's ZL, ZR and C-stick, or a Circle Pad Pro) FUN_00571e58 on the status (held at +8), and
+ * without one (an Old 3DS alone, or a New 3DS with its C-stick off) FUN_00571e4c on FUN_00485e30's own status (held at +0). With the option at Kick the
+ * game takes START away from the Game Menu in a quest (FUN_005ecf60) and turns it into the kick (FUN_00b169bc). Three
+ * entries, each a `bl` of the game replaced by a `bl` to this block:
+ *   select_kick_step(status)          0x4857F0 in FUN_00485708 (the `bleq` of FUN_00571e58, once per pad read on the
+ *   select_kick_step_hid(status)      extra pad's path, before the pad update FUN_00694ccc maps the buttons), and
+ *       0x485F40 in FUN_00485e30 (the `bleq` of FUN_00571e4c, on the path without it). At the title or with no save
+ *       loaded they do nothing: Select stays a Select, which the game maps to no button. Otherwise:
  *       * option Menu: Select kicks and only Start opens the menu. It presses the kick in the game layout the way the
  *         touch panel does, bit 0x1 of the pad's word +0x3F0 (which the pad update turns into the held buttons and
  *         clears).
@@ -24,11 +27,11 @@
  *       death camera plays with its skip on (death_camera_skip_state, set by gameplay/death_camera_skip/
  *       death_camera_skip.c) it counts that state down and answers Kick: in a quest Start then ends the camera and
  *       does not open the menu.
- *   select_plain_step(status)         0x4857F0 instead of select_kick_step, in a mod without Select's kick (Heavenfall
- *       Beta with its single-screen module off): Select stays the game's, a second Start everywhere (the original
- *       call is made as it was), and in a town it also presses the kick's button, which Layered Gear's Armor screen
- *       reads as Select (a town has no kick). select_kick_gate keeps the menu's call: select_kick_state stays 0, so it
- *       only answers Kick while the death camera plays with its skip on.
+ *   select_plain_step(status)         the two SDK calls instead of the kick's steps, in a mod without Select's kick
+ *   select_plain_step_hid(status)     (Heavenfall Beta with its single-screen module off): Select stays the game's, a
+ *       second Start everywhere (the original call is made as it was), and in a town it also presses the kick's
+ *       button, which Layered Gear's Armor screen reads as Select (a town has no kick). select_kick_gate keeps the
+ *       menu's call: select_kick_state stays 0, so it only answers Kick while the death camera plays with its skip on.
  * The entries keep the registers the calls they replace keep (r4 and up; r0-r3 and ip are scratch there). Nothing else
  * changes: START in the menus and in the town, and the touch panel's kick, do as before.
  *
@@ -39,9 +42,10 @@
 typedef unsigned int u32;
 typedef unsigned char u8;
 
-/* The 3DS pad status given to FUN_00571e58 */
-#define STATUS_HELD   0x8       /* u32: the buttons held (HID bits) */
-#define HID_SELECT    0x4
+/* The 3DS pad status given to FUN_00571e58 (the extra pad's path) and to FUN_00571e4c (the path without it) */
+#define STATUS_HELD      0x8    /* u32: the buttons held (HID bits) */
+#define HID_STATUS_HELD  0x0
+#define HID_SELECT       0x4
 
 /* sGameControl, the variable game_control holds: +0x2B the mode, +100 + n the settings byte n */
 #define GAME_MODE     0x2B
@@ -71,16 +75,26 @@ extern volatile u32 select_kick_state;  /* the variable */
 extern volatile u32 death_camera_skip_state;
 
 /* Game functions */
-void sdk_select_to_start(u8 *status);                       /* FUN_00571e58: Select becomes Start in the status */
+void sdk_select_to_start(u8 *status);                       /* FUN_00571e58: Select becomes Start, held at +8 */
+void hid_select_to_start(u8 *status);                       /* FUN_00571e4c: the same, held at +0 */
 u32 game_setting(u8 *control, u32 index);                   /* FUN_002b02fc: the settings byte `index` */
 
 #define U32(p, off) (*(volatile u32 *)((p) + (off)))
 #define U8(p, off)  (*(volatile u8 *)((p) + (off)))
 
-__attribute__((used, section(".text.entry"))) void select_kick_step(u8 *status)
+/* The game's call of the SDK path `hid` (1: the path without the extra pad) */
+static inline __attribute__((always_inline)) void select_to_start(u8 *status, u32 hid)
+{
+    if (hid)
+        hid_select_to_start(status);
+    else
+        sdk_select_to_start(status);
+}
+
+static inline __attribute__((always_inline)) void kick_step(u8 *status, u32 hid)
 {
     u8 *game = game_control, *pad = pad_control;
-    u32 select = U32(status, STATUS_HELD) & HID_SELECT, before = select_kick_state, state = 0;
+    u32 select = U32(status, hid ? HID_STATUS_HELD : STATUS_HELD) & HID_SELECT, before = select_kick_state, state = 0;
     u32 mode = game ? U8(game, GAME_MODE) : 0;
     if (mode != MODE_QUEST && mode != MODE_TOWN) {          /* the title, a save not loaded: the option is not read */
         select_kick_state = 0;
@@ -91,19 +105,40 @@ __attribute__((used, section(".text.entry"))) void select_kick_step(u8 *status)
         U32(pad, PAD_PRESS) |= GAME_KICK;
     if (kicks) {
         if (mode == MODE_TOWN)
-            sdk_select_to_start(status);
+            select_to_start(status, hid);
         else if (select)
             state = HELD | (before & SEEN);
     }
     select_kick_state = state;
 }
 
-__attribute__((used, section(".text.entry"))) void select_plain_step(u8 *status)
+static inline __attribute__((always_inline)) void plain_step(u8 *status, u32 hid)
 {
     u8 *game = game_control, *pad = pad_control;
-    if (game && pad && U8(game, GAME_MODE) == MODE_TOWN && (U32(status, STATUS_HELD) & HID_SELECT))
+    if (game && pad && U8(game, GAME_MODE) == MODE_TOWN
+        && (U32(status, hid ? HID_STATUS_HELD : STATUS_HELD) & HID_SELECT))
         U32(pad, PAD_PRESS) |= GAME_KICK;
-    sdk_select_to_start(status);
+    select_to_start(status, hid);
+}
+
+__attribute__((used, section(".text.entry"))) void select_kick_step(u8 *status)
+{
+    kick_step(status, 0);
+}
+
+__attribute__((used, section(".text.entry"))) void select_kick_step_hid(u8 *status)
+{
+    kick_step(status, 1);
+}
+
+__attribute__((used, section(".text.entry"))) void select_plain_step(u8 *status)
+{
+    plain_step(status, 0);
+}
+
+__attribute__((used, section(".text.entry"))) void select_plain_step_hid(u8 *status)
+{
+    plain_step(status, 1);
 }
 
 __attribute__((used, section(".text.entry"))) u32 select_kick_gate(u8 *control, u32 index)

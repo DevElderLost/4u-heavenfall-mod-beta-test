@@ -43,6 +43,7 @@ from core.equipment.new_gear.new_items import supports_new_items
 from core.equipment.new_gear.new_texts import CommonTexts
 from core.game.executable.romfs import RomFS
 from core.game.executable.code_bin import is_container
+from core.game.executable.containers import kept_reads
 from core.game.executable import session, titles
 from core.cheats.cheats import patch_cheats, supports_cheats, wants_cheats
 from core.game.files.text.common_texts import remove_common_text_files
@@ -189,6 +190,7 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     return offsets, engine_table, anchors
 
 
+@kept_reads()
 def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | None = None,
         code_path: Path | None = None, stage: Callable[[str], None] | None = None, record: RunRecord | None = None,
         xx_rom: Path | None = None, console: bool = False, probe: Probe | None = None,

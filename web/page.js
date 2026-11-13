@@ -51,7 +51,8 @@ const TEXTS = {
     stageRom: "Leyendo tu juego…",
     stageWrite: "Creando el mod…",
     stageZip: "Empaquetándolo…",
-    elapsed: "{text} {seconds} s. Puede tardar un par de minutos: deja esta página abierta.",
+    elapsed: "{text} {seconds} s. En un móvil puede tardar varios minutos, más con Monster Hunter XX: deja esta página "
+      + "delante y la pantalla encendida.",
     built: "✓ Mod creado: {files} archivos, {size} MB, en {seconds} s.",
     leftOut: "Se ha dejado fuera: {notices}",
     download: "Descargar {name}",
@@ -155,7 +156,8 @@ const TEXTS = {
     stageRom: "Reading your game…",
     stageWrite: "Making the mod…",
     stageZip: "Packing it…",
-    elapsed: "{text} {seconds} s. It may take a couple of minutes: keep this page open.",
+    elapsed: "{text} {seconds} s. On a phone it may take several minutes, more with Monster Hunter XX: keep this page "
+      + "in front and the screen on.",
     built: "✓ Mod ready: {files} files, {size} MB, in {seconds} s.",
     leftOut: "Left out: {notices}",
     download: "Download {name}",
@@ -234,6 +236,8 @@ const page = {
   engineSeconds: null,
   building: null,         // while building: {began, text, timer, lock}
   result: null,           // the last mod made
+  read: null,             // what its build read of the game files: {pieces, bytes}
+  hidden: 0,              // times the page was hidden during the last build (a phone's browser may pause it)
   downloadUrl: null,
   failure: null,
 };
@@ -542,9 +546,10 @@ const HANDLERS = {
       showElapsed();
     }
   },
-  built({ result, blob, seconds, memory }) {
+  built({ result, blob, seconds, memory, read }) {
     stopWorker();
     stopBuilding();
+    page.read = read;
     if (!result.ok) {
       page.failure = result.problem;
       setStatus("#build-status", text("failed", { message: result.problem }), "bad");
@@ -676,22 +681,39 @@ function showElapsed() {
   setStatus("#build-status", text("elapsed", { text: page.building.text, seconds }));
 }
 
-async function startBuilding() {
+function startBuilding() {
   forgetMod();
   page.failure = null;
+  page.read = null;
+  page.hidden = 0;
   page.building = { began: performance.now(), text: text("stageRom"), timer: null, lock: null };
   page.building.timer = setInterval(showElapsed, 1000);
   showElapsed();
   setState("building");
   theWorker().postMessage({ type: "build", file: page.file, xx: page.xx?.ok ? page.xxFile : null,
                             keys: page.keysFiles, personal: page.values, language: page.language });
+  keepScreenOn();
+}
+
+// The screen stays on while the mod is made: a phone that sleeps may stop the page. The browser lets the lock go each
+// time the page is hidden, so it is asked again when the player comes back (connect).
+async function keepScreenOn() {
   try {
-    // the screen stays on: a phone that sleeps may stop the page; a browser without it just skips this
     const lock = await navigator.wakeLock?.request("screen");
-    if (page.building) page.building.lock = lock;
+    if (page.building && !page.building.lock) page.building.lock = lock;
     else lock?.release();
   } catch {
     // refused (low battery, or a page without https): the build still goes on
+  }
+}
+
+function pageShown() {
+  if (!page.building) return;
+  if (document.visibilityState === "hidden") {
+    page.hidden += 1;
+    page.building.lock = null;          // the browser has let it go
+  } else {
+    keepScreenOn();
   }
 }
 
@@ -725,6 +747,8 @@ function drawDiagnostics() {
     lines.push(`Mod: ${page.result.title}, ${page.result.version}, ${page.result.files} files, `
       + `${megabytes(page.result.size)}, in ${page.result.seconds.toFixed(1)} s, memory ${megabytes(page.result.memory ?? 0)}`);
   }
+  if (page.read) lines.push(`Read of the game files: ${page.read.pieces} pieces, ${megabytes(page.read.bytes)}`);
+  if (page.hidden) lines.push(`Page hidden while making the mod: ${page.hidden} times`);
   if (page.failure) lines.push(`Failure: ${page.failure}`);
   $("#diagnostics-text").textContent = lines.join("\n");
 }
@@ -790,6 +814,7 @@ function connect() {
     optionsChanged();
   });
   $("#build").addEventListener("click", startBuilding);
+  document.addEventListener("visibilitychange", pageShown);
 }
 
 async function start() {

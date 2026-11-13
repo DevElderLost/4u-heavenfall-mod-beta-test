@@ -1612,6 +1612,7 @@ GAME_SYMBOLS |= {
 # the settings byte reader and the Game Menu's object
 GAME_SYMBOLS |= {
     "sdk_select_to_start": 0x571E58,    # FUN_00571e58(status): Select becomes Start in the 3DS pad status
+    "hid_select_to_start": 0x571E4C,    # FUN_00571e4c(status): the same, held at +0 (the path without an extra pad)
     "game_setting": 0x2B02FC,           # FUN_002b02fc(settings, index): the settings byte `index`
     "start_menu": 0x108B9BC,            # the Game Menu's object (FUN_0012580c returns it)
 }

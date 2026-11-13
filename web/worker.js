@@ -54,7 +54,7 @@ function build({ file, xx, keys, personal, language }) {
   const { result, bytes } = engine.build(mounted(file), personal, language, stage, xx && mounted(xx, XX_FOLDER));
   const blob = bytes && new Blob([bytes], { type: "application/zip" });
   self.postMessage({ type: "built", result, blob, seconds: (performance.now() - began) / 1000,
-                     memory: engine.memory() });
+                     memory: engine.memory(), read: { ...engine.read } });
 }
 
 const HANDLERS = { start, checkKeys, check, checkXx, build };
