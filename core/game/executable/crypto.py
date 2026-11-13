@@ -14,14 +14,17 @@ Where the keys come from, in this order: `use_keys` (the web page's file picker 
 HEAVENFALL_KEYS environment variable (a file or a folder), the folder of the game file and its parent, and the
 `sysdata` folder of Azahar / Citra / Lime3DS. Nothing is searched when the game is not encrypted.
 
-AES is the `cryptography` or `pycryptodome` package when one is installed (hundreds of MB per second), else the
-Python code below (about 1 MB per second: enough for the executable and the files the mod reads, slow for a whole
-RomFS). It is checked against a known answer before it is used.
+AES is, in this order, the `cryptography` or `pycryptodome` package when one is installed (hundreds of MB per
+second), Java's `javax.crypto` inside the Android app (Chaquopy), numpy (tens of MB per second) or, when none of
+them is there, the Python code below (about 1 MB per second: enough for the executable and the files the mod reads,
+far too slow for a whole RomFS, which the build reads once). Each one is checked against a known answer before it is
+used; one that fails the check is skipped.
 """
 
 import os
 import re
 import struct
+import time
 from pathlib import Path
 
 KEY_FILE_NAMES = ("aes_keys.txt", "3dskeys.txt")
@@ -237,20 +240,148 @@ def _python_backend():
     return _py_ctr, _py_cbc_decrypt
 
 
+def _java_backend():
+    """javax.crypto, in the Android app (Chaquopy): the phone's own AES, which has no package to install. Refused
+    unless a Java byte[] can be turned into bytes at once (the buffer protocol): one byte at a time is slower than
+    the Python code."""
+    from java import jclass     # only Chaquopy has it: anywhere else this raises ImportError and the next one is tried
+    cipher_class = jclass("javax.crypto.Cipher")
+    key_spec = jclass("javax.crypto.spec.SecretKeySpec")
+    iv_spec = jclass("javax.crypto.spec.IvParameterSpec")
+    encrypt_mode, decrypt_mode = cipher_class.ENCRYPT_MODE, cipher_class.DECRYPT_MODE
+
+    def to_bytes(array) -> bytes:
+        return bytes(memoryview(array).cast("B"))
+
+    def run(transformation: str, mode: int, key: bytes, iv: bytes, data: bytes) -> bytes:
+        cipher = cipher_class.getInstance(transformation)
+        cipher.init(mode, key_spec(bytes(key), "AES"), iv_spec(bytes(iv)))
+        return to_bytes(cipher.doFinal(bytes(data)))
+
+    def ctr(key, counter, data):
+        return run("AES/CTR/NoPadding", encrypt_mode, key, (counter & MASK).to_bytes(16, "big"), data)
+
+    def cbc(key, iv, data):
+        usable = len(data) - len(data) % 16
+        return run("AES/CBC/NoPadding", decrypt_mode, key, iv, data[:usable]) if usable else b""
+
+    return ctr, cbc
+
+
+NUMPY_CHUNK_BLOCKS = 1 << 16      # 1 MB of data at a time: the arrays stay small
+
+
+def _numpy_backend():
+    """AES-128 with numpy: the same tables as the Python code, but a whole chunk of blocks at a time (CTR and CBC
+    decryption have no block that depends on the one before)."""
+    import numpy as np
+    _setup()
+    u4 = np.uint32
+    sbox, inv = np.array(_SBOX, dtype=u4), np.array(_INV, dtype=u4)
+    te = [np.array(table, dtype=u4) for table in _TE]
+    td = [np.array(table, dtype=u4) for table in _TD]
+    low32, mask64 = np.uint64(0xFFFFFFFF), (1 << 64) - 1
+
+    def last(box, w0, w1, w2, w3, key):
+        return ((box[w0 >> 24] << 24) | (box[(w1 >> 16) & 255] << 16) | (box[(w2 >> 8) & 255] << 8)
+                | box[w3 & 255]) ^ key
+
+    def encrypt(rk, s0, s1, s2, s3):
+        s0, s1, s2, s3 = s0 ^ rk[0], s1 ^ rk[1], s2 ^ rk[2], s3 ^ rk[3]
+        for k in range(4, 40, 4):
+            t0 = te[0][s0 >> 24] ^ te[1][(s1 >> 16) & 255] ^ te[2][(s2 >> 8) & 255] ^ te[3][s3 & 255] ^ rk[k]
+            t1 = te[0][s1 >> 24] ^ te[1][(s2 >> 16) & 255] ^ te[2][(s3 >> 8) & 255] ^ te[3][s0 & 255] ^ rk[k + 1]
+            t2 = te[0][s2 >> 24] ^ te[1][(s3 >> 16) & 255] ^ te[2][(s0 >> 8) & 255] ^ te[3][s1 & 255] ^ rk[k + 2]
+            t3 = te[0][s3 >> 24] ^ te[1][(s0 >> 16) & 255] ^ te[2][(s1 >> 8) & 255] ^ te[3][s2 & 255] ^ rk[k + 3]
+            s0, s1, s2, s3 = t0, t1, t2, t3
+        return (last(sbox, s0, s1, s2, s3, rk[40]), last(sbox, s1, s2, s3, s0, rk[41]),
+                last(sbox, s2, s3, s0, s1, rk[42]), last(sbox, s3, s0, s1, s2, rk[43]))
+
+    def decrypt(rk, s0, s1, s2, s3):
+        s0, s1, s2, s3 = s0 ^ rk[0], s1 ^ rk[1], s2 ^ rk[2], s3 ^ rk[3]
+        for k in range(4, 40, 4):
+            t0 = td[0][s0 >> 24] ^ td[1][(s3 >> 16) & 255] ^ td[2][(s2 >> 8) & 255] ^ td[3][s1 & 255] ^ rk[k]
+            t1 = td[0][s1 >> 24] ^ td[1][(s0 >> 16) & 255] ^ td[2][(s3 >> 8) & 255] ^ td[3][s2 & 255] ^ rk[k + 1]
+            t2 = td[0][s2 >> 24] ^ td[1][(s1 >> 16) & 255] ^ td[2][(s0 >> 8) & 255] ^ td[3][s3 & 255] ^ rk[k + 2]
+            t3 = td[0][s3 >> 24] ^ td[1][(s2 >> 16) & 255] ^ td[2][(s1 >> 8) & 255] ^ td[3][s0 & 255] ^ rk[k + 3]
+            s0, s1, s2, s3 = t0, t1, t2, t3
+        return (last(inv, s0, s3, s2, s1, rk[40]), last(inv, s1, s0, s3, s2, rk[41]),
+                last(inv, s2, s1, s0, s3, rk[42]), last(inv, s3, s2, s1, s0, rk[43]))
+
+    def ctr(key, counter, data):
+        size = len(data)
+        blocks = (size + 15) // 16
+        rk = [u4(word) for word in _round_keys(key)]
+        source = np.frombuffer(bytes(data), dtype=np.uint8)
+        out = np.empty(size, dtype=np.uint8)
+        for first in range(0, blocks, NUMPY_CHUNK_BLOCKS):
+            count = min(NUMPY_CHUNK_BLOCKS, blocks - first)
+            value = (counter + first) & MASK
+            high, low = np.uint64(value >> 64), np.uint64(value & mask64)
+            lows = np.arange(count, dtype=np.uint64) + low             # wraps at 2**64: the carry goes to `highs`
+            highs = (lows < low).astype(np.uint64) + high
+            words = encrypt(rk, (highs >> np.uint64(32)).astype(u4), (highs & low32).astype(u4),
+                            (lows >> np.uint64(32)).astype(u4), (lows & low32).astype(u4))
+            stream = np.empty((count, 4), dtype=">u4")
+            for column, word in enumerate(words):
+                stream[:, column] = word
+            start, stop = first * 16, min((first + count) * 16, size)
+            np.bitwise_xor(source[start:stop], stream.view(np.uint8).reshape(-1)[:stop - start], out=out[start:stop])
+        return out.tobytes()
+
+    def cbc(key, iv, data):
+        usable = len(data) - len(data) % 16
+        if not usable:
+            return b""
+        rk = [u4(word) for word in _decrypt_round_keys(key)]
+        cipher = np.frombuffer(bytes(data[:usable]), dtype=">u4").astype(u4).reshape(-1, 4)
+        first_iv = np.frombuffer(bytes(iv), dtype=">u4").astype(u4)
+        out = np.empty(cipher.shape, dtype=">u4")
+        for first in range(0, len(cipher), NUMPY_CHUNK_BLOCKS):
+            part = cipher[first:first + NUMPY_CHUNK_BLOCKS]
+            previous = np.empty_like(part)
+            previous[0] = first_iv if first == 0 else cipher[first - 1]
+            previous[1:] = part[:-1]
+            words = decrypt(rk, part[:, 0], part[:, 1], part[:, 2], part[:, 3])
+            for column, word in enumerate(words):
+                out[first:first + len(part), column] = word ^ previous[:, column]
+        return out.tobytes()
+
+    return ctr, cbc
+
+
+_BACKENDS = {"cryptography": _cryptography_backend, "pycryptodome": _pycryptodome_backend,
+             "java": _java_backend, "numpy": _numpy_backend, "python": _python_backend}
+
+
+def _consistent(ctr, cbc) -> bool:
+    """A backend that is fast but wrong in the counter's carry, in a read that does not end on a block, or in the
+    chain of CBC blocks would corrupt the game silently: it must agree with the Python code on those."""
+    _setup()
+    key, data = _KNOWN_KEY, bytes(range(256)) * 3 + b"heavenfall"
+    for counter in (0, (1 << 64) - 2, (1 << 128) - 3):                     # the carry into the high half, the wrap
+        if ctr(key, counter, data) != _py_ctr(key, counter, data):
+            return False
+    iv = bytes(range(16, 32))
+    return cbc(key, iv, data) == _py_cbc_decrypt(key, iv, data)
+
+
 def _pick():
-    """(ctr, cbc) of the first backend that answers the known test: HEAVENFALL_AES=python forces the Python code."""
+    """(ctr, cbc) of the first backend that answers the known test: HEAVENFALL_AES=python (or numpy, java,
+    pycryptodome, cryptography) uses that one only."""
     global _backend
     if _backend is not None:
         return _backend
-    makers = [_python_backend] if os.environ.get("HEAVENFALL_AES", "").lower() == "python" else [
-        _cryptography_backend, _pycryptodome_backend, _python_backend]
+    wanted = _BACKENDS.get(os.environ.get("HEAVENFALL_AES", "").strip().lower())
+    makers = [wanted] if wanted else list(_BACKENDS.values())
     for make in makers:
         try:
             ctr, cbc = make()
             counter = int.from_bytes(_KNOWN_PLAIN, "big")      # the keystream of this counter is AES(plain)
             if (ctr(_KNOWN_KEY, counter, bytes(16)) == _KNOWN_CIPHER
                     and ctr(_KNOWN_KEY, counter, bytes(5)) == _KNOWN_CIPHER[:5]
-                    and cbc(_KNOWN_KEY, bytes(16), _KNOWN_CIPHER) == _KNOWN_PLAIN):
+                    and cbc(_KNOWN_KEY, bytes(16), _KNOWN_CIPHER) == _KNOWN_PLAIN
+                    and _consistent(ctr, cbc)):
                 _backend = (ctr, cbc, make.__name__)
                 return _backend
         except Exception:    # a package that is absent or does not work: the next one
@@ -290,6 +421,7 @@ def scramble(key_x: bytes, key_y: bytes, generator: bytes = GENERATOR) -> bytes:
 _SLOT = re.compile(r"^slot0x([0-9a-f]{2})key([xyn])$")
 _COMMON_Y = re.compile(r"^common(?:y|keyy)?(\d)$")
 _COMMON_N = re.compile(r"^common(?:n|key|keyn|normal|normalkey)(\d)$")
+_SLOT_COMMON = re.compile(r"^slot0x3dkey([yn])(\d)$")      # some key files spell the common keys slot0x3DKeyY0..5
 _HEX = re.compile(r"^(?:0x)?([0-9a-fA-F]{32})$")
 
 
@@ -327,6 +459,8 @@ class KeySet:
                 generator = value
             elif (m := _SLOT.match(name)):
                 entries[(m.group(2), int(m.group(1), 16))] = value
+            elif (m := _SLOT_COMMON.match(name)):
+                entries[("common_" + m.group(1), int(m.group(2)))] = value
             elif (m := _COMMON_N.match(name)):
                 entries[("common_n", int(m.group(1)))] = value
             elif (m := _COMMON_Y.match(name)):
@@ -420,17 +554,37 @@ def load_keys(location) -> KeySet:
     return keys
 
 
+# The user folders of the Android emulators that keep aes_keys.txt and seeddb.bin in `sysdata`.
+ANDROID_EMULATORS = ("org.azahar_emu.azahar", "io.github.lime3ds.android", "org.citra.citra_emu",
+                     "org.citra.citra_emu.canary", "io.github.mandarine3ds.mandarine", "org.citra.emu")
+ANDROID_STORAGES = ("/storage/emulated/0", "/sdcard")
+NO_KEYS_RECHECK = 2.0      # seconds a "no key file" answer is kept: a file the player adds meanwhile is then found
+
+
 def sysdata_folders() -> list[Path]:
     """The `sysdata` folders of the emulators that keep aes_keys.txt and seeddb.bin."""
-    home = Path.home()
-    data = Path(os.environ.get("XDG_DATA_HOME") or home / ".local" / "share")
-    roots = [data, home / ".config", home / "Library" / "Application Support"]
+    try:
+        home = Path.home()
+    except (RuntimeError, KeyError, OSError):     # no home folder (a stripped environment): the other places remain
+        home = None
+    folders: list[Path] = []
+    names = ("azahar-emu", "Azahar", "citra-emu", "Citra", "lime3ds-emu", "Lime3DS")
+    roots: list[Path] = []
+    if os.environ.get("XDG_DATA_HOME"):
+        roots.append(Path(os.environ["XDG_DATA_HOME"]))
+    if home is not None:
+        roots += [home / ".local" / "share", home / ".config", home / "Library" / "Application Support"]
     if os.environ.get("APPDATA"):
         roots.append(Path(os.environ["APPDATA"]))
-    flatpak = home / ".var" / "app"
-    roots += [flatpak / "org.azahar_emu.Azahar" / "data", flatpak / "io.github.lime3ds.Lime3DS" / "data"]
-    names = ("azahar-emu", "Azahar", "citra-emu", "Citra", "lime3ds-emu", "Lime3DS")
-    return [root / name / "sysdata" for root in roots for name in names]
+    if home is not None:
+        flatpak = home / ".var" / "app"
+        roots += [flatpak / "org.azahar_emu.Azahar" / "data", flatpak / "io.github.lime3ds.Lime3DS" / "data"]
+    folders += [root / name / "sysdata" for root in roots for name in names]
+    for storage in ANDROID_STORAGES:               # Android: the emulator's own folder, then the usual user folders
+        folders += [Path(storage) / "Android" / "data" / package / "files" / "sysdata" for package in ANDROID_EMULATORS]
+        folders += [Path(storage) / name / "sysdata" for name in names]
+        folders.append(Path(storage) / "Download")
+    return folders
 
 
 def _candidates(game: Path | None) -> list[Path]:
@@ -438,35 +592,51 @@ def _candidates(game: Path | None) -> list[Path]:
     if os.environ.get("HEAVENFALL_KEYS"):
         folders.append(Path(os.environ["HEAVENFALL_KEYS"]))
     if game is not None:
-        folders += [Path(game).parent, Path(game).parent.parent]
+        game = Path(game)
+        folders += [game.parent, game.parent.parent]
+        try:
+            real = Path(os.path.realpath(game))     # the Android picker's /proc/self/fd/N is the player's own file
+        except OSError:
+            real = game
+        if real != game:
+            folders += [real.parent, real.parent.parent]
     folders += sysdata_folders()
     return folders
 
 
+def _load_from(folder: Path) -> KeySet | None:
+    """The keys of `folder` (a key file, or a folder with one and maybe a seeddb.bin); None when it has none."""
+    try:
+        if folder.is_file():
+            keys = KeySet.load(folder)
+        else:
+            names = [name for name in KEY_FILE_NAMES if (folder / name).is_file()]
+            if not names:
+                return None
+            keys = KeySet.load(folder / names[0])
+            seeds = folder / SEED_FILE_NAME
+            if seeds.is_file():
+                keys.seeds = KeySet.parse_seeds(seeds.read_bytes())
+    except OSError:
+        return None
+    return keys or None
+
+
 def keys_for(game: Path | None = None) -> KeySet | None:
     """The keys to read the encrypted file `game` with: the explicit ones, else the first key file found (None:
-    there is none). Remembered per game folder."""
+    there is none). Remembered per game folder; "none found" only for NO_KEYS_RECHECK seconds, because the readers
+    ask for the keys at every open of the file."""
     if _explicit is not None:
         return _explicit
     folders = _candidates(game)
     key = tuple(map(str, folders))
-    if key not in _found:
-        _found[key] = None
-        for folder in folders:
-            try:
-                if folder.is_file():
-                    keys = KeySet.load(folder)
-                else:
-                    names = [name for name in KEY_FILE_NAMES if (folder / name).is_file()]
-                    if not names:
-                        continue
-                    keys = KeySet.load(folder / names[0])
-                    seeds = folder / SEED_FILE_NAME
-                    if seeds.is_file():
-                        keys.seeds = KeySet.parse_seeds(seeds.read_bytes())
-            except OSError:
-                continue
-            if keys:
-                _found[key] = keys
-                break
-    return _found[key]
+    remembered = _found.get(key)
+    if remembered is not None and (remembered[0] is not None or time.monotonic() - remembered[1] < NO_KEYS_RECHECK):
+        return remembered[0]
+    found = None
+    for folder in folders:
+        found = _load_from(folder)
+        if found is not None:
+            break
+    _found[key] = (found, time.monotonic())
+    return found

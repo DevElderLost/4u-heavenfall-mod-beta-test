@@ -5,13 +5,37 @@ RomFS = IVFC hash tree whose level 3 holds a directory/file metadata table
 and the file data. Only level 3 is used (hashes are not checked).
 """
 
+import os
 import struct
+import threading
+from collections import OrderedDict
 from pathlib import Path
 
 from core.game.executable.containers import INVALID_ROMFS, MEDIA_UNIT, NO_ROMFS, ExtractError, open_container
 from core.game.executable.extract import read_exactly, read_ncch
 
 NONE = 0xFFFFFFFF
+
+# The parsed header and tables of the RomFS of each game file already opened (the build opens the same game several
+# times). Of an encrypted file every open decrypts them again, and the tables are megabytes: without this each
+# `RomFS(game)` of a build costs as much as the first one. Kept by path, size and modification time.
+_TABLES: OrderedDict = OrderedDict()
+_TABLES_LOCK = threading.Lock()
+TABLES_KEPT = 4
+
+
+def clear_caches() -> None:
+    """Forget the tables kept between `RomFS(...)` of the same file."""
+    with _TABLES_LOCK:
+        _TABLES.clear()
+
+
+def _tables_key(path: Path):
+    try:
+        status = os.stat(path)
+    except OSError:
+        return None
+    return os.path.abspath(path), status.st_size, status.st_mtime_ns
 
 
 def _align(value: int, alignment: int) -> int:
@@ -21,10 +45,26 @@ def _align(value: int, alignment: int) -> int:
 class RomFS:
     def __init__(self, path: Path):
         self.path = Path(path)
-        self._index: dict[str, int] | None = None
+        key = _tables_key(self.path)
+        with _TABLES_LOCK:
+            state = _TABLES.get(key) if key else None
+            if state is not None:
+                _TABLES.move_to_end(key)
+        if state is None:
+            state = self._read_tables()
+            if key:
+                with _TABLES_LOCK:
+                    _TABLES[key] = state
+                    while len(_TABLES) > TABLES_KEPT:
+                        _TABLES.popitem(last=False)
+        self._state = state
+        self.title_id, self.level3, self.data_offset = state["title_id"], state["level3"], state["data_offset"]
+        self.dirs, self.files = state["dirs"], state["files"]
+
+    def _read_tables(self) -> dict:
         with open_container(self.path) as f:
             ncch_offset, ncch = read_ncch(f)
-            self.title_id = ncch[0x108:0x110][::-1].hex()
+            title_id = ncch[0x108:0x110][::-1].hex()
             romfs_offset, romfs_size = struct.unpack_from("<II", ncch, 0x1B0)
             if not romfs_size:
                 raise ExtractError.of(NO_ROMFS)
@@ -35,15 +75,17 @@ class RomFS:
                 raise ExtractError.of(INVALID_ROMFS)
             master_hash_size = struct.unpack_from("<I", ivfc, 0x08)[0]
             level3_block = 1 << struct.unpack_from("<I", ivfc, 0x4C)[0]
-            self.level3 = start + _align(0x60 + master_hash_size, level3_block)
-            f.seek(self.level3)
+            level3 = start + _align(0x60 + master_hash_size, level3_block)
+            f.seek(level3)
             header = read_exactly(f, 0x28, "the RomFS")
             (_, _, _, dir_meta_offset, dir_meta_size, _, _, file_meta_offset, file_meta_size,
-             self.data_offset) = struct.unpack("<10I", header)
-            f.seek(self.level3 + dir_meta_offset)
-            self.dirs = read_exactly(f, dir_meta_size, "the RomFS")
-            f.seek(self.level3 + file_meta_offset)
-            self.files = read_exactly(f, file_meta_size, "the RomFS")
+             data_offset) = struct.unpack("<10I", header)
+            f.seek(level3 + dir_meta_offset)
+            dirs = read_exactly(f, dir_meta_size, "the RomFS")
+            f.seek(level3 + file_meta_offset)
+            files = read_exactly(f, file_meta_size, "the RomFS")
+        return {"title_id": title_id, "level3": level3, "data_offset": data_offset, "dirs": dirs, "files": files,
+                "index": None}
 
     @staticmethod
     def _name(table: bytes, at: int, length: int) -> str:
@@ -64,11 +106,13 @@ class RomFS:
     def _find(self, path: str) -> int | None:
         """The metadata offset of a file. The index of every file is built on the first lookup: scanning a folder
         per lookup made reading the thousands of files of a big folder take a quarter of a minute."""
-        if self._index is None:
-            self._index = {}
+        index = self._state["index"]
+        if index is None:
+            index = {}
             for name, offset in self._walk_entries(0, ""):
-                self._index.setdefault(name, offset)
-        return self._index.get("/".join(p for p in path.replace("\\", "/").split("/") if p))
+                index.setdefault(name, offset)
+            self._state["index"] = index          # shared with the other RomFS of this file
+        return index.get("/".join(p for p in path.replace("\\", "/").split("/") if p))
 
     def _walk_entries(self, dir_offset: int, prefix: str):
         for name, is_dir, offset in self._children(dir_offset):

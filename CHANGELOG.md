@@ -31,6 +31,9 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### Fixes
 - The START menu's Guild Quests list now shows on the top screen (emulator only).
+- An encrypted game (with your `aes_keys.txt`) no longer takes minutes to load: AES uses numpy or the phone's own
+  Java crypto when no package is installed, the RomFS tables are read once per game, and a key file added
+  while the program runs is found.
 - Turning the lock-on off in Mod Settings now hides the monster's face on the top screen.
 - Setting Field of View back to Default during a quest no longer zooms the camera in.
 - At very wide screen shapes the target marker is no longer drawn behind the item bar.
