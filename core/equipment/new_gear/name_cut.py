@@ -25,8 +25,15 @@ LANGUAGES = ("eng", "fre", "ger", "ita", "spa")
 MIN_STEM = 3                 # an abbreviation keeps at least this many letters before its dot
 
 # The monsters' names when shortened, the same in every language ("Mizutsune" is always "Mizu."). Each one is a whole
-# number of syllables of the name (Mi-zu-tsu-ne, A-la-tre-on, Gla-ve-nus, As-ta-los). A later monster adds his here.
-MONSTERS = {"Mizutsune": "Mizu.", "Alatreon": "Alatre.", "Glavenus": "Glave.", "Astalos": "Asta."}
+# number of syllables of the name (Mi-zu-tsu-ne, A-la-tre-on, Gla-ve-nus, As-ta-los). A later monster adds his
+# here.
+# A name that differs by language has one entry per spelling (Boltreaver Astalos is "Boltreaver" in English,
+# "Prince-orage" in French, "Blitzschlag" in German, "Fulmen" in Italian and Spanish): each is a whole number of
+# syllables of its word in some language.
+MONSTERS = {"Mizutsune": "Mizu.", "Alatreon": "Alatre.", "Glavenus": "Glave.", "Astalos": "Asta.",
+            "Boltreaver": "Boltre.", "Prince-orage": "Prin.", "Blitzschlag": "Blitz.", "Fulmen": "Ful.",
+            "Hellblade": "Hell.", "Zornklingen": "Zorn.",
+            "Soulseer": "Soul.", "Karmaseher": "Karma.", "Arcanum": "Arca."}
 
 # Monsters whose name is never abbreviated (Maccao is not abbreviated): a name that does not fit
 # loses a syllable of another word instead. A word holding one of these is never cut, in any language ("Maccao-Rest",
@@ -42,7 +49,12 @@ FILLERS = {"eng": ("of",), "fre": ("de", "du", "des"), "ger": (),
 EXPANSIONS: dict[str, dict[str, str]] = {
     "eng": {},
     "fre": {"Hallebar.": "Hallebarde", "Gem.dragon": "Gemme dragon", "Macc": "Maccao", "Astal": "Astalos"},
-    "ger": {"VersengSchnurrhaa.": "VersengSchnurrhaare"},
+    "ger": {"VersengSchnurrhaa.": "VersengSchnurrhaare",
+            # XX's own cuts of the Deviants' armor (a letter dropped, or no hyphen)
+            "ZornklingenArmschien": "Zornklingen-Armschienen", "ZornklingenBeinschin": "Zornklingen-Beinschienen",
+            "KarmasehrArmschienen": "Karmaseher-Armschienen", "KarmasehrBeinschienen": "Karmaseher-Beinschienen",
+            "KarmaseherWaffenrock": "Karmaseher-Waffenrock", "KarmaseherGamaschen": "Karmaseher-Gamaschen",
+            "ZornklingGranatennova": "Zornklingen-Granatennova"},
     "ita": {"Alabar.": "Alabarda", "Art.": "Artiglio", "Comandam.": "Comandamento", "Metamorf.": "Metamorfosi",
             "Parabr.": "Parabraccia", "Protez.": "Protezione", "Schin.": "Schinieri", "Paras.": "Parasole",
             "pes.": "pesante", "pirocor.": "pirocorazza", "framm.": "frammento", "Pettor.": "Pettorina"},

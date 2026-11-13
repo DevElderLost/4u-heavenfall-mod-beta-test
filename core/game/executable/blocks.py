@@ -152,6 +152,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     before."""
     from core.monsters.porting.called_small import c_defines as pack_defines
     from core.monsters.porting.hf_records import C_DEFINES as RECORDS_DEFINES, STUBS_SIZE as RECORDS_STUBS
+    from core.monsters.porting.motion_places import C_DEFINES as PLACES_DEFINES, table_size as places_table_size
     from core.monsters.porting.new_id_data import C_DEFINES as NEW_ID_DEFINES
     from core.monsters.porting.new_id_data import block_specs as new_id_blocks
     from core.monsters.porting.proof_blocks import SHARED, monster_block_specs, shared_block_specs
@@ -280,6 +281,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # the new ids (NEW_QUEST_ROOM at most, the free bits of the save)
     BlockSpec("quest_unlock", "new_quests", "gameplay/quests/quest_unlock.s", region="ext"),
     BlockSpec("new_quest_unlocks", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
+    # the quests' special level: records of two u16 (quest id, level), the last zero (the SDK's quest_special_level)
+    BlockSpec("quest_special_levels", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
     BlockSpec("hall_quest_list", "new_quests", size=2 * (HALL_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
     BlockSpec("save_quest_list", "new_quests", size=2 * (SAVE_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
     # Black and Crimson Fatalis and Alatreon at low health (gameplay/monster_phases/monster_phases.py): their speed,
@@ -413,6 +416,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # functions' entries and the four hooks of the save)
     BlockSpec("hf_records_code", SHARED, "monsters/porting/hf_records.c", region="ext", defines=RECORDS_DEFINES),
     BlockSpec("hf_records_stubs", SHARED, size=RECORDS_STUBS, region="ext"),
+    # Motion list 9 of a ported monster's variant (core/monsters/porting/motion_places.py): the function uEnemy's
+    # resource setup calls for each motion list place, and the run's bases'
+    # variants blocks it reads
+    BlockSpec("motion_places_code", SHARED, "monsters/porting/motion_places.c", region="ext", defines=PLACES_DEFINES),
+    BlockSpec("motion_places_bases", SHARED, size=places_table_size(BUILT), region="ext"),
     # Each one's own (feature his spec's key, for each of spec.BUILT, Mizutsune's for his probes;
     # proof_blocks.monster_block_specs): his class's code (Alatreon's monsters/alatreon/alatreon.c, Mizutsune's
     # monsters/mizutsune/mizutsune.c) and the data the patcher fills (product.py): his id, his vtable (97 slots), his
@@ -826,6 +834,7 @@ GAME_SYMBOLS = {
     "enemy_set_status": 0x9167EC,
     "enemy_play_motion": 0x9190C4,
     "enemy_motion_ended": 0xB05DF4,
+    "model_motion_list_set": 0x95997C,  # FUN_0095997c(model, list, n): uModel's list slot n (motion_places.c)
     # ... the functions Alatreon's decompiled code calls (sdk/em_api.h)
     "anim_find": 0xCFBA14,
     "part_play_anim": 0x636B64,
@@ -835,6 +844,7 @@ GAME_SYMBOLS = {
     "enemy_bits_test": 0x936418,
     "enemy_bits_5893": 0x938620,
     "enemy_act_script": 0x9197C0,
+    "enemy_fight_reset": 0x93A6B8,      # (this, n): the fight level's reset (XX 0x8C2AE0, Gen 0x8D38A4)
     "enemy_set_action_0_7": 0x911AD0,
     "enemy_set_float_5c": 0x916140,
     "enemy_data_float_10": 0x93E7B4,
@@ -1183,6 +1193,7 @@ GAME_SYMBOLS |= {
 GAME_SYMBOLS |= {
     "uEnemy_step": 0x955E5C,            # uEnemy's slot 10 (0x8F22FC is uFestaEnemy's)
     "enemy_is_tired": 0x92E998,         # 0xAEF830
+    "enemy_homing_point_on_left": 0x91E130,  # 0x8B8AE4 (voted pair, em080/pairs.py; Hellblade's turn choices)
     "enemy_motion_at_frame": 0x941DBC,  # 0x8DA7A0
     "enemy_set_parts_vital": 0x93CFD4,  # 0x8D5DA8
     "enemy_flag_4c7_clear": 0x939090,   # 0x8D24CC
@@ -1634,6 +1645,8 @@ GAME_SYMBOLS |= {
     "enemy_mgr_kind_record": 0x683590,      # 0x1C3084: (sEnemy, kind, variant) -> its 0x50-byte record, or 0
     "enemy_set_action_1": 0x91F744,         # 0x8AC0A4: setAction(st, no, 1, player) unless dead (state 11)
     "enemy_restart_flag_clear": 0x932EE4,   # 0x8BBD60: (this, 0): em+0x1DC = 0
+    "enemy_fight_reset": 0x93A6B8,          # 0x8C2AE0 (Generations 0x8D38A4): (this, n), the fight level's reset
+    "enemy_set_cancel_frames": 0x933DD0,    # Generations 0x8CD910: (this, a, b), the cancel frames
     "enemy_em5883_set_1": 0x922090,         # 0x8AEAE0: em+0x7984 = 1 once, and notice 3 to sEnemy
     "enemy_em5883_set_2": 0x9150FC,         # 0x8A3A78: em+0x7984 = 2 (none for the ids of rocks and objects)
     "enemy_em58e4_positive": 0x9239FC,      # 0x8AFDC8: em+0x7A34 > 0 (enemy_positive_58e4)

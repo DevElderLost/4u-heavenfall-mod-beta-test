@@ -165,8 +165,9 @@ FIX_INPUTS = T("Faltan archivos del juego:\n{problems}", "Some game files are mi
 # Why a game file was refused (game/executable/containers.py MESSAGES: the English texts are the same, a test checks
 # it).
 EXTRACT_ERRORS = {
-    "encrypted": T("el archivo está cifrado; descífralo primero (p. ej. con GodMode9)",
-                   "the file is encrypted; decrypt it first (e.g. with GodMode9)"),
+    "encrypted": T("el archivo está cifrado; descífralo primero (con GodMode9 en una 3DS o con un descifrador de 3DS "
+                   "en el PC)",
+                   "the file is encrypted; decrypt it first (with GodMode9 on a 3DS, or a 3DS decryptor on a PC)"),
     "not_a_game_file": T("no es un juego de 3DS descifrado (.3ds, .cci, .cxi, .app, .cia, .zcci, .zcxi o .zcia)",
                          "not a decrypted 3DS game file (.3ds, .cci, .cxi, .app, .cia, .zcci, .zcxi or .zcia)"),
     "truncated": T("el archivo está incompleto (una descarga o copia cortada)",
@@ -200,6 +201,11 @@ GAME_PROBLEMS = {
     "unreadable": T("no se puede leer el archivo (¿está en uso, sin permiso o en una unidad desconectada?)",
                     "the file cannot be read (check that it is not in use, that you have permission to open it, and "
                     "that its drive is connected)"),
+    "misnamed_encrypted": T("su nombre dice que está descifrado, pero no lo está (un emulador con las claves de la "
+                            "consola lo juega igualmente); los descifradores se saltan un archivo cuyo nombre dice "
+                            "decrypted, así que cámbiale el nombre antes",
+                            "its name says it is decrypted, but it is not (an emulator with the console's keys plays "
+                            "it anyway); decryptors skip a file whose name says decrypted, so rename it first"),
 }
 # The other refusals of the install path: (regular expression of the whole English message, its translation with the
 # named groups as fields). install/deploy.py, install/build.py and gui/qt/jobs.py write the English; a test raises the

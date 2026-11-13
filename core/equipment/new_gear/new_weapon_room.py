@@ -14,7 +14,7 @@ from core.equipment.tables.layout import WEAPON_CLASSES
 
 FEATURE = "new_weapons"
 ROOM = 80                    # new weapons per class (at most weapon_marks.mark_room)
-SHARPNESS_ROOM = 96          # new sharpness profiles (the game has OLD_PROFILES): the four ported monsters need 60
+SHARPNESS_ROOM = 120         # new sharpness profiles (the game has OLD_PROFILES): the nine monsters need up to 98
 OLD_PROFILES = 119
 SHARPNESS_RECORD_SIZE = 14
 ROW_SIZE = 16                # new_weapon_rows: one row per equipment type 7..20 (asm/new_weapons.s)

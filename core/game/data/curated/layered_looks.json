@@ -196,10 +196,10 @@
             "Zinogre", "Emerald Congalala", "Berserk Tetsucabra", "Plum Daimyo Hermitaur", "Tigerstripe Zamtrios",
             "Seltas Queen", "Basarios", "Plesioth", "Lavasioth", "Duramboros", "Shogun Ceanataur", "Rustrazor Ceanataur",
             "Monoblos", "Diablos", "Gravios", "Tigrex", "Uragaan", "Crystalbeard Uragaan", "Agnaktor", "Barioth",
-            "Lagiacrus", "Nargacuga", "Silverwind Nargacuga", "Mizutsune", "Ash Kecha Wacha", "Purple Gypceros",
+            "Lagiacrus", "Nargacuga", "Silverwind Nargacuga", "Mizutsune", "Soulseer Mizutsune", "Ash Kecha Wacha", "Purple Gypceros",
             "Red Khezu", "Shrouded Nerscylla", "Desert Seltas Queen", "Ruby Basarios", "White Monoblos", "Pink Rathian",
             "Azure Rathalos", "Yian Garuga", "Gore Magala", "Astalos", "Boltreaver Astalos", "Gammoth",
-            "Elderfrost Gammoth", "Glavenus", "Brachydios", "Tidal Najarala", "Black Gravios", "Black Diablos",
+            "Elderfrost Gammoth", "Glavenus", "Hellblade Glavenus", "Brachydios", "Tidal Najarala", "Black Gravios", "Black Diablos",
             "Brute Tigrex", "Seregios", "Chaotic Gore Magala", "Shagaru Magala", "Deviljho", "Stygian Zinogre",
             "Gold Rathian", "Silver Rathalos", "Kirin", "Rajang", "Kushala Daora", "Teostra", "Chameleos",
             "Lao-Shan Lung", "Nakarkos", "Amatsu", "Oroshi Kirin", "Rusted Kushala Daora", "Raging Brachydios",
@@ -222,5 +222,5 @@
   "giaprey": "Giadrome", "vprey": "Velocidrome", "baggi": "Great Baggi", "wroggi": "Great Wroggi",
   "bnaha": "Bnahabra", "rheno": "Rhenoplos", "alta": "Altaroth", "hornet": "Hornetaur", "moofy": "Moofah"
  },
- "monster_of": {"armor": {}, "weapons": {}, "felyne": {}}
+ "monster_of": {"armor": {}, "weapons": {"great_sword-gen182": "Boltreaver Astalos", "sword_and_shield-gen240": "Boltreaver Astalos", "hammer-gen199": "Boltreaver Astalos", "lance-gen185": "Boltreaver Astalos", "light_bowgun-gen154": "Boltreaver Astalos", "heavy_bowgun-gen134": "Boltreaver Astalos", "long_sword-gen190": "Boltreaver Astalos", "switch_axe-gen166": "Boltreaver Astalos", "gunlance-gen159": "Boltreaver Astalos", "dual_blades-gen186": "Boltreaver Astalos", "hunting_horn-gen146": "Boltreaver Astalos", "insect_glaive-gen121": "Boltreaver Astalos", "charge_blade-gen117": "Boltreaver Astalos", "great_sword-gen149": "Hellblade Glavenus", "great_sword-gen183": "Soulseer Mizutsune", "sword_and_shield-gen150": "Hellblade Glavenus", "sword_and_shield-gen241": "Soulseer Mizutsune", "hammer-gen145": "Hellblade Glavenus", "hammer-gen183": "Soulseer Mizutsune", "lance-gen127": "Hellblade Glavenus", "lance-gen186": "Soulseer Mizutsune", "light_bowgun-gen103": "Hellblade Glavenus", "light_bowgun-gen137": "Soulseer Mizutsune", "heavy_bowgun-gen91": "Hellblade Glavenus", "heavy_bowgun-gen135": "Soulseer Mizutsune", "long_sword-gen138": "Hellblade Glavenus", "long_sword-gen191": "Soulseer Mizutsune", "switch_axe-gen122": "Hellblade Glavenus", "switch_axe-gen151": "Soulseer Mizutsune", "gunlance-gen133": "Hellblade Glavenus", "gunlance-gen160": "Soulseer Mizutsune", "bow-gen125": "Hellblade Glavenus", "bow-gen152": "Soulseer Mizutsune", "dual_blades-gen137": "Hellblade Glavenus", "dual_blades-gen168": "Soulseer Mizutsune", "hunting_horn-gen115": "Hellblade Glavenus", "hunting_horn-gen147": "Soulseer Mizutsune", "insect_glaive-gen95": "Hellblade Glavenus", "insect_glaive-gen122": "Soulseer Mizutsune", "charge_blade-gen90": "Hellblade Glavenus"}, "felyne": {}}
 }

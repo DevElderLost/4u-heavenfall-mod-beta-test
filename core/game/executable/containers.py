@@ -38,7 +38,7 @@ OTHER = "other"   # a refusal with its own text (not in MESSAGES)
 
 # The English text of each kind; gui/strings.py has the same kinds in the GUI's languages.
 MESSAGES = {
-    ENCRYPTED: "the file is encrypted; decrypt it first (e.g. with GodMode9)",
+    ENCRYPTED: "the file is encrypted; decrypt it first (with GodMode9 on a 3DS, or a 3DS decryptor on a PC)",
     NOT_A_GAME_FILE: "not a decrypted 3DS game file (" + ", ".join(EXTENSIONS[:-1]) + " or " + EXTENSIONS[-1] + ")",
     TRUNCATED: "the file is incomplete (the download or copy was interrupted)",
     UNSUPPORTED_COMPRESSION: "this compressed file uses a format version that this program cannot read",
@@ -304,8 +304,13 @@ class _Blocks(_View):
         start = position - first * BLOCK
         return data[start:start + size]
 
+    def release(self) -> None:
+        """Give the file up without closing it: another reader takes it over (a Z3DS file's frames are kept instead
+        of its blocks). Once dropped, this view would otherwise close it under that reader."""
+        self._raw = None
+
     def close(self) -> None:
-        if not self.closed:
+        if not self.closed and self._raw is not None:
             self._raw.close()
         super().close()
 
@@ -459,6 +464,8 @@ def open_container(path: Path):
             f = raw
         head = f.read(HEAD)
         if head[:4] == Z3DS_MAGIC:
+            if f is not raw:
+                f.release()
             f = _open_z3ds(raw, path)
             head = f.read(HEAD)
         if head[0x100:0x104] in NCCH_MAGICS:

@@ -474,7 +474,10 @@
   "127": {"en": "Great Maccao", "fr": "Grand Maccao", "es": "Gran Maccao", "de": "Groß-Maccao", "it": "Gran Maccao", "verified": true},
   "128": {"en": "Maccao", "fr": "Maccao", "es": "Maccao", "de": "Maccao", "it": "Maccao", "verified": true},
   "129": {"en": "Valstrax", "fr": "Valstrax", "es": "Valstrax", "de": "Valstrax", "it": "Valstrax", "verified": true},
-  "130": {"en": "Astalos", "fr": "Astalos", "es": "Astalos", "de": "Astalos", "it": "Astalos", "verified": true}
+  "130": {"en": "Astalos", "fr": "Astalos", "es": "Astalos", "de": "Astalos", "it": "Astalos", "verified": true},
+  "131": {"en": "Boltreaver Astalos", "fr": "Astalos Prince-orage", "es": "Fulmen Astalos", "de": "Blitzschlag-Astalos", "it": "Fulmen Astalos", "verified": true},
+  "132": {"en": "Hellblade Glavenus", "fr": "Glavenus Lame-chaos", "es": "Glavenus Inferno", "de": "Zornklingen-Glavenus", "it": "Ignis Glavenus", "verified": true},
+  "133": {"en": "Soulseer Mizutsune", "fr": "Mizutsune Perce-âme", "es": "Tengen Mizutsune", "de": "Karmaseher-Mizutsune", "it": "Arcanum Mizutsune", "verified": true}
  },
  "ecology": {
   "124": {
@@ -518,6 +521,27 @@
    "es": "El Astalos, conocido como \"wyvern\r\ndel rayo\", se carga de electricidad\r\ncon un violento movimiento de sus\r\nalas, cola y cresta. En ese estado,\r\nla membrana en sus alas brilla\r\ndesvelando la bella y terrible\r\nnaturaleza de este monstruo.",
    "de": "Auch bekannt als \"Donnerwyvern\",\r\nkann sich der Astalos durch rasende\r\nFlügel-, Schwanz- und Kamm-\r\nbewegungen elektrisch aufladen.\r\nEinmal aufgeladen, glühen seine\r\nFlügelmembranen so wunderschön;\r\nfast könnte man seine schreckliche\r\nNatur vergessen.",
    "it": "Conosciuto come il \"wyvern del tuono\",\r\nl'Astalos si può caricare di elettricità\r\nscuotendo furiosamente le ali, la coda\r\ne la cresta. Quando è caricato, le ali\r\nbrillano di una luce affascinante che\r\nper un attimo fa dimenticare la temibile\r\nnatura di questo mostro."
+  },
+  "131": {
+   "en": "Whoever gets caught in the lightning shot by\r\nthe unique Boltreaver Astalos will vanish\r\nwithout a trace, leaving only their shadow\r\nbehind. The electrical properties of its shell\r\nallow it to glide through the air and create\r\nlarge electromagnetic charges that can be\r\nused in chasing down prey.",
+   "fr": "Celui qui se fait prendre dans les étincelles\r\nbleutées de l'Astalos Prince-orage ne laisse\r\nqu'une ombre derrière lui. Les écailles robustes\r\nde ce monstre produisent des décharges\r\nélectromagnétiques, et il lance en plein vol des\r\nboules d'énergie pure sur ses cibles.",
+   "es": "Quien sea presa de los rayos del Fulmen\r\nAstalos desparecerá sin dejar apenas\r\nrastro. Gracias a la electricidad que portan\r\nsus escamas, este monstruo puede, desde el\r\naire, lanzar rayos que persiguen a la víctima\r\nhasta darle alcance.",
+   "de": "Dieser besondere Astalos trägt den Beinamen\r\n\"Blitzschlag\" nicht ohne Grund. Wer das Pech\r\nhat, in seine blauen Blitze zu geraten, verliert\r\nKörper und Seele - zurück bleibt nur der\r\nSchatten. Er wirft elektromagnetische\r\nSchocker, die sich zu riesigen Elektrokugeln\r\nformen und seine Beute verfolgen.",
+   "it": "Astalos speciale, detto Fulmen,\r\nperché emette lampi azzurri. Di\r\nchi viene colpito dai lampi non\r\nresta che un'ombra. La potenza\r\nelettromagnetica crea una sfera\r\nnell'aria che abbatte la preda."
+  },
+  "132": {
+   "en": "A Glavenus whose intense heat\r\nis akin to an active volcano. It can\r\nblast apart stone with a single\r\nbreath, and incinerate mountains\r\nwith a single swipe of its red-hot\r\ntail.",
+   "fr": "Un Glavenus dont l'intense chaleur\r\nest comparable à un volcan en\r\nactivité. Il est capable de fendre\r\nla pierre d'un simple souffle et\r\nd'embraser les montagnes d'un seul\r\nbalayage de sa queue rouge\r\nécarlate.",
+   "es": "Un Glavenus cuyo intenso calor\r\nes similar al de un volcán en activo.\r\nCapaz de derretir rocas con su\r\naliento y de incinerar montañas con\r\nun latigazo de su cola ardiente.",
+   "de": "Ein Glavenus, dessen Hitze der\r\neines aktiven Vulkans ähnelt.\r\nEr kann Steine mit einem einzigen\r\nAtemzug zerbersten - und ein Schlag\r\nseines Schwanzes lässt ganze Berge\r\nin Flammen aufgehen.",
+   "it": "Un Glavenus il cui intenso calore è\r\nsimile a quello di un vulcano.\r\nPuò frantumare la pietra con un soffio\r\ne incenerire le montagne con una sola\r\nspazzata della sua coda rovente."
+  },
+  "133": {
+   "en": "A Mizutsune that has lost its eyesight but\r\nadapted to use its bubbles as another sense.\r\nRumor says that the malice of an undying\r\ngrudge burns within its closed eyes. Those it\r\ncatches in its bubbles know the true meaning\r\nof its nickname, \"Soulseer\".",
+   "fr": "Un Mizutsune à qui la sélection naturelle a fait\r\nperdre le sens de la vue, mais qui en a tiré\r\ndes pouvoirs inédits. On dit que derrière ses\r\npaupières éternellement closes bouillonne\r\nune inextinguible rancœur et que quiconque\r\npris au piège de ses bulles comprend ce qui\r\nlui vaut son surnom de \"Perce-âme\".",
+   "es": "Este Mizutsune ha perdido la vista, pero ha\r\nsabido readaptarse y emplear sus burbujas\r\ncomo uno de sus sentidos. Dicen que tras sus\r\npárpados sellados hierve un rencor insaciable\r\ny que quienes caen presos de sus burbujas\r\ndescubren el verdadero terror que encierra\r\neste monstruo.",
+   "de": "Ein Mizutsune, der im harten Überlebenskampf\r\nsein Augenlicht verloren hat und sich deshalb\r\nauf Blasen-Fähigkeiten spezialisiert hat.\r\nGerüchteweise brennt in seinen leeren Augen-\r\nhöhlen ein unstillbarer Groll. Wer von seinem\r\nSchaum umhüllt wird, versteht seinen Beinamen\r\n\"Karmaseher\"...",
+   "it": "Mizutsune cieco e quasi estinto,\r\nche ha ritrovato le forze grazie\r\nall'uso di bolle. Leggenda vuole\r\nche negli occhi chiusi si celi la\r\nfiamma di un odio eterno che le\r\nvittime conoscono bene. Anche\r\ndetto \"Arcanum\"."
   }
  }
 }
