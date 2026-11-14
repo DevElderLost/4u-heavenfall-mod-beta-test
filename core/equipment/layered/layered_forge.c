@@ -268,15 +268,19 @@ static u32 rule_of(const struct look *l)
     return ((const u16 *)(layered_rules + offset))[l->at];
 }
 
+static int owned(const struct look *l);
+
 /* A look is listed (and so can be tried on) only once its rank is open and its rule holds; on the Relics screens every
-   relic of the ranks open is (its rule says it is bought: owned). */
+   relic of the ranks open is (its rule says it is bought: owned). With the owned plate on, only the looks bought. */
 static int look_shown(const struct look *l, u32 female)
 {
     if (rank_of(l) > U->unlocked)
         return 0;
     if (U->mode == M_ARMOR && !fits_gender(l, female))
         return 0;
-    return U->relics || rule_holds(rule_of(l), female);
+    if (!U->relics && !rule_holds(rule_of(l), female))
+        return 0;
+    return !U->owned_only || owned(l);
 }
 
 /* The list's order (look_order.py: by monster, least to most powerful, then rank, game, price): one u16 entry per look,
@@ -892,6 +896,37 @@ static void draw_filters(void)
     }
 }
 
+/* The owned plate above the rank row: its bar (under the cursor, in the list's group), the ZL key and the word over it, and
+   the chosen value's box behind the word while it is on; the word is white then, as a chosen filter value. */
+static void draw_owned(void)
+{
+    const struct fg_owned *o = &FS->owned;
+    u32 rows = group_of(G_ROWS);
+    struct ref r;
+    for (u32 piece = 0; piece < OWNED_CURSOR; piece++) {
+        const struct fg_rect *at = &o->rect[piece];
+        u32 group = piece < OWNED_SELECTED ? group_of(G_RIGHT) : rows;
+        if (piece == OWNED_SELECTED && !U->owned_only)
+            sprite_hide(group, H_OWNED + piece);
+        else if (sprite_place(&r, group, H_OWNED + piece, at->x, at->y, at->w, at->h))
+            sprite_changed(&r);
+    }
+    u32 *text = text_of(&r, rows, H_OWNED + OWNED_WORD);
+    if (text) {
+        text_colour(text, FS->colours[U->owned_only ? C_CHOSEN : C_FILTER]);
+        text_lobby(&r, MAKESHOP, o->msg_word);
+        text_show((u32)text, 1);
+        text_changed(&r);
+    }
+    text = text_of(&r, rows, H_OWNED + OWNED_LETTERS);
+    if (text) {
+        text_lobby(&r, MAKESHOP, o->msg_letters);
+        text_colour(text, o->letters_colour);            /* after its message, which sets the text's colour */
+        text_show((u32)text, 1);
+        text_changed(&r);
+    }
+}
+
 /* The cursor: a bar on the row or the filter, under the words and buttons, and a bracket on the row's button, over them. */
 static void draw_cursor(void)
 {
@@ -900,9 +935,21 @@ static void draw_cursor(void)
     int y = on_row ? m->first_y + (U->index - U->top) * m->pitch : FS->bar_y[U->focus == FOCUS_GAME];
     u32 height = on_row ? m->pitch : FS->bar_h;
     struct ref r;
-    for (u32 piece = 0; piece < 3; piece++)
-        if (sprite_place(&r, group, H_CURSOR + piece, FS->piece_x[piece], y, FS->piece_w[piece], height))
+    for (u32 piece = 0; piece < 3; piece++) {
+        if (U->focus != FOCUS_OWNED) {
+            if (sprite_place(&r, group, H_CURSOR + piece, FS->piece_x[piece], y, FS->piece_w[piece], height))
+                sprite_changed(&r);
+        } else {
+            sprite_hide(group, H_CURSOR + piece);
+        }
+    }
+    for (u32 piece = OWNED_CURSOR; piece < OWNED_SPRITES; piece++) {     /* the owned plate's own bar */
+        const struct fg_rect *at = &FS->owned.rect[piece];
+        if (U->focus != FOCUS_OWNED)
+            sprite_hide(group, H_OWNED + piece);
+        else if (sprite_place(&r, group, H_OWNED + piece, at->x, at->y, at->w, at->h))
             sprite_changed(&r);
+    }
     for (u32 side = 0; side < 2; side++) {
         if (on_row) {
             int x = m->button_x + U->button * m->button_pitch + FS->bracket[side * 2];
@@ -1618,6 +1665,7 @@ static void screen_on(u32 obj)
     U->sub = F_LIST;
     box_cut(1);
     draw_filters();
+    draw_owned();
     draw_cue(0);
     refresh(obj, 1);
     draw_money(obj);
@@ -1641,6 +1689,7 @@ int forge_open(u32 obj, u32 mode)
     u->mode = mode;
     u->box_cut = 0;              /* no screen is on, so the box is whole: a game that ended on one loaded it again */
     u->unlocked = unlocked_rank();
+    u->owned_only = 0;           /* a screen opens with the owned plate off, as with every filter at All */
     u->grey = grey_mask();
     if (u->grey == ALL_GREY) {
         play(SOUND_ERROR);
@@ -1739,6 +1788,8 @@ static void dye_open(u32 obj)
         sprite_hide(group_of(G_KEYS), H_CURSOR + 3 + side);
     for (u32 piece = 0; piece < MAX_ROWS * 3; piece++)
         sprite_hide(group_of(G_RIGHT), H_ROW + piece);
+    for (u32 piece = 0; piece < OWNED_SELECTED; piece++)    /* the owned plate's bar is in that group too */
+        sprite_hide(group_of(G_RIGHT), H_OWNED + piece);
     kit_group_show(dye_group(), 1, DY->priority);
     draw_dye_once();
     draw_dye();
@@ -1754,6 +1805,7 @@ static void dye_close(u32 obj, u32 sound)
     screen_group_show(G_CURSOR, 1);
     U->sub = F_LIST;
     play(sound);
+    draw_owned();
     refresh(obj, 1);
 }
 
@@ -2032,10 +2084,65 @@ static u32 held_rows(void)
     return rows;
 }
 
+/* ZL: bit 0x400 of the pad object's raw words, pressed at +0x94 (the game keeps
+   the edge) and held at +0x8C. It arrives only through the extra pad (a New 3DS or a Circle Pad Pro, with the game's
+   option on), and the game also gives it the GUI bit of L, of the D-pad's left or up, or one nothing reads, by another
+   option: while ZL is down the list reads no other key, so that copy neither changes the rank nor moves the cursor. */
+#define PAD_RAW_HELD 0x8C
+#define PAD_RAW_PRESSED 0x94
+#define RAW_ZL 0x400u
+
+/* A pair of filters left with no row moves to the nearest value of the rank, else of the game, that has some; else to the
+   first pair that has. */
+static void nearest_pair(void)
+{
+    for (u32 distance = 1; distance < RANK_VALUES; distance++) {
+        for (int sign = -1; sign <= 1; sign += 2) {
+            int rank = (int)U->rank + sign * (int)distance, game = (int)U->game + sign * (int)distance;
+            if (!(U->grey & GREY_BIT(U->rank, U->game)))
+                return;
+            if (rank >= 0 && rank < RANK_VALUES && !(U->grey & GREY_BIT(rank, U->game)))
+                U->rank = rank;
+            else if (game >= 0 && game < GAME_VALUES && !(U->grey & GREY_BIT(U->rank, game)))
+                U->game = game;
+        }
+    }
+    for (u32 rank = 0; rank < RANK_VALUES; rank++)
+        for (u32 game = 0; game < GAME_VALUES; game++)
+            if (U->grey & GREY_BIT(U->rank, U->game) && !(U->grey & GREY_BIT(rank, game))) {
+                U->rank = rank;
+                U->game = game;
+            }
+}
+
+/* The owned plate on or off (ZL; A or Left / Right on it). The rows shown are those bought; with none bought in any pair
+   the plate stays off, with an error. */
+static void owned_toggle(u32 obj)
+{
+    u32 before = U->owned_only;
+    U->owned_only = !before;
+    u32 grey = grey_mask();
+    if (grey == ALL_GREY) {
+        U->owned_only = before;
+        play(SOUND_ERROR);
+        return;
+    }
+    U->grey = grey;
+    nearest_pair();
+    draw_owned();
+    list_changed(obj, SOUND_PAGE);
+}
+
 static void list_keys(u32 obj)
 {
     struct ui *u = U;
     u32 dirs = facility_dirs(obj), rows = held_rows();
+    if (pad_word(PAD_RAW_PRESSED) & RAW_ZL) {
+        owned_toggle(obj);       /* from the list or a filter, before everything else */
+        return;
+    }
+    if (pad_word(PAD_RAW_HELD) & RAW_ZL)
+        return;                  /* ZL down: its copy of L or of the D-pad is not a key here */
     if (facility_pressed(obj, BUTTON_B)) {
         play(SOUND_CANCEL);
         forge_close(obj);
@@ -2051,11 +2158,18 @@ static void list_keys(u32 obj)
         if (dirs & DIR_UP) {
             if (u->focus == FOCUS_GAME)
                 focus_to(FOCUS_RANK);
+            else if (u->focus == FOCUS_RANK)
+                focus_to(FOCUS_OWNED);
         } else if (dirs & DIR_DOWN) {
-            if (u->focus == FOCUS_RANK)
+            if (u->focus == FOCUS_OWNED)
+                focus_to(FOCUS_RANK);
+            else if (u->focus == FOCUS_RANK)
                 focus_to(FOCUS_GAME);
             else
                 focus_to(FOCUS_ROW);
+        } else if (u->focus == FOCUS_OWNED) {
+            if (dirs & (DIR_LEFT | DIR_RIGHT) || facility_pressed(obj, BUTTON_A))
+                owned_toggle(obj);
         } else if (dirs & (DIR_LEFT | DIR_RIGHT)) {
             change_filter(obj, u->focus == FOCUS_GAME, dirs & DIR_RIGHT ? 1 : -1, 0, SOUND_CURSOR);
         }

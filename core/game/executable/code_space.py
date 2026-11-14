@@ -69,7 +69,9 @@ EXT_START = 0x111E000
 #   pages); his own shell 01 and slot 113's table (1 page:
 #   "SG3: the finish")
 # + the virtual maps' translations from 128 to 160, so more foreign areas get a patrol case (1 page)
-EXT_SIZE = 0x1ED000
+# + the Smithy's weapon tree: its code and its data, packed last (2 pages), and its
+#   window "upgrade or craft", its discovery by known materials and the status view's page (1 page)
+EXT_SIZE = 0x1F0000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that

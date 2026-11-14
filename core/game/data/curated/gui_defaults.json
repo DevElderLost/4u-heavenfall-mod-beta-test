@@ -7,6 +7,7 @@
   "camera_distance": "100",
   "box_equipment": true,
   "damage_numbers": false,
+  "smithy_view": "tree",
   "single_screen": true,
   "layered_equipment": true,
   "layered_by_rank": true,

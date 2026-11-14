@@ -233,6 +233,19 @@ rewards and the Wyporium's Claim Items, holding A does the same, and after a cel
 one with an item. A change of step (a full pouch, a question) leaves the cursor where it is and asks for a new press, so
 nothing is confirmed by accident.
 
+## The weapon tree
+
+The weapon tree (`interface/weapon_tree/`) takes the place of Forge Weapons' list. Its panes are six new groups of
+the facility menu's layout (`tree_layout.py`: the screen's five and the window that asks "upgrade or craft"), copies
+of the game's own sprites, and its words go after the game's in the Smithy's messages (`tree_texts.py`: among them,
+copies of the game's own help lines and price questions with the verb in capitals). Its code (`weapon_tree.c`) runs as a state of the Smithy the game never uses: when a class is
+chosen it reads the class's weapons, upgrade records and create recipes with the game's own readers, places the
+weapons the hunter has discovered as a tree, and draws the game's stats panels for the weapon under the cursor. A
+replays the game's own forge or upgrade, call by call, so the price, the materials, the box and the statistics change
+as they do in the game. Nothing is computed when the mod is made: the tree is what the game's tables hold. Every
+size and colour is in `core/game/data/curated/weapon_tree.json`. The row Smithy View of Mod Settings stands before
+the tree's two entries (a class in Forge Weapons, a weapon in Upgrade): on List the game's own code runs.
+
 ## Layered Gear and the Wyporium
 
 Layered Gear (`equipment/layered/`) adds the Smithy's Layered Equipment line: the forge-style screens, the look lists of

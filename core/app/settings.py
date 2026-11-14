@@ -313,6 +313,13 @@ class HudScale(str, Enum):
         return int(self.value) / 100
 
 
+class SmithyView(str, Enum):
+    """How Forge Weapons shows a weapon class (core/interface/weapon_tree/): the game's
+    own list, or the tree of its upgrade lines. The START menu's Mod Settings page changes it in the game."""
+    LIST = "list"
+    TREE = "tree"
+
+
 class Cheat3D(str, Enum):
     """The "3D off" cheat (core/cheats/cheats.py): the game's own 3D, or 3D forced off with the
     dithering off or on."""
@@ -369,7 +376,8 @@ CAMERA_DISTANCE_GAME = next(iter(CameraDistance))
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
                    "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
-                   "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "mhw_fatalis_music",
+                   "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
+                   "mhw_fatalis_music",
                    "alatreon_music",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
@@ -547,6 +555,10 @@ class Settings:
     # "Rare Materials Exchange" at the Wyporium: hand over a number of the items of the monsters that drop a rare
     # material, on a screen of its own, and get that material (core/gameplay/wyporium/rare_exchange.py)
     rare_exchange: bool = False
+    # How the Smithy's Forge Weapons shows a weapon class: the game's list or a tree of its lines
+    # (core/interface/weapon_tree/). The installed default of the START menu's row
+    # "Smithy View"; the game's own (the list) is the Settings default, the installer starts on the tree
+    smithy_view: SmithyView = SmithyView.LIST
     # The switch of an edition's quality-of-life module (gui_presets.json `install.modules`; core/app/presets.py
     # apply_modules): off, the controls, fast text, the item boxes and the cheats of that module take the game's own
     # values and leave the START menu's page. An edition without modules fixes it on

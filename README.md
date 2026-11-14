@@ -33,6 +33,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Damage numbers** over monsters, in three styles (off unless you switch them on).
 - **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, and a
   **Hunting Horn's songs** under the minimap.
+- A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.
 - **A smaller HUD**, from 90% to 60%.
 - **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange.
 - **Built-in cheats**: 3D, glow and blur off, frame rate, field of view and more.

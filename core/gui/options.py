@@ -18,7 +18,8 @@ from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
     CAMERA_DISTANCE_GAME, AlatreonMode, AlatreonMusic, ArmorSkillMode, CameraDistance, Cheat3D, CheatAspect, CheatFps,
     DuplicateMode, FrenzyChance, Frequency, GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode,
-    PalicoModelMode, ProgressionMode, RewardSource, StatMode, StructureMode, SubQuestMode, TextMode, ValstraxMode,
+    PalicoModelMode, ProgressionMode, RewardSource, SmithyView, StatMode, StructureMode, SubQuestMode, TextMode,
+    ValstraxMode,
 )
 from core.gui.i18n import EMPTY, T
 
@@ -785,6 +786,20 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "MH Wilds and Rise: gold on a weak spot, grey when it bounces. In the game, Mod Settings > "
                      "Interface > Damage Numbers picks the style (Wilds, Rise or Classic), the size, how long it stays "
                      "and whether all the monster's damage shows, not only yours. Felynes' damage never shows.")),
+        ), _ALSO_IN_GAME),
+        Group(T("Herrería", "Smithy"), (
+            Option("smithy_view", T("Vista de Crear armas", "Forge Weapons view"),
+                   T("Cómo muestra la herrería las armas de una clase: la lista del juego, o un árbol con sus líneas "
+                     "de mejora, como en MH World y Rise, donde se ve lo que ya has descubierto. Con el árbol, A en un "
+                     "nodo forja o mejora allí. En el juego, Ajustes del mod > Interfaz > Vista de herrería lo cambia.",
+                     "How the Smithy shows a weapon class: the game's own list, or a tree of its upgrade lines, as "
+                     "MH World and Rise do, with what you have discovered. On the tree, A on a node forges or "
+                     "upgrades there. In the game, Mod Settings > Interface > Smithy View changes it."),
+                   choices=(
+                       Choice(SmithyView.LIST, T("Lista", "List"), T("La lista del juego.", "The game's own list.")),
+                       Choice(SmithyView.TREE, T("Árbol", "Tree"),
+                              T("Un árbol por clase de arma.", "One tree for each weapon class.")),
+                   ), compact=True),
         ), _ALSO_IN_GAME),
         Group(T("Wyporio", "Wyporium"), (
             Option("rare_exchange", T("Canjear raros", "Rare Materials Exchange"),

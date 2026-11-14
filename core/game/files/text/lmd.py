@@ -122,6 +122,26 @@ class Lmd:
         self.nodes.append((END, 0, 0, 0))
         return index
 
+    def add_copy(self, source: int, change) -> int:
+        """Append a copy of message `source` with each of its texts passed through `change(text)`: its other nodes
+        (numbers, colours) stay where they were among them. Returns its index."""
+        if not 0 <= source < len(self.labels):
+            raise IndexError(f"the LMD has {len(self.labels)} messages, no {source}")
+        node = self.labels[source][1] & 0x3FFFFF
+        copied = []
+        while node < len(self.nodes) and self.nodes[node][0] != END:
+            copied.append(self.nodes[node])
+            node += 1
+        index = self._add_label()
+        for kind, value, *rest in copied:
+            if kind == TEXT:
+                self.nodes.append((TEXT, len(self.entries) + len(self.added), *rest))
+                self.added.append(change(self._string(value)))
+            else:
+                self.nodes.append((kind, value, *rest))
+        self.nodes.append((END, 0, 0, 0))
+        return index
+
     def _add_label(self) -> int:
         index = len(self.labels)
         hashes = {h for h, _ in self.labels}

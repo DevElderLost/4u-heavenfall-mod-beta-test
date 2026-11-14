@@ -143,6 +143,12 @@ QUEST_LAYOUTS_DATA_SIZE = 128
 HORN_SONGS = "horn_songs"
 HORN_SONGS_DATA_SIZE = 312
 HORN_SONGS_STATE_SIZE = 60
+# The Smithy's weapon tree (interface/weapon_tree/weapon_tree.py): the C with its hooks,
+# its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
+# other block.
+WEAPON_TREE = "weapon_tree"
+WEAPON_TREE_DATA_SIZE = 228 + 4 * 560
+WEAPON_TREE_STATE_SIZE = 94 + 6 * 336
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -170,7 +176,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
-                   MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO)
+                   MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -316,7 +322,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # this block for the record, which writes layout B first when the record is not B
     BlockSpec("single_screen_panels", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_panels.c",
               region="ext"),
-    # ... and the creation's Aceptar / Atrás buttons driven with left / right: the menu cursor's call on the main pages
+    # ... and the creation's Aceptar / AtrÃ¡s buttons driven with left / right: the menu cursor's call on the main pages
     # takes the pad's left and right as down and up on
     # the buttons
     BlockSpec("single_screen_creation_pad", SINGLE_SCREEN,
@@ -548,6 +554,10 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext"),
     BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext"),
     BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
+    # 8-aligned: a Thumb block's size depends on its address mod 8
+    BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", region="ext", thumb=True, align=8,
+              units=("interface/screen_kit/screen_kit.c",)),
+    BlockSpec("weapon_tree_data", WEAPON_TREE, size=WEAPON_TREE_DATA_SIZE, region="ext"),
 )
 
 
@@ -661,6 +671,8 @@ VARIABLES = (
     VariableSpec("modern_camera_state", MODERN_CAMERA, MODERN_CAMERA_STATE_SIZE, region="ext_vars"),
     # The horn's songs' rows and lights (horn_songs.c struct horn_state); patch_horn_songs reserves it
     VariableSpec("horn_songs_state", HORN_SONGS, HORN_SONGS_STATE_SIZE, align=0x10, region="ext_vars"),
+    # The weapon tree's class, placing, cursor and window (weapon_tree.h struct wt_state); patch_weapon_tree reserves it
+    VariableSpec("weapon_tree_state", WEAPON_TREE, WEAPON_TREE_STATE_SIZE, align=0x10, region="ext_vars"),
     # gameplay/monster_phases/monster_phases.s: the phases of 77, 78 and 124 and the monster whose theme played last
     VariableSpec("monster_phase", "monster_phases", 4),
     # adapter, engine side: the effect player's own managers, which MH4U lacks (core/monsters/porting/sdk/proof_api.h):
@@ -1817,4 +1829,71 @@ GAME_SYMBOLS |= {
     "horn_name_messages": 0xED2858,     # u32[]: a name index's message of the Menu file (common file 3)
     "hud_note_cells": 0xB90EFC,         # u8[9]: a note's cell in the HUD's picture (FUN_00b8f58c's literal)
     "horn_song_effects": 0x100C44C,     # u8[75]: a song's effect (FUN_00b29140); the effects' durations just before
+}
+
+# The Smithy's weapon tree (interface/weapon_tree/weapon_tree.c): the class's
+# readers, the forge's status view and its way back, and the place of FUN_009ad59c its entry's hook returns to
+GAME_SYMBOLS |= {
+    "weapon_count": 0x2F457C,           # FUN_002f457c(equipment, type): the ids of an equipment type
+    "weapon_stats": 0x2F4694,           # FUN_002f4694(equipment, type, id): a weapon's stat record
+    "weapon_melee": 0x2F2170,           # FUN_002f2170(equipment, type): not 0 for a melee class
+    "upgrade_record": 0x2F1340,         # FUN_002f1340(equipment, type, id): 24 bytes, record 0 past the table
+    "glaive_record": 0x2F4AC0,          # FUN_002f4ac0(equipment, id): the Insect Glaive's, 12 bytes
+    "create_recipe": 0x2F210C,          # FUN_002f210c(equipment, 1, index): a weapon create recipe, type 0xFF ends
+    "recipe_state": 0x9BE7BC,           # FUN_009be7bc(obj, type, recipe, mode): 0x10 not listed; 8, 4, 2 in mode 0
+    "gear_flag": 0xC1FE40,              # FUN_00c1fe40(save, type, id, array): 0 had once, 1 seen, 2 new
+    "box_slots": 0xC1E804,              # FUN_00c1e804(unused, save data): the equipment box's slots
+    "class_icon": 0xC0E8EC,             # FUN_00c0e8ec(gui, type): a weapon type's 24 px shape (byte table 0xFB8110)
+    "icon24_draw": 0xC117D8,            # FUN_00c117d8(gui, pane + 0x10, shape, &rgba): 24 px cells from v 208
+    "rarity_colour": 0xC0E170,          # FUN_00c0e170(&rgba, gui, rarity index): the rarity's colour
+    "forge_row_show": 0xA38488,         # FUN_00a38488(obj, st): the forge list's row into the status view
+    "status_draw": 0x9F95C0,            # FUN_009f95c0(obj, view, 1, 1): the stats panels, materials and page
+    "panels_hide": 0x283290,            # FUN_00283290(): hides the two stats panels and the model's frame
+    "materials_groups": 0x108A800,      # u32[10]: ui402's groups, the materials box (FUN_009e5734 hides them)
+    "forge_menu_close": 0x9E6BE4,       # FUN_009e6be4(obj): the forge's way back to the class menu
+    "gui_anim_end": 0x2ED7A4,           # FUN_002ed7a4(animation): ends the lobby GUI's animation
+    "lobby_gui_anim": 0x108B40C,        # that animation, which the forge's entry starts
+    "forge_join": 0x9ADC1C,             # FUN_009ad59c: the forge's entry, after the class is stored
+    # buying
+    "forge_price": 0x2F77F0,            # FUN_002f77f0(equipment, type, id): the forge's price (weapons: x 1.5)
+    "gear_new_clear": 0xC23604,       # FUN_00c23604(save, type, id, 2): the "new" bit off
+    "box_add": 0xC243A8,                # FUN_00c243a8(save, data, type, id): the new piece's box slot, 0xFFFF full
+    "forge_tally": 0xC1E618,            # FUN_00c1e618(save, ref): the statistics of a piece made
+    "view_kind": 0xA140A8,              # FUN_00a140a8(obj, view, kind): the status view's kind (2 compare)
+    "forge_tabs": 0xA6DAE4,             # FUN_00a6dae4(obj, st, shown): the forge's tabs
+    "status_reset": 0x9FF2D0,           # FUN_009ff2d0(obj, st, 1): the tabs and the status view as at the entry
+    "lobby_anim_step": 0x2ED840,        # FUN_002ed840(animation, step): the lobby GUI's animation (1 a window)
+    "box_view": 0xA740EC,               # FUN_00a740ec(obj, slot % 100, slot / 100): the box at a slot
+    "box_hide": 0xA980C4,               # FUN_00a980c4(obj): the box hidden
+    "panels_bind": 0x27FC9C,            # FUN_0027fc9c(): binds the two stats panels
+    "panels_release": 0x27FF58,         # FUN_0027ff58(): releases them
+    "wear_new": 0x9FF3EC,               # FUN_009ff3ec(obj): wears the box slot at obj + 0xB958
+    "smithy_cue": 0x9BC944,             # FUN_009bc944(obj, cue): 0x65 after a piece is worn
+    "box_count_show": 0xA8C1B8,         # FUN_00a8c1b8(obj, count): the box's count
+    "box_used": 0xC1AE68,               # FUN_00c1ae68(save, data): the box's pieces
+    "money_panel": 0xA90190,            # FUN_00a90190(obj, shown)
+    "upgrade_apply": 0xC25824,          # FUN_00c25824(save, data, slot, ref): the box slot becomes ref (glaives: id)
+    "hunter_refresh": 0xB0AAEC,         # FUN_00b0aaec(save, hunter, data, 1): the hunter's gear read again
+    "slot_worn": 0xC1AD38,              # FUN_00c1ad38(save, data, slot): not 0 when the slot is worn
+    "customized": 0x2F3E84,             # FUN_002f3e84(equipment, ref): a customized piece (strengthened, not upgraded)
+    "deco_count": 0x2F2CAC,             # FUN_002f2cac(equipment, ref): the piece's decorations
+    "deco_ids": 0x2F2260,               # FUN_002f2260(equipment, ref, u16 out[3], 1)
+    "deco_record": 0x2F0EBC,            # FUN_002f0ebc(equipment, decoration): its record, the item at + 0
+    # entered from Upgrade (FUN_009bdb58, the Smithy's state 8: "Research" 4)
+    "upgrade_list": 0xA02048,           # FUN_00a02048(obj, box ref, children, prices): a box weapon's upgrades
+    "upgrade_listed": 0x9BDC74,         # FUN_009bdb58: after that call (its result tested)
+    "upgrade_shown": 0x9BDD5C,          # FUN_009bdb58: the box hidden and the panels bound when st[1] is not 0
+    "box_menu": 0xAA1B60,               # FUN_00aa1b60(obj, *(u8 *)(obj + 0xD3F4)): the box shown again
+    # the views X goes round (FUN_009ca7e8's X and its sub-state 0 every frame: "Views")
+    "model_open": 0x9EDCEC,             # FUN_009edcec(obj, ref, 2): the try-on view's model, the preview shown
+    "model_input": 0xA272B0,            # FUN_00a272b0(obj): the model frame's touch (its L / R into the pad)
+    "model_camera": 0x9FC74C,           # FUN_009fc74c(obj, st, 2): turns (stick) and zooms (L / R) in view 3
+    "model_ready": 0xA64E9C,            # FUN_00a64e9c(obj, model): 1 once its parts are loaded (or no model)
+    "model_wear": 0xB0AF84,             # FUN_00b0af84(model, ref, 1): a weapon on the model
+    "weapon_look": 0x2F98B4,            # FUN_002f98b4(equipment, ref, ...): the hunter's weapon look byte
+    "gear_armor": 0x2F1020,             # FUN_002f1020(equipment, type): 0 for a weapon
+    # L / R on the forge's list (FUN_009ca7e8's sub-state 0): the status view's page
+    "pager_step": 0x5ED674,             # FUN_005ed674(value, count, input, back bit, next bit, sound, &way): a wrap
+    "pager_left": 0x26F3F4,             # FUN_0026f3f4(): the page mark's L arrow pressed
+    "pager_right": 0x271334,            # FUN_00271334(): its R arrow
 }

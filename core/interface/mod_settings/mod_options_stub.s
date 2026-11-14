@@ -50,7 +50,8 @@
 @ gate_*: a call of the game that another block took (hold A, fast text, fast gathering, the lock-on's D-pad filter, the
 @   death camera skip's call of FUN_00c03d70 in the camera manager's frame, the modern camera's calls of FUN_00bfd028
 @   and its question in FUN_00b3cc64, its aim's two instructions and calls of FUN_00b1ea04 in FUN_00b2041c, the intro
-@   skip's call of FUN_00292ea4 in the touch bar's input) goes here
+@   skip's call of FUN_00292ea4 in the touch bar's input, the Smithy's branch to the forge's entry once a weapon class
+@   is chosen: the tree's entry or the game's list, and Upgrade's call of FUN_00a02048 on a box weapon) goes here
 @   first: with the option off it makes the game's own call, else it goes on to the block's entry. Only the flags
 @   change (r12 is kept), so the callee gets its registers and stack arguments as they came.
 @
@@ -60,6 +61,9 @@
 @ aim_commands_game, aim_scope_game: FUN_00b2041c's (the hunter's aim) `ldr r0, [r2, #0x3e4]` (its commands over the
 @   shoulder and the Bow's) and `tst r0, #0x3c` (the scope's C-stick bits) for gate_aim_commands and gate_aim_scope,
 @   the modern camera's aim hooks: the game's instruction, then back.
+@
+@ smithy_upgrade_game: FUN_009bdb58's `bl FUN_00a02048` (Upgrade's A on a box weapon: its upgrades listed) for
+@   gate_smithy_upgrade: the game's call, then back after it (lr is free there: the function saved its own).
 @
 @ Build: tools/build/build_code_space.py (devkitARM), which places and links it.
 
@@ -72,7 +76,7 @@
     .global mod_camera_rest, mod_camera_event, mod_camera_state
     .global gate_hold_a_field, gate_hold_a_rewards, gate_hold_a_claim, gate_fast_text, gate_fast_motion
     .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera, gate_intro_skip
-    .global gate_intro_music, gate_intro_end
+    .global gate_intro_music, gate_intro_end, gate_smithy_view, gate_smithy_upgrade, smithy_upgrade_game
     .global gate_modern_turn, gate_modern_stick, modern_stick_game
     .global gate_aim_commands, gate_aim_scope, gate_aim_view, aim_commands_game, aim_scope_game
 
@@ -100,6 +104,7 @@
     .equ OPT_DEATH_CAMERA, 13
     .equ OPT_MODERN_CAMERA, 19
     .equ OPT_INTRO_SKIP, 21
+    .equ OPT_SMITHY_VIEW, 26
     .equ GAME_FOV_ONE, 0x42480000       @ 50.0, the game's literal of the reset case "not equal" and of FUN_00c06a14
     .equ GAME_FOV_OTHER, 0x42680000     @ 58.0, the reset case "equal"
     .equ GAME_CAMERA_CAP, 0x41200000    @ 10.0, FUN_00bfd028's cap
@@ -275,6 +280,8 @@ mod_box_lines:
     gate    gate_aim_commands, OPT_MODERN_CAMERA, aim_commands_hook, aim_commands_game
     gate    gate_aim_scope, OPT_MODERN_CAMERA, aim_scope_hook, aim_scope_game
     gate    gate_aim_view, OPT_MODERN_CAMERA, modern_aim_view, aim_pitch_view
+    gate    gate_smithy_view, OPT_SMITHY_VIEW, weapon_tree_entry, forge_join
+    gate    gate_smithy_upgrade, OPT_SMITHY_VIEW, weapon_tree_upgrade, smithy_upgrade_game
     gate    gate_intro_skip, OPT_INTRO_SKIP, intro_skip_button, touch_bar_button
     gate    gate_intro_music, OPT_INTRO_SKIP, intro_skip_music, cutscene_sound_stop
     gate    gate_intro_end, OPT_INTRO_SKIP, intro_skip_end, event_sound_end
@@ -291,6 +298,10 @@ aim_commands_game:
 aim_scope_game:
     tst     r0, #0x3c
     bx      lr
+
+smithy_upgrade_game:
+    bl      upgrade_list
+    b       upgrade_listed
 
 keyboard_poll_game:
     push    {r4, r5, r6, lr}

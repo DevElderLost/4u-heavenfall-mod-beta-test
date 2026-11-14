@@ -93,6 +93,14 @@ CHIPS = 12                           # the palette's colours (FUN_00c0e3c8)
 KEY_SHEET = (256, 256)               # cmn_win00_ID, the START key's texture: its texels as the region's fractions
 SELECT_PANES = ("fg_select_bar", "fg_select_l", "fg_select_m", "fg_select_r", "fg_m_select_key", "fg_m_select")
 
+# The "owned only" plate over the rank row (layered_forge.c, "the owned plate"): the plate's two pieces (in the list's
+# group, under the cursor), the chosen value's box, the ZL key's three pieces, the cursor's two pieces, the word and the
+# key's letters. The first OWNED_SPRITES are the sprites, in the order of struct fg_owned's rectangles.
+OWNED_PANES = ("fg_own_a", "fg_own_b", "fg_own_sel", "fg_own_key", "fg_cur_o0", "fg_cur_o1", "fg_m_own", "fg_m_zl")
+OWNED_SPRITES = 6
+OWNED_BAR = ("fg_bar0_0", "fg_bar0_1")                       # the rank row's bar pieces the plate is cut from
+OWNED_CURSOR = ("fg_r_0", "fg_r_2")                          # the row cursor's end pieces its cursor is cut from
+
 
 def dye_pane_names() -> list[str]:
     """The colour window's panes the code moves, in the order of layered.h's DH_* indices (all in GROUP_DYE but
@@ -281,7 +289,49 @@ def add_forge_panes(data: bytes, sources: Mapping[str, Layout], curated: Mapping
     build.text(GROUP_CUE, keys, CUE_PANES[2], cue[CUE_PANES[2]], CUE_ROOM, font["hint"])
     _add_select_cue(build, screen, keys)
     _add_dye_window(build, screen, words, layout)
+    _add_owned_plate(build, screen, words, keys)
     return layout.to_bytes()
+
+
+def owned_key_pieces(screen: Mapping) -> list[tuple[int, ...]]:
+    """The ZL key's rectangle on the screen (the game has no picture of it: its blank white key, with the letters
+    over it)."""
+    return [tuple(screen["owned"]["key"])]
+
+
+def _owned_key_region(screen: Mapping) -> tuple[float, float, float, float]:
+    """The game's blank white key in the key sheet (cmn_win00_ID, `key_cell` in texels), as a region."""
+    x, y, width, height = screen["owned"]["key_cell"]
+    return x / KEY_SHEET[0], y / KEY_SHEET[1], width / KEY_SHEET[0], height / KEY_SHEET[1]
+
+
+def _cut(template: Pane, drawn_width: int, piece_width: int, from_end: bool) -> tuple[float, float, float, float]:
+    """The region of the first (or last) `piece_width` texels of a piece drawn 1:1 over `drawn_width`; a piece drawn
+    mirrored (the cursor's right end) keeps its texels' order under the mirror, so its far end is the region's start."""
+    u, v, width, height = template.region
+    part = width * piece_width / drawn_width
+    return (u + width - part if from_end else u, v, part, height)
+
+
+def _add_owned_plate(build: PaneBuilder, screen: Mapping, words: Pane, keys: Pane) -> None:
+    """The "owned only" plate above the rank row: a bar cut from the rank row's pieces, the
+    ZL key and its word, the chosen value's box, and a cursor of its own (the row cursor's ends)."""
+    owned, panes, colours, font = screen["owned"], screen["panes"], screen["colours"], screen["fonts"]
+    left, right = (build.template(FORGE_LAYOUT, name) for name in ("ui407_waku00_21", "ui407_waku00_20"))
+    a, b = owned["plate"]["fg_own_a"], owned["plate"]["fg_own_b"]
+    build.sprite(GROUP_RIGHT, left, OWNED_PANES[0], a, region=_cut(left, panes[OWNED_BAR[0]][2], a[2], False))
+    build.sprite(GROUP_RIGHT, right, OWNED_PANES[1], b, region=_cut(right, panes[OWNED_BAR[1]][2], b[2], True))
+    build.sprite(GROUP_ROWS, build.template(FORGE_LAYOUT, SELECTED), OWNED_PANES[2], owned["selected"])
+    build.sprite(GROUP_ROWS, build.template(FRAME_LAYOUT, "ui034_L"), OWNED_PANES[3], owned["key"],
+                 region=_owned_key_region(screen))
+    for name, bar, source in zip(OWNED_PANES[4:6], OWNED_CURSOR, CURSOR_ROW[::2]):
+        template = build.template(FORGE_LAYOUT, source)
+        rect = owned["cursor"][name]
+        build.sprite(GROUP_CURSOR, template, name, rect, colours["cursor_bar"],
+                     _cut(template, panes[bar][2], rect[2], False))
+    build.text(GROUP_ROWS, words, OWNED_PANES[6], owned["word"], FILTER_ROOM, font["filter"], align=0)
+    build.text(GROUP_ROWS, keys, OWNED_PANES[7], owned["key_text"], FILTER_ROOM, owned["key_font"], align=2,
+               colour=tuple(owned["key_word"]))
 
 
 def select_key_pieces(screen: Mapping) -> list[tuple[int, ...]]:
@@ -427,8 +477,10 @@ ROWS_RECORD = struct.Struct("<4BH2B4BH2x")
 RECT = struct.Struct("<4H")
 HOLD_STEPS = 4             # layered.h: the steps of the cursor held up or down (frames held, rows a step)
 PREVIEW_MAX = 0xFF         # struct ui's u8 count of the frames on a weapon's row
-FORGE_SCREEN = struct.Struct(f"<6I6B2x4i48s64s6H4H8B4b2B2x12I6B4B14BB3x2I4B2H4i24H{2 * HOLD_STEPS}HH2x")
-assert FORGE_SCREEN.size == 372
+# ... then the "owned only" plate (struct fg_owned): the key word's colour, the 6 sprites' rectangles, the messages
+FORGE_SCREEN = struct.Struct(f"<6I6B2x4i48s64s6H4H8B4b2B2x12I6B4B14BB3x2I4B2H4i24H{2 * HOLD_STEPS}HH2x"
+                             f"I{4 * OWNED_SPRITES}H2H")
+assert FORGE_SCREEN.size == 372 + 56
 
 
 def pane_names() -> list[str]:
@@ -451,7 +503,7 @@ def pane_names() -> list[str]:
 def pane_hashes() -> list[int]:
     """What the code searches by: the panes of `pane_names`, then the game's box (layered.h, H_BOX_*)."""
     box = [*BOX_GROUPS, *BOX_FRAME, *BOX_LINES, *BOX_TITLE, *(name for row in BOX_ROWS for name in row)]
-    return [name_hash(name) for name in (*pane_names(), *box)]
+    return [name_hash(name) for name in (*pane_names(), *box, *OWNED_PANES)]
 
 
 def _colour(rgb) -> int:
@@ -518,6 +570,18 @@ def _preview_frames(screen: Mapping) -> int:
     return frames
 
 
+def _owned_data(screen: Mapping) -> list[int]:
+    """struct fg_owned: the ZL key's word colour, the rectangles of OWNED_PANES' sprites, the messages of the word and
+    the key's letters."""
+    from core.equipment.layered.texts import message_id   # texts.py imports this module
+    owned = screen["owned"]
+    rects = [*owned["plate"].values(), owned["selected"], *owned_key_pieces(screen), *owned["cursor"].values()]
+    if list(owned["plate"]) != list(OWNED_PANES[:2]) or list(owned["cursor"]) != list(OWNED_PANES[4:6]):
+        raise ValueError("forge_screen.owned: plate and cursor name their two pieces, in order")
+    return [_colour(owned["key_word"]), *(value for rect in rects for value in rect),
+            message_id("owned_only"), message_id("zl_key")]
+
+
 def forge_screen_data(curated: Mapping | None = None) -> bytes:
     """The screens' numbers and pane hashes, as struct forge_screen in layered.h: read from the curated `forge_screen`
     only."""
@@ -545,6 +609,6 @@ def forge_screen_data(curated: Mapping | None = None) -> bytes:
         _float_bits(icons["disabled"]["u"]), _float_bits(icons["disabled"]["v"]), *button["try_on"],
         screen["materials"]["cut"], screen["materials"]["price_widen"], *screen["camera_full"],
         *(value for state in ("list", "camera") for name in CUE_PANES for value in screen["cue"][state][name]),
-        *_hold_steps(screen), _preview_frames(screen))
+        *_hold_steps(screen), _preview_frames(screen), *_owned_data(screen))
     hashes = pane_hashes()
     return head + struct.pack(f"<{len(hashes)}I", *hashes) + dye_screen_data(screen)

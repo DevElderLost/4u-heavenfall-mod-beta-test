@@ -1,0 +1,96 @@
+{
+  "_doc": "The Smithy's weapon tree. Rectangles are top screen pixels [x, y, w, h]; a node's pieces are offsets from its icon's top left corner. Colours are [r, g, b] or [r, g, b, a].",
+  "reveal": "discovered",
+  "priority": {"ui401_wt_frame": 40, "ui401_wt_rows": 41, "ui401_wt_nodes": 42, "ui401_wt_cursor": 43, "ui401_wt_keys": 44, "ui401_wt_choice": 45},
+  "placing": {"pack": 1},
+  "window": {"origin": [202, 41], "pitch": [27, 25], "columns": 7, "rows": 7},
+  "panes": {
+    "wt_waku0": [190, 18, 3, 176], "wt_waku1": [190, 194, 3, 42], "wt_waku2": [393, 18, 3, 176], "wt_waku3": [393, 194, 3, 42],
+    "wt_naka": [193, 18, 200, 218],
+    "wt_head0": [194, 20, 55, 16], "wt_head1": [248, 20, 144, 16],
+    "wt_m_name": [198, 22, 134, 12], "wt_m_count": [354, 23, 36, 10],
+    "wt_band_0": [194, null, 95, 24], "wt_band_1": [289, null, 14, 24], "wt_band_2": [303, null, 89, 24],
+    "wt_keybar": [194, 219, 198, 14], "wt_m_hint": [198, 222, 190, 10],
+    "wt_arrow_l": [186, 122, 8, 12], "wt_arrow_r": [392, 122, 8, 12], "wt_arrow_u": [333, 24, 10, 8], "wt_arrow_d": [344, 24, 10, 8],
+    "wt_ch_back": [218, 92, 150, 64],
+    "wt_ch_e0": [218, 92, 150, 1], "wt_ch_e1": [218, 155, 150, 1], "wt_ch_e2": [218, 92, 1, 64], "wt_ch_e3": [367, 92, 1, 64],
+    "wt_ch_head0": [220, 94, 42, 16], "wt_ch_head1": [261, 94, 105, 16],
+    "wt_m_ch_title": [224, 96, 138, 12],
+    "wt_ch_row_0": [220, null, 70, 19], "wt_ch_row_1": [290, null, 10, 19], "wt_ch_row_2": [300, null, 66, 19]
+  },
+  "band": {"first_y": 39, "pitch": 25},
+  "choice": {
+    "first_y": 113, "pitch": 21, "word": [226, 4, 134, 12],
+    "fill": [0, 0, 0, 245], "edge": [150, 110, 70], "bar": [50, 15, 0, 230], "cursor": [118, 89, 0, 110]
+  },
+  "fonts": {"name": 10, "count": 9, "hint": 9, "choice": 10},
+  "rooms": {"name": 32, "count": 8, "hint": 44, "choice_title": 32, "choice_word": 24},
+  "node": {
+    "icon": [0, 0, 20, 20],
+    "plate": [0, 0, 20, 20],
+    "forge": [13, 13, 7, 7],
+    "marks": {
+      "forge": {"cell": 77, "erase": [[8, 3], [6, 4], [10, 4], [7, 5], [8, 5], [9, 5], [7, 6], [8, 6], [9, 6]], "fill_from": [11, 7], "size": [7, 7]},
+      "box": {"cell": 23, "size": [8, 7]},
+      "fire": {"texels": [111, 36, 16, 16], "size": [8, 8], "fit": true},
+      "water": {"texels": [0, 54, 16, 16], "erase": [[15, 5], [15, 6], [15, 7]], "fill_from": [0, 0], "size": [8, 8], "fit": true},
+      "ice": {"texels": [27, 54, 16, 16], "size": [8, 8], "fit": true},
+      "thunder": {"texels": [55, 54, 16, 16], "size": [8, 8], "fit": true},
+      "dragon": {"texels": [69, 90, 16, 16], "size": [8, 8], "fit": true},
+      "poison": {"texels": [97, 18, 16, 16], "size": [8, 8], "fit": true},
+      "paralysis": {"texels": [111, 18, 16, 16], "size": [8, 8], "fit": true},
+      "sleep": {"texels": [13, 38, 16, 16], "size": [8, 8], "fit": true},
+      "blast": {"texels": [97, 108, 16, 16], "size": [8, 8], "fit": true}
+    },
+    "worn": [0, 13, 6, 7],
+    "box": [0, 13, 8, 7],
+    "element": [13, -1, 8, 8],
+    "worn_texels": [9, 153, 6, 7],
+    "new": [-5, -3, 16, 8],
+    "link": {"length": 7, "thickness": 2, "y": 9},
+    "trunk": {"x": -7, "thickness": 2, "top": -2, "bottom": 23}
+  },
+  "cursor": {
+    "style": "bracket",
+    "bracket": [[-3, -3], [10, -3], 13, 26],
+    "frame": {"pad": 2, "thickness": 1}
+  },
+  "colours": {
+    "band": [50, 15, 0, 230],
+    "band_alt": [36, 11, 0, 230],
+    "fill": [0, 0, 0],
+    "plate": [0, 0, 0, 255],
+    "plate_lit": [150, 110, 70, 255],
+    "plate_owned": [152, 141, 30, 255],
+    "link": [100, 70, 48],
+    "link_lit": [235, 205, 165],
+    "worn": [111, 199, 115],
+    "box": [235, 205, 120],
+    "element": [255, 255, 255],
+    "element_hidden": [100, 100, 100],
+    "cursor": [255, 255, 255],
+    "key_bar": [0, 0, 0],
+    "hint": [230, 230, 230],
+    "count": [230, 230, 230],
+    "arrow": [240, 240, 240],
+    "unpayable": [66, 63, 60],
+    "forge": [255, 214, 120],
+    "choice_on": [240, 240, 240],
+    "choice_off": [120, 120, 120]
+  },
+  "unpayable_mix": 78,
+  "hold": [[60, 2], [150, 5]],
+  "caps": {
+    "eng": ["craft", "upgrade"],
+    "fre": ["créer", "amélioration", "améliorer"],
+    "ger": ["herzustellende", "herstellen", "Verbesserung", "verbessern"],
+    "ita": ["forgiare", "creare", "miglioria", "migliorare"],
+    "spa": ["crear", "mejora", "modificación"]
+  },
+  "texts": {
+    "hint_tree": {"eng": "A Forge  X View  B Back", "fre": "A Forger  X Voir  B Retour", "ger": "A Schmieden  X Ansicht  B Zurück", "ita": "A Forgia  X Vedi  B Indietro", "spa": "A Crear  X Ver  B Atrás"},
+    "choice_title": {"eng": "Upgrade or craft?", "fre": "Améliorer ou créer ?", "ger": "Verbessern oder herstellen?", "ita": "Migliorare o forgiare?", "spa": "¿Mejorar o crear?"},
+    "choice_upgrade": {"eng": "Upgrade", "fre": "Améliorer", "ger": "Verbessern", "ita": "Migliorare", "spa": "Mejorar"},
+    "choice_forge": {"eng": "Craft from scratch", "fre": "Créer de zéro", "ger": "Neu herstellen", "ita": "Forgiare da zero", "spa": "Crear desde cero"}
+  }
+}

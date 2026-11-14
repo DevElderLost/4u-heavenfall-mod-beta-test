@@ -76,9 +76,28 @@
 - In the game: START, third page, Mod Settings, Interface, Hunting Horn Songs. Show Horn Songs turns the list off (on by
   default); Highlight colours the song's name (Text, the default) or its band (Background).
 
+**Weapon tree**
+
+- At the Smithy, Forge Weapons shows the weapon class you choose as a tree: every weapon you have discovered, joined
+  to the ones it upgrades into. The game's stats and materials stay at the left.
+- A weapon is discovered when the game's lists would show it, when it is an upgrade whose first material you have
+  obtained, or when it lies between two discovered weapons, so a line is never cut in two.
+- A on a weapon upgrades a copy from your box into it (the one you wear first) or forges it from scratch. When a
+  weapon has both ways, a small window asks "Upgrade" or "Craft from scratch", and the materials at the left are
+  always those of the choice under the cursor. The help line and the price question name the way in capitals.
+- A small hammer marks the weapons that can be forged from scratch. A greyed icon cannot be paid for yet, a gold
+  plate is a weapon you own, E is the one you wear and a box one you keep in the box without wearing it.
+- Each weapon shows its element or status icon at its upper right, the one the stats panel shows; grey when it needs
+  Awaken.
+- Choosing a weapon in Upgrade Equipment opens its tree with that weapon as the one upgraded. Bowguns and Insect
+  Glaives keep the game's own screens there.
+- X switches between stats, try on and comparison; L and R turn the stats' page, as in the game's forge; B goes back.
+- It is on by default. In the game: START, third page, Mod Settings, Interface, Smithy View: Tree, or List for the
+  game's own lists.
+
 **Layered Gear and the Wyporium**
 
-- The Smithy has a new line, Layered Gear: each look of an armor, weapon or Felyne set is bought once with materials and money, and worn over what you wear without changing it. Armor looks show their own colors; on the armor screen, SELECT opens a free color window: choose the whole set or one piece, then a color. Relics (Guild Quest gear) have their own Relics line, below Felyne, priced like their monster's gear; looks you don't own show darker icons.
+- The Smithy has a new line, Layered Gear: each look of an armor, weapon or Felyne set is bought once with materials and money, and worn over what you wear without changing it. Armor looks show their own colors; on the armor screen, SELECT opens a free color window: choose the whole set or one piece, then a color. Relics (Guild Quest gear) have their own Relics line, below Felyne, priced like their monster's gear; looks you don't own show darker icons. A switch above the rank row (ZL, or up from the rank row, then A) lists only the looks you own.
 - The Wyporium has a new line, Rare Materials Exchange: hand over common items of the monsters that drop a rare material until you have given enough, and it goes to your Item Box.
 - With Monster Hunter XX's game (optional), Layered Gear also offers the looks of its weapons and armor, and the Wyporium trades the new rare materials those looks cost.
 - In multiplayer, the other players with this mod see your Layered Gear and your Felyne's, and you see theirs. A player who lacks one of your looks (without Monster Hunter XX's game, say) or plays without the mod sees your real gear; everyone can still play together.

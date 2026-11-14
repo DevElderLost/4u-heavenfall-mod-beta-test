@@ -59,6 +59,7 @@ OPTION_IDS = {
     "modern_camera_speed": 22, "modern_camera_acceleration": 23,
     "horn_songs_colour": 24,
     "camera_distance": 25,
+    "smithy_view": 26,
 }
 MAX_OPTIONS = 28                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 28)
 MAX_VALUES = 16                 # a list of values: two pages
@@ -243,6 +244,9 @@ def supports_option(code: bytes, key: str) -> bool:
     from core.interface.damage_numbers.damage_numbers import OPTIONS, supports_damage_numbers
     if key in OPTIONS:
         return supports_damage_numbers(code)
+    if key == "smithy_view":
+        from core.interface.weapon_tree.weapon_tree import supports_weapon_tree
+        return supports_weapon_tree(code)
     if key in ("horn_songs", "horn_songs_colour"):
         from core.interface.horn_songs.horn_songs import supports_horn_songs
         return supports_horn_songs(code)

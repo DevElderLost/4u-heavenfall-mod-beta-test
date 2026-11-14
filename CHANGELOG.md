@@ -5,6 +5,12 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ## Unreleased
 
 ### QoL
+- Forge Weapons shows each weapon class as a tree of its upgrade lines, with only discovered weapons.
+- On the tree, A forges or upgrades right there; a hammer marks weapons forged from scratch.
+- Each weapon on the tree shows its element or status, and a box when a copy is stored.
+- A weapon you can upgrade into or craft asks which, showing the materials of the choice under the cursor.
+- Upgrades take the weapon you wear first; choosing a weapon in Upgrade Equipment opens its tree to upgrade that one.
+- On the tree, X switches between stats, try on and comparison; Mod Settings can switch back to the list.
 - The camera can sit from half to twice the game's distance from your hunter.
 
 ### The program
@@ -19,6 +25,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Layered Gear at the Smithy: wear the look of any armor, weapon or Felyne gear over your own.
 - A Relics list for the Guild Quests' relic gear.
 - A free color window for armor looks.
+- A switch above the Layered Gear rank row shows only the looks you own.
 - With Monster Hunter XX's game, its weapon and armor looks too, also from the web installer.
 - In multiplayer, players with the mod see each other's Layered Gear.
 

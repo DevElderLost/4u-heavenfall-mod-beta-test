@@ -144,7 +144,9 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
     The arguments are the tests': `targets` (default the emulators found), `preferences` (default the program's saved
     ones), `search` (default install/find_games.find), `build_dir` (default the program's build folder)."""
     from core.install.build import InputsError, build, discard_mod_files
+    from core.game.executable.romfs import RomFS
     from core.install.deploy import ForeignContent, State, UnsafeTarget, inspect_target, install, read_marker
+    from core.install.hd_textures import adapt_pack
     if preferences is None:
         from core.gui.preferences import Preferences
         preferences = Preferences.load()
@@ -188,6 +190,7 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
                 code = result.checksum.code if result.checksum else ""
                 install(result.output_dir, folder, "install", seed=result.seed, checksum=code,
                         settings=settings.to_dict(), title=result.mod_title)
+                adapt_pack(folder, Path(result.output_dir) / "romfs", lambda game=rom: RomFS(game))  # as Install
                 discard_mod_files(result.output_dir)
             except (InputsError, UnsafeTarget, ForeignContent, OSError, ValueError, RuntimeError) as error:
                 # ValueError: a game the mod cannot be built for (UnsupportedVersion, RebaseError)

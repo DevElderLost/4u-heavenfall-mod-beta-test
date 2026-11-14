@@ -75,6 +75,8 @@
    "spa": "A aceptar  B volver  L/R pieza"
   },
   "select_key": {"eng": "SELECT", "fre": "SELECT", "ger": "SELECT", "ita": "SELECT", "spa": "SELECT"},
+  "owned_only": {"eng": "Owned", "fre": "Acquis", "ger": "Eigene", "ita": "Miei", "spa": "Míos"},
+  "zl_key": {"eng": "ZL", "fre": "ZL", "ger": "ZL", "ita": "ZL", "spa": "ZL"},
   "relics": {"eng": "Relics", "fre": "Reliques", "ger": "Relikte", "ita": "Reliquie", "spa": "Reliquias"},
   "help_relics": {
    "eng": "Buy the look of relic\nweapons and armor.",
@@ -145,6 +147,14 @@
    "camera": {"fg_start_bar": [194, 220, 98, 14], "fg_start": [198, 222, 27, 10], "fg_m_start": [229, 222, 62, 10]}
   },
   "fonts": {"filter": 10, "name": 10, "hint": 9},
+  "owned": {
+   "plate": {"fg_own_a": [194, 1, 22, 16], "fg_own_b": [216, 1, 76, 16]},
+   "cursor": {"fg_cur_o0": [194, 1, 49, 16], "fg_cur_o1": [243, 1, 49, 16]},
+   "selected": [234, 3, 40, 13],
+   "key": [196, 2, 18, 14], "key_cell": [33, 52, 15, 17],
+   "key_text": [196, 3, 18, 11], "key_font": 9, "key_word": [20, 20, 20],
+   "word": [216, 3, 76, 12]
+  },
   "rows": {
    "armor": {"count": 5, "pitch": 32, "first_y": 56, "name": [198, 2, 190, 12], "buttons": {"count": 6, "x": 198, "pitch": 31, "dy": 14}},
    "felyne": {"count": 5, "pitch": 32, "first_y": 56, "name": [198, 2, 190, 12], "buttons": {"count": 4, "x": 198, "pitch": 31, "dy": 14}},
