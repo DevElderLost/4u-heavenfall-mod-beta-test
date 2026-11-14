@@ -107,7 +107,7 @@ int hf_installed_parse(const char *json, size_t len, HfInstalled *out) {
     out->tmd = (unsigned)tmd;
     if (g >= 0) memcpy(out->game, game, sizeof out->game);
     if (xd >= 0) memcpy(out->xx_dump, xx_dump, sizeof out->xx_dump);
-    if (sr >= 0) snprintf(out->save_restore, sizeof out->save_restore, "%s", restore);
+    if (sr >= 0) snprintf(out->save_restore, sizeof out->save_restore, "%.*s", (int)sizeof out->save_restore - 1, restore);
     out->layout = ly >= 0 ? (int)layout : 1;     /* no field: the old single title, no game data */
     return 0;
 }

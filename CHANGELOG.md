@@ -4,6 +4,9 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ## Unreleased
 
+### QoL
+- The camera can sit from half to twice the game's distance from your hunter.
+
 ### The program
 - The web installer reads your game files far less, so phones make the mod much faster.
 - While the web installer makes the mod, the screen stays on even after you leave and come back.

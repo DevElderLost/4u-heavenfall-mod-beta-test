@@ -18,6 +18,7 @@ from enum import Enum
 from pathlib import Path
 
 from core.cheats.aspect_table import OFF as ASPECT_OFF, interface_size, load_ratios
+from core.game.data.paths import CURATED_DIR
 
 
 class StructureMode(str, Enum):
@@ -355,9 +356,19 @@ EQUIPMENT_SWITCHES = ("randomize_recipes", "randomize_weapon_stats", "randomize_
 CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(':', '_')}": ratio.name
                                                          for ratio in load_ratios()}}, type=str)
 
+# How far the camera stays from the hunter, in percent of the game's distances: the values of the START menu's list
+# (curated/mod_settings.json, option camera_distance), the game's own first. A str enum, as the cheats' are
+def _camera_distances() -> list[str]:
+    options = json.loads((CURATED_DIR / "mod_settings.json").read_text(encoding="utf-8"))["options"]["value"]
+    return [value["setting"] for value in next(o for o in options if o["key"] == "camera_distance")["values"]]
+
+
+CameraDistance = Enum("CameraDistance", {f"P{distance}": distance for distance in _camera_distances()}, type=str)
+CAMERA_DISTANCE_GAME = next(iter(CameraDistance))
+
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
-                   "box_equipment", "system_keyboard", "damage_numbers",
+                   "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "mhw_fatalis_music",
                    "alatreon_music",
                    "cheat_3d_mode",
@@ -510,6 +521,9 @@ class Settings:
     # The camera's top turning speed with the buttons: the cap of how long a turn has been held, 10 the game's own
     # (core/interface/mod_settings/mod_options.py CAMERA_CAP; its values in curated/mod_settings.json)
     camera_speed: int = 10
+    # How far the camera stays from the hunter, in percent of the game's distances: 100 the game's own
+    # (core/interface/mod_settings/mod_options.py CAMERA_DISTANCE; its values in curated/mod_settings.json)
+    camera_distance: CameraDistance = CAMERA_DISTANCE_GAME
     # Manage Equipment and Equipment Sets at every item box, not only at home (the Hall's box's lines:
     # curated/mod_settings.json; core/interface/mod_settings/mod_options.py BOX_LINES)
     box_equipment: bool = False

@@ -20,6 +20,7 @@
     "sides": {
       "ui036_yazi02": "right",
       "ui401_koumoku00": "right",
+      "ui407_new": "right",
       "ui408_sitaji": "right",
       "ui430_l_xmap": "right",
       "ui430_l_minimap": "right",
@@ -29,9 +30,7 @@
     "child_sides": {
       "ui013_assign_bace_L*": "left",
       "ui013_assign_bace_R*": "right",
-      "ui013_dora_bace": "right",
-      "ui401_preview_box": "left",
-      "ui401_m_hint": "left"
+      "ui013_dora_bace": "right"
     },
     "follow_nulls": ["ui026_yazi*"],
     "corners": {

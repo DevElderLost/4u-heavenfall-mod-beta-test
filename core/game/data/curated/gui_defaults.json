@@ -4,6 +4,7 @@
   "hold_a": true,
   "fast_text": true,
   "camera_speed": 10,
+  "camera_distance": "100",
   "box_equipment": true,
   "damage_numbers": false,
   "single_screen": true,

@@ -16,9 +16,9 @@ from enum import Enum
 from core.app import presets
 from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
-    AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatAspect, CheatFps, DuplicateMode, FrenzyChance, Frequency,
-    GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode,
-    RewardSource, StatMode, StructureMode, SubQuestMode, TextMode, ValstraxMode,
+    CAMERA_DISTANCE_GAME, AlatreonMode, AlatreonMusic, ArmorSkillMode, CameraDistance, Cheat3D, CheatAspect, CheatFps,
+    DuplicateMode, FrenzyChance, Frequency, GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode,
+    PalicoModelMode, ProgressionMode, RewardSource, StatMode, StructureMode, SubQuestMode, TextMode, ValstraxMode,
 )
 from core.gui.i18n import EMPTY, T
 
@@ -756,6 +756,17 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "The top speed the camera turns at while you hold a button to turn it. The game uses 10: 20 "
                      "doubles it and 50 makes it five times as fast; it takes a little longer to get there."),
                    minimum=_CAMERA_MIN, maximum=_CAMERA_MAX, step=_CAMERA_STEP),
+            Option("camera_distance", T("Distancia de la cámara", "Camera distance"),
+                   T("Lo lejos que va la cámara del cazador. 1x es la del juego: con 0,5x va a la mitad de distancia "
+                     "y con 2x al doble. Contra una pared se sigue acercando sola, como en el juego.",
+                     "How far the camera stays from your hunter. 1x is the game's: 0.5x is half as far and 2x twice "
+                     "as far. Against a wall it still moves in by itself, as in the game."),
+                   choices=(
+                       Choice(CAMERA_DISTANCE_GAME, T("La del juego (1x)", "Game default (1x)")),
+                       *(Choice(distance, T(f"{int(distance.value) / 100:g}x".replace(".", ","),
+                                            f"{int(distance.value) / 100:g}x"))
+                         for distance in CameraDistance if distance is not CAMERA_DISTANCE_GAME),
+                   ), compact=True),
         ), _ALSO_IN_GAME),
         Group(T("Caja de objetos", "Item box"), (
             Option("box_equipment", T("Gestionar el equipo en cualquier caja", "Manage equipment at any item box"),

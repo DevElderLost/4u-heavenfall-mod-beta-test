@@ -29,7 +29,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 ## What the mod adds
 
 - **Single Screen Mode** (emulators): every menu of the bottom screen on the top screen.
-- **Lock-on with L**, **Kick on Select**, **holding A** to keep gathering, **faster text** and a **faster camera**.
+- **Lock-on with L**, **Kick on Select**, **holding A** to keep gathering, **faster text**, a **faster camera** and a **closer or farther camera**.
 - **Damage numbers** over monsters, in three styles (off unless you switch them on).
 - **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, and a
   **Hunting Horn's songs** under the minimap.

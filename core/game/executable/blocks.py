@@ -228,7 +228,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
     BlockSpec("virtual_map", "monster_routes", "monsters/routes/virtual_map.s", region="ext"),
     BlockSpec("virtual_maps", "monster_routes", size=4 * 320 + 4, region="ext"),
-    BlockSpec("virtual_map_tables", "monster_routes", size=32 * 128, region="ext"),
+    BlockSpec("virtual_map_tables", "monster_routes", size=32 * 160, region="ext"),
     # The Smithy's layered gear screens (layered_selector.c, layered_forge.c) and its catalogs (equipment/layered/
     # layered_equipment.py, layered_data()), with the Felynes' looks (felyne_looks.c, felyne_looks_data:
     # felyne_looks.py).
@@ -568,7 +568,7 @@ VARIABLES = (
     VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
-    VariableSpec("mod_options_state", MOD_SETTINGS, 68, region="ext_vars"),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 80, region="ext_vars"),
     VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
@@ -1547,6 +1547,9 @@ GAME_SYMBOLS |= {
     "raw_a_return": 0x26E394,           # FUN_0026e33c after its load of the weapon classes' table
     "raw_b_return": 0x27336C,           # FUN_0027335c after its load of the table
     "camera_cap_return": 0xBFD170,      # FUN_00bfd028 after its load of the turn's cap (10.0)
+    "camera_rest_return": 0xBFFF7C,     # FUN_00bfff70 after its load of the camera's resting distance (490.0)
+    "camera_event_return": 0xC056E0,    # FUN_00c056d4 after its load of an event's zoom-out distance (630.0)
+    "camera_state_return": 0xC00AA8,    # FUN_00c009ac after its load of the distance of a state of the hunter (300.0)
     "box_lines_return": 0x9EC8A8,       # FUN_009ec82c after its store of the box menu's count of lines
     "keyboard_poll_body": 0x2B58EC,     # FUN_002b58e8 (the poll of the game's keyboard) after its first instruction
 }

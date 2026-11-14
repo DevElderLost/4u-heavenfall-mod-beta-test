@@ -23,6 +23,12 @@
 @   and caps it with `vldr s0, [pc, ...]` (10.0); the turn's speed grows with that time, so the cap is its top speed. The
 @   load takes the mod's value instead (the game's own literal until mod_frame has run), and the flags are kept.
 @
+@ mod_camera_rest, mod_camera_event, mod_camera_state: the camera's distance from the hunter (camera + 0xEB8).
+@   FUN_00bfff70 loads its resting distance with `vldr s2, [pc, ...]` (490.0), FUN_00c056d4 an event's zoom-out with
+@   `vldr s1, [pc, ...]` (630.0) and FUN_00c009ac the distance of a state of the hunter with `vldr s0, [pc, ...]` (300.0).
+@   Each load takes the mod's value instead (the game's own literal while it is 0: before mod_frame has run, at the
+@   game's 1x, or in a mod without the row), and the flags are kept.
+@
 @ mod_box_kind: FUN_009ec82c(scene, box) stores `box` (r6: 0 the house's box, 1 the Gathering Hall's) in its menu with
 @   `strb r6, [r4, #0x2]`, then reads r6 and that byte again: box 0 gets seven lines and the house's set-ups, and only
 @   for box 0 does the menu draw the lines past four and the submenus they open. The game's box is kept in
@@ -63,6 +69,7 @@
     .global _start
     .global mod_frame_stub, mod_bloom, mod_fov_reset, mod_fov_other, mod_net_waits, mod_net_polls_a, mod_net_polls_b
     .global mod_raw_a, mod_raw_b, mod_camera_cap, mod_box_kind, mod_box_lines
+    .global mod_camera_rest, mod_camera_event, mod_camera_state
     .global gate_hold_a_field, gate_hold_a_rewards, gate_hold_a_claim, gate_fast_text, gate_fast_motion
     .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera, gate_intro_skip
     .global gate_intro_music, gate_intro_end
@@ -79,6 +86,9 @@
     .equ CAMERA_CAP, 56
     .equ BOX_LINES, 64
     .equ BOX_AWAY, 65
+    .equ CAMERA_REST, 68
+    .equ CAMERA_EVENT, 72
+    .equ CAMERA_STATE, 76
     @ the options' places in mod_options_state.values (mod_options.py OPTION_IDS)
     .equ OPT_BLOOM, 1
     .equ OPT_LOCK, 6
@@ -93,6 +103,9 @@
     .equ GAME_FOV_ONE, 0x42480000       @ 50.0, the game's literal of the reset case "not equal" and of FUN_00c06a14
     .equ GAME_FOV_OTHER, 0x42680000     @ 58.0, the reset case "equal"
     .equ GAME_CAMERA_CAP, 0x41200000    @ 10.0, FUN_00bfd028's cap
+    .equ GAME_CAMERA_REST, 0x43F50000   @ 490.0, FUN_00bfff70's resting distance
+    .equ GAME_CAMERA_EVENT, 0x441D8000  @ 630.0, FUN_00c056d4's zoom-out
+    .equ GAME_CAMERA_STATE, 0x43960000  @ 300.0, FUN_00c009ac's distance in a state of the hunter
 
 _start:
 mod_frame_stub:
@@ -177,6 +190,42 @@ mod_camera_cap:
     msr     cpsr_f, r11
     pop     {r11, r12}
     b       camera_cap_return
+
+mod_camera_rest:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_REST]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_REST
+    vmov    s2, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_rest_return
+
+mod_camera_event:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_EVENT]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_EVENT
+    vmov    s1, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_event_return
+
+mod_camera_state:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_STATE]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_STATE
+    vmov    s0, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_state_return
 
 mod_box_kind:
     push    {r12}

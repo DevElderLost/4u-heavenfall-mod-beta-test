@@ -258,7 +258,7 @@
   ["0xebfd90", "0xec0000", -48],
   ["0xec0000", "0x104df38", 0],
   ["0x104df40", "0x10ed000", -8],
-  ["0x10ed000", "0x130d000", 0]
+  ["0x10ed000", "0x130e000", 0]
 ],
 "holes": [
   ["0x100054", "0x100080"],
@@ -443,9 +443,12 @@
   "GAME_SYMBOLS.camera_control": "run",
   "GAME_SYMBOLS.camera_control_set": "run",
   "GAME_SYMBOLS.camera_controls": "run",
+  "GAME_SYMBOLS.camera_event_return": "run",
   "GAME_SYMBOLS.camera_play": "run",
+  "GAME_SYMBOLS.camera_rest_return": "run",
   "GAME_SYMBOLS.camera_skip": "run",
   "GAME_SYMBOLS.camera_skip_offered": "run",
+  "GAME_SYMBOLS.camera_state_return": "run",
   "GAME_SYMBOLS.camera_turn_by_input": "run",
   "GAME_SYMBOLS.camera_zoom": "run",
   "GAME_SYMBOLS.change_area": "run",
@@ -1938,6 +1941,9 @@
   "interface.mod_settings.mod_options.BOX_KIND[0]": "run",
   "interface.mod_settings.mod_options.BOX_LINES[0]": "run",
   "interface.mod_settings.mod_options.CAMERA_CAP[0]": "run",
+  "interface.mod_settings.mod_options.CAMERA_DISTANCE[0][0]": "run",
+  "interface.mod_settings.mod_options.CAMERA_DISTANCE[1][0]": "run",
+  "interface.mod_settings.mod_options.CAMERA_DISTANCE[2][0]": "run",
   "interface.mod_settings.mod_options.CLASS_TABLE": "run",
   "interface.mod_settings.mod_options.FOV_OTHER[0]": "run",
   "interface.mod_settings.mod_options.FOV_RESET[0][0]": "run",

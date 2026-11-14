@@ -58,6 +58,7 @@ OPTION_IDS = {
     "skip_monster_intro": 21,
     "modern_camera_speed": 22, "modern_camera_acceleration": 23,
     "horn_songs_colour": 24,
+    "camera_distance": 25,
 }
 MAX_OPTIONS = 28                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 28)
 MAX_VALUES = 16                 # a list of values: two pages
@@ -78,6 +79,12 @@ NET_WAITS = (0x533F40, 0xE3520078)                      # FUN_00533e6c: cmp r2, 
 NET_POLLS = ((0x534B54, 0xE3A0000A), (0x5356DC, 0xE3A0000A))   # FUN_005348a8, FUN_00535480: mov r0, #10
 RAW_SITES = ((0x26E390, 0xE59F0020), (0x273368, 0xE59F201C))   # FUN_0026e33c, FUN_0027335c: ldr r0/r2, [pc, ..]
 CAMERA_CAP = (0xBFD16C, 0xED9F0A72)                     # FUN_00bfd028: vldr s0, [pc, #0x1c8] (10.0, at 0xBFD33C)
+# The camera's distance from the hunter (camera + 0xEB8): its three loads of a literal, each replaced by a jump to its
+# stub in CAMERA_DISTANCE_STUBS
+CAMERA_DISTANCE = ((0xBFFF78, 0xED9F1A2A),      # FUN_00bfff70: vldr s2, [pc, #0xa8] (490.0, the resting distance)
+                   (0xC056DC, 0xEDDF0A09),      # FUN_00c056d4: vldr s1, [pc, #0x24] (630.0, an event's zoom-out)
+                   (0xC00AA4, 0xED9F0AAB))      # FUN_00c009ac: vldr s0, [pc, #0x2ac] (300.0, a state of the hunter)
+CAMERA_DISTANCE_STUBS = ("mod_camera_rest", "mod_camera_event", "mod_camera_state")
 BOX_KIND = (0x9EC870, 0xE5C46002)                       # FUN_009ec82c: strb r6, [r4, #0x2] (the box's kind)
 BOX_LINES = (0x9EC8A4, 0xE5C4100A)                      # FUN_009ec82c: strb r1, [r4, #0xa] (the menu's lines)
 CLASS_TABLE = 0xED24A0
@@ -225,6 +232,8 @@ def supports_option(code: bytes, key: str) -> bool:
             _words(code, CLASS_TABLE + 4 * place) == word for place, word in enumerate(CLASS_WORDS))
     if key == "camera_speed":
         return _static_ok(code, (CAMERA_CAP,))
+    if key == "camera_distance":
+        return _static_ok(code, CAMERA_DISTANCE)
     if key == "box_equipment":
         return _static_ok(code, (BOX_KIND, BOX_LINES))
     from core.interface.system_keyboard.system_keyboard import supports_system_keyboard
@@ -294,6 +303,9 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
             layout.hook(out, site, at(label), original=word(original), link=False)
     if "camera_speed" in available:
         layout.hook(out, CAMERA_CAP[0], at("mod_camera_cap"), original=word(CAMERA_CAP[1]), link=False)
+    if "camera_distance" in available:
+        for (site, original), label in zip(CAMERA_DISTANCE, CAMERA_DISTANCE_STUBS):
+            layout.hook(out, site, at(label), original=word(original), link=False)
     if "box_equipment" in available:
         layout.hook(out, BOX_KIND[0], at("mod_box_kind"), original=word(BOX_KIND[1]))
         layout.hook(out, BOX_LINES[0], at("mod_box_lines"), original=word(BOX_LINES[1]), link=False)
