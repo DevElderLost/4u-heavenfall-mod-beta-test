@@ -2133,7 +2133,8 @@ static void owned_toggle(u32 obj)
     list_changed(obj, SOUND_PAGE);
 }
 
-static void list_keys(u32 obj)
+/* Not inlined: forge_update would outgrow Thumb's b. */
+static __attribute__((noinline)) void list_keys(u32 obj)
 {
     struct ui *u = U;
     u32 dirs = facility_dirs(obj), rows = held_rows();

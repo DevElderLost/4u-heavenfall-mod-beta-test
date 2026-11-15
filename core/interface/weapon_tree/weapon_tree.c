@@ -1305,8 +1305,8 @@ static void view_back(u32 obj, u8 *st)
 }
 
 /* Every frame of the window: Up / Down change the way, and the panels with it; A asks its price (buy_ask: the forge's
-   refusal when it cannot be paid, and the window stays); B goes back to the tree. */
-static void choice_keys(u32 obj, u8 *st)
+   refusal when it cannot be paid, and the window stays); B goes back to the tree. Not inlined, as keys. */
+static __attribute__((noinline)) void choice_keys(u32 obj, u8 *st)
 {
     if (facility_pressed(obj, BUTTON_B)) {
         kit_group_show(group_of(G_CHOICE), 0, WD->priority[G_CHOICE]);
@@ -1446,7 +1446,7 @@ static void list_again(u32 obj, u8 *st)
     show_stats(obj, st);
 }
 
-static void prompt(u32 obj, u8 *st)
+static __attribute__((noinline)) void prompt(u32 obj, u8 *st)      /* not inlined, as keys */
 {
     u32 length = kit_number_text(S->price_text, row_price(st));
     text_slot(TEXT_SLOT, S->price_text, length);
@@ -1716,8 +1716,9 @@ static void stats_page(u32 obj, const u8 *st)
 }
 
 /* The keys of the tree, the same in every view: the D-pad moves the cursor in try on too (the forge's list moves with
-   it there; the camera turns with the stick and zooms with L / R held, FUN_009fc74c). */
-static void keys(u32 obj, u8 *st)
+   it there; the camera turns with the stick and zooms with L / R held, FUN_009fc74c). Not inlined: update would outgrow
+   Thumb's b. */
+static __attribute__((noinline)) void keys(u32 obj, u8 *st)
 {
     u32 dirs = facility_dirs(obj), rows = held_rows(), id;
     st[ST_X] = 0;
