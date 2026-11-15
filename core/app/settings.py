@@ -377,8 +377,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
                    "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
-                   "mhw_fatalis_music",
-                   "alatreon_music",
+                   "mhw_fatalis_music", "alatreon_music", "radial_menu",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
@@ -512,6 +511,9 @@ class Settings:
     # Lock on without the touch screen: L + D-pad up locks / switches the large-monster target (with a hint in the
     # item selector) and the target camera panel's monster face is also shown on the top screen
     touchless_target: bool = False
+    # The item wheel in a quest: hold L, push the C-stick, the item of that direction is used (needs a C-stick: a New
+    # 3DS or the emulator; core/interface/radial_menu/radial_menu.py). Not emulator-only
+    radial_menu: bool = False
     # Play seeing the top screen only: the touch screen's menus the player needs (the quest list, the Canteen's
     # ingredients, the yes / no boxes...) are shown on the top screen
     # (interface/single_screen/executable/single_screen.py, interface/single_screen/layout/single_screen.py)

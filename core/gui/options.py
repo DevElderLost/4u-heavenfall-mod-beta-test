@@ -679,6 +679,22 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
              f"encontrado (como el panel). {_ALSO_IN_GAME_ES}",
              "Meant for playing with the top screen only (e.g. on a monitor). The Target Cam panel must be on the "
              f"touch screen, and the monster must have been found first, as with the panel. {_ALSO_IN_GAME_EN}")),
+        Group(T("Rueda de objetos", "Item wheel"), (
+            Option("radial_menu", T("Rueda de objetos con el C-stick", "Item wheel with the C-stick"),
+                   T("En una misión, mantén pulsado L (modo objetos) y empuja el C-stick hacia una de las ocho "
+                     "direcciones: se usa al instante el objeto de esa dirección. Mientras L está pulsado, el "
+                     "C-stick no mueve la cámara. Los objetos de cada dirección y la posición de la rueda se "
+                     "eligen en el juego: menú START, tercera página, Ajustes del mod, Menú radial. Necesita un "
+                     "C-stick (una New 3DS o el emulador): una 3DS antigua no lo tiene y no puede usarla.",
+                     "In a quest, hold L (item mode) and push the C-stick towards one of its eight directions: the "
+                     "item of that direction is used at once. While L is held, the C-stick no longer moves the "
+                     "camera. Each direction's item and the wheel's position are chosen in the game: START menu, "
+                     "third page, Mod Settings, Radial Menu. It needs a C-stick (a New 3DS or the emulator): an old "
+                     "3DS has none and cannot use it.")),
+        ), T("Necesita un C-stick: una New 3DS o el emulador. Una 3DS antigua no puede usarla. Desactivada, el "
+             "juego no se toca.",
+             "It needs a C-stick: a New 3DS or the emulator. An old 3DS cannot use it. Switched off, the game is "
+             "left untouched.")),
         Group(T("Pantalla única", "Single screen"), (
             Option("single_screen", T("Modo pantalla única",
                                       "Single Screen mode: touch screen menus on the top screen"),

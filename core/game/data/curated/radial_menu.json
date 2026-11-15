@@ -1,0 +1,201 @@
+{
+  "description": "The item wheel in a quest (interface/radial_menu/radial_menu.py, interface/radial_menu/radial_wheel.c). Each entry is {\"value\": ..., \"description\": ...}; edit the value, keep the description up to date. Loaded and checked by interface/radial_menu/radial_menu.py, which writes the values into the block radial_data.",
+  "fire_magnitude": {
+    "value": 50,
+    "description": "The C-stick's magnitude (0 to 127, 0 below the game's dead zone of 30) from which a direction counts as chosen; 50 is the game's own gate for the stick's actions."
+  },
+  "rearm_magnitude": {
+    "value": 30,
+    "description": "The magnitude the stick must be under, after the wheel opens and after each use, before the next direction can fire. A stick already tilted when the wheel opens does nothing until it comes back."
+  },
+  "dwell_frames": {
+    "value": 2,
+    "description": "Consecutive frames the stick must stay in one direction at fire_magnitude or more before the item is used; 1 uses it on the first frame."
+  },
+  "sector_to_slot": {
+    "value": [2, 1, 0, 7, 6, 5, 4, 3],
+    "description": "The slot (0 to 7) each of the stick's 8 sectors uses. The sector is ((angle + 0x1000) >> 13) & 7 of the game's stick angle, counted counter-clockwise from the right (0 right, 1 up-right, 2 up, 3 up-left, 4 left, 5 down-left, 6 down, 7 down-right); the slots go clockwise from the top (0 up, 1 up-right, 2 right, 3 down-right, 4 down, 5 down-left, 6 left, 7 up-left). A permutation of 0 to 7."
+  },
+  "queue_frames": {
+    "value": 180,
+    "description": "How long an item picked with the weapon drawn waits for the sheathe before it ends with the error sound, in the game's own time: its timers count 60 per second at any frame rate (FUN_00b0709c takes away the frame's delta, 2 at 30 frames per second, 1 at 60). 180 is 3 seconds; the slowest weapon's sheathe opens its list after 80 of these, so a sheathe from rest fits well inside."
+  },
+  "default_items": {
+    "value": [8, 9, 168, 49, 12, 62, 73, 771],
+    "description": "The item id each of the 8 slots holds in a new character: Potion, Mega Potion, Whetstone, Well-done Steak, Antidote, Flash Bomb, Pitfall Trap, Ration. Ids of the game's item table; the wheel uses a slot's item only when the hunter carries it."
+  },
+  "default_position": {
+    "value": 0,
+    "description": "Where the wheel is drawn in a new character: 0 the centre of the screen, 1 the right. It is stored in the save, where Configuration changes it."
+  },
+  "default_size": {
+    "value": 2,
+    "description": "The wheel's size in a new character: an index of draw_sizes (2 is its 1, the 100 % size). It is stored in the save, where Configuration's Size changes it."
+  },
+  "default_trigger": {
+    "value": 0,
+    "description": "How a direction is chosen in a new character: 0 Tilt (the item is used as the stick stays out for dwell_frames at fire_magnitude), 1 Flick (push into a direction and let the stick go within flick_window: that direction's item is used on the release; held longer, nothing is used), 2 Release (the same, with no time limit). It is stored in the save, where Configuration's Trigger changes it."
+  },
+  "flick_window": {
+    "value": 15,
+    "description": "How long a Flick may last, in the game's own time: its timers count 60 per second at any frame rate (FUN_00b0709c takes away the frame's share), so 15 is a quarter of a second. It starts when the push has held a direction for dwell_frames at fire_magnitude and ends when the stick falls under rearm_magnitude; past it the push is cancelled until the stick is back at rest. A thumb's flick lasts about 0.1 to 0.2 s and a push held on purpose longer, so a quarter second keeps the first and drops the second. 1 to 3600."
+  },
+  "editor_point_magnitude": {
+    "value": 50,
+    "description": "Edit Slots (the START menu): the magnitude (0 to 127, 0 below the game's dead zone of 30) from which the Circle Pad or the C-stick points at a slot, which then takes the gold; under it the cursor stays where it is. The sector the angle falls in is the wheel's own (sector_to_slot). 50 is the game's own gate for the stick's actions and fire_magnitude's value."
+  },
+  "default_autocraft": {
+    "value": 1,
+    "description": "Whether Auto-Combine is on in a new character: 1 on, 0 off. Stored in the save beside the position and the trigger; Configuration's Auto-Combine changes it. With it on, the pick of an item the hunter has none of combines it once from what he carries, with the game's own chance, rules and sounds (radial_craft.c), and the wheel marks the slots it can combine; nothing of it is tuned here."
+  },
+  "default_enabled": {
+    "value": 1,
+    "description": "Whether the wheel is on in a new character: 1 on, 0 off. Stored in the save beside the slots; with it off the wheel does nothing and L and the C-stick behave as in the game without the wheel."
+  },
+  "draw_centre": {
+    "value": [200, 135],
+    "description": "Where the wheel's middle is on the top screen when its position is the centre, in pixels from the screen's left and top (the screen is 400 by 240; 120 is its middle line, so 135 is a little lower)."
+  },
+  "draw_right": {
+    "value": [3, 135],
+    "description": "The right position: the pixels left between the wheel's rightmost part (the chosen slot's large name at the right) and the screen's right edge, and the height of the wheel's middle in pixels from the screen's top. The middle's x follows from each size, so the wheel keeps to the edge whatever its size."
+  },
+  "draw_bottom_left": {
+    "value": [3, 3],
+    "description": "The bottom-left position: the pixels left between the wheel's leftmost part (the large names at the left included) and the screen's left edge, and between its lowest part (the bottom names) and the screen's bottom. Both margins are small, like the right position's, because the names' boxes have a little room of their own beyond their letters. The middle follows from each size, so the wheel keeps to its corner whatever its size."
+  },
+  "draw_scale": {
+    "value": [0.7, 0.42, 0.42],
+    "description": "How large the whole wheel (its ring, pictures, numbers and names) is drawn at the centre, at the right and at the bottom left at the size 1 of draw_sizes: 1 is the art's full size, about 200 pixels across with its diamonds."
+  },
+  "menu_centre": {
+    "value": [200, 118],
+    "description": "Edit Slots (the START menu's Mod Settings): where the wheel's middle is on the top screen while the player picks a slot, in pixels from the screen's left and top. At menu_scale's first scale everything it may show stays under the list's title bar (y 18 to 38) and above y 196, where single-screen mode puts the menu's description."
+  },
+  "menu_left": {
+    "value": [112, 112],
+    "description": "Edit Slots: where the wheel's middle is while the pouch list is open, in pixels from the screen's left and top. At menu_scale's second scale everything it may show stays left of the list's frame (x 228; the rows take 254 to 396) and above y 196."
+  },
+  "menu_scale": {
+    "value": [0.66, 0.52],
+    "description": "How large the whole wheel is drawn in Edit Slots: while a slot is picked (centred) and beside the pouch list (small), as draw_scale's scales (1 is the art's full size, about 370 by 230 pixels with every name). The player's position and size are not used there. 0.1 to 1."
+  },
+  "draw_craft_mark": {
+    "value": [14, 16, 10, -10],
+    "description": "The mark of a slot whose item can be combined from what the hunter carries (a plus of the game's own item sheet): its width and height in pixels, and its middle's offset from the middle of the slot's picture, right and down (so 10, -10 is the picture's top right). Its colour is draw_colours.craft."
+  },
+  "draw_sizes": {
+    "value": [0.8, 0.9, 1.0, 1.1, 1.2],
+    "description": "The sizes Configuration's Size row offers, smallest first (A goes to the next and from the last back to the first), each times draw_scale. 1 to 8 sizes from 0.5 to 2; each needs its row text wheel_size_<percent> in mod_settings.json (0.8 is wheel_size_80), and the wheel must fit the screen at every one."
+  },
+  "draw_radius": {
+    "value": 80,
+    "description": "Pixels from the wheel's middle to the middle of each slot's picture: the ring that joins the 8 slots goes through them. 80 makes the wheel about 200 pixels across with its diamonds."
+  },
+  "draw_icon_size": {
+    "value": [24, 24],
+    "description": "Width and height in pixels of each slot's item picture; the game's item pictures are 24 by 24."
+  },
+  "draw_rhombus_size": {
+    "value": [36, 36],
+    "description": "Width and height in pixels of the diamond behind each slot's picture (its two diagonals)."
+  },
+  "draw_halo_size": {
+    "value": [56, 56],
+    "description": "Width and height in pixels of the gold glow behind the chosen slot's diamond."
+  },
+  "draw_hub_size": {
+    "value": [24, 24],
+    "description": "Width and height in pixels of the circle with the C-stick's symbol in the wheel's middle."
+  },
+  "draw_needle": {
+    "value": [14, 56, 8],
+    "description": "The needle from the middle to the chosen slot: where it starts and where it ends (pixels from the wheel's middle) and how wide it is. It starts outside the middle circle and ends before the chosen slot's gold diamond."
+  },
+  "draw_marked_scale": {
+    "value": 1.2,
+    "description": "How much larger the chosen slot's picture and its gold diamond are drawn (1 is the normal size)."
+  },
+  "draw_mark_magnitude": {
+    "value": 30,
+    "description": "The C-stick's magnitude (0 to 127) from which the slot in the stick's direction is chosen (its gold diamond and glow, the needle, its name larger and gold); 30 is the game's dead zone, so any push chooses one. Under it nothing is highlighted."
+  },
+  "draw_dark_icon": {
+    "value": 0.55,
+    "description": "How much of its own colour (red, green and blue; above 0, under 1) an item's picture keeps when the hunter does not carry the item; its quantity then shows 0 in the count_none colour."
+  },
+  "draw_count_size": {
+    "value": [9, 11],
+    "description": "Width and height in pixels of one digit of a slot's quantity (the art draws them at this size)."
+  },
+  "draw_count_place": {
+    "value": [10, 8],
+    "description": "Where the quantity's last digit is, in pixels right of and below the middle of its slot's picture: its bottom-right corner, as in MH World. A quantity of 10 or more puts its first digit draw_count_advance to the left."
+  },
+  "draw_count_advance": {
+    "value": 6,
+    "description": "Pixels from a quantity's first digit to its second."
+  },
+  "draw_name_sides": {
+    "value": ["above", "right", "right", "below", "below", "below", "left", "left"],
+    "description": "Where each slot's name goes (slot 0 up, then clockwise): above or below its diamond, or to its right or left. A name to the right starts beside the diamond and runs right, one to the left ends beside it; a name above or below a slot off the middle line starts under the picture's inner edge and runs outwards; on the middle line it is centred."
+  },
+  "draw_name_gap": {
+    "value": 2,
+    "description": "Pixels between a slot's diamond and its name's box."
+  },
+  "draw_name_box": {
+    "value": [70, 10],
+    "description": "Width and height in pixels of each slot's name box. The width is the room a name may take: the longest item name of the five languages, 161 advance units of the game's 14-pixel font, must fit at draw_name_font."
+  },
+  "draw_name_font": {
+    "value": [6, 8],
+    "description": "Width and height in pixels of the slots' name letters (the game's item names are 9 by 9). A name is as wide as its advances in the game's 14-pixel font times the width over 14."
+  },
+  "draw_big_box": {
+    "value": [82, 12],
+    "description": "Width and height in pixels of the chosen slot's larger gold name box; the longest item name must fit at draw_big_font."
+  },
+  "draw_big_font": {
+    "value": [7, 9.5],
+    "description": "Width and height in pixels of the chosen slot's gold name letters."
+  },
+  "draw_name_outline": {
+    "value": 8,
+    "description": "The game's outline layers of the names' text (0 to 15, one dark copy of every letter for each bit set): 8 is the one the target panel's monster name has, so a name reads on any scene; 0 draws the letters alone."
+  },
+  "draw_name_room": {
+    "value": 28,
+    "description": "Characters of room each name's text has: the longest item name in the five languages (24 letters) must fit."
+  },
+  "draw_pool_reserve": {
+    "value": 640,
+    "description": "Free places the game's pool of pane entries must have before the wheel changes its picture (a name takes one per letter and outline layer and one more; a fresh wheel lays out its 8 names and the chosen slot's large name); with fewer it leaves the picture as it is, because the game does not check and would crash."
+  },
+  "draw_layer": {
+    "value": 1,
+    "description": "The GUI layer the wheel's group is drawn in (the HUD's)."
+  },
+  "draw_priority": {
+    "value": 48,
+    "description": "The wheel's draw priority in its layer: above the HUD's panels (20 and up) and below the talk windows (63)."
+  },
+  "draw_colours": {
+    "value": {
+      "ring": [150, 172, 205, 200],
+      "fill": [16, 20, 30, 215],
+      "edge": [215, 222, 235, 255],
+      "gold_fill": [52, 38, 10, 230],
+      "gold_edge": [255, 200, 70, 255],
+      "halo": [255, 186, 50, 210],
+      "hub": [255, 255, 255, 255],
+      "needle": [255, 200, 70, 255],
+      "count": [255, 160, 40, 255],
+      "count_none": [150, 150, 150, 255],
+      "craft": [255, 255, 255, 255],
+      "name": [255, 255, 255, 255],
+      "big_name": [255, 205, 80, 255]
+    },
+    "description": "The colours (red, green, blue, alpha; 0 to 255) the white art and the names are tinted with: the ring (grey-blue), each diamond's fill (dark) and edge (light), the chosen slot's gold diamond (fill and edge) and glow, the middle circle, the needle, the quantity's digits (orange) and the 0 of an item not carried (grey), the craft mark (white: the game's plus is itself grey, so this is its brightest), the slots' names (white) and the chosen one's (gold)."
+  }
+}

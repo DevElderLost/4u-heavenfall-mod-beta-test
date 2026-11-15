@@ -2,7 +2,7 @@
   "description": "Damage Numbers (core/interface/damage_numbers/damage_numbers.py): how the numbers look and move. Sizes and distances are in the top screen's layout units (400 x 240 at 5:3), times are seconds. The art's cells are in core/interface/damage_numbers/art/damage_numbers_atlas.json.",
   "weak_hitzone": {"value": 45, "description": "A hit whose physical hitzone value (cut, impact or shot, the one the hit used) is at least this shows gold; below it, or unknown, white."},
   "colours": {"value": {"white": [255, 255, 255, 255], "gold": [255, 196, 64, 255], "grey": [150, 150, 150, 255]}, "description": "The digits' colours (RGBA): a normal hit and the other damage white, a weak spot, blast and the mount's finish gold, a bounce and poison grey."},
-  "digit_height": {"value": 15.0, "description": "A digit's cell (the atlas' 32-pixel row) at size 1x."},
+  "digit_height": {"value": 11.25, "description": "A digit's cell (the atlas' 32-pixel row) at size 1x."},
   "frame_seconds": {"value": 0.033333335, "description": "The game's frame delta of 1.0 lasts this long (30 frames a second)."},
   "pop": {"value": {"seconds": 0.12, "scale": 1.45}, "description": "A new number starts `scale` times its size and settles to it in `seconds`."},
   "rise": {"value": 16.0, "description": "How far a number rises over its life."},

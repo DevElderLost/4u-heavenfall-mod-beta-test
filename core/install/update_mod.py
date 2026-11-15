@@ -178,7 +178,7 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
         else:
             settings = settings_from_marker(marker.get("settings"))
             needs_xx = settings.needs_xx    # MH XX's file: needed by the saved options, or offered by the edition
-            rom, xx = find_games(folder.name.upper(), preferences, search, needs_xx or current.xx_optional)
+            rom, xx = find_games(folder.name.upper(), preferences, search, needs_xx or current.xx_offered)
             if rom is None or (needs_xx and xx is None):
                 tell("no_game", folder=folder)
                 report.left.append(folder)

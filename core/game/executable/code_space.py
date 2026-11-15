@@ -52,10 +52,15 @@ EXT_START = 0x111E000
 # + the id tables extended to 200 monster ids, 76 new ids (4 pages: monsters/porting/new_id_data.py, ID_LIMIT)
 # + Maccao's class and data (8 pages)
 # + Valstrax's class and data with MH XX's shell base 56 (39 pages)
+# + the item wheel, its picture and its Radial Menu screens, packed last (2 pages)
 # + Great Maccao's pack beside Layered Gear's colours (1 page)
 # + Layered Gear's Relics and the split title's two RomFS beside Valstrax and the pack (1 page for both)
 # + each layered look's zenny a u32, for the relics priced by their monster (2 pages: the block layered_rules to
 #   0x12000)
+# + the new map numbers 28 and 29: the 20 map tables grown to 30 entries and each map's strings, lists and minimap
+#   records (3 pages)
+# + the random start's table of the map numbers grown too (1 page)
+# + Misty Peaks' fog cycle beside the probe's debug fog control (1 page)
 # + the modern camera giving the C-stick's question the game's answer and a skipped intro's music stopped by its
 #   voices (1 page)
 # + Mod Settings' lists of every size, their frames' name hashes (1 page)
@@ -71,14 +76,20 @@ EXT_START = 0x111E000
 # + the virtual maps' translations from 128 to 160, so more foreign areas get a patrol case (1 page)
 # + the Smithy's weapon tree: its code and its data, packed last (2 pages), and its
 #   window "upgrade or craft", its discovery by known materials and the status view's page (1 page)
-EXT_SIZE = 0x1F0000
+# + the item wheel, its picture and its Radial Menu screens, packed last of the product's blocks (2 pages after the
+#   weapon tree's)
+# + Alatreon's icicle ground marker and the ported monsters' XX turn cut (1 page)
+# + the trio probe's diagnostics, packed after everything (1 page)
+# + Boltreaver Astalos' pull on the hunter, limited to the ball (1 page)
+EXT_SIZE = 0x1FA000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
 # uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
 # records, em data slots and save records; a third for Damage Numbers'
-# state.
-EXT_VARS_SIZE = 3 * PAGE
+# state. 26 more for the trio probe's diagnostics ring (105 KB, only a probe's
+# file reaches it: the product's variables are packed first and the file ends at the last page a build uses).
+EXT_VARS_SIZE = 29 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000

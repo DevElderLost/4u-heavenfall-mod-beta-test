@@ -56,7 +56,7 @@
 - The C-Stick (New 3DS) turns the camera smoothly in any direction, diagonals too, faster the further you push it.
 - It aims bowguns and the bow the same way, each at its own speed.
 - The D-pad turns the camera as in the original game.
-- In the game (START, third page, Mod Settings, Camera, Better Camera) you can turn it on or off, set **Max Speed** from x0.25 to x4 for the camera and the aims, and set **Acceleration** from 25 % to 400 %: how fast the turn reaches its speed and stops, relative to the speed.
+- In the game (START, third page, Mod Settings, Camera, Better Camera) you can turn it on or off, set **Max Speed** from x0.25 to x4 for the camera and the aims, and set **Acceleration** from 25% to 400%: how fast the turn reaches its speed and stops, relative to the speed.
 - It is on by default, with Max Speed x1 and Acceleration 100 %. Camera Speed (D-pad) no longer changes it.
 
 **Damage numbers**

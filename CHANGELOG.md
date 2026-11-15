@@ -44,7 +44,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The frame rate can be set from 30 to 60 FPS in fives (emulator only).
 - Manage Equipment and Equipment Sets from every item box.
 - Damage numbers over monsters, in three styles; switch them on in Mod Settings.
-- Mod Settings sorts its options into Display, Camera, Interface, QoL and Other.
+- Mod Settings sorts its options into Interface, Camera, QoL, Display and Other, most important first.
 - Mod Settings' lists show each page in a frame its size, with no empty rows.
 
 ### Real Hardware

@@ -64,7 +64,7 @@ OPTION_IDS = {
 MAX_OPTIONS = 28                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 28)
 MAX_VALUES = 16                 # a list of values: two pages
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
-ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (0 to 8: the item wheel's, 9: the ratio)
+ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (9: the ratio; the wheel's: 6-7, 37-47)
 ZONE_BYTES = 48                 # the zone's size (curated mod_settings.json)
 OPTION_SIZE = 4 + 2 * MAX_VALUES + 4 * PAYLOAD_WORDS * MAX_VALUES
 HEADER_SIZE = 16
@@ -276,16 +276,17 @@ def available_options(code: bytes, settings: Any, console: bool = False) -> list
 
 
 def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: Layout | None = None,
-                      aspect: bool = False) -> bytes:
+                      aspect: bool = False, wheel: bool = False) -> bytes:
     """`code` (the update's executable) with the START menu's page for `available` options, each frame's read of them,
     and the hooks of those that need one. The Settings field of an option is its installed default. `aspect`: the
-    aspect ratio's switch is on, so its row is in the page. Refuses an executable where a site is not the game's
-    word."""
+    aspect ratio's switch is on, so its row is in the page; `wheel`: the mod has the item wheel, so its Radial Menu
+    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data).
+    Refuses an executable where a site is not the game's word."""
     from core.interface.mod_settings.mod_settings import load_settings, patch_mod_settings
     if not supports_mod_options(code):
         raise CodeSpaceError("the options' sites are not the update's words: already patched or another game")
     layout = layout or load_layout()
-    table = load_settings(available=available, aspect=aspect)
+    table = load_settings(available=available, aspect=aspect, wheel=wheel)
     out = bytearray(patch_mod_settings(code, layout, table, bool(getattr(settings, "single_screen", False))))
     layout.place(out, STUB)
     layout.place(out, DATA, options_data(settings, available))

@@ -31,7 +31,8 @@ is the closest previous pane one level up. Record layouts:
     text       0x0C u32 text offset; 0x18 f32 font width, height;
                0x20 f32 spacing x, y; 0x28 f32 x, y, z; 0x34 f32 width, height;
                0x44 RGBA x4; 0x70 u32 flags: bits 0-1 the lines' alignment in the box (0 left, 1 right, 2 centred),
-               bits 4-7 the box's origin (0: x, y is its top-left corner; 4: its centre, e.g. ui500_pl_name)
+               bits 4-7 the box's origin (0: x, y is its top-left corner; 4: its centre, e.g. ui500_pl_name),
+               bits 24-27 the outline layers (each bit set adds one dark copy of every letter, e.g. 8 in ui601_m_00)
     boundary   0x0C f32 x, y; 0x14 f32 width, height; 0x1C f32 scale x, y
     window     0x0C f32 x, y, z; 0x18 f32 width, height; 0x38 RGBA x4 (corners); 0x50 u32 origin (4: the centre);
                only the keyboard's layouts (system/swkbd) have them: the header's word at 0x18 counts them
@@ -84,7 +85,7 @@ NULL_TINT_AT = 0x20  # a null's colour, RGBA bytes
 VISIBLE_AT = {PaneKind.SPRITE: 0x60, PaneKind.NULL: 0x2C}  # u32 1 / 0: shown when the layout loads
 FONT_SIZE_AT = 0x18  # text only
 SPACING_AT = 0x20    # text only
-TEXT_FLAGS_AT = 0x70  # text only: bits 0-1 alignment, bits 4-7 origin
+TEXT_FLAGS_AT = 0x70  # text only: bits 0-1 alignment, bits 4-7 origin, bits 24-27 outline layers
 HEADER = struct.Struct("<4sIIIIIIIIIII")
 
 
@@ -186,6 +187,15 @@ class Pane:
     @text_align.setter
     def text_align(self, value: int) -> None:
         self._set_text_flags(0, 3, value)
+
+    @property
+    def text_outline(self) -> int | None:
+        """A text's outline layers (the flags' bits 24-27): each bit set adds one dark copy of every letter."""
+        return self._text_flags(24, 0xF)
+
+    @text_outline.setter
+    def text_outline(self, value: int) -> None:
+        self._set_text_flags(24, 0xF, value)
 
     def _text_flags(self, shift: int, mask: int) -> int | None:
         if self.kind != PaneKind.TEXT:
