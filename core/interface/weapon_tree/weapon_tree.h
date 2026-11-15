@@ -62,6 +62,9 @@ enum { CHOICE_TITLE, CHOICE_UPGRADE, CHOICE_FORGE };     /* tree_texts.py CHOICE
 enum { REVEAL_ALL, REVEAL_DISCOVERED };              /* weapon_tree.py REVEALS */
 enum { STYLE_BRACKET, STYLE_FRAME };                 /* weapon_tree.py STYLES */
 #define HOLD_STEPS 4
+#define PULSE_KEYS 3             /* the "NEW" marks' clip (weapon_tree.py PULSE_KEYS): its keys, the last one's frame its
+                                    length */
+#define PULSE_STEPS 4            /* wt_state.pulse counts the clip's time in quarter frames */
 
 struct wt_data {
     u32 magic;                   /* WT_MAGIC */
@@ -76,6 +79,7 @@ struct wt_data {
     s16 bracket[4];              /* the bracket's two halves: x, y of each from the icon's cell */
     u16 bracket_w, bracket_h;
     u16 frame_pad, frame_thickness;
+    float pulse[PULSE_KEYS][2];  /* the "NEW" marks' brightness: each key's frame and value (curated `new_pulse`) */
     u32 colours[WT_COLOURS];     /* as the panes hold them: R in the low byte, alpha in the high one */
     u16 hold[HOLD_STEPS][2];     /* up or down held: from [0] frames on, [1] rows a step; 0 frames ends the steps */
     u16 msg_count, msg_hint;     /* E_makeshop: the counter "row/rows" (string slot 0 alone), the key bar's words */
@@ -85,7 +89,7 @@ struct wt_data {
     u32 hashes[WT_HASHES];
 };
 #define WT_MAGIC 0x31525457u     /* "WTR1" */
-#define WT_DATA_HEAD 228
+#define WT_DATA_HEAD 252
 _Static_assert(__builtin_offsetof(struct wt_data, hashes) == WT_DATA_HEAD, "weapon_tree.py DATA_HEAD");
 _Static_assert(sizeof(struct wt_data) == WT_DATA_HEAD + 4 * WT_HASHES, "game/executable/blocks.py WEAPON_TREE_DATA_SIZE");
 
@@ -139,7 +143,8 @@ struct wt_state {
     u16 recipe[12];              /* an upgrade's materials at + 4 (as a create recipe holds them): the status view's */
     u16 count_text[12];          /* "999/999" and its end: the string slot keeps the address */
     u8 sub, buy;                 /* T_*; BUY_* of the purchase shown, asked or made */
-    u8 chosen, spare;            /* 1: the purchase asked went through the window "upgrade or craft" */
+    u8 chosen;                   /* 1: the purchase asked went through the window "upgrade or craft" */
+    u8 pulse;                    /* the "NEW" marks' clip time, in 1 / PULSE_STEPS of its frames */
     u16 copy;                    /* the box slot upgraded (BUY_UPGRADE) */
     u16 bought, index;           /* the weapon bought; the create recipe's index in the table (BUY_FORGE) */
     u16 price_text[8];           /* the price, for the prompt's string slot */

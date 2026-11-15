@@ -8,6 +8,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Forge Weapons shows each weapon class as a tree of its upgrade lines, with only discovered weapons.
 - On the tree, A forges or upgrades right there; a hammer marks weapons forged from scratch.
 - Each weapon on the tree shows its element or status, and a box when a copy is stored.
+- New weapons on the tree show a pulsing NEW, as in the game's list, until you press A on them.
 - A weapon you can upgrade into or craft asks which, showing the materials of the choice under the cursor.
 - Upgrades take the weapon you wear first; choosing a weapon in Upgrade Equipment opens its tree to upgrade that one.
 - On the tree, X switches between stats, try on and comparison; Mod Settings can switch back to the list.

@@ -161,7 +161,7 @@ HORN_SONGS_STATE_SIZE = 60
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
 WEAPON_TREE = "weapon_tree"
-WEAPON_TREE_DATA_SIZE = 228 + 4 * 560
+WEAPON_TREE_DATA_SIZE = 252 + 4 * 560
 WEAPON_TREE_STATE_SIZE = 94 + 6 * 336
 # The new map numbers 28 and 29 (maps/new_map.py): packed after all of them
 # too, so that it moves no other block.
@@ -190,6 +190,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     an edition without the ported monsters) never loads. The list stays at the margin as
     before."""
     from core.monsters.porting.called_small import c_defines as pack_defines
+    from core.monsters.porting.ground_shadow import c_defines as shadow_defines
     from core.monsters.porting.hf_records import C_DEFINES as RECORDS_DEFINES, STUBS_SIZE as RECORDS_STUBS
     from core.monsters.porting.motion_places import C_DEFINES as PLACES_DEFINES, table_size as places_table_size
     from core.monsters.porting.new_id_data import C_DEFINES as NEW_ID_DEFINES
@@ -458,7 +459,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (monsters/porting/proof_blocks.py shared_block_specs, product.py, proof_hook.place), and the new monster ids
     # (monsters/porting/new_id.py): their code (monsters/porting/new_id.c), the
     # factory's cases, the stubs and the id tables extended to 200 ids
-    *(BlockSpec(name, SHARED, source, size=size, align=align, region="ext")
+    *(BlockSpec(name, SHARED, source, size=size, align=align, region="ext",
+                defines=shadow_defines() if source else ())     # the effect player's: the shadows' lead (curated)
       for name, source, size, align in shared_block_specs()),
     *(BlockSpec(name, SHARED, source, size=size, region="ext", defines=NEW_ID_DEFINES if source else ())
       for name, source, size in new_id_blocks()),
@@ -884,6 +886,7 @@ GAME_SYMBOLS = {
     "file_extdata_set": 0xC195FC,    # FUN_00c195fc(manager, id): the extdata the archive 1 operations mount
     "save_task_resume": 0x2ACAA4,    # FUN_002acaa0 after its first instruction (the archive 0 file operations)
     "extdata_task_resume": 0x2ABA08,  # FUN_002aba04 after its first instruction (the archive 1 file operations)
+    "slot_exists_resume": 0x2AF394,   # FUN_002af390 after its first instruction (whether a kind's file exists)
     # The forge-style screens: the forge's
     # materials box and money box, its yes / no window, the hammer scene, payment and the GUI's panes by hash; all in
     # the runs of the base games and the update (eur_base, usa_base, usa_update)
@@ -1153,6 +1156,7 @@ GAME_SYMBOLS |= {
     "sound_queue_at_pos": 0x312100,     # a sound request queued at a position (0x3F52E8)
     "sound_queue_plain": 0x31218C,      # unplaced (0x3F53E8)
     "sound_queue_on_joint": 0x312200,   # on a unit's joint (0x3F5458)
+    "sound_queue_unplaced": 0x312098,   # way 0, no position (MH XX's 0x3F09A4, its entry play's way 3)
 }
 
 # adapter, engine side (core/monsters/porting/effect_player/adapter_4u.c)
@@ -1269,12 +1273,11 @@ GAME_SYMBOLS |= {
     # the owner's playing bank-0 sound moved to a point (0x3EDBF8: the same code; SHELL_PAIRS owner_sound_bank,
     # candidate: no species of both games calls it)
     "owner_sound_bank_play": 0x301074,
-    # MH4U's own ground marker of a falling shell, which the adapter puts where MH XX drops its blob shadows: Crimson
-    # Fatalis' meteor (uShell029, FUN_00c7d864) plays it,
-    # its end (FUN_00c7da24) kills it
-    "effect_play_area": 0xC0856C,           # FUN_00c0856c(*0x10572A4, request) -> effect, 0 outside the request's area
-    "effect_kill": 0xC470DC,                # FUN_00c470dc(effect): a looping effect's end
-    "effect_marker_request_vtable": 0xE7F8F4,   # the vtable of FUN_00c7d864's request
+    # MH4U's way to put a model in the world, which the adapter takes for MH XX's blob shadows (docs/monsters/
+    # effects.md, "The shadow in MH4U"): the effect manager's model request FUN_00c092c8 gets its uModel from its slot
+    # 28, this function (r0 unread: uModel's operator new 0x9623F0 for 0xC78 bytes aligned 0x10, then its
+    # constructor 0x9620FC; 0 when out of memory)
+    "umodel_new": 0xC09264,
 }
 # ==== end of shell bases 41 and 02 ====
 # Shells, the manager (core/monsters/porting/effect_player/shell_mgr.c):
@@ -1830,6 +1833,8 @@ GAME_SYMBOLS |= {
     "enemy_em588c_set": 0x91B0C8,           # 0x8A878C: (this, a, b) into em+0x79AF / 0x79B0 (XX's 4th: unread)
     "enemy_set_alpha": 0x90F7CC,            # 0x8A036C: (this, s0 target, s1 speed) into em+0x7E78, 0x7E7C, 0x7E74
     "enemy_homing_setup": 0x916BCC,         # 0x8A4F44: (this, kind, a, b, slot): homing target `slot`'s setup
+    "enemy_flag_timer_start": 0x934498,     # 0x8BD12C: (this, n): hunter n's bit of em+0x290, timer em+0x354 + 4n
+    "enemy_set_mode": 0x91B158,             # 0x8A8834: (this, mode): em+0x34C, entering 1 clears em+0x34B
     "game_random_4u": 0x2B568C,             # 0x2C8FCC's adapter: (sGameControl, stream) -> a random u16
     "gen_wake_manager": 0xF32004,           # 0xD2CAA0: sEnemy's pointer (monster_data_manager), enemy_gen.h's name
     # His leader's pack in MH4U (porting/sdk/pack.h)
@@ -2105,4 +2110,5 @@ GAME_SYMBOLS |= {
     "hunter_turn": 0xB6D944,            # FUN_00b6d944(hunter): the turn toward pw + 0xB0, the update's call at 0xB14CAC
     "enemy_list_get": 0x68FBD0,         # FUN_0068fbd0(sEnemy, index): the monster of a place of the list, or 0
     "boltreaver_hit_resume": 0xBE8FF0,  # FUN_00be8dfc's instruction after the load at 0xBE8FEC (`ldr r0, [r4, #0x3c]`)
+    "boltreaver_touch_resume": 0xBE8E00,    # FUN_00be8dfc's second instruction (after its stmdb at 0xBE8DFC)
 }

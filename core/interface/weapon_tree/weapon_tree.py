@@ -49,7 +49,7 @@ UPGRADE_LIST = 0xA02048
 
 # struct wt_data (weapon_tree.h)
 MAGIC = 0x31525457                   # "WTR1"
-DATA_HEAD = 228
+DATA_HEAD = 252
 CORNERS = 8 * len(node_marks.ELEMENTS)   # the head's last bytes: element_uv, each element icon's (u, v)
 # the colours the code tints with (the layout's `fill` is not one)
 COLOURS = ("band", "band_alt", "plate", "plate_lit", "plate_owned", "link", "link_lit", "worn", "cursor", "key_bar",
@@ -58,7 +58,10 @@ COLOURS = ("band", "band_alt", "plate", "plate_lit", "plate_owned", "link", "lin
 REVEALS = ("all", "discovered")
 STYLES = ("bracket", "frame")
 HOLD_STEPS = 4
-NAME_FILES = 27                      # LswordName: the first class's weapon names among the common files
+PULSE_KEYS = 3                       # the "NEW" marks' clip: its keys (frame, brightness); the last frame, its length
+PULSE_STEPS = 4                      # struct wt_state.pulse: the clip's time in quarter frames, in a byte
+BRIGHTNESS_MAX = 2.0                 # the GUI engine keeps a pane's brightness in 0 .. 2 (FUN_00ae7ed0, property 0x0C)
+NAME_FILES = 27                     # LswordName: the first class's weapon names among the common files
 # struct wt_state: its head, then 6 bytes for each id of a class (the game's most, 247, and the new weapons' room)
 MAX_IDS = 336
 STATE_HEAD = 94
@@ -94,6 +97,23 @@ def element_corners(node: Mapping) -> bytes:
     return b"".join(struct.pack("<2f", *node_marks.region(marks, name)[:2]) for name in node_marks.ELEMENTS)
 
 
+def pulse_keys(pulse: Mapping) -> bytes:
+    """The "NEW" marks' clip (curated `new_pulse`) as struct wt_data.pulse: each key's frame and brightness, floats. The
+    code joins the keys by straight lines and loops at the last key's frame; it keeps the time in a byte of quarter
+    frames."""
+    keys = [tuple(key) for key in pulse["keys"]]
+    if len(keys) != PULSE_KEYS:
+        raise WeaponTreeError(f"new_pulse has {len(keys)} keys, the code plays {PULSE_KEYS}")
+    frames = [frame for frame, _ in keys]
+    if frames[0] != 0 or any(b <= a for a, b in zip(frames, frames[1:])):
+        raise WeaponTreeError(f"new_pulse's frames {frames} must start at 0 and grow")
+    if PULSE_STEPS * frames[-1] > 0xFF:
+        raise WeaponTreeError(f"new_pulse lasts {frames[-1]} frames, at most {0xFF // PULSE_STEPS}")
+    if any(not 0 <= value <= BRIGHTNESS_MAX for _, value in keys):
+        raise WeaponTreeError(f"new_pulse's brightness must stay within 0 .. {BRIGHTNESS_MAX}")
+    return struct.pack(f"<{2 * PULSE_KEYS}f", *(value for key in keys for value in key))
+
+
 def data_block(settings: Mapping | None = None, message_base: int = MESSAGE_BASE) -> bytes:
     """The block weapon_tree_data (weapon_tree.h struct wt_data). `message_base`: our first message of E_makeshop in
     the files written (tree_texts.message_base)."""
@@ -120,6 +140,7 @@ def data_block(settings: Mapping | None = None, message_base: int = MESSAGE_BASE
     (x0, y0), (x1, y1), width, height = cursor["bracket"]
     data += struct.pack("<4h2H", x0, y0, x1, y1, width, height)
     data += struct.pack("<2H", cursor["frame"]["pad"], cursor["frame"]["thickness"])
+    data += pulse_keys(settings["new_pulse"])
     data += struct.pack(f"<{len(COLOURS)}I", *(_rgba(settings["colours"][name]) for name in COLOURS))
     steps = [value for step in hold for value in step] + [0] * (2 * (HOLD_STEPS - len(hold)))
     data += struct.pack(f"<{2 * HOLD_STEPS}H", *steps)
@@ -175,7 +196,8 @@ def patch_weapon_tree(code: bytes, layout: Layout | None = None, message_base: i
     return bytes(out)
 
 
-__all__ = ["CODE", "COLOURS", "CORNERS", "DATA", "DATA_HEAD", "ENTRY", "FORGE_JOIN", "MAGIC", "MAX_IDS", "NAME_FILES",
-           "PANELS_RELEASE", "REVEALS", "SMITHY_DONE", "SMITHY_END", "SMITHY_STATES", "STATE", "STATE_HEAD", "STYLES",
-           "TREE_STATE", "UPGRADE_LIST", "UPGRADE_PICK", "WEAPON_SIZE", "WeaponTreeError", "data_block",
-           "element_corners", "load_settings", "patch_weapon_tree", "supports_weapon_tree"]
+__all__ = ["BRIGHTNESS_MAX", "CODE", "COLOURS", "CORNERS", "DATA", "DATA_HEAD", "ENTRY", "FORGE_JOIN", "MAGIC",
+           "MAX_IDS", "NAME_FILES", "PANELS_RELEASE", "PULSE_KEYS", "PULSE_STEPS", "REVEALS", "SMITHY_DONE",
+           "SMITHY_END", "SMITHY_STATES", "STATE", "STATE_HEAD", "STYLES", "TREE_STATE", "UPGRADE_LIST", "UPGRADE_PICK",
+           "WEAPON_SIZE", "WeaponTreeError", "data_block", "element_corners", "load_settings", "patch_weapon_tree",
+           "pulse_keys", "supports_weapon_tree"]

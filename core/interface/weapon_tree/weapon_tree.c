@@ -119,6 +119,7 @@ GAME void pager_right(void);                                           /* FUN_00
 
 extern u32 sound_control, save_control, equipment_control, camera_control;
 extern u8 *pad_control;
+extern u8 *game_main;              /* the main object: + 0x5C the frame's time */
 extern u8 *preview_mode;           /* + 0x6C: 1 / 2 while a preview is shown */
 extern u8 lobby_gui_anim[];        /* the lobby GUI's animation the forge's entry starts */
 extern u32 screens_open;           /* non-zero while a forge-style screen is on: single_screen.py HELP_FLAGS */
@@ -183,6 +184,10 @@ extern const u32 materials_groups[];   /* ui402's groups: the materials box */
 #define SOUND_CURSOR 4
 #define TEXT_SLOT 0              /* the text renderer's string slot of the counter */
 #define PANE_KIND 0x10           /* a pane's node: its kind, 0 a sprite */
+#define SP_BRIGHT 21             /* a sprite's data, in words: its brightness, a float (the clips' property 0x0C; 1.0 the
+                                    art's own, the engine keeps it within 0 .. 2: FUN_00ae7ed0) */
+#define MAIN_DELTA 0x5C          /* the main object: the frame's time, a float (2.0 at 30 frames a second, 1.0 at 60),
+                                    by which the game's animation players go on (FUN_00ae1ddc) */
 #define HELD_MAX 0xFFFF
 #define MATERIAL_GROUPS 10
 /* buying */
@@ -1216,11 +1221,6 @@ static void buy_ask(u32 obj, u8 *st)
         }
         S->index = index;
         *(u16 *)(st + ST_CHOSEN) = 0;
-        gear_new_clear(save_control, S->type, id, GEAR_NEW);
-        if (S->w[id].flags & W_NEW) {    /* the node's "NEW" goes with the save's bit */
-            S->w[id].flags &= ~W_NEW;
-            draw();
-        }
     } else {
         u32 slot = copy_of(id);
         if (slot == NO_ID || !upgrade_paid(id)) {
@@ -1325,11 +1325,18 @@ static void choice_keys(u32 obj, u8 *st)
     }
 }
 
-/* A on a node. */
+/* A on a node. Any A clears the weapon's "new" bit and its node's "NEW" (round 9): the game clears it only on an A it
+   takes (a payable create recipe), so on a tree whose weapons mostly cannot be bought yet the marks stayed for good. */
 static void ask(u32 obj, u8 *st)
 {
+    u32 id = S->cursor;
     S->chosen = 0;
-    if (both_ways(S->cursor))
+    gear_new_clear(save_control, S->type, id, GEAR_NEW);
+    if (S->w[id].flags & W_NEW) {
+        S->w[id].flags &= ~W_NEW;
+        draw();
+    }
+    if (both_ways(id))
         choice_open(obj, st);
     else
         buy_ask(obj, st);
@@ -1876,7 +1883,34 @@ static __attribute__((noinline)) u32 from_box(u32 obj, u8 *st, const u8 *ref)
     return 1;
 }
 
-/* The ARM entries of the hooks (the rest is Thumb). */
+/* Every frame of an open tree: each "NEW" shown takes the brightness of the forge list's own "NEW" (curated `new_pulse`:
+   ui407's clip on ui407_n_icon, its keys joined by straight lines and looped), the clip's time going on by the frame's
+   time as the game's players go, so it pulses as fast at any frame rate. The marks are the group's P_NEW panes, one
+   after the other (walk_sprite); a hidden one is left as it is. ARM: it computes with floats. */
+ARM static void new_pulse(void)
+{
+    const float (*key)[2] = WD->pulse;
+    float end = key[PULSE_KEYS - 1][0], t = S->pulse * (1.0f / PULSE_STEPS) + *(const float *)(game_main + MAIN_DELTA);
+    while (t >= end)
+        t -= end;
+    S->pulse = (u8)(t * PULSE_STEPS);
+    u32 k = 1;
+    while (k < PULSE_KEYS - 1 && t >= key[k][0])
+        k++;
+    union { float f; u32 bits; } bright = {key[k - 1][1] + (key[k][1] - key[k - 1][1]) * (t - key[k - 1][0])
+                                                            / (key[k][0] - key[k - 1][0])};
+    struct walk w = {{0, 0}, group_of(G_NODES)};
+    u32 at = H_CELLS + P_NEW * MAX_ROWS * MAX_COLUMNS;
+    for (u32 cell = 0; cell < MAX_ROWS * MAX_COLUMNS; cell++, at++) {
+        u32 *sprite = walk_sprite(&w, WD->hashes[at]);
+        if (sprite && sprite[SP_FLAGS] & SP_SHOWN && sprite[SP_BRIGHT] != bright.bits) {
+            sprite[SP_BRIGHT] = bright.bits;
+            kit_sprite_changed(&w.r);
+        }
+    }
+}
+
+/* The ARM entries of the hooks (the rest is Thumb, but new_pulse). */
 ARM u32 weapon_tree_enter(u32 obj, u8 *st)
 {
     S->fixed = NO_SLOT;
@@ -1891,6 +1925,8 @@ ARM u32 weapon_tree_from_box(u32 obj, u8 *st, const u8 *ref)
 ARM void weapon_tree_update(u32 obj, u8 *st)
 {
     update(obj, st);
+    if (S->open == OPEN)
+        new_pulse();
 }
 
 /* ----- the hooks -------------------------------------------------------------------------------------------- */
