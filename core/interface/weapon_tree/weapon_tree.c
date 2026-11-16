@@ -250,7 +250,7 @@ extern const u32 materials_groups[];   /* ui402's groups: the materials box */
 #define MSG_FORGE_EQUIP 0x10     /* FILE_FORGE: "Equip now?" */
 #define MSG_FORGE_BOX 0x12       /* FILE_FORGE: the box after it */
 #define MSG_UPGRADE_EQUIP 0x2C
-#define BUYING 1                 /* A buys (0: A buzzes, as the design probes) */
+#define BUYING 1                 /* A buys (0: A only buzzes) */
 #define RECIPE_MONEY 0x04
 #define RECIPE_FULL 0x02
 #define DECOS 3

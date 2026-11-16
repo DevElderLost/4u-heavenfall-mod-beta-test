@@ -82,7 +82,7 @@ GEAR = "ported_gear"
 # gameplay/bubbleblight/bubbleblight.py), last, so the mods without Mizutsune keep every address.
 BUBBLEBLIGHT = "bubbleblight"
 # The item wheel (interface/radial_menu/radial_menu.py) goes last of the product's
-# features (only the trio probe's diagnostics after it), so a mod without it carries none of its pages and every
+# features (only the diagnostics block after it), so a mod without it carries none of its pages and every
 # other block keeps its address. Its data block (interface/radial_menu/radial_menu.py wheel_data) holds the curated
 # numbers, the default items and the save zone's place.
 RADIAL_MENU = "radial_menu"
@@ -184,15 +184,15 @@ BOLTREAVER_PULL = "boltreaver_pull"
 # cheats.md): after the item wheel, so that it moves no other product block
 ACTION_CANCEL = "cheat_action_cancel"
 ACTION_CANCEL_DATA_SIZE = 8
-# Misty Peaks' fog cycle (maps/misty_peaks/fog_cycle.py), with the map
+# The new map's fog cycle (maps/misty_peaks/fog_cycle.py), with the map
 FOG_CYCLE_DATA_SIZE = 236
-# The debug fog control (maps/misty_peaks/fog_debug.py): only a
-# probe places it, so it goes last of all and moves nothing.
+# The debug fog control (maps/misty_peaks/fog_debug.py): only a diagnostics file places it, so it goes last of all and
+# moves nothing.
 MISTY_FOG_DEBUG = "misty_fog_debug"
 FOG_DEBUG_DATA_SIZE = 1036
 FOG_DEBUG_STATE_SIZE = 296
-# The trio probe's diagnostics (diagnostics/trio_diag.py): the rings of
-# voice starts, hits and aims, their hook stubs and the data of what they watch. Only a probe places them, so they go
+# The diagnostics block (diagnostics/trio_diag.py): the rings of voice starts, hits and aims, their hook stubs and the
+# data of what they watch. Only a diagnostics file places them, so they go
 # last of all and move nothing. TRIO_DIAG_LOG_SIZE is struct trio_log (trio_diag.c): the header, 64 voice events of 96
 # bytes, 2048 hit events of 32, 256 aim events of 128.
 TRIO_DIAG = "trio_diagnostics"
@@ -629,7 +629,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # The new map numbers 28 and 29 (maps/new_map.py): the sound bank's and map piece's switch stubs, the 20 map tables
     # grown to 30 entries and each new map's strings, lists and minimap records
     *(BlockSpec(name, NEW_MAP, source, size=size, region="ext") for name, source, size in new_map_blocks()),
-    # Misty Peaks' fog cycle: ColorFog's slot 10 and its data (each area's distances, the loop, the veils' levels)
+    # The new map's fog cycle: ColorFog's slot 10 and its data (each area's distances, the loop, the veils' levels)
     BlockSpec("misty_fog_cycle_code", NEW_MAP, "maps/misty_peaks/fog_cycle.c", region="ext"),
     BlockSpec("misty_fog_cycle_data", NEW_MAP, size=FOG_CYCLE_DATA_SIZE, region="ext"),
     # Boltreaver Astalos' pulling ball on the hunter: the hooks' code (its variable, boltreaver_pull_state, is the
@@ -639,7 +639,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # and the two Mod Settings options' ids (action_cancel.py action_cancel_data)
     BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext"),
     BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext"),
-    # The debug fog control's code and data (a probe's only)
+    # The debug fog control's code and data (a diagnostics file's only)
     BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
     BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
     # Skip Quest End Timer and No Time Limit on Rewards Screen: the three hooks' stubs, the C, each cheat's option and
@@ -652,7 +652,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("map_skills_stub", MAP_SKILLS, "cheats/map_skills/map_skills_stub.s", region="ext"),
     BlockSpec("map_skills", MAP_SKILLS, "cheats/map_skills/map_skills.c", region="ext"),
     BlockSpec("map_skills_data", MAP_SKILLS, size=MAP_SKILLS_DATA_SIZE, region="ext"),
-    # The trio probe's diagnostics: the hook stubs, the C and the watch lists (a probe's only)
+    # The diagnostics block: the hook stubs, the C and the watch lists (a diagnostics file's only)
     BlockSpec("trio_diag_stub", TRIO_DIAG, "diagnostics/trio_diag_stub.s", region="ext"),
     BlockSpec("trio_diag_code", TRIO_DIAG, "diagnostics/trio_diag.c", region="ext",
               defines=(f"TRIO_LOG_SIZE={TRIO_DIAG_LOG_SIZE}",)),
@@ -822,9 +822,9 @@ VARIABLES = (
     # the variable holding the shells' manager sShell, which MH4U lacks (MH Generations keeps it at 0xDA95F0;
     # proof/shell_mgr.c, sdk/enemy_4u.h shell_launch_01_from)
     VariableSpec("proof_shell_mgr", "mhgen_port (core/monsters/porting/effect_player)", 4),
-    # The debug fog control's steps and live text (a probe's only), after every other variable
+    # The debug fog control's steps and live text (a diagnostics file's only), after every other variable
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
-    # The trio probe's rings (diagnostics/trio_diag.c struct trio_log; a probe's only), after every other variable
+    # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others
     VariableSpec("trio_diag_log", TRIO_DIAG, TRIO_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
 )
 
@@ -1902,9 +1902,9 @@ GAME_SYMBOLS |= {
 }
 
 # The cheats of the quest's timers and the minimap's skills (cheats/quest_timers/quest_timers_stub.s,
-# cheats/map_skills/map_skills_stub.s): the calls their hooks go on to with the cheat off
+# cheats/map_skills/map_skills_stub.s): the code their hooks go on to with the cheat off
 GAME_SYMBOLS |= {
-    "rewards_countdown_show": 0x2ED5D0,  # FUN_002ed5d0(seconds): the result scene's countdown number (FUN_00ab88f4's)
+    "rewards_countdown_body": 0xAB88F8,  # FUN_00ab88f4(scene), the result scene's countdown, past its first word
     "has_skill_entry": 0xD04F58,        # FUN_00d04f58(hunter, skill): `mov r0, r0`, then has_skill; the minimap's calls
 }
 
@@ -2135,7 +2135,7 @@ GAME_SYMBOLS |= {
     "string_release_ref": 0x110940,     # FUN_00110940(MtString): one reference less, the count left
 }
 
-# The trio probe's diagnostics (diagnostics/trio_diag.py): the sound driver's mix gains, sHitcheck's placing of the
+# The diagnostics block (diagnostics/trio_diag.py): the sound driver's mix gains, sHitcheck's placing of the
 # spheres and one record's hit on one hunter, and the small functions the rings read the hunters and monsters with
 GAME_SYMBOLS |= {
     "voice_mix_gains": 0xBD43FC,        # FUN_00bd43fc(voice): the mix gains from the dry and send gains

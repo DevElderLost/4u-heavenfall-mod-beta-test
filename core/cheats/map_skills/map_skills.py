@@ -21,7 +21,7 @@ from collections.abc import Mapping
 from core.cheats.gates import NO_OPTION, option_numbers
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
 
-# The cheats' options (their keys in mod_options.py OPTION_IDS once Mod Settings has their rows), in map_skills.c's
+# The cheats' options (their keys in mod_options.py OPTION_IDS), in map_skills.c's
 # order
 CAPTURE_GURU = "cheat_capture_guru"
 AUTOTRACKER = "cheat_autotracker"

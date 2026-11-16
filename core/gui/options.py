@@ -740,9 +740,11 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         Group(T("Activar trucos", "Enable cheats"), (
             Option("cheats_enabled", T("Activar trucos", "Enable cheats"),
                    T("Con la casilla marcada, el menú START (tercera página, Ajustes del mod) muestra el grupo de "
-                     "trucos. Desmarcada, el mod no lleva ninguno. Funciona en el emulador y en la 3DS.",
+                     "trucos. Desmarcada, el mod no lleva ninguno. En el emulador decide esta casilla; en la 3DS, "
+                     "el interruptor está en Más > Trucos del lanzador.",
                      "With the box ticked, the START menu (third page, Mod Settings) shows the cheats group. "
-                     "Unticked, the mod has none. It works in the emulator and on the 3DS.")),
+                     "Unticked, the mod has none. In the emulator this box decides; on a 3DS the switch is the "
+                     "launcher's More > Cheats.")),
         ), warning=T("Los trucos dan una ventaja injusta en las misiones. No juegues en multijugador sin avisar a los "
                      "demás cazadores de que los llevas.",
                      "Cheats give an unfair advantage in quests. Never play in multiplayer without telling the other "

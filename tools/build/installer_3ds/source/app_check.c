@@ -19,7 +19,7 @@ typedef struct {
     int edition;
     int region;
     int xx;
-    int cheats;               /* the installed title's sets are the cheats ones (installed.json): their sizes, XX set */
+    int cheats;               /* the next update's sets are the cheats ones (installed.json): their sizes, XX set */
     uint8_t xx_hash[32];
     /* its answer */
     HfCheck check;
@@ -94,7 +94,7 @@ void check_start(void) {
     job->edition = app.edition;
     job->region = app.status.region >= 0 ? app.status.region : REGION_EUR;
     job->xx = app.status.xx;
-    job->cheats = app.status.installed_cheats;
+    job->cheats = app.status.record_cheats;
     memcpy(job->xx_hash, app.status.xx_hash, sizeof job->xx_hash);
     stop_flag = 0;
     svcGetThreadPriority(&prio, CUR_THREAD_HANDLE);

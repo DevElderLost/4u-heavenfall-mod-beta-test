@@ -129,6 +129,11 @@ int hf_save_pending_after(int title_installed, const HfInstalled *prev) {
     return prev ? prev->save_pending != 0 : !title_installed;
 }
 
+int hf_want_cheats(int request, const HfInstalled *rec) {
+    if (request >= 0) return request != 0;
+    return rec && rec->cheats;
+}
+
 int hf_title_ours(uint64_t id) {
     uint32_t high = (uint32_t)(id >> 32), low = (uint32_t)id, unique = low >> 8;
     if (high != 0x00040000u && high != 0x0004008Cu && high != 0x0004000Eu) return 0;

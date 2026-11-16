@@ -12,8 +12,8 @@
    "start": "0x111e000",
    "end": "0x1318000",
    "kind": "code",
-   "used": 2071564,
-   "free": 1012
+   "used": 2071576,
+   "free": 1000
   },
   "bss_tail": {
    "start": "0x111d128",
@@ -6669,13 +6669,14 @@
   "quest_timers": {
    "region": "ext",
    "address": "0x13167a8",
-   "size": 244,
-   "code": "10402de944309fe5028b2ded003093e5178a90ed000053e30900000a8c3093e5063a03e2060a53e30500001a20409fe50000d4e5070000eb000050e3017ad41d888a271e100a18ee028bbdec1080bde8e0720501f8683101ff0050e30300001a0000a0e31eff2fe10000a0e31080bde810402de90040a0e1a4bcffeb000050e3f8ffff0a0400a0e19cbcffeb000050e20100a0131080bde810402de9028b2ded0430d0e5101a08ee013043e2010053e3902a08ee0300009a288a38ee100a18ee028bbdec1080bde810309fe50100d3e5e0ffffeb000050e3f6ffff0af6ffffeaf868310104309fe50100d3e5d9ffffeaf8683101",
+   "size": 252,
+   "code": "10402de944309fe5028b2ded003093e5178a90ed000053e30900000a8c3093e5063a03e2060a53e30500001a20409fe50000d4e5070000eb000050e3017ad41d888a271e100a18ee028bbdec1080bde8e072050104693101ff0050e30300001a0000a0e31eff2fe10000a0e31080bde810402de90040a0e1a4bcffeb000050e3f8ffff0a0400a0e19cbcffeb000050e20100a0131080bde80430d0e5013043e2010053e30600008a1c309fe510402de90100d3e5e7ffffeb000050e20100a0131080bde80000a0e31eff2fe10469310110402de9028b2ded101a08ee902a08eeecffffeb000050e3288a380e100a18ee028bbdec1080bde8e6ffffea",
    "symbols": {
     "option_on": 88,
     "quest_end_delta": 0,
-    "rewards_no_limit": 228,
-    "rewards_timer_add": 152
+    "rewards_frozen": 152,
+    "rewards_number_hidden": 248,
+    "rewards_timer_add": 208
    },
    "relocs": [
     [
@@ -6687,9 +6688,9 @@
   },
   "quest_timers_stub": {
    "region": "ext",
-   "address": "0x131689c",
-   "size": 92,
-   "code": "0f502de9100b2dedbfffffeb100bbdec900a00ee0f50bde81eff2fe10f502de9100b2ded0400a0e1101a10ee902a10eedbffffeb100bbdec100a00ee0f50bde81eff2fe10f502de9e8ffffeb000050e30f50bde8365bbf0a1eff2fe1",
+   "address": "0x13168a4",
+   "size": 96,
+   "code": "0f502de9100b2dedbdffffeb100bbdec900a00ee0f50bde81eff2fe10f502de9100b2ded0400a0e1101a10ee902a10eee7ffffeb100bbdec100a00ee0f50bde81eff2fe10f502de9ebffffeb000050e30f50bde81eff2f1110402de9fc87deea",
    "symbols": {
     "_start": 0,
     "quest_end_hook": 0,
@@ -6698,15 +6699,15 @@
    },
    "relocs": [
     [
-     84,
+     92,
      "call",
-     "rewards_countdown_show"
+     "rewards_countdown_body"
     ]
    ]
   },
   "quest_timers_data": {
    "region": "ext",
-   "address": "0x13168f8",
+   "address": "0x1316904",
    "size": 8,
    "code": "0000000000000000",
    "symbols": {},
@@ -6714,9 +6715,9 @@
   },
   "map_skills": {
    "region": "ext",
-   "address": "0x1316900",
+   "address": "0x131690c",
    "size": 84,
-   "code": "010050e30300009a0000a0e31eff2fe10000a0e31080bde830309fe510402de90040d3e7ff0054e3f8ffff0a0400a0e160bcffeb000050e3f4ffff0a0400a0e158bcffeb000050e20100a0131080bde8a4b03001",
+   "code": "010050e30300009a0000a0e31eff2fe10000a0e31080bde830309fe510402de90040d3e7ff0054e3f8ffff0a0400a0e15dbcffeb000050e3f4ffff0a0400a0e155bcffeb000050e20100a0131080bde8a4b03001",
    "symbols": {
     "map_skill_on": 0
    },
@@ -6724,9 +6725,9 @@
   },
   "map_skills_stub": {
    "region": "ext",
-   "address": "0x1316954",
+   "address": "0x1316960",
    "size": 64,
-   "code": "0f502de90000a0e3e7ffffeb000050e30f50bde87ab9e70a0100a0e31eff2fe10f502de90100a0e3dfffffeb000050e30f50bde872b9e70a0100a0e31eff2fe1",
+   "code": "0f502de90000a0e3e7ffffeb000050e30f50bde877b9e70a0100a0e31eff2fe10f502de90100a0e3dfffffeb000050e30f50bde86fb9e70a0100a0e31eff2fe1",
    "symbols": {
     "_start": 0,
     "autotracker_hook": 32,
@@ -6747,9 +6748,9 @@
   },
   "action_cancel": {
    "region": "ext",
-   "address": "0x1316994",
+   "address": "0x13169a0",
    "size": 288,
-   "code": "73402de9306e90e50040a0e1000056e32400000a7133d6e5000053e32100001a373e86e2b250d3e1570055e3e0309f05003093050300000a5a0055e31900001acc309fe5043093e5ff0053e31500000ac0209fe50330d2e7000053e31100000a0400a0e16fb9e7eb000050e30d00000aa4309fe5002093e5000052e30900000a570055e38c3092e5942092e50900001aff0813e30b00001a010c13e30100001a0f0a12e30900001a0400a0e108d08de27040bde89c41e1ea010912e3f9ffff0aff0813e30100000a0400a0e1b099e0eb0030a0e37013d6e50420a0e30400a0e100308de54d1be0eb0400a0e18e41e1eb570055e3ebffff0a0400a0e1e006e0eb000050e3e7ffff1a0400a0e137dbdfebe4ffffeab46a31011cad3101e0720501",
+   "code": "73402de9306e90e50040a0e1000056e32400000a7133d6e5000053e32100001a373e86e2b250d3e1570055e3e0309f05003093050300000a5a0055e31900001acc309fe5043093e5ff0053e31500000ac0209fe50330d2e7000053e31100000a0400a0e16cb9e7eb000050e30d00000aa4309fe5002093e5000052e30900000a570055e38c3092e5942092e50900001aff0813e30b00001a010c13e30100001a0f0a12e30900001a0400a0e108d08de27040bde89941e1ea010912e3f9ffff0aff0813e30100000a0400a0e1ad99e0eb0030a0e37013d6e50420a0e30400a0e100308de54a1be0eb0400a0e18b41e1eb570055e3ebffff0a0400a0e1dd06e0eb000050e3e7ffff1a0400a0e134dbdfebe4ffffeac06a31011cad3101e0720501",
    "symbols": {
     "action_cancel_update": 0
    },
@@ -6798,7 +6799,7 @@
   },
   "action_cancel_data": {
    "region": "ext",
-   "address": "0x1316ab4",
+   "address": "0x1316ac0",
    "size": 8,
    "code": "0000000000000000",
    "symbols": {},

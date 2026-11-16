@@ -76,6 +76,11 @@ jobs:
             made=$(dd if="$set" bs=1 skip=80 count=16 2>/dev/null | tr -d '\0')
             [ "$made" = "$version" ] || { echo "$set is version $made, the tag's is $version"; exit 1; }
           done
+          for name in HeavenfallBeta-3ds-EUR HeavenfallBeta-3ds-USA HeavenfallBeta-3ds-EUR-XX HeavenfallBeta-3ds-USA-XX \
+                    HeavenfallBeta-3ds-EUR-cheats HeavenfallBeta-3ds-USA-cheats HeavenfallBeta-3ds-EUR-XX-cheats \
+                    HeavenfallBeta-3ds-USA-XX-cheats; do
+            [ -f "console/$name.hfpatch" ] || { echo "console/$name.hfpatch is missing: all eight sets are needed"; exit 1; }
+          done
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Portlibs, and libctru 2.6 (the AM calls the launcher makes)

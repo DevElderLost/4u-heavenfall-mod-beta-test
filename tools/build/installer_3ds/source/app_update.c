@@ -28,8 +28,10 @@
 static int net_ok;
 
 /* The cheats: what More's Cheats asks of this update (-1: nothing,
- * the installed title's state stays; 0 off; 1 on), and the sets the update takes (the cheats ones or not). */
+ * the record's state stays; 0 off; 1 on), the state the update wants (hf_want_cheats) and the sets it takes (the
+ * cheats ones or not). */
 static int cheats_request = -1;
+static int want_cheats;
 static int run_cheats;
 
 /* HfXxWhy in the log's words. */
@@ -377,8 +379,8 @@ static int title_set_step(const HfTransport *tr, const HfRelease *mod_rel, int r
     if (plan->xx_why == HF_XX_OTHER_VERSION) ui_notice(HT_XX_OTHER_NOTE);
     else if (plan->xx_why == HF_XX_NOT_IN_RELEASE) ui_notice(HT_XX_NO_SET_NOTE);
     else if (plan->xx_why == HF_XX_NO_ROOM) ui_notice(HT_XX_NO_ROOM_NOTE);
-    else if (kind == HF_TITLE_MOD && app.status.installed_cheats && !run_cheats && cheats_request < 0)
-        ui_notice(HT_CHEATS_NO_SET_NOTE);   /* an update of a title with cheats from a release without them */
+    else if (kind == HF_TITLE_MOD && want_cheats && !run_cheats && cheats_request < 0)
+        ui_notice(HT_CHEATS_NO_SET_NOTE);   /* an update of a title with cheats (its record's) from a release without them */
     rc = install_set(set_file.path, mod_rel->tag, plan->use_xx, plan->xx_why == HF_XX_NO_ROOM, run_cheats, kind);
     /* kept after other failures, so the next try resumes it; an XX set that did not fit is not tried again; the game
      * data's set is the mod's too */
@@ -613,7 +615,7 @@ int update_run(int resuming, int reinstall) {
     uint64_t bytes[HF_STAGES], game_bytes = 0, dl_done = 0;
     char *raw;
     int rc, had_title, region, i, app_done = 0, mod_done = 0, leave = 0, have_last, restart_now = 0, app_local;
-    int want_cheats;
+    int have_rec;
 
     check_stop(1);   /* the start's check: joined, its stack and buffers freed before anything is installed */
     install_am_result = 0;
@@ -656,12 +658,15 @@ int update_run(int resuming, int reinstall) {
     }
     region = s->region >= 0 ? s->region : REGION_EUR;
 
-    /* the cheats: More's switch, else the installed title's state; the release's cheats sets, when it has them */
-    want_cheats = cheats_request >= 0 ? cheats_request : s->title_installed && s->installed_cheats;
+    /* the cheats: More's switch, else the record's, with the title there or not (an install stopped after removing it
+     * leaves its record cut, with the cheats it was putting in); the release's cheats sets, when it has them */
+    memset(&rec, 0, sizeof rec);
+    have_rec = read_installed_record(&rec);
+    want_cheats = hf_want_cheats(cheats_request, have_rec ? &rec : NULL);
     run_cheats = want_cheats && mod_rel->assets[hf_w_patch(region, 0, 1)].found;
-    LOG("cheats: asked %d, installed %d, wanted %d, the release's cheats set %d -> the %s sets", cheats_request,
-        s->installed_cheats, want_cheats, mod_rel->assets[hf_w_patch(region, 0, 1)].found,
-        run_cheats ? "cheats" : "plain");
+    LOG("cheats: asked %d, installed %d, record %d, wanted %d, the release's cheats set %d -> the %s sets",
+        cheats_request, s->installed_cheats, have_rec ? rec.cheats : -1, want_cheats,
+        mod_rel->assets[hf_w_patch(region, 0, 1)].found, run_cheats ? "cheats" : "plain");
     if (cheats_request == 1 && !run_cheats) {   /* the switch asked for what this release has not: nothing changes */
         task_end(0);
         ui_message(T(HT_CHEATS_NONE));
@@ -679,9 +684,8 @@ int update_run(int resuming, int reinstall) {
     in.mod_cheats = s->title_installed && s->installed_cheats;
     in.cheats = run_cheats;
     in.supported_format = SUPPORTED_SET_FORMAT;
-    memset(&rec, 0, sizeof rec);
     set_file.have = 0;
-    in.game_stale = hf_game_stale(s->game_installed, read_installed_record(&rec) ? &rec : NULL, s->dump_hash);
+    in.game_stale = hf_game_stale(s->game_installed, have_rec ? &rec : NULL, s->dump_hash);
     in.mod_layout = s->title_installed ? (rec.layout ? rec.layout : 1) : 0;
     if (s->title_installed) {
         in.mod_xx = rec.xx;

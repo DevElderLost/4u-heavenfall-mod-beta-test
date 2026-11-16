@@ -15,7 +15,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Upgrading on the tree plays the smith's hammering and then asks whether to equip the weapon.
 
 ### Item wheel
-- Holding L and pushing the C-Stick uses one of eight items from a wheel, sheathing your weapon first.
+- With a C-Stick, holding L and pushing it uses one of eight items from a wheel, sheathing your weapon first.
 - The wheel shows each item's name and quantity; an empty item that can be combined is combined once.
 - Mod Settings' Radial Menu edits the wheel's items on the wheel itself, sets its place, size and trigger, or turns it off.
 
@@ -47,12 +47,13 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Cheats can end the flex after drinking or eating at once, with the stick or a button.
 - Cheats can stop sharpening at once by pressing B.
 - Cheats can make the end-of-quest countdown run faster while you hold A and B.
-- Cheats can stop the rewards screen's timer and hide its countdown.
+- Cheats can stop the timer on the main rewards screens and hide its countdown there.
 - Cheats can keep Capture Guru and Autotracker always on for your minimap.
 - On a 3DS, the launcher's More menu turns the cheats on or off.
 
 ### The program
 - The Options page shows only what Mod Settings does not: single screen, Layered Gear, HUD size, aspect ratio and cheats.
+- Choices that moved from the Options page to Mod Settings start again from their defaults.
 - The web installer reads your game files far less, so phones make the mod much faster.
 - While the web installer makes the mod, the screen stays on even after you leave and come back.
 - The web installer and the program make the mod from Azahar's compressed games (.zcci, .zcia) again.

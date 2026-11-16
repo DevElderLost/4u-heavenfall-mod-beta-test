@@ -1,7 +1,7 @@
 [project]
 name = "heavenfall-beta"
 version = "0.2.1"   # keep equal to core/__init__.py
-description = "Heavenfall Beta: play Monster Hunter 4 Ultimate on one screen in an emulator"
+description = "Heavenfall Beta: play Monster Hunter 4 Ultimate on one screen, in an emulator or on a 3DS"
 requires-python = ">=3.10"
 license = "GPL-3.0-or-later"
 dependencies = ["PySide6>=6.6", "numpy>=1.24", "zstandard>=0.22"]  # numpy: the interface tools; zstandard: .zcci/.zcia

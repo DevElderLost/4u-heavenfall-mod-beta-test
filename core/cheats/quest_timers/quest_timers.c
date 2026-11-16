@@ -11,8 +11,9 @@ option of the START menu's Mod
  *                       0x18; the seconds left are +0x14). With No Time Limit on, the fraction stays as it is on the
  *                       scene's steps 1 and 2 (scene + 4), so the timer stops there; on the other steps, and with the
  *                       option off, it is the game's sum;
- *   rewards_no_limit    whether No Time Limit is on: FUN_00ab88f4 then does not show the countdown's number
- *                       (its call of FUN_002ed5d0).
+ *   rewards_number_hidden  whether FUN_00ab88f4 (the scene's countdown) shows nothing: No Time Limit is on and the
+ *                       scene is on a step whose timer it stops. The other steps keep their countdown, which the
+ *                       next step's setup hides again (FUN_002ecfc4).
  *
  * An option off gives the game's own value, so the game runs as without the hooks.
  *
@@ -69,22 +70,29 @@ __attribute__((used, section(".text.entry"))) u32 quest_end_delta(const u8 *main
     return time.bits;
 }
 
+/* No Time Limit on Rewards Screen is on and the result scene is on a step whose timer it stops */
+static int rewards_frozen(const u8 *scene)
+{
+    u32 step = (u8)(scene[SCENE_STEP] - FROZEN_FIRST);
+
+    return step <= FROZEN_LAST - FROZEN_FIRST && option_on(quest_timers_data.rewards_option);
+}
+
 /* The result scene's timer fraction after this frame: `fraction` + `time`, or `fraction` on a frozen step */
 u32 rewards_timer_add(const u8 *scene, u32 fraction, u32 time)
 {
     union word sum, add;
-    u32 step = (u8)(scene[SCENE_STEP] - FROZEN_FIRST);
 
     sum.bits = fraction;
     add.bits = time;
-    if (step <= FROZEN_LAST - FROZEN_FIRST && option_on(quest_timers_data.rewards_option))
+    if (rewards_frozen(scene))
         return fraction;
     sum.number += add.number;
     return sum.bits;
 }
 
-/* No Time Limit on Rewards Screen is on: the result scene shows no countdown */
-int rewards_no_limit(void)
+/* The result scene shows no countdown: its timer is stopped (the steps that keep their limit show theirs) */
+int rewards_number_hidden(const u8 *scene)
 {
-    return option_on(quest_timers_data.rewards_option);
+    return rewards_frozen(scene);
 }

@@ -58,6 +58,7 @@ typedef struct {
     int installed_xx;             /* installed.json xx */
     int installed_xx_no_room;     /* installed.json xx_no_room */
     int installed_cheats;         /* installed.json cheats: the title was built from a cheats set (More's Cheats) */
+    int record_cheats;            /* installed.json cheats, the title there or not: the sets the next update takes */
     char latest[48];              /* the latest release's tag, "" when not read */
     int dump;                     /* DUMP_* */
     char dump_path[512];

@@ -7,13 +7,15 @@
 @                     s1 becomes quest_end_delta(main).
 @ rewards_tick_hook   FUN_00accd24 (the quest result scene, r4): `vadd.f32 s0, s0, s1`, its timer's fraction plus the
 @                     frame time. s0 becomes rewards_timer_add(scene, s0, s1).
-@ rewards_number_hook FUN_00ab88f4 (the result scene's countdown, r0 its seconds): `bl FUN_002ed5d0`, which shows the
-@                     number. With No Time Limit on it returns at once, else it goes on to FUN_002ed5d0 with every
-@                     register as it came.
+@ rewards_number_hook FUN_00ab88f4 (the result scene's countdown, r0 the scene), its first instruction `push {r4, lr}`,
+@                     reached by a `b`: lr is still its caller's. When rewards_number_hidden(scene) (No Time Limit on,
+@                     a step whose timer it stops) it returns to that caller at once, showing nothing; else it runs
+@                     that instruction and goes on to the rest of FUN_00ab88f4 with every register as it came.
 @
-@ Each keeps r0-r3, r12, lr and the VFP's s0-s15 but the one it sets (the functions keep values in r1-r3 across the
-@ hook: FUN_00accd24 its step in r1). The flags are the C's: both functions set them again before they read them, and
-@ FUN_002ed5d0 sets its own.
+@ The first two keep r0-r3, r12, lr and the VFP's s0-s15 but the one they set (the functions keep values in r1-r3
+@ across the hook: FUN_00accd24 its step in r1). The flags are the C's: both functions set them again before they read
+@ them. rewards_number_hook stands at a function's entry: s0-s15 and the flags are free there, and the hidden return
+@ leaves r0 the scene (FUN_00ab88f4 returns nothing).
 @
 @ Build: tools/build/build_code_space.py (devkitARM), which places and links it.
 
@@ -47,8 +49,9 @@ rewards_tick_hook:
 
 rewards_number_hook:
     push    {r0-r3, r12, lr}
-    bl      rewards_no_limit
+    bl      rewards_number_hidden     @ r0: the scene
     cmp     r0, #0
     pop     {r0-r3, r12, lr}
-    beq     rewards_countdown_show    @ off: the game's call, which returns to FUN_00ab88f4
-    bx      lr
+    bxne    lr                        @ hidden: FUN_00ab88f4 returns to its caller
+    push    {r4, lr}                  @ the game's instruction
+    b       rewards_countdown_body    @ and the rest of FUN_00ab88f4

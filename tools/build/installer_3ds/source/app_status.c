@@ -201,7 +201,8 @@ void status_gather(void) {
     s->layout = have_rec ? rec.layout : 0;
     s->installed_xx = s->title_installed && have_rec && rec.xx;
     s->installed_xx_no_room = s->title_installed && have_rec && rec.xx_no_room;
-    s->installed_cheats = s->title_installed && have_rec && rec.cheats;
+    s->record_cheats = hf_want_cheats(-1, have_rec ? &rec : NULL);
+    s->installed_cheats = s->title_installed && s->record_cheats;
     if (have_rec) snprintf(s->installed_xx_dump, sizeof s->installed_xx_dump, "%s", rec.xx_dump);
     find_game(s, have_rec ? &rec : NULL);
     find_xx_dump(s);

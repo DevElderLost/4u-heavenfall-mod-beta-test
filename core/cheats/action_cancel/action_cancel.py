@@ -27,8 +27,7 @@ RUN_ACTION = 0xB670C0                   # FUN_00b670c0(hunter): the frame of the
 # The game's functions the block names (blocks.py GAME_SYMBOLS), checked against what the executable has
 GAME_NAMES = {"hunter_run_action": RUN_ACTION}
 
-# The Mod Settings rows that turn each cheat on (keys of mod_options.py OPTION_IDS). Placeholders: no such row exists
-# yet, so both cheats are off until the rows are added under these names (or these names are changed to the rows').
+# The Mod Settings rows that turn each cheat on (keys of mod_options.py OPTION_IDS).
 FLEX_OPTION, WHETSTONE_OPTION = "cheat_interruptible_flex", "cheat_whetstone_cancel"
 NO_OPTION = 0xFF                        # an id the block takes as "no option": the cheat never runs (action_cancel.c)
 

@@ -60,7 +60,7 @@ EXT_START = 0x111E000
 # + the new map numbers 28 and 29: the 20 map tables grown to 30 entries and each map's strings, lists and minimap
 #   records (3 pages)
 # + the random start's table of the map numbers grown too (1 page)
-# + Misty Peaks' fog cycle beside the probe's debug fog control (1 page)
+# + the new map's fog cycle beside the debug fog control (1 page)
 # + the modern camera giving the C-stick's question the game's answer and a skipped intro's music stopped by its
 #   voices (1 page)
 # + Mod Settings' lists of every size, their frames' name hashes (1 page)
@@ -79,7 +79,7 @@ EXT_START = 0x111E000
 # + the item wheel, its picture and its Radial Menu screens, packed last of the product's blocks (2 pages after the
 #   weapon tree's)
 # + Alatreon's icicle ground marker and the ported monsters' XX turn cut (1 page)
-# + the trio probe's diagnostics, packed after everything (1 page)
+# + the diagnostics block, packed after everything (1 page)
 # + Boltreaver Astalos' pull on the hunter, limited to the ball (1 page)
 EXT_SIZE = 0x1FA000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
@@ -87,7 +87,7 @@ PAGE = 0x1000                   # the extension grows by whole pages (the exhead
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
 # uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
 # records, em data slots and save records; a third for Damage Numbers'
-# state. 26 more for the trio probe's diagnostics ring (105 KB, only a probe's
+# state. 26 more for the diagnostics ring (105 KB, only a diagnostics
 # file reaches it: the product's variables are packed first and the file ends at the last page a build uses).
 EXT_VARS_SIZE = 29 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
