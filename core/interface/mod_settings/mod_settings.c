@@ -44,6 +44,7 @@ typedef short s16;
 #define NO_LIST 0xFF            /* mod_settings.py NO_LIST */
 #define SCREEN_ASPECT 0         /* mod_settings.py SCREENS */
 #define SCREEN_OPTION 1
+#define SCREEN_RADIAL 2         /* the item wheel's Radial Menu screen (radial_editor.c) */
 #define NO_ACTION 0xFF          /* FUN_00600658: a line with no action, the error sound on A */
 #define PAGE 2                  /* the third page, +0x11 */
 
@@ -113,6 +114,7 @@ enum { SMALL_FRAME_4, SMALL_FRAME_5, SMALL_STRIPS, SMALL_STRIPS_OURS, BIG_FRAME,
        BIG_BACKS_OURS, PANES };
 #define STRIP_SPRITES 2         /* a row's sprites in a strips null; a backings null has one */
 
+#define DATA_ICON 0x10          /* where FUN_00c0e268 writes the picture's cell */
 #define TEXT_SLOT 0             /* the string slot a message's number node takes (FUN_005a99a8) */
 
 #define PANE_FIRST_CHILD 0x20   /* a null pane's first child */
@@ -207,11 +209,18 @@ void start_pager_release(void);                                 /* FUN_005edc88 
 void start_pager_show(int page, int pages, int a, int b, int c);        /* FUN_005ed704 */
 void start_pager_hide(void);                                    /* FUN_005edcbc */
 void start_page_numbers(void);                                  /* FUN_00608028: the menu's "page/pages" in its title bar */
+void start_pager_left(void);                                    /* FUN_005f1f00 */
+void start_pager_right(void);                                   /* FUN_005f1f50 */
+void item_name(void *pane_ref, int item);                       /* FUN_005a86f8 */
+void item_icon_small(void *any, void *cell, int item);          /* FUN_00c0e268 */
 
 int aspect_screen_open(int title);                              /* aspect_list.c */
 int aspect_screen_frame(u32 pressed, u32 keys);                  /* aspect_list.c */
 int option_screen_open(int option, int title);                  /* option_list.c */
 int option_screen_frame(u32 pressed, u32 keys);                 /* option_list.c */
+int radial_editor_open(int title);                               /* radial_editor.c, the item wheel's block: only */
+int radial_editor_frame(char *menu, u32 pressed, u32 keys);     /* called from its row, which a mod has with it */
+void radial_editor_leave(void);                                 /* ... and from the close, only with its screen open */
 
 static u32 word_at(const char *object, int at)
 {
@@ -562,6 +571,11 @@ static void big_blank_more(void);
  * ui020's panes of ours go (FUN_005e86b0 closes the small list right after) */
 void mod_menu_closed(void)
 {
+    if (mod_settings_state.level == LEVEL_SCREEN &&
+        mod_settings_state.screen == SCREEN_RADIAL) {
+        radial_editor_leave();          /* the item wheel's picture off the top screen */
+        mod_settings_state.level = LEVEL_LIST;
+    }
     small_ours_down();
     big_ours_down();
     mod_settings_state.open = 0;
@@ -629,6 +643,12 @@ void mod_list_open(void)
     start_help_show(HELP_ON, HELP_PRIORITY);
 }
 
+/* The big list's four groups shown or hidden again: Edit Slots hides the list while it shows the wheel alone */
+void mod_list_shown(int shown)
+{
+    show_screen_groups(start_list_ui, shown);
+}
+
 void mod_list_close(void)
 {
     big_ours_down();
@@ -692,6 +712,61 @@ static void hide_icon(int row)
     }
 }
 
+/* A description holding another message of the menu's file */
+void mod_list_slot_help(int message, int text)
+{
+    fill_slot(mod_settings_data.file, text);
+    facility_help(KIND_TEXT, mod_settings_data.file, message);
+}
+
+/* A row with a text and no picture */
+void mod_list_text(int row, int message)
+{
+    u32 ref[2];
+
+    row_ref(row, ref);
+    text_common(ref, mod_settings_data.file, message);
+    hide_icon(row);
+}
+
+static void show_icon(int row, int item)
+{
+    char *sprite = row_sprite(row);
+
+    if (sprite != 0) {
+        char *data = pointer_at(sprite, SPRITE_DATA);
+
+        item_icon_small(gui_control, data + DATA_ICON, item);
+        *(u32 *)(data + DATA_SHOW) |= SPRITE_SHOWN;
+        mark_redraw(pointer_at(start_list_ui, UI_ICONS), sprite);
+    }
+}
+
+/* A row with an item's name and picture */
+void mod_list_item(int row, int item)
+{
+    u32 ref[2];
+
+    row_ref(row, ref);
+    item_name(ref, item);
+    show_icon(row, item);
+}
+
+/* A row with the game's "- - - - -" */
+void mod_list_placeholder(int row)
+{
+    mod_list_text(row, mod_settings_data.placeholder);
+}
+
+/* The pager's arrow on a page turn */
+void mod_list_turned(int right)
+{
+    if (right)
+        start_pager_right();
+    else
+        start_pager_left();
+}
+
 /* A row with a message holding another message of the menu's file, and no picture */
 void mod_list_slot_text(int row, int message, int text)
 {
@@ -740,8 +815,10 @@ void mod_list_frame(int row_on_page, int page, int pages)
 static int screen_frame(char *menu, u32 pressed)
 {
     u32 keys = pressed | (word_at(menu, M_REPEAT) & KEYS_REPEAT);
-    int back = mod_settings_state.screen == SCREEN_OPTION ? option_screen_frame(pressed, keys)
-                                                          : aspect_screen_frame(pressed, keys);
+    int screen = mod_settings_state.screen;
+    int back = screen == SCREEN_OPTION ? option_screen_frame(pressed, keys)
+             : screen == SCREEN_ASPECT ? aspect_screen_frame(pressed, keys)
+                                       : radial_editor_frame(menu, pressed, keys);
 
     if (back) {
         mod_list_close();
@@ -793,6 +870,8 @@ static int list_frame(char *menu, u32 pressed)
             opened = aspect_screen_open(entry->title);
         else if (entry->screen == SCREEN_OPTION)
             opened = option_screen_open(entry->arg, entry->title);
+        else if (entry->screen == SCREEN_RADIAL)
+            opened = radial_editor_open(entry->title);
 
         if (opened) {
             play(SOUND_DECIDE);

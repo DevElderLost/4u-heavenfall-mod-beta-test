@@ -18,6 +18,7 @@ from enum import Enum
 from pathlib import Path
 
 from core.cheats.aspect_table import OFF as ASPECT_OFF, interface_size, load_ratios
+from core.game.data.paths import CURATED_DIR
 
 
 class StructureMode(str, Enum):
@@ -312,6 +313,13 @@ class HudScale(str, Enum):
         return int(self.value) / 100
 
 
+class SmithyView(str, Enum):
+    """How Forge Weapons shows a weapon class (core/interface/weapon_tree/): the game's
+    own list, or the tree of its upgrade lines. The START menu's Mod Settings page changes it in the game."""
+    LIST = "list"
+    TREE = "tree"
+
+
 class Cheat3D(str, Enum):
     """The "3D off" cheat (core/cheats/cheats.py): the game's own 3D, or 3D forced off with the
     dithering off or on."""
@@ -355,11 +363,21 @@ EQUIPMENT_SWITCHES = ("randomize_recipes", "randomize_weapon_stats", "randomize_
 CheatAspect = Enum("CheatAspect", {"OFF": ASPECT_OFF, **{f"R{ratio.name.replace(':', '_')}": ratio.name
                                                          for ratio in load_ratios()}}, type=str)
 
+# How far the camera stays from the hunter, in percent of the game's distances: the values of the START menu's list
+# (curated/mod_settings.json, option camera_distance), the game's own first. A str enum, as the cheats' are
+def _camera_distances() -> list[str]:
+    options = json.loads((CURATED_DIR / "mod_settings.json").read_text(encoding="utf-8"))["options"]["value"]
+    return [value["setting"] for value in next(o for o in options if o["key"] == "camera_distance")["values"]]
+
+
+CameraDistance = Enum("CameraDistance", {f"P{distance}": distance for distance in _camera_distances()}, type=str)
+CAMERA_DISTANCE_GAME = next(iter(CameraDistance))
+
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
-                   "box_equipment", "system_keyboard", "damage_numbers",
-                   "layered_equipment", "layered_by_rank", "rare_exchange", "quality_of_life", "mhw_fatalis_music",
-                   "alatreon_music",
+                   "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
+                   "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
+                   "mhw_fatalis_music", "alatreon_music", "radial_menu",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
@@ -493,6 +511,9 @@ class Settings:
     # Lock on without the touch screen: L + D-pad up locks / switches the large-monster target (with a hint in the
     # item selector) and the target camera panel's monster face is also shown on the top screen
     touchless_target: bool = False
+    # The item wheel in a quest: hold L, push the C-stick, the item of that direction is used (needs a C-stick: a New
+    # 3DS or the emulator; core/interface/radial_menu/radial_menu.py). Not emulator-only
+    radial_menu: bool = False
     # Play seeing the top screen only: the touch screen's menus the player needs (the quest list, the Canteen's
     # ingredients, the yes / no boxes...) are shown on the top screen
     # (interface/single_screen/executable/single_screen.py, interface/single_screen/layout/single_screen.py)
@@ -510,6 +531,9 @@ class Settings:
     # The camera's top turning speed with the buttons: the cap of how long a turn has been held, 10 the game's own
     # (core/interface/mod_settings/mod_options.py CAMERA_CAP; its values in curated/mod_settings.json)
     camera_speed: int = 10
+    # How far the camera stays from the hunter, in percent of the game's distances: 100 the game's own
+    # (core/interface/mod_settings/mod_options.py CAMERA_DISTANCE; its values in curated/mod_settings.json)
+    camera_distance: CameraDistance = CAMERA_DISTANCE_GAME
     # Manage Equipment and Equipment Sets at every item box, not only at home (the Hall's box's lines:
     # curated/mod_settings.json; core/interface/mod_settings/mod_options.py BOX_LINES)
     box_equipment: bool = False
@@ -533,6 +557,10 @@ class Settings:
     # "Rare Materials Exchange" at the Wyporium: hand over a number of the items of the monsters that drop a rare
     # material, on a screen of its own, and get that material (core/gameplay/wyporium/rare_exchange.py)
     rare_exchange: bool = False
+    # How the Smithy's Forge Weapons shows a weapon class: the game's list or a tree of its lines
+    # (core/interface/weapon_tree/). The installed default of the START menu's row
+    # "Smithy View"; the game's own (the list) is the Settings default, the installer starts on the tree
+    smithy_view: SmithyView = SmithyView.LIST
     # The switch of an edition's quality-of-life module (gui_presets.json `install.modules`; core/app/presets.py
     # apply_modules): off, the controls, fast text, the item boxes and the cheats of that module take the game's own
     # values and leave the START menu's page. An edition without modules fixes it on

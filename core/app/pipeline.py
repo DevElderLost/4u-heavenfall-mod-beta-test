@@ -2,13 +2,14 @@
 
 Heavenfall Beta puts the touch screen's menus on the top screen (single-screen mode), shrinks the HUD, adds a page to
 the game's START menu, Mod Settings, where the player changes the cheats, the lock-on with L and holding A during play,
-and adds Layered Gear (the looks of the Smithy's Layered Equipment line), the Wyporium's new trades and its Rare
-Materials Exchange, all for the emulator (docs/how_it_works.md). They come in three modules, each with a switch of its
-own (gui_presets.json `install.modules`): single screen (with the HUD size, the lock-on, the aspect ratio and Select's
-kick), Layered Gear (with the new trades and the Rare Materials Exchange) and the quality-of-life one (holding A, fast
-text, the camera, the item boxes and the cheats); a module that is off leaves the game as it is, but for Layered Gear's
-new items (the rare materials of MH XX's monsters, Foreign Scrap), which every run defines so that a save holding them
-reads them whatever is on. Input: the player's
+shows the Smithy's Forge Weapons as a weapon tree, and adds Layered Gear (the looks of the Smithy's Layered Equipment
+line), the Wyporium's new trades and its Rare Materials Exchange, all for the emulator (docs/how_it_works.md). They
+come in three modules, each with a switch of its own (gui_presets.json `install.modules`): single screen (with the HUD
+size, the lock-on, the aspect ratio and Select's kick), Layered Gear (with the new trades and the Rare Materials
+Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree and the
+cheats); a module that is off leaves the game as it is, but for Layered Gear's new items (the rare materials of MH XX's
+monsters, Foreign Scrap), which every run defines so that a save holding them reads them whatever is on. Input: the
+player's
 decrypted base game, European or American; the executable and the interface's files are read from it in memory, and the
 update is never needed. MH XX's decrypted game is optional: with it, Layered Gear also offers XX's looks and the
 Wyporium trades the new materials they cost.
@@ -16,7 +17,8 @@ Wyporium trades the new materials they cost.
 Output (copy its contents into the emulator's load/mods/<title>/: 0004000000126100 European, 0004000000126300
 American; the program does it for the player):
 
-    romfs/<lang>/data/*.arc        the single-screen layouts, the smaller HUD, the Smithy's and the Wyporium's texts
+    romfs/<lang>/data/*.arc        the single-screen layouts, the smaller HUD, the Smithy's and the Wyporium's texts,
+                                   the weapon tree's panes
     romfs/...                      with MH XX: the models of XX's looks
     exefs/code.bin, exheader.bin   the whole executable with the patches: written for the canonical executable and
                                    carried onto the player's own version (docs/how_it_works.md, "The executable"); the
@@ -71,6 +73,9 @@ from core.interface.damage_numbers.damage_numbers import patch_damage_numbers
 from core.interface.damage_numbers.layout import damage_numbers_files, remove_damage_numbers_files
 from core.interface.horn_songs.horn_songs import patch_horn_songs
 from core.interface.horn_songs.layout import horn_songs_files, remove_horn_songs_files
+from core.interface.weapon_tree.tree_layout import weapon_tree_files
+from core.interface.weapon_tree.tree_texts import message_base as tree_message_base
+from core.interface.weapon_tree.weapon_tree import patch_weapon_tree
 from core.app import presets
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
@@ -140,10 +145,12 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
                           target_switch: bool = False, layered_texts: bool = False, exchange_texts: bool = False,
                           gen_looks: GenLooks | None = None, gear_texts: CommonTexts | None = None,
                           felynes: felyne_looks.FelyneLooks | None = None, damage_numbers: bool = False,
-                          horn_songs: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
+                          horn_songs: bool = False,
+                          weapon_tree: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's, the START menu page's (`menu_texts`), the new items' names (`gear_texts`: the rare materials of
     MH XX's monsters), Layered Gear's (with MH XX's looks: `gen_looks`; the Felynes': `felynes`), the Rare Materials
-    Exchange's, Damage Numbers' and the Hunting Horn's songs' layouts (`damage_numbers`, `horn_songs`) and the
+    Exchange's, the Smithy's weapon tree's (`weapon_tree`: its messages and its panes in the facility menu's layout),
+    Damage Numbers' and the Hunting Horn's songs' layouts (`damage_numbers`, `horn_songs`) and the
     single-screen mode's RomFS files, and with the game's
     files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
     made on the previous
@@ -176,6 +183,8 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     texts = dict(layered_text_files(rom, {**hud, **names}, gen=gen_looks, felynes=felynes)) if layered_texts else {}
     if exchange_texts:      # the Wyporium's messages and panes, on top of the other options' copies
         texts.update(exchange_text_files(rom, {**hud, **names, **texts}))
+    if weapon_tree and rom is not None:     # its messages after Layered Gear's in E_makeshop, its panes in ui401
+        texts.update(weapon_tree_files(rom, {**hud, **names, **texts}))
     own = {}                # Damage Numbers' layout and picture in core_quest.arc (interface/damage_numbers/layout.py)
     if damage_numbers and rom is not None:
         own = dict(damage_numbers_files(rom, {**hud, **names, **texts}))
@@ -261,6 +270,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     target_switch = "touchless_target" in menu_options
     damage = in_menu and "damage_numbers" in menu_options     # its layout and its page's option
     horn = in_menu and "horn_songs" in menu_options           # the Hunting Horn's songs: the same, on by default
+    # Forge Weapons' tree: its files and code whatever the installed view, which its row of the page chooses
+    tree = in_menu and "smithy_view" in menu_options
+    if in_menu and not tree and "smithy_view" in presets.in_game_fields() and "smithy_view" not in off:
+        notices.append(left_out("Smithy View", "Forge Weapons keeps the game's list", NOT_AVAILABLE))
     patch_interface_code = settings.hud_scale != HudScale.FULL or target_switch
     # the touch screen's menus on the top screen (interface/single_screen/executable/single_screen.py, single_screen.py)
     single_screen = settings.single_screen and supports_single_screen(code)
@@ -319,7 +332,9 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     gen_looks = prepared.gen_looks() if prepared else None
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
-        gen_looks, added.texts if added else None, felynes, damage, horn)
+        gen_looks, added.texts if added else None, felynes, damage, horn, tree)
+    # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
+    tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange
             or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
@@ -347,6 +362,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_select_kick(patched, plain=select_plain)
             if in_menu:
                 patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on)
+            if tree:        # the START menu's row chooses the view: its gates stand before the tree's entries
+                patched = patch_weapon_tree(patched, message_base=tree_base, gated=True)
             if cheats:
                 patched = patch_cheats(patched, settings, anchors=anchors)
             if patch_interface_code:

@@ -55,7 +55,7 @@ MAX_TABLE = 64                  # their rows, together: the top list and three f
 NO_LIST = 0xFF                  # in a list: it has no parent; in an entry: it opens a screen
 # The screens an entry can open, by their number in mod_settings.c: the aspect ratios (aspect_list.c) and an
 # option's values (option_list.c)
-SCREENS = ("aspect_list", "option_list")
+SCREENS = ("aspect_list", "option_list", "radial_menu")   # the last: radial_editor.c
 LIST_TEXTS = ("aspect_help", "aspect_row", "aspect_marked")      # struct aspect_list_data's, before the ratios' names
 LIST_ROWS = 10                  # a page of the big list: the game's 8 rows and ui020's two more (ten_rows.py)
 LINES_PER_PAGE = 8              # the lines of a page's table (FUN_005e8050)
@@ -107,13 +107,15 @@ def load_zone(path: Path = SETTINGS_FILE) -> dict:
     return {"offset": zone["offset"], "magic": magic.encode("ascii"), "version": zone["version"]}
 
 
-def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None = None, aspect: bool = True) -> dict:
+def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None = None, aspect: bool = True,
+                  wheel: bool = False) -> dict:
     """The curated table with each text as its message index: {"line": {"name", "help"}, "pager": (x, y) (the big
     list's), "entries": [row]}, where a row is {"name", "help", "title", "screen"} (and "option", the option's number,
     on the screen of its values) when it opens a screen and {"name", "help", "entries": [row]} when it opens another
     small list. `available`: the options the player's game can have (none: all); `aspect`: the aspect ratio's switch
-    is on. A row of an option that is not available, the aspect ratio's row without its switch, and a list left with no
-    row, are left out. Refuses a list with more rows than two pages of the small list, a screen the code does not
+    is on; `wheel`: the mod has the item wheel (interface/radial_menu). A row of an option that is not available, the
+    aspect ratio's row without its switch, the wheel's row without the wheel, and a list left with no row, are left
+    out. Refuses a list with more rows than two pages of the small list, a screen the code does not
     have, a place that is not two whole numbers, a text that is not one of its menu_texts, and more lists or rows than
     the data block holds."""
     from core.interface.mod_settings.mod_options import OPTION_IDS, load_options
@@ -141,10 +143,11 @@ def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None 
                 return None
             return {"name": message(option["name"]), "help": message(option["help"]), "title": message(option["title"]),
                     "screen": SCREENS.index("option_list"), "option": OPTION_IDS[option["key"]]}
-        if entry.get("aspect") and not aspect:
+        if (entry.get("aspect") and not aspect) or (entry.get("wheel") and not wheel):
             return None
         opens = entry["opens"]
-        texts = {"name": message(entry["name"]), "help": message(entry["help"])}
+        help_key = entry["wheel_help"] if wheel and "wheel_help" in entry else entry["help"]
+        texts = {"name": message(entry["name"]), "help": message(help_key)}
         if "entries" in opens:
             inner = small_list(opens["entries"])
             return {**texts, "entries": inner} if inner else None

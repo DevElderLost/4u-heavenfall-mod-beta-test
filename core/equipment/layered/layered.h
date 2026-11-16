@@ -92,7 +92,7 @@ struct layered_state {           /* the contract with the render hook */
 enum { ENTRY, CLASSES_MENU, CATS, FORGE, RELICS };   /* layered_ui.level */
 enum { M_ARMOR, M_WEAPON, M_FELYNE };         /* layered_ui.mode, on FORGE */
 enum { F_LIST, F_PROMPT, F_SCENE_START, F_SCENE, F_CAMERA, F_EQUIP, F_DYE };   /* layered_ui.sub, on FORGE */
-enum { FOCUS_ROW, FOCUS_GAME, FOCUS_RANK };   /* layered_ui.focus: the list, or one of the filters */
+enum { FOCUS_ROW, FOCUS_GAME, FOCUS_RANK, FOCUS_OWNED };   /* layered_ui.focus: the list, a filter, or the owned plate */
 enum { RANK_LOW, RANK_HIGH, RANK_G, RANK_ALL, RANK_VALUES };   /* layered_ui.rank */
 #define RANKS 3
 #define UNLOCK_ROOM 4            /* layered_rules.py: entries per rank of struct rules' unlock */
@@ -128,7 +128,8 @@ struct ui {                      /* the variable layered_ui: a screen's whole st
     u8 unlocked;                 /* the highest rank open (RANK_LOW, RANK_HIGH, RANK_G): set when a screen opens */
     u8 hover;                    /* the frames the cursor has rested on a weapon's row, up to the preview's wait */
     u16 held;                    /* the frames up or down has been held since it was pressed */
-    u8 relics, pad[3];           /* non-zero from the entry's Relics line on: its screens list the relics alone */
+    u8 relics, owned_only, pad[2];   /* relics: non-zero from the entry's Relics line on, its screens list the relics
+                                        alone; owned_only: the owned plate is on (a screen opens with it off) */
 };
 #define UI_LEVEL 0
 #define UI_COUNT 0xA
@@ -141,7 +142,8 @@ _Static_assert(sizeof(struct dye_window) <= 2 * 8 * sizeof(u16) && __builtin_off
                "the colour window: in the strings' room (test_layered_dye_window.py UI_DYE)");
 _Static_assert(__builtin_offsetof(struct ui, hover) == 0x5D && __builtin_offsetof(struct ui, held) == 0x5E,
                "test_layered_forge_cursor.py UI_HOVER, UI_HELD");
-_Static_assert(__builtin_offsetof(struct ui, relics) == 0x60, "test_layered_selector_run.py ui()");
+_Static_assert(__builtin_offsetof(struct ui, relics) == 0x60 && __builtin_offsetof(struct ui, owned_only) == 0x61,
+               "test_layered_selector_run.py ui()");
 _Static_assert(__builtin_offsetof(struct layered_state, weapon) == 0x16
                && __builtin_offsetof(struct layered_state, dye) == 0x32 && sizeof(struct layered_state) == 0x3C,
                "layered_state: the contract (0x3C bytes, weapon at +0x16, dye at +0x32)");
@@ -255,7 +257,15 @@ struct fg_rect { u16 x, y, w, h; };
 #define H_BOX_LINES 200          /* 5 */
 #define H_BOX_TITLE 205          /* 2 */
 #define H_BOX_ROWS 207           /* 4 per row, 3 rows: icon, count box, name, count */
-#define FORGE_HASHES 219
+#define H_OWNED 219              /* the owned plate's panes (menu_layout.py OWNED_PANES): after the game's box */
+#define OWNED_PLATE 0            /* its sprites: 2 pieces of the plate, the chosen value's box, the ZL key, 2 of the cursor */
+#define OWNED_SELECTED 2
+#define OWNED_KEY 3
+#define OWNED_CURSOR 4
+#define OWNED_WORD 6             /* then its texts: the word, the key's letters */
+#define OWNED_LETTERS 7
+#define OWNED_SPRITES 6
+#define FORGE_HASHES 227
 /* The colour window's panes, in forge_screen.dye.hashes (menu_layout.py, dye_pane_names). */
 #define DH_TARGET 0              /* 3 per target: plate, icon, swatch */
 #define DH_TITLE 18
@@ -288,6 +298,11 @@ struct fg_dye {                  /* the colour window's numbers (menu_layout.py,
 };
 enum { C_MODEL, C_CHOSEN, C_FILTER, C_GREY, C_BOUGHT, C_NOT_BOUGHT, C_KEY_BAR, C_MARK, C_PLATE, C_DISABLED_PLATE,
        C_DISABLED_ICON, C_NOT_OWNED_ICON, FORGE_COLOURS };
+struct fg_owned {                /* the owned plate (menu_layout.py _owned_data): the letters' colour, the sprites' rectangles, */
+    u32 letters_colour;
+    struct fg_rect rect[OWNED_SPRITES];
+    u16 msg_word, msg_letters;   /* E_makeshop messages of the word and of the key's letters */
+};
 struct forge_screen {
     u32 groups[6];               /* left, right, rows, keys, cursor, START's cue: the names' hashes */
     u8 priority[6], pad0[2];
@@ -309,12 +324,13 @@ struct forge_screen {
     struct fg_rect cue[2][3];    /* START's cue on the list and in the camera mode: the plate, the key, the word */
     u16 hold[HOLD_STEPS][2];     /* up or down held: from [0] frames on, [1] rows a step; 0 frames ends the steps */
     u16 preview_frames, pad5;    /* the frames on a weapon's row before the model shows its look */
+    struct fg_owned owned;
     u32 hashes[FORGE_HASHES];
     struct fg_dye dye;
 };
 _Static_assert(sizeof(struct fg_mode) == 16, "menu_layout.py ROWS_RECORD");
 _Static_assert(sizeof(struct fg_dye) == 200 + 4 * DYE_HASHES, "menu_layout.py DYE_SCREEN");
-_Static_assert(sizeof(struct forge_screen) == 372 + 4 * FORGE_HASHES + sizeof(struct fg_dye), "menu_layout.py FORGE_SCREEN");
+_Static_assert(sizeof(struct forge_screen) == 372 + 56 + 4 * FORGE_HASHES + sizeof(struct fg_dye), "menu_layout.py FORGE_SCREEN");
 
 struct data {                    /* the block layered_data (layered_equipment.py, HEADER) */
     u32 magic;

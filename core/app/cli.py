@@ -28,7 +28,7 @@ from core.app.edition import edition
 from core.game.executable.rebase import RebaseError
 from core.game.executable.versions import UnsupportedVersion
 from core.app.pipeline import run
-from core.app.settings import Cheat3D, CheatAspect, CheatFps, HudScale
+from core.app.settings import CameraDistance, Cheat3D, CheatAspect, CheatFps, HudScale
 
 
 def main(argv=None) -> int:
@@ -70,6 +70,10 @@ def main(argv=None) -> int:
                              "Mod Settings")
     parser.add_argument("--camera-speed", type=int, metavar="CAP",
                         help="the camera's top turning speed with the buttons (10: the game's own; 50: five times)")
+    parser.add_argument("--camera-distance", choices=[distance.value for distance in CameraDistance],
+                        metavar="PERCENT",
+                        help="how far the camera stays from the hunter, in percent of the game's distance (100: the "
+                             "game's own; one of %(choices)s)")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")
     parser.add_argument("--cheat-3d-mode", choices=[value.value for value in Cheat3D],
                         help="3D: off (the game's own), dither_off or dither_on (3D forced off)")

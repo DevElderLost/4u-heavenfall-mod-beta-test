@@ -83,6 +83,8 @@ EXEMPT: tuple[Exempt, ...] = (
            "look like a branch or a game address"),
     Exempt("mod_settings_data", "Mod Settings' lists of ten rows: ui020's pane name hashes, random words that now and "
            "then look like a branch or a game address", *MOD_SETTINGS_PANE_HASHES),
+    Exempt("weapon_tree_data", "the weapon tree's screen: pixels, colours (RGBA words), message ids and ui401's pane "
+           "name hashes (no address), random words that now and then look like a branch or a game address"),
 )
 
 

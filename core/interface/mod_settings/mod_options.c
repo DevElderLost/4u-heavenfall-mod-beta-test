@@ -34,7 +34,7 @@ enum {
     OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT, OPT_FAST_GATHERING,
     OPT_CAMERA, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA, OPT_DAMAGE_NUMBERS, OPT_DAMAGE_OTHER, OPT_DAMAGE_STYLE,
     OPT_DAMAGE_SIZE, OPT_DAMAGE_DURATION, OPT_MODERN_CAMERA, OPT_HORN_SONGS, OPT_INTRO_SKIP,
-    OPT_CAMERA_MAX, OPT_CAMERA_ACCEL, OPT_HORN_COLOUR
+    OPT_CAMERA_MAX, OPT_CAMERA_ACCEL, OPT_HORN_COLOUR, OPT_DISTANCE, OPT_SMITHY_VIEW
 };
 
 #define SLOT_3D 0               /* mod_options_state.saved: the game's word an option overwrites */
@@ -77,6 +77,9 @@ struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u8 box_away;                /* 65: the box being opened is not the house's (mod_box_kind keeps the game's box) */
     u8 live;                    /* 66: bit n set while the option writes into slot n */
     u8 frame;                   /* 67: the frames counted (mod_frame), for a block that must know one went by */
+    u32 camera_rest;            /* 68: the camera's resting distance (FUN_00bfff70; a float, 0 the game's 490) */
+    u32 camera_event;           /* 72: an event's zoom-out (FUN_00c056d4; 0 the game's 630) */
+    u32 camera_state;           /* 76: the distance in a state of the hunter (FUN_00c009ac; 0 the game's 300) */
 };
 
 _Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 28, "mod_options_stub.s NET_WAITS");
@@ -89,7 +92,10 @@ _Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 60, "h
 _Static_assert(__builtin_offsetof(struct mod_options_state, box_lines) == 64, "mod_options_stub.s BOX_LINES");
 _Static_assert(__builtin_offsetof(struct mod_options_state, box_away) == 65, "mod_options_stub.s BOX_AWAY");
 _Static_assert(__builtin_offsetof(struct mod_options_state, frame) == 67, "modern_camera.c MOD_FRAME");
-_Static_assert(sizeof(struct mod_options_state) <= 68, "blocks.py: the variable mod_options_state");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_rest) == 68, "mod_options_stub.s CAMERA_REST");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_event) == 72, "mod_options_stub.s CAMERA_EVENT");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_state) == 76, "mod_options_stub.s CAMERA_STATE");
+_Static_assert(sizeof(struct mod_options_state) <= 80, "blocks.py: the variable mod_options_state");
 
 extern const struct mod_options_data mod_options_data;
 extern struct mod_options_state mod_options_state;
@@ -207,6 +213,24 @@ static u32 game_fov(void)
     return state[0] == 8 && state[1] == 1 ? 0x42680000 : 0x42480000;
 }
 
+/* The camera's literals of its distance from the hunter (FUN_00bfff70, FUN_00c056d4, FUN_00c009ac) */
+#define CAMERA_REST 490.0f
+#define CAMERA_EVENT 630.0f
+#define CAMERA_STATE 300.0f
+
+/* A distance of the camera, the game's `game` times the option's factor (a float word): 0, the game's own literal, at
+ * the factor 1 or without one (a mod without the row reads a zero payload) */
+static u32 camera_distance(float game, u32 factor_word)
+{
+    union { u32 bits; float number; } factor, out;
+
+    factor.bits = factor_word;
+    if (!(factor.number > 0.0f) || factor.number == 1.0f)
+        return 0;
+    out.number = game * factor.number;
+    return out.bits;
+}
+
 /* The frame rate word the limiter (FUN_00644320) is given. The limiter sleeps until a frame lasted base / word (in 60ths
  * of a second) after the last one, and the GX wait (FUN_00bf5fec) ends every frame on a vsync, so a frame lasts a whole
  * number of vsyncs and a target between them sleeps the frame off its vsync (50 fps ran as 45 when drawing took four
@@ -257,5 +281,8 @@ void mod_frame(void)
     state->hide_face = mod_options_data.options[OPT_LOCK].count != 0 && state->values[OPT_LOCK] == 0;
     state->camera_cap = payload_of(OPT_CAMERA)[0];
     state->box_lines = (u8)payload_of(OPT_BOX)[0];
+    state->camera_rest = camera_distance(CAMERA_REST, payload_of(OPT_DISTANCE)[0]);
+    state->camera_event = camera_distance(CAMERA_EVENT, payload_of(OPT_DISTANCE)[0]);
+    state->camera_state = camera_distance(CAMERA_STATE, payload_of(OPT_DISTANCE)[0]);
     state->frame++;
 }

@@ -58,6 +58,7 @@ ASSET_FOLDERS = (
     "install/installer_3ds",        # the 3DS app
     "interface/single_screen/layout/images",
     "interface/damage_numbers/art",  # Damage Numbers' picture and its cells
+    "interface/radial_menu/art",    # the item wheel's picture and its cells
 )
 # What the program reads at run time, relative to core/ (a folder: every file in it that is not code).
 RESOURCES = ASSET_FOLDERS + (

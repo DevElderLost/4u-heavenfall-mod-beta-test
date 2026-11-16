@@ -103,8 +103,14 @@ class Edition:
     legacy_markers: tuple[str, ...] = ()            # a mod folder marked with one is still ours (install/deploy.py)
     legacy_build_markers: tuple[str, ...] = ()      # so do build folders (install/build.py)
     xx_optional: bool = False   # MH XX is never required; the Install page offers its file (state.offers_xx)
+    new_maps: bool = False      # the product builds the maps ported from XX (Misty Peaks) whenever XX's file is given
     console_title: ConsoleTitle | None = None       # required with the "console" platform
     console_release: ConsoleRelease | None = None   # the release files the 3DS app downloads (launcher)
+
+    @property
+    def xx_offered(self) -> bool:
+        """The edition's run uses MH XX's file whenever one is given, whatever the player's options."""
+        return self.xx_optional or self.new_maps
 
     @property
     def home(self) -> Path:

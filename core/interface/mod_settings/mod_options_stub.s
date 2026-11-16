@@ -23,6 +23,12 @@
 @   and caps it with `vldr s0, [pc, ...]` (10.0); the turn's speed grows with that time, so the cap is its top speed. The
 @   load takes the mod's value instead (the game's own literal until mod_frame has run), and the flags are kept.
 @
+@ mod_camera_rest, mod_camera_event, mod_camera_state: the camera's distance from the hunter (camera + 0xEB8).
+@   FUN_00bfff70 loads its resting distance with `vldr s2, [pc, ...]` (490.0), FUN_00c056d4 an event's zoom-out with
+@   `vldr s1, [pc, ...]` (630.0) and FUN_00c009ac the distance of a state of the hunter with `vldr s0, [pc, ...]` (300.0).
+@   Each load takes the mod's value instead (the game's own literal while it is 0: before mod_frame has run, at the
+@   game's 1x, or in a mod without the row), and the flags are kept.
+@
 @ mod_box_kind: FUN_009ec82c(scene, box) stores `box` (r6: 0 the house's box, 1 the Gathering Hall's) in its menu with
 @   `strb r6, [r4, #0x2]`, then reads r6 and that byte again: box 0 gets seven lines and the house's set-ups, and only
 @   for box 0 does the menu draw the lines past four and the submenus they open. The game's box is kept in
@@ -44,7 +50,8 @@
 @ gate_*: a call of the game that another block took (hold A, fast text, fast gathering, the lock-on's D-pad filter, the
 @   death camera skip's call of FUN_00c03d70 in the camera manager's frame, the modern camera's calls of FUN_00bfd028
 @   and its question in FUN_00b3cc64, its aim's two instructions and calls of FUN_00b1ea04 in FUN_00b2041c, the intro
-@   skip's call of FUN_00292ea4 in the touch bar's input) goes here
+@   skip's call of FUN_00292ea4 in the touch bar's input, the Smithy's branch to the forge's entry once a weapon class
+@   is chosen: the tree's entry or the game's list, and Upgrade's call of FUN_00a02048 on a box weapon) goes here
 @   first: with the option off it makes the game's own call, else it goes on to the block's entry. Only the flags
 @   change (r12 is kept), so the callee gets its registers and stack arguments as they came.
 @
@@ -55,6 +62,9 @@
 @   shoulder and the Bow's) and `tst r0, #0x3c` (the scope's C-stick bits) for gate_aim_commands and gate_aim_scope,
 @   the modern camera's aim hooks: the game's instruction, then back.
 @
+@ smithy_upgrade_game: FUN_009bdb58's `bl FUN_00a02048` (Upgrade's A on a box weapon: its upgrades listed) for
+@   gate_smithy_upgrade: the game's call, then back after it (lr is free there: the function saved its own).
+@
 @ Build: tools/build/build_code_space.py (devkitARM), which places and links it.
 
     .arch armv6k
@@ -63,9 +73,10 @@
     .global _start
     .global mod_frame_stub, mod_bloom, mod_fov_reset, mod_fov_other, mod_net_waits, mod_net_polls_a, mod_net_polls_b
     .global mod_raw_a, mod_raw_b, mod_camera_cap, mod_box_kind, mod_box_lines
+    .global mod_camera_rest, mod_camera_event, mod_camera_state
     .global gate_hold_a_field, gate_hold_a_rewards, gate_hold_a_claim, gate_fast_text, gate_fast_motion
     .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera, gate_intro_skip
-    .global gate_intro_music, gate_intro_end
+    .global gate_intro_music, gate_intro_end, gate_smithy_view, gate_smithy_upgrade, smithy_upgrade_game
     .global gate_modern_turn, gate_modern_stick, modern_stick_game
     .global gate_aim_commands, gate_aim_scope, gate_aim_view, aim_commands_game, aim_scope_game
 
@@ -79,6 +90,9 @@
     .equ CAMERA_CAP, 56
     .equ BOX_LINES, 64
     .equ BOX_AWAY, 65
+    .equ CAMERA_REST, 68
+    .equ CAMERA_EVENT, 72
+    .equ CAMERA_STATE, 76
     @ the options' places in mod_options_state.values (mod_options.py OPTION_IDS)
     .equ OPT_BLOOM, 1
     .equ OPT_LOCK, 6
@@ -90,9 +104,13 @@
     .equ OPT_DEATH_CAMERA, 13
     .equ OPT_MODERN_CAMERA, 19
     .equ OPT_INTRO_SKIP, 21
+    .equ OPT_SMITHY_VIEW, 26
     .equ GAME_FOV_ONE, 0x42480000       @ 50.0, the game's literal of the reset case "not equal" and of FUN_00c06a14
     .equ GAME_FOV_OTHER, 0x42680000     @ 58.0, the reset case "equal"
     .equ GAME_CAMERA_CAP, 0x41200000    @ 10.0, FUN_00bfd028's cap
+    .equ GAME_CAMERA_REST, 0x43F50000   @ 490.0, FUN_00bfff70's resting distance
+    .equ GAME_CAMERA_EVENT, 0x441D8000  @ 630.0, FUN_00c056d4's zoom-out
+    .equ GAME_CAMERA_STATE, 0x43960000  @ 300.0, FUN_00c009ac's distance in a state of the hunter
 
 _start:
 mod_frame_stub:
@@ -178,6 +196,42 @@ mod_camera_cap:
     pop     {r11, r12}
     b       camera_cap_return
 
+mod_camera_rest:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_REST]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_REST
+    vmov    s2, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_rest_return
+
+mod_camera_event:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_EVENT]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_EVENT
+    vmov    s1, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_event_return
+
+mod_camera_state:
+    push    {r11, r12}
+    mrs     r11, cpsr
+    ldr     r12, =mod_options_state
+    ldr     r12, [r12, #CAMERA_STATE]
+    cmp     r12, #0
+    ldreq   r12, =GAME_CAMERA_STATE
+    vmov    s0, r12
+    msr     cpsr_f, r11
+    pop     {r11, r12}
+    b       camera_state_return
+
 mod_box_kind:
     push    {r12}
     ldr     r12, =mod_options_state
@@ -226,6 +280,8 @@ mod_box_lines:
     gate    gate_aim_commands, OPT_MODERN_CAMERA, aim_commands_hook, aim_commands_game
     gate    gate_aim_scope, OPT_MODERN_CAMERA, aim_scope_hook, aim_scope_game
     gate    gate_aim_view, OPT_MODERN_CAMERA, modern_aim_view, aim_pitch_view
+    gate    gate_smithy_view, OPT_SMITHY_VIEW, weapon_tree_entry, forge_join
+    gate    gate_smithy_upgrade, OPT_SMITHY_VIEW, weapon_tree_upgrade, smithy_upgrade_game
     gate    gate_intro_skip, OPT_INTRO_SKIP, intro_skip_button, touch_bar_button
     gate    gate_intro_music, OPT_INTRO_SKIP, intro_skip_music, cutscene_sound_stop
     gate    gate_intro_end, OPT_INTRO_SKIP, intro_skip_end, event_sound_end
@@ -242,6 +298,10 @@ aim_commands_game:
 aim_scope_game:
     tst     r0, #0x3c
     bx      lr
+
+smithy_upgrade_game:
+    bl      upgrade_list
+    b       upgrade_listed
 
 keyboard_poll_game:
     push    {r4, r5, r6, lr}

@@ -34,14 +34,15 @@ WAVE_ALIGN = 0x20
 
 BANK_VERSION = 11
 BANK_HEADER = 0x20
-BANK_GROUPS = 0x10          # u32: groups of entries, each with a descriptor (the first at +0x14) and a trailer
+BANK_GROUPS = 0x08          # u32: groups of entries, each with a descriptor (the first at +0x14)
+BANK_TRAILERS = 0x10        # u32: the 8-byte trailers at the end, one per group or fewer (some map banks)
 GROUP = 12                  # descriptor: u16 group, u8 2 x entries, u8 flags, u32 first entry, u32 0
 GROUP_FLAGS = 3
 BANK_FLAGS_AT = 0x14 + GROUP_FLAGS
 BANK_FLAGS = 0x80           # MH4U's usual group flags (0x88 on some); MHGen writes 0x08
 BANK_ENTRY = 76
 BANK_ENTRY_FLAG = 0x08      # +0x02 of every MH4U bank entry; 0 in MHGen
-BANK_TRAILER = 8            # per group: a float, the group, 3 bytes MHGen fills (0xCD) and MH4U mostly leaves 0
+BANK_TRAILER = 8            # per trailer: a float, the group, 3 bytes MHGen fills (0xCD) and MH4U mostly leaves 0
 
 REQUEST_VERSION = 8
 REQUEST_HEADER = 0x10
@@ -125,7 +126,7 @@ def convert_bank(data: bytes, rename, flags: tuple[int, ...] = (BANK_FLAGS,)) ->
                 + struct.pack("<I", WAVE if type_hash == GEN_WAVE else type_hash)
                 + _bank_entry(data[end + 5:end + 5 + BANK_ENTRY]))
         at = end + 5 + BANK_ENTRY
-    if len(data) - at != BANK_TRAILER * groups:
+    if len(data) - at != BANK_TRAILER * struct.unpack_from("<I", data, BANK_TRAILERS)[0]:
         raise ValueError("a sound bank of another layout")
     for trailer in range(at, len(data), BANK_TRAILER):
         out += data[trailer:trailer + 5] + bytes(BANK_TRAILER - 5)  # a float, the group; MHGen fills 0xCD after

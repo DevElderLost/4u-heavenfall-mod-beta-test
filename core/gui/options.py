@@ -16,9 +16,10 @@ from enum import Enum
 from core.app import presets
 from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
-    AlatreonMode, AlatreonMusic, ArmorSkillMode, Cheat3D, CheatAspect, CheatFps, DuplicateMode, FrenzyChance, Frequency,
-    GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode,
-    RewardSource, StatMode, StructureMode, SubQuestMode, TextMode, ValstraxMode,
+    CAMERA_DISTANCE_GAME, AlatreonMode, AlatreonMusic, ArmorSkillMode, CameraDistance, Cheat3D, CheatAspect, CheatFps,
+    DuplicateMode, FrenzyChance, Frequency, GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode,
+    PalicoModelMode, ProgressionMode, RewardSource, SmithyView, StatMode, StructureMode, SubQuestMode, TextMode,
+    ValstraxMode,
 )
 from core.gui.i18n import EMPTY, T
 
@@ -678,6 +679,22 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
              f"encontrado (como el panel). {_ALSO_IN_GAME_ES}",
              "Meant for playing with the top screen only (e.g. on a monitor). The Target Cam panel must be on the "
              f"touch screen, and the monster must have been found first, as with the panel. {_ALSO_IN_GAME_EN}")),
+        Group(T("Rueda de objetos", "Item wheel"), (
+            Option("radial_menu", T("Rueda de objetos con el C-stick", "Item wheel with the C-stick"),
+                   T("En una misión, mantén pulsado L (modo objetos) y empuja el C-stick hacia una de las ocho "
+                     "direcciones: se usa al instante el objeto de esa dirección. Mientras L está pulsado, el "
+                     "C-stick no mueve la cámara. Los objetos de cada dirección y la posición de la rueda se "
+                     "eligen en el juego: menú START, tercera página, Ajustes del mod, Menú radial. Necesita un "
+                     "C-stick (una New 3DS o el emulador): una 3DS antigua no lo tiene y no puede usarla.",
+                     "In a quest, hold L (item mode) and push the C-stick towards one of its eight directions: the "
+                     "item of that direction is used at once. While L is held, the C-stick no longer moves the "
+                     "camera. Each direction's item and the wheel's position are chosen in the game: START menu, "
+                     "third page, Mod Settings, Radial Menu. It needs a C-stick (a New 3DS or the emulator): an old "
+                     "3DS has none and cannot use it.")),
+        ), T("Necesita un C-stick: una New 3DS o el emulador. Una 3DS antigua no puede usarla. Desactivada, el "
+             "juego no se toca.",
+             "It needs a C-stick: a New 3DS or the emulator. An old 3DS cannot use it. Switched off, the game is "
+             "left untouched.")),
         Group(T("Pantalla única", "Single screen"), (
             Option("single_screen", T("Modo pantalla única",
                                       "Single Screen mode: touch screen menus on the top screen"),
@@ -756,6 +773,17 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "The top speed the camera turns at while you hold a button to turn it. The game uses 10: 20 "
                      "doubles it and 50 makes it five times as fast; it takes a little longer to get there."),
                    minimum=_CAMERA_MIN, maximum=_CAMERA_MAX, step=_CAMERA_STEP),
+            Option("camera_distance", T("Distancia de la cámara", "Camera distance"),
+                   T("Lo lejos que va la cámara del cazador. 1x es la del juego: con 0,5x va a la mitad de distancia "
+                     "y con 2x al doble. Contra una pared se sigue acercando sola, como en el juego.",
+                     "How far the camera stays from your hunter. 1x is the game's: 0.5x is half as far and 2x twice "
+                     "as far. Against a wall it still moves in by itself, as in the game."),
+                   choices=(
+                       Choice(CAMERA_DISTANCE_GAME, T("La del juego (1x)", "Game default (1x)")),
+                       *(Choice(distance, T(f"{int(distance.value) / 100:g}x".replace(".", ","),
+                                            f"{int(distance.value) / 100:g}x"))
+                         for distance in CameraDistance if distance is not CAMERA_DISTANCE_GAME),
+                   ), compact=True),
         ), _ALSO_IN_GAME),
         Group(T("Caja de objetos", "Item box"), (
             Option("box_equipment", T("Gestionar el equipo en cualquier caja", "Manage equipment at any item box"),
@@ -774,6 +802,20 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "MH Wilds and Rise: gold on a weak spot, grey when it bounces. In the game, Mod Settings > "
                      "Interface > Damage Numbers picks the style (Wilds, Rise or Classic), the size, how long it stays "
                      "and whether all the monster's damage shows, not only yours. Felynes' damage never shows.")),
+        ), _ALSO_IN_GAME),
+        Group(T("Herrería", "Smithy"), (
+            Option("smithy_view", T("Vista de Crear armas", "Forge Weapons view"),
+                   T("Cómo muestra la herrería las armas de una clase: la lista del juego, o un árbol con sus líneas "
+                     "de mejora, como en MH World y Rise, donde se ve lo que ya has descubierto. Con el árbol, A en un "
+                     "nodo forja o mejora allí. En el juego, Ajustes del mod > Interfaz > Vista de herrería lo cambia.",
+                     "How the Smithy shows a weapon class: the game's own list, or a tree of its upgrade lines, as "
+                     "MH World and Rise do, with what you have discovered. On the tree, A on a node forges or "
+                     "upgrades there. In the game, Mod Settings > Interface > Smithy View changes it."),
+                   choices=(
+                       Choice(SmithyView.LIST, T("Lista", "List"), T("La lista del juego.", "The game's own list.")),
+                       Choice(SmithyView.TREE, T("Árbol", "Tree"),
+                              T("Un árbol por clase de arma.", "One tree for each weapon class.")),
+                   ), compact=True),
         ), _ALSO_IN_GAME),
         Group(T("Wyporio", "Wyporium"), (
             Option("rare_exchange", T("Canjear raros", "Rare Materials Exchange"),

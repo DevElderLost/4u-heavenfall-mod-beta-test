@@ -38,9 +38,12 @@ FORGE_KEYS = ("rank_low", "rank_high", "rank_g", "game_mh4u", "game_gen", "game_
               "help_armor", "help_felyne", "help_row", "help_filter")
 # help_row_weapons: the weapons' key bar, which has no Y (layered_equipment.py gives its message to struct data);
 # dye_keys, select_key: the colour window's key bar and the word on SELECT's key (menu_layout.py, struct fg_dye);
-# relics, help_relics: the entry's Relics line and its help (layered_rules.py gives their messages to the screens' code)
+# relics, help_relics: the entry's Relics line and its help (layered_rules.py gives their messages to the screens'
+# code);
+# owned_only, zl_key: the word of the "owned only" plate and the ZL key's (menu_layout.py, struct fg_owned)
 UI_KEYS = ("entry", "entry_help", "weapons", "blank", "felynes", "felyne_none", "felyne_choose", *FORGE_KEYS,
-           "help_row_weapons", "counter", "dye_keys", "select_key", "relics", "help_relics")
+           "help_row_weapons", "counter", "dye_keys", "select_key", "relics", "help_relics",
+           "owned_only", "zl_key")
 COUNTER = None  # the "counter" message: only the text renderer's string slot 0 (Lmd.add_number_message), no text
 SET_BASE = MESSAGE_BASE + len(UI_KEYS)  # the name of armor look i is message SET_BASE + i
 NAME_FILES = {"head": "HeadName", "body": "BodyName", "arms": "ArmName", "waist": "WaistName", "legs": "LegName"}

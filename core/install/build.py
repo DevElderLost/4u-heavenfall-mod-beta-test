@@ -157,7 +157,7 @@ def build(rom: Path, settings, build_dir: Path | None = None, console: bool = Fa
     settings add a ported monster or the models pack (Settings.needs_xx); an edition where it is optional
     (`Edition.xx_optional`) checks it only when one is given."""
     problems = check_inputs(rom, xx_rom=xx_rom,
-                            need_xx=settings.needs_xx or (edition().xx_optional and xx_rom is not None))
+                            need_xx=settings.needs_xx or (edition().xx_offered and xx_rom is not None))
     if problems:
         raise InputsError(problems)
     from core.app.pipeline import run
