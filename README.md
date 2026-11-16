@@ -62,7 +62,7 @@ The full list is in **[what the mod adds](docs/features.md)**, and every change 
 - **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The visual and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
 - **Game data reference:** [Kiranico](https://mh4u.kiranico.com/).
 - **Damage numbers:** their features and options follow PurplefinNeptuna's Monster Hunter Generations Ultimate mod "Damage Numbers"; the digits are drawn from Open Sans (SIL Open Font License 1.1).
-- **World-style sharpness gauge:** by Jamo (JamoMH), from the mod "MH4U MH4G World Style Sharpness Indicator", used with permission.
+- **World-style sharpness gauge:** by Jamo (JamoMH), from the mod "MH4U MH4G World Style Sharpness Indicator"
 - **Linux start script:** based on the one hndll56 contributed.
 
 **License:** [GNU General Public License v3.0 or later](LICENSE). Monster Hunter is a trademark of Capcom. This is an unofficial fan project, not affiliated with or endorsed by Capcom.
