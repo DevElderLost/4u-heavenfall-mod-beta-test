@@ -1358,12 +1358,11 @@ static void buy_refused(u32 obj, u8 *st)
     screens_open = 1;
 }
 
-/* Yes on a create recipe: FUN_009ca7e8's sub-state 1, call by call. The box has room (recipe_state's bit 2 was 0). */
-static void forge_buy(u32 obj, u8 *st)
+/* The smith's hammer scene, as FUN_009ca7e8's Yes asks for it before the purchase: the status view as at the entry,
+   the preview closed, FUN_009d61e4 with the smith's kind (3 for the smith 'H', 2 when FUN_00a92af0, else 1). Both
+   ways start it on the tree, though the game's own upgrade has no scene. */
+static void scene_start(u32 obj, u8 *st)
 {
-    u8 ref[REF_SIZE];
-    u32 id = S->bought;
-    const u8 *recipe = create_recipe(equipment_control, RECIPE_WEAPON, S->index);
     status_reset(obj, st, 1);
     preview_close(obj);
     S->sub = T_SCENE_START;
@@ -1373,6 +1372,25 @@ static void forge_buy(u32 obj, u8 *st)
     else
         kind = hammer_kind(obj) ? 2 : 1;
     hammer_scene((u32)preview_mode, kind);
+}
+
+/* The Smithy's panels and our groups put away while the scene plays, as FUN_009ca7e8's Yes ends. */
+static void scene_panels(u32 obj)
+{
+    forge_hide(obj);
+    smithy_panel(obj, 0, 0);
+    smithy_panel_b(obj, 0, 0);
+    smithy_panel_c(obj, 0);
+    groups_show(0);
+}
+
+/* Yes on a create recipe: FUN_009ca7e8's sub-state 1, call by call. The box has room (recipe_state's bit 2 was 0). */
+static void forge_buy(u32 obj, u8 *st)
+{
+    u8 ref[REF_SIZE];
+    u32 id = S->bought;
+    const u8 *recipe = create_recipe(equipment_control, RECIPE_WEAPON, S->index);
+    scene_start(obj, st);
     make_record(equipment_control, ref, S->type, id);
     *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = NO_SLOT;
     *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = box_add(save_control, save_data(), ref[0], rd16(ref + REF_ID));
@@ -1381,17 +1399,14 @@ static void forge_buy(u32 obj, u8 *st)
     for (u32 i = 0; i < 4; i++)
         item_take(obj, rd16(recipe + RECIPE_MATERIALS + 4 * i), (s16)rd16(recipe + RECIPE_MATERIALS + 4 * i + 2));
     forge_tally(save_control, ref);
-    forge_hide(obj);
-    smithy_panel(obj, 0, 0);
-    smithy_panel_b(obj, 0, 0);
-    smithy_panel_c(obj, 0);
-    groups_show(0);
+    scene_panels(obj);
 }
 
 /* Yes on an upgrade: FUN_009e5cc8 for a weapon not customized, call by call, on the copy chosen. An Insect Glaive is
    upgraded as any class, with its record's two materials; the kinsect (the reference's [1], [4..5]) is not touched:
    FUN_00c25824 copies only the id and the decorations between two glaives, and the game's FUN_002f764c after it is
-   not called. */
+   not called. obj + 0xB958 is the slot even when it is worn (the game writes 0xFFFF and asks nothing): "Equip now?"
+   is asked after every upgrade on the tree, and Yes on a worn copy wears that slot again (FUN_00c1e064: no change). */
 static void upgrade_buy(u32 obj, u8 *st)
 {
     u8 child[REF_SIZE];
@@ -1422,14 +1437,14 @@ static void upgrade_buy(u32 obj, u8 *st)
     if (slot_worn(save_control, data, slot))
         *((u8 *)obj + OBJ_GEAR_CHANGED) = 1;
     st[ST_TYPE] = S->type;
-    *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = slot_worn(save_control, data, slot) ? NO_SLOT : slot;
+    *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = slot;
 }
 
 /* The tree read again after a purchase, the cursor on the weapon bought (its children show now). */
 static void rebuild(u32 obj, u8 *st, u32 id);
 
-/* "Equip now?" in the same window (the forge's after the scene; the upgrade's at once, unless the copy is worn). Until
-   it is answered S->buy stays the way bought. */
+/* "Equip now?" in the same window, after the scene (the forge's and, on the tree, the upgrade's). Until it is answered
+   S->buy stays the way bought. */
 static void equip_ask(void)
 {
     windows_open();
@@ -1460,17 +1475,12 @@ static __attribute__((noinline)) void prompt(u32 obj, u8 *st)      /* not inline
     } else if (said == 1 && S->buy == BUY_FORGE) {
         forge_buy(obj, st);
     } else if (said == 1) {
-        upgrade_buy(obj, st);
+        upgrade_buy(obj, st);            /* FUN_009fa2bc's Yes: the windows closed after FUN_009e5cc8 */
         *(u32 *)(st + ST_ANSWER) = 0;
         windows_close();
         trade_buttons(obj, BUTTONS_LIST, BUTTONS_FLAGS);
-        rebuild(obj, st, S->bought);
-        if (*(u16 *)((u8 *)obj + OBJ_NEW_SLOT) != NO_SLOT) {
-            equip_ask();
-        } else {
-            lobby_anim_step((u32)lobby_gui_anim, 0);
-            list_again(obj, st);
-        }
+        scene_start(obj, st);            /* then the forge's scene, and "Equip now?" at its end */
+        scene_panels(obj);
     }
 }
 

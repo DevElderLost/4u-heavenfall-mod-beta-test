@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define HF_MAX_WANTED 8      /* assets looked for in one release */
+#define HF_MAX_WANTED 12     /* assets looked for in one release (hf_edition.h: HF_W_COUNT) */
 #define HF_NAME_MAX 96
 #define HF_URL_MAX 400
 #define HF_TAG_MAX 48

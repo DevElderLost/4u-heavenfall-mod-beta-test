@@ -30,6 +30,7 @@ Open the launcher: when a new version is out, its big button says **Update to** 
 
 - If you copy Monster Hunter XX after installing, the launcher says it found it, and **Update** adds it.
 - **More** has **Reinstall**, which installs the latest version again.
+- **More** has **Cheats**, off at first. Turning it on installs the game again with a Cheats group in Mod Settings; your save comes back after. Never play with others without telling them you use cheats.
 - The launcher also updates itself, then carries on by itself.
 - SELECT switches it between English and Spanish. If the screens stay blank, hold SELECT while the launcher starts for a simpler display; hold R to bring the full one back.
 

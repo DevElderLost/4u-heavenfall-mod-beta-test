@@ -19,6 +19,7 @@ typedef struct {
     int edition;
     int region;
     int xx;
+    int cheats;               /* the installed title's sets are the cheats ones (installed.json): their sizes, XX set */
     uint8_t xx_hash[32];
     /* its answer */
     HfCheck check;
@@ -60,12 +61,12 @@ static void check_main(void *arg) {
     if (rc == HF_E_NONE) {
         j->check = HF_CHECK_NO_RELEASE;
     } else if (rc == HF_OK) {
-        const HfAsset *set = &rel->assets[hf_w_patch(j->region, 0)];
+        const HfAsset *set = &rel->assets[hf_w_patch(j->region, 0, j->cheats)];
         snprintf(j->latest, sizeof j->latest, "%s", rel->tag);
         j->set_bytes = set->found ? set->size : 0;
         if (raw && raw[0] && (j->notes = (char *)malloc(HF_VIEW_NOTES))) hf_notes_plain(raw, j->notes, HF_VIEW_NOTES);
         memset(&in, 0, sizeof in);
-        release_xx_check(&tr, j->edition, rel, j->region, j->xx, j->xx_hash, &in, &j->xx_check);
+        release_xx_check(&tr, j->edition, rel, j->region, j->cheats, j->xx, j->xx_hash, &in, &j->xx_check);
         j->xx_set = in.xx_set_in_release;
         j->app_newer = rel->assets[app_asset()].found && hf_version_newer(rel->tag, HF_APP_VERSION) == 1;
         if (app.probe && probe_test_app(rel, test_dir, sizeof test_dir))   /* a test launcher left on the card */
@@ -93,6 +94,7 @@ void check_start(void) {
     job->edition = app.edition;
     job->region = app.status.region >= 0 ? app.status.region : REGION_EUR;
     job->xx = app.status.xx;
+    job->cheats = app.status.installed_cheats;
     memcpy(job->xx_hash, app.status.xx_hash, sizeof job->xx_hash);
     stop_flag = 0;
     svcGetThreadPriority(&prio, CUR_THREAD_HANDLE);

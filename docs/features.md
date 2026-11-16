@@ -59,6 +59,12 @@
 - In the game (START, third page, Mod Settings, Camera, Better Camera) you can turn it on or off, set **Max Speed** from x0.25 to x4 for the camera and the aims, and set **Acceleration** from 25% to 400%: how fast the turn reaches its speed and stops, relative to the speed.
 - It is on by default, with Max Speed x1 and Acceleration 100 %. Camera Speed (D-pad) no longer changes it.
 
+**Item wheel**
+
+- In a quest, hold L and push the C-Stick towards one of eight directions to use the item set there. The camera stays still while L is held.
+- It needs a C-Stick: a New 3DS or the emulator. An old 3DS cannot use it.
+- Choose each direction's item and the wheel's place in the game: START, third page, Mod Settings, Radial Menu (Edit Slots and the menu's settings). The same row turns the wheel off.
+
 **Damage numbers**
 
 - Each of your hits shows its damage over the monster: gold on a weak spot, white elsewhere, grey when it bounces off. Poison is grey; blast and a mount's finish are gold.
@@ -76,6 +82,13 @@
 - In the game: START, third page, Mod Settings, Interface, Hunting Horn Songs. Show Horn Songs turns the list off (on by
   default); Highlight colours the song's name (Text, the default) or its band (Background).
 
+**World-style sharpness gauge** (by Jamo, from the mod "MH4U MH4G World Style Sharpness Indicator", used with permission)
+
+- In a quest with a blade, the sharpness bar shrinks as its colour wears down, as in Monster Hunter World, and fills
+  again when you sharpen. Its colours are brighter and steady, and the gauge's frame is darker.
+- It works with HD texture packs: the frame is the game's own picture, only darker.
+- In the game: START, third page, Mod Settings, Interface, World Sharpness (on by default).
+
 **Weapon tree**
 
 - At the Smithy, Forge Weapons shows the weapon class you choose as a tree: every weapon you have discovered, joined
@@ -85,6 +98,7 @@
 - A on a weapon upgrades a copy from your box into it (the one you wear first) or forges it from scratch. When a
   weapon has both ways, a small window asks "Upgrade" or "Craft from scratch", and the materials at the left are
   always those of the choice under the cursor. The help line and the price question name the way in capitals.
+- After every purchase, an upgrade too, the smith hammers it as in the game's forge and asks whether to equip it.
 - A small hammer marks the weapons that can be forged from scratch. A greyed icon cannot be paid for yet, a gold
   plate is a weapon you own, E is the one you wear and a box one you keep in the box without wearing it.
 - Each weapon shows its element or status icon at its upper right, the one the stats panel shows; grey when it needs
@@ -101,6 +115,7 @@
 - The Wyporium has a new line, Rare Materials Exchange: hand over common items of the monsters that drop a rare material until you have given enough, and it goes to your Item Box.
 - With Monster Hunter XX's game (optional), Layered Gear also offers the looks of its weapons and armor, and the Wyporium trades the new rare materials those looks cost.
 - In multiplayer, the other players with this mod see your Layered Gear and your Felyne's, and you see theirs. A player who lacks one of your looks (without Monster Hunter XX's game, say) or plays without the mod sees your real gear; everyone can still play together.
+- Each character can hide the looks in the game: START, third page, Mod Settings, Interface, Layered Gear: No. Your hunter, your Felynes and the other players then show their real gear, and the others see yours. Everything bought, worn and dyed stays for Yes (the default), and the Smithy's Layered Gear line stays open. In town it changes at once; in a quest, at the next one.
 - You can turn Layered Gear off on the **Options** page: you wear your real gear and see the other players' real gear. Your save keeps what you bought, wore and dyed, and the new materials in your Item Box, for when you turn it on again.
 
 **A smaller HUD**

@@ -14,27 +14,13 @@ from dataclasses import dataclass, replace
 from enum import Enum
 
 from core.app import presets
-from core.gameplay.fast_gathering.fast_gathering import GATHER_SPEED
 from core.app.settings import (
-    CAMERA_DISTANCE_GAME, AlatreonMode, AlatreonMusic, ArmorSkillMode, CameraDistance, Cheat3D, CheatAspect, CheatFps,
-    DuplicateMode, FrenzyChance, Frequency, GlavenusMode, GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode,
-    PalicoModelMode, ProgressionMode, RewardSource, SmithyView, StatMode, StructureMode, SubQuestMode, TextMode,
+    AlatreonMode, AlatreonMusic, ArmorSkillMode, CheatAspect, DuplicateMode, FrenzyChance, Frequency, GlavenusMode,
+    GreatMaccaoMode, HudScale, MizutsuneMode, ModelMode, PalicoModelMode, ProgressionMode,
+    RewardSource, StatMode, StructureMode, SubQuestMode, TextMode,
     ValstraxMode,
 )
 from core.gui.i18n import EMPTY, T
-
-# shown in the fast gathering option (gameplay/fast_gathering/fast_gathering.py)
-_GATHER_PERCENT = round(GATHER_SPEED * 100)
-_FOV_MIN, _FOV_MAX = presets.field_range("cheat_fov")  # curated/gui_presets.json, "ranges"
-_FOV_STEP = presets.field_step("cheat_fov")             # the values of its list in the game's menu
-_CAMERA_MIN, _CAMERA_MAX = presets.field_range("camera_speed")
-_CAMERA_STEP = presets.field_step("camera_speed")
-# What every group of options the game's START menu holds too says (curated/gui_presets.json, "in_game")
-_ALSO_IN_GAME_ES = ("Es el valor con el que empieza cada personaje; dentro del juego se cambia en el menú START, "
-                    "tercera página, Ajustes del mod.")
-_ALSO_IN_GAME_EN = ("This is what each character starts with. In the game, change it in the START menu: third page, "
-                    "Mod Settings.")
-_ALSO_IN_GAME = T(_ALSO_IN_GAME_ES, _ALSO_IN_GAME_EN)
 
 
 @dataclass(frozen=True)
@@ -662,39 +648,6 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
              "Meant for playing on a monitor. Each element shrinks towards its corner: clock, health, stamina, "
              "sharpness and weapon gauges, party list, item selector, minimap, mount gauge and the prompts over "
              "the characters. It only works in the emulator.")),
-        Group(T("Objetivo", "Target Cam"), (
-            Option("touchless_target", T("Fijar monstruos sin pantalla táctil",
-                                         "Lock on with L + D-pad Up, without the touch screen"),
-                   T("Mantén pulsado L (modo objetos) y pulsa arriba en la cruceta: se fija el monstruo grande o "
-                     "se cambia al otro, igual que al tocar el panel de la cámara de objetivo. El selector de "
-                     "objetos muestra un icono de la cruceta mientras tanto, y con L pulsado la cruceta deja de "
-                     "mover la cámara (el C-stick sigue moviéndola). La cara del monstruo fijado se ve también en "
-                     "la pantalla superior, a la izquierda del selector de objetos, con su marca de fijado.",
-                     "Hold L and press D-pad Up to lock on to a large monster or switch to the other one, like "
-                     "tapping the Target Cam panel. While L is held, the item selector shows a D-pad hint and the "
-                     "D-pad stops moving the camera (the C-stick still moves it). The locked monster's face also "
-                     "appears on the top screen, left of the item selector."), emulator_only=True),
-        ), T("Pensado para jugar solo con la pantalla superior (por ejemplo, en un monitor). Necesita el panel de "
-             "la cámara de objetivo puesto en la pantalla táctil, y solo funciona una vez que el monstruo ya se ha "
-             f"encontrado (como el panel). {_ALSO_IN_GAME_ES}",
-             "Meant for playing with the top screen only (e.g. on a monitor). The Target Cam panel must be on the "
-             f"touch screen, and the monster must have been found first, as with the panel. {_ALSO_IN_GAME_EN}")),
-        Group(T("Rueda de objetos", "Item wheel"), (
-            Option("radial_menu", T("Rueda de objetos con el C-stick", "Item wheel with the C-stick"),
-                   T("En una misión, mantén pulsado L (modo objetos) y empuja el C-stick hacia una de las ocho "
-                     "direcciones: se usa al instante el objeto de esa dirección. Mientras L está pulsado, el "
-                     "C-stick no mueve la cámara. Los objetos de cada dirección y la posición de la rueda se "
-                     "eligen en el juego: menú START, tercera página, Ajustes del mod, Menú radial. Necesita un "
-                     "C-stick (una New 3DS o el emulador): una 3DS antigua no lo tiene y no puede usarla.",
-                     "In a quest, hold L (item mode) and push the C-stick towards one of its eight directions: the "
-                     "item of that direction is used at once. While L is held, the C-stick no longer moves the "
-                     "camera. Each direction's item and the wheel's position are chosen in the game: START menu, "
-                     "third page, Mod Settings, Radial Menu. It needs a C-stick (a New 3DS or the emulator): an old "
-                     "3DS has none and cannot use it.")),
-        ), T("Necesita un C-stick: una New 3DS o el emulador. Una 3DS antigua no puede usarla. Desactivada, el "
-             "juego no se toca.",
-             "It needs a C-stick: a New 3DS or the emulator. An old 3DS cannot use it. Switched off, the game is "
-             "left untouched.")),
         Group(T("Pantalla única", "Single screen"), (
             Option("single_screen", T("Modo pantalla única",
                                       "Single Screen mode: touch screen menus on the top screen"),
@@ -725,17 +678,6 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "of core/interface/monster_icons/icons/ and can be replaced.")),
         )),
     )),
-    Section(T("Texto", "Text"), (
-        Group(T("Conversaciones", "Conversations"), (
-            Option("fast_text", T("Pasar el texto rápido con B", "Hold B to speed through conversations"),
-                   T("Mientras mantienes pulsado B, el texto de las conversaciones aparece de golpe y pasa solo de "
-                     "página muy deprisa. Se detiene en las preguntas y los menús, que se siguen eligiendo a mano. "
-                     "Suelta B para leer con normalidad.",
-                     "While you hold B, conversation text appears at once and its pages turn by themselves, very "
-                     "fast. It stops at questions and menus, which you still answer yourself. Let go of B to read "
-                     "normally.")),
-        ), _ALSO_IN_GAME),
-    )),
     Section(T("Acciones", "Actions"), (
         Group(T("Otros y calidad de vida", "Other and quality of life"), (
             Option("quality_of_life", T("Activar este módulo", "Turn this module on"),
@@ -745,78 +687,6 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "The controls, fast text, item boxes and cheats of this tab. Off, the game stays as the original "
                      "in all of them and the START menu's Mod Settings page does not show their options.")),
         )),
-        Group(T("Recolección", "Gathering"), (
-            Option("fast_gathering", T(f"Recolectar al {_GATHER_PERCENT} %",
-                                       f"Gather, mine and carve at {_GATHER_PERCENT}% speed"),
-                   T(f"Recolectar, picar mineral y huesos, cazar insectos, tallar monstruos y pescar van al "
-                     f"{_GATHER_PERCENT} % de velocidad. Se suma a la habilidad Recolección rápida. Andar, luchar "
-                     "y lo demás van a su velocidad normal.",
-                     f"Gathering, mining ore and bones, catching bugs, carving monsters and fishing run at "
-                     f"{_GATHER_PERCENT}% speed. It stacks with the Speed Gatherer skill. Walking, fighting and "
-                     "everything else keep their normal speed.")),
-        ), T(f"Solo afecta a tu cazador. {_ALSO_IN_GAME_ES}", f"Only your own hunter is affected. {_ALSO_IN_GAME_EN}")),
-        Group(T("Botón A", "A button"), (
-            Option("hold_a", T("Mantener A para repetirlo", "Hold A to gather and claim rewards"),
-                   T("Con el arma guardada, mantener pulsado A repite la pulsación: recoger, recolectar, picar y "
-                     "tallar sin machacar el botón. En las recompensas de la misión y en la pantalla de objetos del "
-                     "Wyporio, una pulsación de A coge el objeto y el cursor pasa solo al siguiente; si mantienes "
-                     "A, sigue cogiendo. Los menús de cambiar o salir siguen pidiendo una pulsación.",
-                     "With your weapon sheathed, holding A keeps picking up, gathering, mining and carving, so you "
-                     "don't have to mash the button. In the quest rewards and the Wyporium's item screen, one press "
-                     "takes an item and the cursor moves to the next; hold A to keep taking. The swap and exit "
-                     "menus still need a press each.")),
-        ), _ALSO_IN_GAME),
-        Group(T("Cámara", "Camera"), (
-            Option("camera_speed", T("Velocidad de giro de la cámara", "Camera turn speed"),
-                   T("La velocidad máxima a la que gira la cámara mientras mantienes pulsado un botón para girarla. "
-                     "El juego usa 10: 20 la dobla y 50 la multiplica por cinco; tarda un poco más en alcanzarla.",
-                     "The top speed the camera turns at while you hold a button to turn it. The game uses 10: 20 "
-                     "doubles it and 50 makes it five times as fast; it takes a little longer to get there."),
-                   minimum=_CAMERA_MIN, maximum=_CAMERA_MAX, step=_CAMERA_STEP),
-            Option("camera_distance", T("Distancia de la cámara", "Camera distance"),
-                   T("Lo lejos que va la cámara del cazador. 1x es la del juego: con 0,5x va a la mitad de distancia "
-                     "y con 2x al doble. Contra una pared se sigue acercando sola, como en el juego.",
-                     "How far the camera stays from your hunter. 1x is the game's: 0.5x is half as far and 2x twice "
-                     "as far. Against a wall it still moves in by itself, as in the game."),
-                   choices=(
-                       Choice(CAMERA_DISTANCE_GAME, T("La del juego (1x)", "Game default (1x)")),
-                       *(Choice(distance, T(f"{int(distance.value) / 100:g}x".replace(".", ","),
-                                            f"{int(distance.value) / 100:g}x"))
-                         for distance in CameraDistance if distance is not CAMERA_DISTANCE_GAME),
-                   ), compact=True),
-        ), _ALSO_IN_GAME),
-        Group(T("Caja de objetos", "Item box"), (
-            Option("box_equipment", T("Gestionar el equipo en cualquier caja", "Manage equipment at any item box"),
-                   T("Las cajas de objetos de fuera de casa, como la de la Sala del Gremio, también tienen «Gestionar "
-                     "equipo» y «Sets de equipo», como la de casa. «Cambiar aspecto» sigue solo en casa.",
-                     "Item boxes away from home, such as the Gathering Hall's, also have Manage Equipment and "
-                     "Equipment Sets, as the one at home does. Change Appearance stays at home.")),
-        ), _ALSO_IN_GAME),
-        Group(T("Números de daño", "Damage numbers"), (
-            Option("damage_numbers", T("Mostrar el daño de cada golpe", "Show the damage of each hit"),
-                   T("Cada golpe a un monstruo muestra un número con su daño, físico y elemental juntos, como en "
-                     "MH Wilds y Rise: dorado en un punto débil, gris si rebota. En el juego, Ajustes del mod > "
-                     "Otros > Números de daño elige el estilo (Wilds, Rise o Clásico), el tamaño, cuánto dura y "
-                     "si se ve todo el daño del monstruo, no solo el tuyo. El de los Felynes no sale nunca.",
-                     "Each hit on a monster shows a number with its damage, physical and elemental together, as in "
-                     "MH Wilds and Rise: gold on a weak spot, grey when it bounces. In the game, Mod Settings > "
-                     "Interface > Damage Numbers picks the style (Wilds, Rise or Classic), the size, how long it stays "
-                     "and whether all the monster's damage shows, not only yours. Felynes' damage never shows.")),
-        ), _ALSO_IN_GAME),
-        Group(T("Herrería", "Smithy"), (
-            Option("smithy_view", T("Vista de Crear armas", "Forge Weapons view"),
-                   T("Cómo muestra la herrería las armas de una clase: la lista del juego, o un árbol con sus líneas "
-                     "de mejora, como en MH World y Rise, donde se ve lo que ya has descubierto. Con el árbol, A en un "
-                     "nodo forja o mejora allí. En el juego, Ajustes del mod > Interfaz > Vista de herrería lo cambia.",
-                     "How the Smithy shows a weapon class: the game's own list, or a tree of its upgrade lines, as "
-                     "MH World and Rise do, with what you have discovered. On the tree, A on a node forges or "
-                     "upgrades there. In the game, Mod Settings > Interface > Smithy View changes it."),
-                   choices=(
-                       Choice(SmithyView.LIST, T("Lista", "List"), T("La lista del juego.", "The game's own list.")),
-                       Choice(SmithyView.TREE, T("Árbol", "Tree"),
-                              T("Un árbol por clase de arma.", "One tree for each weapon class.")),
-                   ), compact=True),
-        ), _ALSO_IN_GAME),
         Group(T("Wyporio", "Wyporium"), (
             Option("rare_exchange", T("Canjear raros", "Rare Materials Exchange"),
                    T("El Wyporio tiene una línea nueva, «Canjear raros»: eliges un material raro de un monstruo "
@@ -867,40 +737,16 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         )),
     )),
     Section(T("Trucos", "Cheats"), (
-        Group(T("3D", "3D and picture"), (
-            Option("cheat_3d_mode", T("3D", "Stereoscopic 3D"),
-                   T("Apaga el 3D estereoscópico del juego. El tramado es el patrón de puntos con el que el juego "
-                     "dibuja transparencias y sombreados.",
-                     "Turns the game's stereoscopic 3D off. Dithering is the pattern of dots the game uses to draw "
-                     "transparency and shading."),
-                   choices=(
-                       Choice(Cheat3D.OFF, T("Sin cambios", "Game default"),
-                              T("El 3D del juego, tal como es.", "The game's own 3D.")),
-                       Choice(Cheat3D.DITHER_OFF, T("3D desactivado, sin tramado", "3D off, no dithering"),
-                              T("Imagen limpia, sin el patrón de puntos.", "A clean image, without the dot pattern.")),
-                       Choice(Cheat3D.DITHER_ON, T("3D desactivado, con tramado", "3D off, with dithering"),
-                              T("Deja el patrón de puntos del juego.", "Keeps the game's dot pattern.")),
-                   ), emulator_only=True),
-            Option("cheat_no_bloom_dof", T("Sin bloom ni desenfoque de profundidad",
-                                           "Remove bloom and depth-of-field blur"),
-                   T("Quita el resplandor y el desenfoque de lo que queda lejos: la imagen se ve más nítida.",
-                     "Removes the glow and the blur on distant things, so the picture looks sharper."),
-                   emulator_only=True),
-        ), T(f"Trucos de imagen. Solo funcionan en el emulador. {_ALSO_IN_GAME_ES}",
-             f"Picture cheats. They only work in the emulator. {_ALSO_IN_GAME_EN}")),
-        Group(T("Imágenes por segundo", "Frame rate"), (
-            Option("cheat_fps", T("FPS", "Frame rate (FPS)"),
-                   T("El juego va siempre a las imágenes por segundo que elijas.",
-                     "Runs the game at a fixed frame rate."),
-                   choices=(
-                       Choice(CheatFps.GAME, T("Las del juego", "Game default")),
-                       Choice(CheatFps.F30, T("30 FPS", "30 FPS"),
-                              T("Recomendado si tu PC es de gama baja.", "Recommended on a low-end PC.")),
-                       *(Choice(rate, T(f"{rate.value} FPS", f"{rate.value} FPS"))
-                         for rate in CheatFps if rate.rate > 30),
-                   ), compact=True, emulator_only=True),
-        ), T(f"Se recomiendan 30 FPS si tienes un PC de gama baja. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
-             f"30 FPS is recommended on a low-end PC. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
+        Group(T("Activar trucos", "Enable cheats"), (
+            Option("cheats_enabled", T("Activar trucos", "Enable cheats"),
+                   T("Con la casilla marcada, el menú START (tercera página, Ajustes del mod) muestra el grupo de "
+                     "trucos. Desmarcada, el mod no lleva ninguno. Funciona en el emulador y en la 3DS.",
+                     "With the box ticked, the START menu (third page, Mod Settings) shows the cheats group. "
+                     "Unticked, the mod has none. It works in the emulator and on the 3DS.")),
+        ), warning=T("Los trucos dan una ventaja injusta en las misiones. No juegues en multijugador sin avisar a los "
+                     "demás cazadores de que los llevas.",
+                     "Cheats give an unfair advantage in quests. Never play in multiplayer without telling the other "
+                     "hunters you use them.")),
         Group(T("Proporción de la imagen (EXPERIMENTAL)", "Aspect ratio (EXPERIMENTAL)"), (
             Option("cheat_aspect_allowed", T("Permitir otras proporciones (EXPERIMENTAL)",
                                              "Allow other aspect ratios (EXPERIMENTAL)"),
@@ -928,31 +774,6 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                         "veas.",
                         "⚠ EXPERIMENTAL: aspect ratios other than 5:3 are still being tested. Menus, prompts and "
                         "backgrounds may be out of place or stretched. Please report any problem you see.")),
-        Group(T("Campo de visión", "Field of view"), (
-            Option("cheat_fov", T("Campo de visión", "Field of view"),
-                   T("El juego usa 50; con un valor más alto se ve más alrededor del cazador.",
-                     "The game uses 50; a higher value shows more around your hunter."),
-                   minimum=_FOV_MIN, maximum=_FOV_MAX, step=_FOV_STEP, emulator_only=True),
-        ), T(f"Truco de mikewii7. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
-             f"Cheat by mikewii7. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
-        Group(T("Juego en línea", "Online"), (
-            Option("cheat_net_fix", T("Arreglo de red", "Online room connection fix"),
-                   T("Al crear una sala o unirte a una, la conexión espera mucho más antes de rendirse, para que "
-                     "las salas en línea del emulador no fallen por una conexión lenta.",
-                     "When you host or join a room, the connection waits much longer before giving up, so the "
-                     "emulator's online rooms do not fail on a slow connection."),
-                   emulator_only=True),
-        ), T(f"Truco de Klark231. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
-             f"Cheat by Klark231. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
-        Group(T("Armas", "Weapons"), (
-            Option("cheat_raw_unbloat", T("Ataque real de las armas", "Show weapons' true attack in menus"),
-                   T("Los menús muestran el ataque real de cada arma, sin el multiplicador que el juego le aplica "
-                     "según su tipo.",
-                     "Menus show each weapon's true attack, without the multiplier the game applies to each weapon "
-                     "type."),
-                   emulator_only=True),
-        ), T(f"Solo cambian los números que se ven, no el daño. Solo funciona en el emulador. {_ALSO_IN_GAME_ES}",
-             f"Only the numbers shown change, not the damage. It only works in the emulator. {_ALSO_IN_GAME_EN}")),
         Group(T("Depuración", "Debug"), (
             Option("cheat_insta_kill", T("Muerte instantánea", "Insta kill"),
                    T("El ataque del cazador se multiplica: cada golpe derriba a un monstruo al instante.",
@@ -1340,6 +1161,7 @@ MODULE_TITLES = {
     "single_screen": T("Pantalla única", "Single screen"),
     "layered_gear": T("Equipo superpuesto", "Layered gear"),
     "quality_of_life": T("Otros / calidad de vida", "Other / QoL"),
+    "cheats": T("Trucos", "Cheats"),
 }
 
 

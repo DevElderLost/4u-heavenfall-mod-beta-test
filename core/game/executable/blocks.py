@@ -95,6 +95,14 @@ RADIAL_DRAW_DATA_SIZE = 1188
 # The Radial Menu's screen in Mod Settings (interface/radial_menu/radial_editor.c; radial_editor.py editor_data fills
 # the texts' block)
 RADIAL_EDITOR_DATA_SIZE = 80
+# The cheats of the quest's timers (cheats/quest_timers/quest_timers.py) and of the minimap's skills
+# (cheats/map_skills/map_skills.py): their hooks' stubs, the C and the data with each cheat's
+# option of Mod Settings. After the item wheel, so they move no block of the product; only a mod with the cheats places
+# them.
+QUEST_TIMERS = "cheat_quest_timers"
+QUEST_TIMERS_DATA_SIZE = 8
+MAP_SKILLS = "cheat_map_skills"
+MAP_SKILLS_DATA_SIZE = 4
 # The game GUI engine (2 KB of code and its 48 KB table) goes first of the rest: after every small option's blocks, so a
 # mod without single-screen mode carries none of its pages, and before the ported monsters', so a mod with only
 # single-screen mode carries none of theirs.
@@ -124,10 +132,10 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 852
-MOD_SETTINGS_PANE_HASHES = (724, 840)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 936
+MOD_SETTINGS_PANE_HASHES = (808, 924)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
-MOD_OPTIONS_DATA_SIZE = 16 + 28 * 164
+MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8)   # mod_options.c: the header, 52 options, a pool of 256 values
 MOD_RAW_TABLE_SIZE = 64
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
@@ -157,6 +165,10 @@ QUEST_LAYOUTS_DATA_SIZE = 128
 HORN_SONGS = "horn_songs"
 HORN_SONGS_DATA_SIZE = 312
 HORN_SONGS_STATE_SIZE = 60
+# The World-style sharpness gauge (interface/world_sharpness/world_sharpness.py),
+# Jamo's mod adapted: the C and its data (struct world_data).
+WORLD_SHARPNESS = "world_sharpness"
+WORLD_SHARPNESS_DATA_SIZE = 64
 # The Smithy's weapon tree (interface/weapon_tree/weapon_tree.py): the C with its hooks,
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
@@ -168,6 +180,10 @@ WEAPON_TREE_STATE_SIZE = 94 + 6 * 336
 NEW_MAP = "new_map"
 # Boltreaver Astalos' pulling ball on the hunter (gameplay/boltreaver_pull/boltreaver_pull.py): after the new maps too
 BOLTREAVER_PULL = "boltreaver_pull"
+# The cheats Interruptible Flex and Whetstone Sharpening Cancel (cheats/action_cancel/action_cancel.py; docs/cheats/
+# cheats.md): after the item wheel, so that it moves no other product block
+ACTION_CANCEL = "cheat_action_cancel"
+ACTION_CANCEL_DATA_SIZE = 8
 # Misty Peaks' fog cycle (maps/misty_peaks/fog_cycle.py), with the map
 FOG_CYCLE_DATA_SIZE = 236
 # The debug fog control (maps/misty_peaks/fog_debug.py): only a
@@ -212,7 +228,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, TRIO_DIAG)
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, TRIO_DIAG)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -277,7 +293,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # 8-aligned: its size depends on its address mod 8 (alignment padding inside the C block).
     BlockSpec("layered_selector", "layered_equipment", "equipment/layered/layered_selector.c", region="ext", thumb=True,
               align=8, units=("equipment/layered/layered_forge.c", "equipment/layered/felyne_looks.c",
-                     "equipment/layered/layered_online.c",
+                     "equipment/layered/layered_online.c", "equipment/layered/layered_switch.c",
                      "interface/screen_kit/screen_kit.c")),
     BlockSpec("layered_data", "layered_equipment", size=0x9000, region="ext"),
     # The Wyporium's Rare Materials Exchange: its menu line and screens (gameplay/wyporium/rare_exchange.c), and its
@@ -358,8 +374,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # this block for the record, which writes layout B first when the record is not B
     BlockSpec("single_screen_panels", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_panels.c",
               region="ext"),
-    # ... and the creation's Aceptar / AtrÃ¡s buttons driven with left / right: the menu cursor's call on the main pages
-    # takes the pad's left and right as down and up on
+    # ... and the creation's Aceptar / AtrÃƒÂ¡s buttons driven with left / right: the menu cursor's call on the main
+    # pages takes the pad's left and right as down and up on
     # the buttons
     BlockSpec("single_screen_creation_pad", SINGLE_SCREEN,
               "interface/single_screen/executable/single_screen_creation_pad.s", region="ext"),
@@ -604,6 +620,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext"),
     BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext"),
     BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
+    BlockSpec("world_sharpness_code", WORLD_SHARPNESS, "interface/world_sharpness/world_sharpness.c", region="ext"),
+    BlockSpec("world_sharpness_data", WORLD_SHARPNESS, size=WORLD_SHARPNESS_DATA_SIZE, region="ext"),
     # 8-aligned: a Thumb block's size depends on its address mod 8
     BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", region="ext", thumb=True, align=8,
               units=("interface/screen_kit/screen_kit.c",)),
@@ -617,9 +635,23 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # Boltreaver Astalos' pulling ball on the hunter: the hooks' code (its variable, boltreaver_pull_state, is the
     # extension's)
     BlockSpec("boltreaver_pull", BOLTREAVER_PULL, "gameplay/boltreaver_pull/boltreaver_pull.c", region="ext"),
+    # The cheats Interruptible Flex and Whetstone Sharpening Cancel: the hunter's update's call of the action's frame,
+    # and the two Mod Settings options' ids (action_cancel.py action_cancel_data)
+    BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext"),
+    BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext"),
     # The debug fog control's code and data (a probe's only)
     BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
     BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
+    # Skip Quest End Timer and No Time Limit on Rewards Screen: the three hooks' stubs, the C, each cheat's option and
+    # the countdown's speed (quest_timers.py timers_data)
+    BlockSpec("quest_timers_stub", QUEST_TIMERS, "cheats/quest_timers/quest_timers_stub.s", region="ext"),
+    BlockSpec("quest_timers", QUEST_TIMERS, "cheats/quest_timers/quest_timers.c", region="ext"),
+    BlockSpec("quest_timers_data", QUEST_TIMERS, size=QUEST_TIMERS_DATA_SIZE, region="ext"),
+    # Capture Guru and Autotracker always on: the two hooks' stubs, the C and each cheat's option (map_skills.py
+    # skills_data)
+    BlockSpec("map_skills_stub", MAP_SKILLS, "cheats/map_skills/map_skills_stub.s", region="ext"),
+    BlockSpec("map_skills", MAP_SKILLS, "cheats/map_skills/map_skills.c", region="ext"),
+    BlockSpec("map_skills_data", MAP_SKILLS, size=MAP_SKILLS_DATA_SIZE, region="ext"),
     # The trio probe's diagnostics: the hook stubs, the C and the watch lists (a probe's only)
     BlockSpec("trio_diag_stub", TRIO_DIAG, "diagnostics/trio_diag_stub.s", region="ext"),
     BlockSpec("trio_diag_code", TRIO_DIAG, "diagnostics/trio_diag.c", region="ext",
@@ -645,7 +677,7 @@ VARIABLES = (
     VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
-    VariableSpec("mod_options_state", MOD_SETTINGS, 80, region="ext_vars"),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 104, region="ext_vars"),
     VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
@@ -680,6 +712,9 @@ VARIABLES = (
     # each hall hunter was last dressed with
     VariableSpec("layered_render", "layered_equipment", 72),
     VariableSpec("felyne_ui", "layered_equipment", 20),        # felyne_looks.h: struct felyne_ui
+    # Layered Gear's switch in the game (layered_switch.c struct layered_switch): the value the town's hunters were
+    # dressed with, the one a quest's preload took, a re-dress of the local hunter waiting for its load
+    VariableSpec("layered_switch", "layered_equipment", 4),
     VariableSpec("exchange_ui", RARE_EXCHANGE, 72),           # rare_exchange.c: struct xui
     # The game GUI recorder's frame counters (u32 started, done): only the
     # recording probe writes them (tools/ui/ui_probe.py, block gui_frame_marks_probe), never the product. Not a debug
@@ -1539,6 +1574,9 @@ GAME_SYMBOLS |= {
     "target_binder": 0x1085650,         # ui601's binder: panel00, panel01, target00
     # ui202's binder: ui202_tairyoku, the health bar (interface/hud/code_patch.HUD_REF)
     "health_binder": 0x1083EDC,
+    # ui202's binder + 0x10: ui202_kireaji, the sharpness gauge's group, which FUN_00b9d0f0 places
+    # (interface/world_sharpness/world_sharpness.c)
+    "sharpness_binder": 0x1083EE8,
     "minimap_project": 0x6C40E0,        # FUN_006c40e0
     "minimap_area_zoom": 0x5A5F14,      # FUN_005a5f14(area, &zoom, offset): the zoomed area view's zoom and offset
     "minimap_area_point": 0x5A7BEC,     # FUN_005a7bec(point, area): the Everwood's fixed point of an area (whole map)
@@ -1559,6 +1597,8 @@ GAME_SYMBOLS |= {
     "glaive_old_record": 0x2F4B0C,      # FUN_002f4ac0: the game's record of ids below 0x87
     "glaive_record_zero": 0x2F4B00,     # ... and its record 0
     "sharpness_lookup_done": 0x2F0FC8,  # FUN_002f0f34: pop {r4, r5, pc}
+    # FUN_002f0f34(equipment, weapon): the weapon's sharpness, seven s16, where each colour ends (0 when it has none)
+    "sharpness_ends": 0x2F0F34,
 }
 
 # The single-screen mode's blocks (interface/single_screen/executable/single_screen.py)
@@ -1861,6 +1901,13 @@ GAME_SYMBOLS |= {
     "claim_scene": 0x5E5CB8,            # FUN_005e5cb8(panel): the Wyporium's claim items panel, once per frame
 }
 
+# The cheats of the quest's timers and the minimap's skills (cheats/quest_timers/quest_timers_stub.s,
+# cheats/map_skills/map_skills_stub.s): the calls their hooks go on to with the cheat off
+GAME_SYMBOLS |= {
+    "rewards_countdown_show": 0x2ED5D0,  # FUN_002ed5d0(seconds): the result scene's countdown number (FUN_00ab88f4's)
+    "has_skill_entry": 0xD04F58,        # FUN_00d04f58(hunter, skill): `mov r0, r0`, then has_skill; the minimap's calls
+}
+
 # Select and Start follow the game's option START (gameplay/select_kick/select_kick.c): the SDK's Select-to-Start step,
 # the settings byte reader and the Game Menu's object
 GAME_SYMBOLS |= {
@@ -2111,4 +2158,16 @@ GAME_SYMBOLS |= {
     "enemy_list_get": 0x68FBD0,         # FUN_0068fbd0(sEnemy, index): the monster of a place of the list, or 0
     "boltreaver_hit_resume": 0xBE8FF0,  # FUN_00be8dfc's instruction after the load at 0xBE8FEC (`ldr r0, [r4, #0x3c]`)
     "boltreaver_touch_resume": 0xBE8E00,    # FUN_00be8dfc's second instruction (after its stmdb at 0xBE8DFC)
+}
+
+# The cheats Interruptible Flex and Whetstone Sharpening Cancel (cheats/action_cancel/action_cancel.c; docs/cheats/
+# cheats.md, "Interruptible Flex and Whetstone Sharpening Cancel"): the hunter's action functions the cancel calls
+GAME_SYMBOLS |= {
+    "hunter_run_action": 0xB670C0,      # FUN_00b670c0(hunter): the frame of the hunter's action, by its group (p+0x371)
+    "hunter_end_action": 0xB1D7B4,      # FUN_00b1d7b4(hunter, pl_st, 4, 0, 0): back to the neutral action, as the
+                                        # flex (0xB57F68) and the sharpening (0xB5848C) end themselves
+    "hunter_face_stick": 0xB3D128,      # FUN_00b3d128(hunter): the heading (pw + 0xB0) toward the stick
+    "hunter_update_check": 0xB18618,    # FUN_00b18618(hunter): the update's first check before the action's frame
+                                        # (0xB14960); non-zero when it started an action
+    "hunter_update_check_more": 0xB0D784,   # FUN_00b0d784(hunter): its second (0xB1496C), when the first started none
 }

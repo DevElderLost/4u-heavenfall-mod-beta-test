@@ -302,18 +302,20 @@ static void bottom(HfTextScreens *s, const HfView *v, const char *badge) {
     char text[HF_VIEW_LINE];
     Line lines[4];
     char line[HF_TEXT_BOTTOM_COLS];
-    int y = 1, i, n;
+    int y = 1, i, n, gap = 1, total = 0;
     if (v->screen == HF_SCREEN_TASK) {
         hf_cp437(v->task.cancel, text, sizeof text);
         n = wrap(text, BUTTON_RIGHT, lines, 4);
         for (i = 0; i < n; i++) bottom_put(s, 2 + i, 1, lines[i], HF_TONE_PLAIN);
         y = TASK_BUTTONS;
     }
+    for (i = 0; i < v->button_count && i < HF_VIEW_BUTTONS; i++) total += (v->buttons[i].primary ? 5 : 3) + (i ? 1 : 0);
+    if (y + total - 1 > BUTTONS_END) gap = 0;    /* More's eight: the frames touch rather than one go missing */
     for (i = 0; i < v->button_count && i < HF_VIEW_BUTTONS; i++) {
         int h = v->buttons[i].primary ? 5 : 3;
         if (y + h - 1 > BUTTONS_END) break;
         button(s, v, i, y, h);
-        y += h + 1;
+        y += h + gap;
     }
     if (badge && badge[0]) {
         hf_cp437(badge, text, sizeof text);

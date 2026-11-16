@@ -1,0 +1,7 @@
+{
+  "description": "Jamo's World-style sharpness gauge (core/interface/world_sharpness/), from Jamo's mod \"MH4U MH4G World Style Sharpness Indicator\" v1.1, used with Jamo's permission: Mod Settings > Interface > World Sharpness. The numbers are the mod's, read from its files and its code.",
+  "colours": {"value": [[255, 0, 0], [255, 146, 0], [255, 255, 0], [0, 211, 0], [0, 0, 255], [255, 255, 255], [99, 0, 255]], "description": "The bar's colour at each sharpness level, red to purple (RGB): the mod's animation ui202_slash, whose seven animations colour the bar ui202_color00, one per level."},
+  "alpha": {"value": 200, "description": "The bar's alpha, steady: the game's animation pulses it between 200 and 100 over 80 frames; the mod keeps it at 200."},
+  "frame_tint": {"value": [181, 181, 181], "description": "The colour the three frames of the gauge (ui202_kire00..02, white in the game's layout) are drawn with (RGB, the texture times it): the mod darkened their pixels in the texture qst00_ID; this tint gives the game's picture (an HD pack's too) nearly the mod's look (0.71 of the light: on the mod's frames' pixels a mean difference of 12 in 255)."},
+  "slide": {"value": 0.32, "description": "How far the bar's x moves for a change of its scale, times its width: Jamo's code's constant, which keeps the bar's left end in the frame as it shrinks."}
+}

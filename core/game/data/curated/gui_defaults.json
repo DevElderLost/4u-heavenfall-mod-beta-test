@@ -20,5 +20,6 @@
   "cheat_net_fix": false,
   "cheat_raw_unbloat": false,
   "cheat_aspect_allowed": false,
-  "cheat_aspect_ratio": "off"
+  "cheat_aspect_ratio": "off",
+  "cheats_enabled": false
 }

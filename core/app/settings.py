@@ -374,14 +374,14 @@ CameraDistance = Enum("CameraDistance", {f"P{distance}": distance for distance i
 CAMERA_DISTANCE_GAME = next(iter(CameraDistance))
 
 PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single_screen", "starting_kit",
-                   "skip_intro", "skip_caravan_tutorial", "fast_text", "fast_gathering", "hold_a", "camera_speed",
+                   "skip_intro", "skip_caravan_tutorial", "fast_text", "hold_a", "camera_speed",
                    "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
                    "mhw_fatalis_music", "alatreon_music", "radial_menu",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                   "cheat_aspect_allowed", "cheat_aspect_ratio")
+                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only), a 3DS run takes their defaults (Settings.for_console) and the START menu's
@@ -521,9 +521,6 @@ class Settings:
     # Holding B runs through the conversation windows: every page at once, the next one every other frame
     # (core/interface/fast_text/fast_text.py)
     fast_text: bool = False
-    # Gathering, mining, bug catching, carving and fishing GATHER_SPEED times faster, on top of the Speed Gatherer
-    # skill (core/gameplay/fast_gathering/fast_gathering.py)
-    fast_gathering: bool = False
     # Holding A repeats it: in a quest with the weapon sheathed (picking up, gathering, mining, carving), and in the
     # quest rewards and the Wyporium's claim items panel, where A takes an item and the cursor goes on to the next
     # (core/gameplay/hold_a/hold_a.py)
@@ -581,6 +578,9 @@ class Settings:
     cheat_raw_unbloat: bool = False       # the menus show weapons' true attack; the damage does not change
     cheat_aspect_allowed: bool = False    # the GUI's switch before the ratios, still in testing (presets._expand)
     cheat_aspect_ratio: CheatAspect = CheatAspect.OFF  # the game fits the emulator's picture
+    # The installer's "Enable cheats" box: off, the mod has no cheats; every
+    # edition, every platform. The cheats themselves read it (core/cheats/); it only says the player accepted them
+    cheats_enabled: bool = False
 
     # New game (executable patch, not randomized)
     starting_kit: bool = True  # the developer's kit in the item box (game/data/curated/starting_kit.txt)

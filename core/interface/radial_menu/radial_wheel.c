@@ -53,14 +53,14 @@
  * fields of 2 bits, each 0 no choice yet: bits 0-1 on (1) / off (2), bits 2-3 Auto-Combine (1 on, 2 off), bits 4-5 the
  * trigger + 1 (1 Tilt, 2 Flick, 3 Release), byte 8 unused (the three are the zone's header bytes Mod Settings does not
  * use), bytes 37-47 the eight slots, 11 bits each from the low bits up (0 no choice yet, SLOT_EMPTY emptied, else the
- * item's id; the options' bytes 10-36 are never touched, nor the byte after the zone). A zone written before the size
- * has 0 in its high half: the default size; one written before
- * Auto-Combine and the trigger has 0 in their bits (byte 7 = 1 or 2): their defaults. They count only in a zone with the magic and version 2 or more
- * (version 1 had none); a choice never made is radial_data's default. Each frame the wheel reads them once
- * (choices_read) for itself and its picture (radial_seen; the picture reads them again in radial_frame); the editor
- * (radial_editor.c) reads and writes them through radial_choices and radial_choose. The first write of a zone of
- * version 1 clears the wheel's bytes (6-8, 37-47); one without the magic is made as Mod Settings makes it (zeros, the magic, the
- * version).
+ * item's id; the options' half bytes in bytes 10-35 are never touched, nor the byte after the zone). A zone written
+ * before the size has 0 in its high half: the default size; one written before Auto-Combine and the trigger has 0 in
+ * their bits (byte 7 = 1 or 2): their defaults. They count only in a zone with the magic and the mod's version (an
+ * older zone holds no choice: nothing is carried over from an older save); a choice never made is radial_data's
+ * default. Each frame the wheel reads them once (choices_read) for itself and its picture (radial_seen; the picture
+ * reads them again in radial_frame); the editor (radial_editor.c) reads and writes them through radial_choices and
+ * radial_choose. The first write of a zone that is not the mod's (no magic, or an older version) makes it as Mod
+ * Settings makes it (zeros, the magic, the version).
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, Thumb, linked with radial_wheel.ld where it places the
  * block); the game's functions and variables are named in blocks.py GAME_SYMBOLS. The
@@ -215,10 +215,7 @@ GAME u32 timer_step(u32 hunter, u32 *timer);                            /* FUN_0
 #define AIM_NONE 0
 #define AIM_AIMED 1
 #define AIM_SPENT 2
-#define ZONE_HEADER_END 9               /* the wheel's header bytes are 6-8 (8 unused): the options start at 10 */
-#define ZONE_SLOTS 37
-#define ZONE_END 48
-#define WHEEL_VERSION 2                 /* the zone's first version with the wheel's bytes */
+#define ZONE_SLOTS 37                   /* the slots' bytes, 37-47; the header's are 6-8 (8 unused) */
 #define SLOT_BITS 11
 #define SLOT_EMPTY 0x7FFu
 
@@ -235,10 +232,10 @@ static u32 zone_address(void)
     return save ? save + SAVE_DATA + radial_data.zone_at : 0;
 }
 
-/* The zone holds the wheel's bytes: the magic and a version that has them */
+/* The zone holds the mod's choices, the wheel's among them: the magic and the mod's version */
 static int zone_has_wheel(u32 zone)
 {
-    return W(zone, 0) == radial_data.magic && H(zone, ZONE_VERSION) >= WHEEL_VERSION;
+    return W(zone, 0) == radial_data.magic && H(zone, ZONE_VERSION) == radial_data.version;
 }
 
 /* A slot's bytes of the packed slots: the first and last byte its SLOT_BITS bits are in (never one past them) */
@@ -294,23 +291,17 @@ static int choices_read(struct choices *out)
     return 1;
 }
 
-/* The zone ready for a choice: made as Mod Settings makes it without the magic, the wheel's bytes (6-8 and the slots')
- * cleared in a zone older than them, never an option's */
+/* The zone ready for a choice: one that is not the mod's (no magic, or an older version) made as Mod Settings makes it
+ * (zeros, the magic, the version) */
 static u32 zone_for_write(void)
 {
     u32 zone = zone_address();
     if (!zone)
         return 0;
-    if (W(zone, 0) != radial_data.magic) {
+    if (!zone_has_wheel(zone)) {
         for (u32 i = 0; i < ZONE_WORDS; i++)
             W(zone, 4 * i) = 0;
         W(zone, 0) = radial_data.magic;
-        H(zone, ZONE_VERSION) = radial_data.version;
-    } else if (H(zone, ZONE_VERSION) < WHEEL_VERSION) {
-        for (u32 at = ZONE_POSITION; at < ZONE_HEADER_END; at++)
-            B(zone, at) = 0;
-        for (u32 at = ZONE_SLOTS; at < ZONE_END; at++)
-            B(zone, at) = 0;
         H(zone, ZONE_VERSION) = radial_data.version;
     }
     return zone;

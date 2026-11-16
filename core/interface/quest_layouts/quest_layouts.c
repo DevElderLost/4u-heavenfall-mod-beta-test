@@ -7,7 +7,8 @@ feature, its frame function, the index of its group in the GUI
  *     on the top screen (as the target face's copy is loaded: face_loader.s);
  *   - quest_unload: FUN_00c0f110, leaving a quest or a menu: each feature's index freed (FUN_00b044f4 skips an empty
  *     slot).
- * An entry with no frame function is empty: the features a mod does not carry leave theirs so.
+ * An entry with no frame function is empty: the features a mod does not carry leave theirs so. An entry with no path is
+ * a frame only (the World-style sharpness gauge, which changes the game's own panes): nothing is loaded or freed for it.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, ARM; quest_layouts.ld).
  */
@@ -65,7 +66,7 @@ void quest_unload(u32 gui)
     if (manager == 0)
         return;
     for (i = 0; i < ENTRIES; i++)
-        if (quest_layouts_data.entry[i].frame != 0)
+        if (quest_layouts_data.entry[i].frame != 0 && quest_layouts_data.entry[i].path[0] != 0)
             free_group(manager, quest_layouts_data.entry[i].index);
 }
 
@@ -80,7 +81,7 @@ void quest_load(u32 gui, u32 loader, u32 *handle, u32 language)
         u32 manager, layout;
         const char *name;
 
-        if (entry->frame == 0)
+        if (entry->frame == 0 || entry->path[0] == 0)
             continue;
         load_file(loader, handle, entry->path, language, 0);
         manager = resource_manager;

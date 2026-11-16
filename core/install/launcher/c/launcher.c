@@ -57,10 +57,11 @@ int hf_installed_format(const HfInstalled *in, const char *region, char *out, si
     n = snprintf(out, cap,
                  "{\"version\": \"%s\", \"tmd\": %u, \"region\": \"%s\", \"xx\": %s, \"xx_no_room\": %s, "
                  "\"save_pending\": %s, \"layout\": %d, \"game\": \"%s\", \"game_complete\": %s, "
-                 "\"xx_dump\": \"%s\", \"save_restore\": \"%s\", \"complete\": %s}\n",
+                 "\"xx_dump\": \"%s\", \"save_restore\": \"%s\", \"cheats\": %s, \"complete\": %s}\n",
                  in->version, in->tmd, region, in->xx ? "true" : "false", in->xx_no_room ? "true" : "false",
                  in->save_pending ? "true" : "false", in->layout ? in->layout : 2, in->game,
-                 in->game_complete ? "true" : "false", in->xx_dump, in->save_restore, in->complete ? "true" : "false");
+                 in->game_complete ? "true" : "false", in->xx_dump, in->save_restore, in->cheats ? "true" : "false",
+                 in->complete ? "true" : "false");
     return n < 0 || (size_t)n >= cap ? -1 : n;
 }
 
@@ -76,7 +77,7 @@ static int json_bool(const char *json, const JsonTok *t, int *out) {
 int hf_installed_parse(const char *json, size_t len, HfInstalled *out) {
     JsonTok toks[48];
     uint64_t tmd;
-    int n = json_parse(json, len, toks, 48), v, t, c, x, r, s, ly, g, gc, xd, sr;
+    int n = json_parse(json, len, toks, 48), v, t, c, x, r, s, ly, g, gc, xd, sr, ch;
     uint64_t layout;
     char game[80], xx_dump[80], restore[32];      /* json_string wants room past the text */
     memset(out, 0, sizeof *out);
@@ -92,6 +93,7 @@ int hf_installed_parse(const char *json, size_t len, HfInstalled *out) {
     gc = json_find(json, toks, 0, "game_complete");
     xd = json_find(json, toks, 0, "xx_dump");
     sr = json_find(json, toks, 0, "save_restore");
+    ch = json_find(json, toks, 0, "cheats");
     if (sr >= 0 && (json_string(json, &toks[sr], restore, sizeof restore) || (restore[0] && !hf_save_stamp_ok(restore))))
         return -1;
     if (v < 0 || t < 0 || c < 0 || json_string(json, &toks[v], out->version, sizeof out->version) ||
@@ -102,6 +104,7 @@ int hf_installed_parse(const char *json, size_t len, HfInstalled *out) {
         (ly >= 0 && (json_uint(json, &toks[ly], &layout) || layout < 1 || layout > 2)) ||
         (g >= 0 && (json_string(json, &toks[g], game, sizeof game) || !hf_game_hash_ok(game))) ||
         (gc >= 0 && json_bool(json, &toks[gc], &out->game_complete)) ||
+        (ch >= 0 && json_bool(json, &toks[ch], &out->cheats)) ||
         (xd >= 0 && (json_string(json, &toks[xd], xx_dump, sizeof xx_dump) || !hf_game_hash_ok(xx_dump))))
         return -1;
     out->tmd = (unsigned)tmd;
@@ -625,6 +628,20 @@ static const char *const TEXT[HT_COUNT][2] = {
     [HT_APP_NOW] = {"The launcher was updated: version {}.", "El launcher se ha actualizado: versión {}."},
     [HT_HOME_LATER] = {"HOME is off while this works: it comes back at the end.",
                        "HOME no funciona mientras esto trabaja: vuelve al terminar."},
+    [HT_BTN_CHEATS_OFF] = {"Cheats: off", "Trucos: no"},
+    [HT_BTN_CHEATS_ON] = {"Cheats: on", "Trucos: sí"},
+    [HT_CHEATS_ASK_ON] = {"Turn cheats on? The game gets a Cheats group in Mod Settings (START menu, third page). "
+                          "Never play with others, locally or online, without telling them you use cheats. The game "
+                          "is installed again; your save comes back after.",
+                          "¿Activar los trucos? El juego tendrá un grupo de trucos en Ajustes del mod (menú START, "
+                          "tercera página). Nunca juegues con otros, en local u online, sin decirles que usas trucos. "
+                          "El juego se instala otra vez; tu partida vuelve después."},
+    [HT_CHEATS_ASK_OFF] = {"Turn cheats off? The game is installed again without them; your save comes back after.",
+                           "¿Desactivar los trucos? El juego se instala otra vez sin ellos; tu partida vuelve después."},
+    [HT_CHEATS_NONE] = {"This version has no cheats for your region: nothing was changed.",
+                        "Esta versión no tiene trucos para tu región: no se ha cambiado nada."},
+    [HT_CHEATS_NO_SET_NOTE] = {"This version has no cheats for your region: installing without them.",
+                               "Esta versión no tiene trucos para tu región: se instala sin ellos."},
 };
 
 const char *hf_text(HfLang lang, HfText id) {
