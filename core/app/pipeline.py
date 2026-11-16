@@ -52,7 +52,7 @@ from core.game.files.text.common_texts import remove_common_text_files
 from core.interface.mod_settings.mod_options import (
     OPTION_IDS, available_options, patch_mod_options, supports_mod_options,
 )
-from core.interface.mod_settings.mod_texts import mod_settings_texts
+from core.interface.mod_settings.menu_files import menu_page_files
 from core.game.executable.memory_split import patch_memory_split, resource_to_root_mb
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
@@ -70,7 +70,7 @@ from core.interface.hud.build import hud_files, remove_hud_files
 from core.interface.hud.build import hint_files
 from core.interface.hud.code_patch import patch_interface
 from core.interface.hud.scale import NO_EDGE
-from core.interface.radial_menu.radial_draw import menu_wheel_files, wheel_files
+from core.interface.radial_menu.radial_draw import wheel_files
 from core.interface.radial_menu.radial_menu import patch_radial_menu, supports_radial_menu
 from core.interface.single_screen.layout.single_screen import remove_single_screen_files
 from core.interface.damage_numbers.damage_numbers import patch_damage_numbers
@@ -185,10 +185,8 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         hud = dict(hint_files(rom)) if target_hint else {}
     anchored = settings.aspect_on and rom is not None
     names = gear_texts.files(lambda path: hud.get(path) or rom.read(path)) if gear_texts else {}
-    if menu_texts and rom is not None:      # the START menu's third page: the options and the aspect ratio's list
-        names |= mod_settings_texts().files(lambda path: {**hud, **names}.get(path) or rom.read(path))
-        if radial_wheel:    # the item wheel's picture in Edit Slots, in ui020's big list (radial_draw.py)
-            names |= menu_wheel_files(rom, {**hud, **names})
+    if menu_texts and rom is not None:      # the START menu's third page: its texts, ui020's panes, Edit Slots' picture
+        names |= menu_page_files(rom, {**hud, **names}, wheel=radial_wheel)
     texts = dict(layered_text_files(rom, {**hud, **names}, gen=gen_looks, felynes=felynes)) if layered_texts else {}
     if exchange_texts:      # the Wyporium's messages and panes, on top of the other options' copies
         texts.update(exchange_text_files(rom, {**hud, **names, **texts}))

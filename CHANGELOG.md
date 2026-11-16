@@ -34,6 +34,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Mod Settings sorts its options into Interface, Camera, QoL, Display and Other, most important first.
 - Mod Settings' lists show up to ten rows a page, each page in a frame its size; Left and Right turn pages.
 - Mod Settings has room for many more options; every character's choices return to their defaults once.
+- Field of View, Online Room Fix and True Weapon Attack work on a real 3DS too.
 
 ### Layered Gear
 - A switch above the Layered Gear rank row shows only the looks you own.

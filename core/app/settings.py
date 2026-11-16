@@ -386,11 +386,12 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only), a 3DS run takes their defaults (Settings.for_console) and the START menu's
 # page has no row for them (mod_options.available_options): the HUD size and the touchless target; the ported monsters
-# (Alatreon, Mizutsune, Glavenus) go to a 3DS too; the cheats are emulator only. Single-screen mode moves layouts
+# (Alatreon, Mizutsune, Glavenus) go to a 3DS too; the cheats are emulator only but Field of View, Online Room Fix
+# and True Weapon Attack (Gateway codes made for real hardware, applied as executable patches). Single-screen mode
+# moves layouts
 # between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                 "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard")
+                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.

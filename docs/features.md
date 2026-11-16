@@ -126,7 +126,7 @@
 
 - Choose them on the **Options** page, and change them during play, for each character: START, third page, Mod Settings.
 - 3D, glow and distant blur are off by default for a sharper image.
-- Other available cheats are disabled by default: a fixed frame rate (every 5 from 30 to 60 FPS), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus.
+- Other available cheats are disabled by default: a fixed frame rate (every 5 from 30 to 60 FPS, emulator only), adjustable camera field of view, longer wait times when joining online rooms, and weapons' true attack in menus. The field of view, the online rooms fix and the true attack work on a real 3DS too.
 - **⚠️ EXPERIMENTAL, expect problems:** turn on **Allow other aspect ratios** and the game and its menus can fit screens from 4:3 to 32:9. It is disabled by default, and menus, prompts or backgrounds may be out of place or stretched. Your emulator must show the picture in that shape (in Azahar: Single Screen with Stretch). You can also change it during play: START, third page, Mod Settings. Please report any problem you see.
 
 The full list of changes can be found in the **[changelog](../CHANGELOG.md)**.
