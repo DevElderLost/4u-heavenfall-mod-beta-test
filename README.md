@@ -36,12 +36,13 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick).
 - A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.
 - A **World-style sharpness gauge** that shrinks as each colour wears down.
+- A **Jukebox** at your Housekeeper: playlists of the game's music, played in the towns instead of their own.
 - **A smaller HUD**, from 90% to 60%.
 - **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Mod Settings can hide it for a character.
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.
 - **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
 
-Almost everything is changed during play: START menu, third page, **Mod Settings**. The installer only asks for Single Screen Mode, Layered Gear, the HUD size, the aspect ratio and the cheats.
+Almost everything is changed during play: START menu, third page, **Mod Settings**. The installer only asks for Single Screen Mode, Layered Gear, the HUD size, the aspect ratio, the Jukebox and the cheats.
 
 The full list is in **[what the mod adds](docs/features.md)**, and every change in the **[changelog](CHANGELOG.md)**.
 

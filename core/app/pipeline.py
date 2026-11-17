@@ -3,16 +3,16 @@
 Heavenfall Beta puts the touch screen's menus on the top screen (single-screen mode), shrinks the HUD, adds a page to
 the game's START menu, Mod Settings, where the player changes the cheats, the lock-on with L and holding A during play,
 shows the Smithy's Forge Weapons as a weapon tree, and adds Layered Gear (the looks of the Smithy's Layered Equipment
-line), the Wyporium's new trades and its Rare Materials Exchange, all for the emulator (docs/how_it_works.md). They
+line), the Wyporium's new trades and its Rare Materials Exchange, and the house Felyne's Jukebox (playlists of the
+game's music for the villages), all for the emulator (docs/how_it_works.md). They
 come in three modules, each with a switch of its own (gui_presets.json `install.modules`): single screen (with the HUD
 size, the lock-on, the aspect ratio and Select's kick), Layered Gear (with the new trades and the Rare Materials
-Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree and the
-cheats); a module that is off leaves the game as it is, but for Layered Gear's new items (the rare materials of MH XX's
-monsters, Foreign Scrap), which every run defines so that a save holding them reads them whatever is on. Input: the
-player's
-decrypted base game, European or American; the executable and the interface's files are read from it in memory, and the
-update is never needed. MH XX's decrypted game is optional: with it, Layered Gear also offers XX's looks and the
-Wyporium trades the new materials they cost.
+Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree, the Jukebox
+and the cheats); a module that is off leaves the game as it is, but for Layered Gear's new items (the rare materials
+of MH XX's monsters, Foreign Scrap), which every run defines so that a save holding them reads them whatever is on.
+Input: the player's decrypted base game, European or American; the executable and the interface's files are read
+from it in memory, and the update is never needed. MH XX's decrypted game is optional: with it, Layered Gear also
+offers XX's looks and the Wyporium trades the new materials they cost.
 
 Output (copy its contents into the emulator's load/mods/<title>/: 0004000000126100 European, 0004000000126300
 American; the program does it for the player):
@@ -85,6 +85,7 @@ from core.app import presets
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
 from core.interface.single_screen.run import single_screen_romfs
+from core.music.jukebox import build as jukebox
 from core.install.title.split_romfs import patch_split_romfs, supports_split_romfs, title_exheader
 
 # Stages announced through run(stage=...), in order.
@@ -315,6 +316,12 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if layered and settings.rare_exchange and not exchange:
         notices.append(left_out("rare materials exchange", "the Wyporium has no Rare Materials Exchange line",
                                 NOT_AVAILABLE))
+    # the house Felyne's Jukebox (music/jukebox/build.py): its queue and texts in the lobby's ARCs, its block in the
+    # extension, which needs the game's exheader
+    with_jukebox = settings.jukebox and player.exheader is not None and jukebox.supports(code)
+    if settings.jukebox and not with_jukebox:
+        notices.append(left_out("jukebox", "the villages keep their own music",
+                                NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
     # MH XX's looks, and the rare materials of its monsters that MH4U lacks: only with its game and Layered Gear
     prepared = cached_pack(Path(xx_rom), Path(game)) if layered and xx_rom is not None else None
     materials = load_materials() if prepared else None
@@ -345,13 +352,26 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
         made_from_xx.update({"romfs/" + path: read for path, read in felyne_looks_pack.sources.items()})
     write_sources(output_dir, made_from_xx)
     gen_looks = prepared.gen_looks() if prepared else None
+    jukebox.remove_files(output_dir)    # before the interface's: they write the same ARCs
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
         gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel)
+    jukebox_plan = None
+    if with_jukebox:    # on what the interface left in the lobby's ARCs; the game's own songs and the shipped ones
+        game_files = RomFS(game)
+        jukebox_plan = jukebox.jukebox_build(
+            lambda path: (output_dir / "romfs" / path).read_bytes() if (output_dir / "romfs" / path).is_file()
+            else game_files.read(path),
+            game_files.head, settings, single_screen=single_screen,
+            xx_read=RomFS(xx_rom).read if xx_rom is not None else None)
+        for path, data in jukebox_plan.files.items():
+            target = output_dir / "romfs" / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
     # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
     tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange
-            or added or title_build or probe is not None):
+            or jukebox_plan is not None or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
         with session.recording(notes):
@@ -391,7 +411,9 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 result.interface_patched = True
             if single_screen:
                 patched = patch_single_screen(patched, screen_offsets, engine_table=engine_table)
-            if damage:      # after the target face: its loader and freer hooks go on to the face's
+            if jukebox_plan is not None:    # the Jukebox's engine, the card's hooks and the house Felyne's menu
+                patched = jukebox.patch_executable(patched, jukebox_plan)
+            if damage:     # after the target face: its loader and freer hooks go on to the face's
                 patched = patch_damage_numbers(patched)
             if horn:        # the quest's hooks it shares with Damage Numbers: whichever comes first places them
                 patched = patch_horn_songs(patched)

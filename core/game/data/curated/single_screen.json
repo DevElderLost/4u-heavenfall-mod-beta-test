@@ -6,7 +6,7 @@
  "character_shift": 80,
  "gui_pools": {"nulls": 7714},
  "board_page": {"shift": [-15.5, -64]},
- "page_counters": {"canteen": [76, 0], "gallery": [216, -102]},
+ "page_counters": {"canteen": [76, 0], "gallery": [216, -102], "jukebox": [164, -144]},
  "creation_camera": {"model_left": [136, 136, 136, 136, 136, 0], "distance": [1.0, 1.5, 1.1, 1.1, 1.5, 1.0]},
  "prompt_stay_bottom": ["ui006_cross"],
  "creation_prompt": {"groups": ["ui415_l_botan_2", "ui415_l_botan_4", "ui415_l_botan_5", "ui800_l_midashi",

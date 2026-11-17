@@ -99,6 +99,8 @@
   weapon has both ways, a small window asks "Upgrade" or "Craft from scratch", and the materials at the left are
   always those of the choice under the cursor. The help line and the price question name the way in capitals.
 - After every purchase, an upgrade too, the smith hammers it as in the game's forge and asks whether to equip it.
+- Beside your money, a box like the money's says "Cost" and the price of the weapon under the cursor (to forge or to
+  upgrade, as the materials at the left), grey while your money is short.
 - A small hammer marks the weapons that can be forged from scratch. A greyed icon cannot be paid for yet, a gold
   plate is a weapon you own, E is the one you wear and a box one you keep in the box without wearing it.
 - Each weapon shows its element or status icon at its upper right, the one the stats panel shows; grey when it needs
@@ -109,11 +111,24 @@
 - It is on by default. In the game: START, third page, Mod Settings, Interface, Smithy View: Tree, or List for the
   game's own lists.
 
+**Jukebox**
+
+- Your Housekeeper has a new line, Jukebox, beside the Gallery. In it you make up to 8 playlists of up to 40 songs, named
+  with the game's own keyboard.
+- The songs are the game's themes: towns and halls, areas, monsters and more. A button plays the highlighted song
+  while you edit a playlist.
+- The active playlist plays in the towns instead of their own music, in order or shuffled. A separate option does
+  the same in the Gathering Hall and Dundorma's Elder Hall.
+- After each song's looped part has played a chosen number of times (1 to 9, 2 by default) it fades out (0 to 10 seconds,
+  2 by default) and the next song follows.
+- Playlists are saved with the game. "This session" turns the jukebox off when the game closes; "Always" keeps it on.
+- It is on by default. Turn it off in the **Options** page, under Other / QoL.
+
 **Layered Gear and the Wyporium**
 
 - The Smithy has a new line, Layered Gear: each look of an armor, weapon or Felyne set is bought once with materials and money, and worn over what you wear without changing it. Armor looks show their own colors; on the armor screen, SELECT opens a free color window: choose the whole set or one piece, then a color. Relics (Guild Quest gear) have their own Relics line, below Felyne, priced like their monster's gear; looks you don't own show darker icons. A switch above the rank row (ZL, or up from the rank row, then A) lists only the looks you own.
 - The Wyporium has a new line, Rare Materials Exchange: hand over common items of the monsters that drop a rare material until you have given enough, and it goes to your Item Box.
-- With Monster Hunter XX's game (optional), Layered Gear also offers the looks of its weapons and armor, and the Wyporium trades the new rare materials those looks cost.
+- With Monster Hunter XX's game (optional), Layered Gear also offers the looks of its weapons and armor, and the Wyporium trades the new rare materials those looks cost. Its Felyne costumes with no head piece (Happy, Navirou and others) show the costume's own head over any head look; a Felyne weapon that changes when drawn always shows its drawn form.
 - In multiplayer, the other players with this mod see your Layered Gear and your Felyne's, and you see theirs. A player who lacks one of your looks (without Monster Hunter XX's game, say) or plays without the mod sees your real gear; everyone can still play together.
 - Each character can hide the looks in the game: START, third page, Mod Settings, Interface, Layered Gear: No. Your hunter, your Felynes and the other players then show their real gear, and the others see yours. Everything bought, worn and dyed stays for Yes (the default), and the Smithy's Layered Gear line stays open. In town it changes at once; in a quest, at the next one.
 - You can turn Layered Gear off on the **Options** page: you wear your real gear and see the other players' real gear. Your save keeps what you bought, wore and dyed, and the new materials in your Item Box, for when you turn it on again.

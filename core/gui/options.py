@@ -712,6 +712,15 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "ends the quest, World's Fatalis slain theme plays instead of the quest complete music. White "
                      "Fatalis and Crimson Fatalis (Super) do not change.")),
         ), T("La música viene con el randomizer.", "The music comes with the randomizer.")),
+        Group(T("Gramola", "Jukebox"), (
+            Option("jukebox", T("Gramola", "Jukebox"),
+                   T("El Ayudante tiene una línea nueva, «Gramola»: haz listas con la música del juego "
+                     "(temas de los pueblos, las zonas y los monstruos) y elige una para que suene en los pueblos en "
+                     "lugar de su música, en orden o al azar. Su menú también puede ponerla en las salas de reunión.",
+                     "The Housekeeper gets a new line, \"Jukebox\": make playlists of the game's music (town, "
+                     "area and monster themes) and pick one to play in the towns instead of their own music, in "
+                     "order or shuffled. Its menu can play it in the Gathering Halls too.")),
+        ), T("Las listas se guardan con la partida.", "Playlists are saved with your game.")),
     )),
     Section(T("Aspecto", "Looks"), (
         Group(T("Equipo superpuesto", "Layered gear"), (
@@ -735,6 +744,18 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "that opens Dundorma. Off, every look and trade is there from the start."),
                    requires="layered_equipment"),
         )),
+        Group(T("Pack de texturas HD", "HD texture pack"), (
+            Option("hd_pack", T("Compatibilidad con pack de texturas HD", "HD texture pack compatibility"),
+                   T("Si el emulador tiene un pack de texturas HD del juego, la instalación añade a su carpeta las "
+                     "versiones HD de lo que dibuja el mod: las marcas del árbol de armas, la rueda de objetos, los "
+                     "números de daño y la pista de cambio de objetivo, y adapta las imágenes del pack que el mod "
+                     "cambia. Los archivos del pack no se tocan. Desactivada, se quita lo que se añadió.",
+                     "If the emulator has an HD texture pack of the game, installing adds to its folder HD versions "
+                     "of what the mod draws: the weapon tree's marks, the item wheel, the damage numbers and the "
+                     "target switch hint, and adapts the pack's pictures the mod changes. The pack's files are never "
+                     "touched. Off, what was added is removed."),
+                   emulator_only=True),
+        ), T("Solo funciona en el emulador.", "It only works in the emulator.")),
     )),
     Section(T("Trucos", "Cheats"), (
         Group(T("Activar trucos", "Enable cheats"), (

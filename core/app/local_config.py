@@ -37,6 +37,7 @@ KEYS = {
     "zig": "folder of zig.exe (winget install zig.zig --version 0.17.0), the C compiler of tools/build/build_native.py",
     "emulator_dir": "Azahar/Citra user folder (default %APPDATA%/Azahar)",
     "work_dir": "derived inputs and scratch (default work/ in the main checkout)",
+    "jukebox_inbox": "folder where the developer drops the jukebox's extra .mca songs",
     "beta_repo": "Heavenfall Beta's repository (tools/release/export_edition.py; default ../4u-heavenfall-mod-beta "
                  "beside the main checkout)",
 }

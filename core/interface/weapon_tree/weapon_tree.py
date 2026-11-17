@@ -49,12 +49,12 @@ UPGRADE_LIST = 0xA02048
 
 # struct wt_data (weapon_tree.h)
 MAGIC = 0x31525457                   # "WTR1"
-DATA_HEAD = 252
+DATA_HEAD = 260
 CORNERS = 8 * len(node_marks.ELEMENTS)   # the head's last bytes: element_uv, each element icon's (u, v)
-# the colours the code tints with (the layout's `fill` is not one)
+# the colours the code tints with (the layout's `fill` and `cost` are not)
 COLOURS = ("band", "band_alt", "plate", "plate_lit", "plate_owned", "link", "link_lit", "worn", "cursor", "key_bar",
            "hint", "count", "arrow", "unpayable", "forge", "choice_on", "choice_off", "element", "element_hidden",
-           "box")
+           "box", "price", "price_short")
 REVEALS = ("all", "discovered")
 STYLES = ("bracket", "frame")
 HOLD_STEPS = 4

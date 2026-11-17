@@ -36,13 +36,14 @@ BUTTONS = {"L": 0x100}
 
 def patch_minimap(code: bytes, hook: int, layout: Layout | None = None, minimap: Minimap | None = None) -> bytes:
     """`code` (extended, the "[X] Map" hint's block already hooked at `hook`, the pad update's call) with the minimap's
-    block placed with the hashes of the curated groups' names (the map's, then the place name's: `Minimap.follow`), the
-    button's raw bit and the hint's word, called first by the pad update (it calls the hint's block itself). The hook
-    checks the call it replaces."""
+    block placed with the hashes of the curated groups' names (the map's, zeros, and in the last slot the place name's,
+    which goes up only while the map can show), the button's raw bit and the hint's word, called first by the pad
+    update (it calls the hint's block itself). The hook checks the call it replaces."""
     layout = layout or load_layout()
     minimap = minimap or minimap_settings()
-    hashes = [name_hash(minimap.state_group), name_hash(minimap.hint.group), *map(name_hash, minimap.follow)]
-    hashes += [0] * (2 + MAX_GROUPS - len(hashes))
+    hashes = [name_hash(minimap.state_group), name_hash(minimap.hint.group), *map(name_hash, minimap.groups)]
+    hashes += [0] * (1 + MAX_GROUPS - len(hashes))
+    hashes.append(name_hash(minimap.label.group) if minimap.label else 0)   # the last slot: the place name's
     block = layout.block(BLOCK)
     data = bytearray(block.data)
     for symbol, values in (("minimap_hashes", hashes), ("minimap_button", [BUTTONS[minimap.button]]),

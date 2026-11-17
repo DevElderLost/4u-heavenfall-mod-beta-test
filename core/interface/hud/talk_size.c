@@ -6,6 +6,8 @@
  * window under one null, <group>_frame, at (0, 0) and scale 1, so the file draws them at full size. Every frame this
  * block gives each such null the HUD size while the game is in a quest: the null's position (x, y) and scale (s, s)
  * of talk_size_data, the scaled layout's shift towards the window's corner; in any other game mode (0, 0) and 1.
+ * The layout is loaded once, each window into a slot of its own of the manager's 1,536 (58-63), so the walk of the
+ * group list ends once it has met all six; a scene without them walks the whole list.
  *
  * Hook: sMhMain::frame (FUN_00af52a0) calls FUN_005a805c(), the GUI's per-frame update of its pop-up groups, once a
  * frame in every scene; that call is a `bl` to talk_size, which makes it and then places the nulls. The game mode is
@@ -26,6 +28,7 @@ typedef unsigned int u32;
 typedef unsigned char u8;
 
 #define TALKS 6
+#define ALL_TALKS ((1u << TALKS) - 1)
 
 struct talk {
     u32 group;          /* the window's name hash */
@@ -90,12 +93,19 @@ __attribute__((used, section(".text.entry"))) void talk_size(void)
         return;
     u32 slots = W(manager, 0x154), count = W(manager, 0x160);
     int quest = in_quest();
+    u32 met = 0;        /* bit t: window t met; ui005 loads each once, so the walk ends at the sixth */
     for (u32 i = 0; i < count; i++) {
         u32 group = W(slots, i * 4);
         if (!group)
             continue;
-        for (int t = 0; t < TALKS; t++)
-            if (W(group, 0) == talk_size_data.talks[t].group)
-                place(group, &talk_size_data.talks[t], quest);
+        /* counted down, the window's bit worked out only on a match: a group that is none of them costs its compares */
+        const struct talk *talk = talk_size_data.talks;
+        for (u32 left = TALKS; left; left--, talk++)
+            if (W(group, 0) == talk->group) {
+                place(group, talk, quest);
+                met |= 1u << (TALKS - left);
+                if (met == ALL_TALKS)
+                    return;
+            }
     }
 }

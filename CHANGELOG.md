@@ -2,6 +2,25 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
+## Unreleased
+
+### Weapon tree
+- Beside your money, the tree shows the price of the weapon under the cursor, grey when you are short.
+
+### Layered Gear
+- Monster Hunter XX's Felyne costumes, like Happy's, show their own head; transforming weapons show their drawn form.
+
+### QoL
+- Your Housekeeper has a Jukebox: playlists of the game's music can play in the towns instead of theirs.
+- A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
+- The top-screen menus and the smaller HUD take less of the game's time each frame: smoother at 60 FPS (emulator only).
+
+### The program
+- With an HD texture pack, the weapon tree's marks, item wheel, damage numbers and target hint look sharp too.
+
+### Fixes
+- The town map's place name no longer shows over the fade to black and the loading screen.
+
 ## 0.2.1
 
 ### Weapon tree

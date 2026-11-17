@@ -32,6 +32,7 @@ FORGE_LAYOUT = "ui407"               # the list, in core_lobby
 MATERIALS_LAYOUT = "ui402"           # the materials' frame, in core_lobby
 FRAME_LAYOUT = "lyt\\common\\ui034"  # the model's panel, the key bar and the L and R keys, in core_common
 KEY_LAYOUT = "lyt\\common\\ui006"    # the game's key hints: the START key, in core_common
+MONEY_LAYOUT = "lyt\\common\\ui024"  # the money window and its second box, in core_common
 PIGMENT_LAYOUT = "lyt\\lobby\\ui415"  # the item box's Armor Pigment (and the hunter's colours), in core_title
 
 MAX_ROWS = 9
@@ -419,9 +420,10 @@ def _layouts(arc_data: bytes, lang: str, names: tuple[str, ...]) -> dict[str, La
 
 
 def forge_sources(arc: bytes, lang: str, common_arc: bytes, title_arc: bytes) -> dict[str, Layout]:
-    """The layouts the screens' panes copy: ui407 and ui402 of the lobby's `arc`, ui034 and ui006 of the core_common.arc
-    `common_arc`, ui415 of the core_title.arc `title_arc` (all of the language `lang`)."""
-    sources = _layouts(common_arc, lang, (FRAME_LAYOUT, KEY_LAYOUT)) | _layouts(title_arc, lang, (PIGMENT_LAYOUT,))
+    """The layouts the screens' panes copy: ui407 and ui402 of the lobby's `arc`, ui034, ui006 and ui024 of the
+    core_common.arc `common_arc`, ui415 of the core_title.arc `title_arc` (all of the language `lang`)."""
+    sources = _layouts(common_arc, lang, (FRAME_LAYOUT, KEY_LAYOUT, MONEY_LAYOUT)) | _layouts(title_arc, lang,
+                                                                                            (PIGMENT_LAYOUT,))
     for layout in (FORGE_LAYOUT, MATERIALS_LAYOUT):
         sources[layout] = _layouts(arc, lang, (f"lyt\\lobby\\{layout}",))[f"lyt\\lobby\\{layout}"]
     return sources

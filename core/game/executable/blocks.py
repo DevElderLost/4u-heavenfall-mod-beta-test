@@ -173,13 +173,28 @@ WORLD_SHARPNESS_DATA_SIZE = 64
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
 WEAPON_TREE = "weapon_tree"
-WEAPON_TREE_DATA_SIZE = 252 + 4 * 560
+WEAPON_TREE_DATA_SIZE = 260 + 4 * 565
 WEAPON_TREE_STATE_SIZE = 94 + 6 * 336
 # The new map numbers 28 and 29 (maps/new_map.py): packed after all of them
 # too, so that it moves no other block.
 NEW_MAP = "new_map"
 # Boltreaver Astalos' pulling ball on the hunter (gameplay/boltreaver_pull/boltreaver_pull.py): after the new maps too
 BOLTREAVER_PULL = "boltreaver_pull"
+# The jukebox (music/jukebox/patch.py): one block of three units and a stub (the
+# engine jukebox.c, the card's store and load jukebox_save.c, the house Felyne's menu jukebox_menu.c, jukebox.s), its
+# data (jukebox.h struct jukebox_data: the replaced requests, the limits, the defaults, the menu's messages, each track
+# id's request) and its state in the extension's variables (struct jukebox_state: the saved block's copy and the
+# engine's). Packed after the product's other blocks, so it moves none of them.
+JUKEBOX = "jukebox"
+# The jukebox's menu (music/jukebox/menu_patch.py): its unit of hook stubs, the
+# menu's part at the end of the data block (the page counter's place, the track names' first message, the categories,
+# the track list) and its variable (jukebox.h struct jukebox_menu)
+JUKEBOX_MENU_DATA_SIZE = 2 * 2 + 2 + 2 + 8 * 8 + 2 * 256
+JUKEBOX_MENU_SIZE = 12 + 4 + 4 + 2 * 12 * 10 + 2 * 4 * 10 + 2 * 12 * 2
+JUKEBOX_MENU_UNITS = ("music/jukebox/jukebox_menu_stub.s",)
+JUKEBOX_MENU_DEFINES = (f"JUKEBOX_MENU_SIZE={JUKEBOX_MENU_SIZE}",)
+JUKEBOX_DATA_SIZE = 2 * 16 * 2 + 8 + 8 + 2 * 2 + 2 * 2 + 2 * 64 + 2 * 512 + JUKEBOX_MENU_DATA_SIZE
+JUKEBOX_STATE_SIZE = 848 + 8 + 8 + 2 * 6 + 4 * 8 + 40
 # The cheats Interruptible Flex and Whetstone Sharpening Cancel (cheats/action_cancel/action_cancel.py; docs/cheats/
 # cheats.md): after the item wheel, so that it moves no other product block
 ACTION_CANCEL = "cheat_action_cancel"
@@ -228,7 +243,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, TRIO_DIAG)
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, TRIO_DIAG)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -639,6 +654,14 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # and the two Mod Settings options' ids (action_cancel.py action_cancel_data)
     BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext"),
     BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext"),
+    # The jukebox: the engine with the card's and the menu's units and the selector's stub, and its data (patch.py
+    # data_block)
+    BlockSpec(JUKEBOX, JUKEBOX, "music/jukebox/jukebox.c", region="ext",
+              units=("music/jukebox/jukebox_save.c", "music/jukebox/jukebox_menu.c", "music/jukebox/jukebox.s",
+                     "music/jukebox/jukebox_save_stub.s") + JUKEBOX_MENU_UNITS,
+              defines=(f"JUKEBOX_DATA_SIZE={JUKEBOX_DATA_SIZE}", f"JUKEBOX_STATE_SIZE={JUKEBOX_STATE_SIZE}")
+              + JUKEBOX_MENU_DEFINES),
+    BlockSpec("jukebox_data", JUKEBOX, size=JUKEBOX_DATA_SIZE, region="ext"),
     # The debug fog control's code and data (a diagnostics file's only)
     BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
     BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
@@ -803,6 +826,11 @@ VARIABLES = (
     # The pull's registration of the hunter and the ball's marks (boltreaver_pull.c struct pull_state: 4 + 4 owners of
     # 20 bytes); patch_boltreaver_pull reserves it
     VariableSpec("boltreaver_pull_state", BOLTREAVER_PULL, 4 + 4 * 20, region="ext_vars"),
+    # The jukebox's saved block and its engine (jukebox.h struct jukebox_state); patch_jukebox reserves it
+    VariableSpec("jukebox_state", JUKEBOX, JUKEBOX_STATE_SIZE, region="ext_vars"),
+    # The jukebox's menu: its screen, cursor and the strings its rows show (jukebox.h struct jukebox_menu);
+    # patch_jukebox_menu reserves it
+    VariableSpec("jukebox_menu", JUKEBOX, JUKEBOX_MENU_SIZE, region="ext_vars"),
     # gameplay/monster_phases/monster_phases.s: the phases of 77, 78 and 124 and the monster whose theme played last
     VariableSpec("monster_phase", "monster_phases", 4),
     # adapter, engine side: the effect player's own managers, which MH4U lacks (core/monsters/porting/sdk/proof_api.h):
@@ -880,7 +908,7 @@ GAME_SYMBOLS = {
     "menu_cursor_init": 0x9BC954,    # FUN_009bc954(obj, cursor, count, rows, disabled, a / v / h sounds)
     "menu_cursor_update": 0x9BC9B4,  # FUN_009bc9b4(obj, cursor, 0): 1 A, 2 B
     "facility_pressed": 0x9AC3A4,    # FUN_009ac3a4(obj, GUI bits): pressed this frame
-    "facility_dirs": 0x9B3830,       # FUN_009b3830(obj): D-pad bits, pressed or repeating
+    "facility_dirs": 0x9B3830,       # FUN_009b3830(obj): every GUI bit pressed or repeating (pad + 0x348 | 0x35C)
     "facility_help": 0x298560,       # FUN_00298560(kind, file, message): the help line
     "sound_play": 0x31294C,          # FUN_0031294c(*0xFCCD6C, sound)
     "smithy_done": 0x9AE280,         # the end of the Smithy's per-frame state switch
@@ -929,6 +957,7 @@ GAME_SYMBOLS = {
     "forge_hide": 0xA1C640,          # FUN_00a1c640(obj): hides the Smithy's panels (ui407, ui402, ui034, the money box)
     "model_frame": 0x2727C8,         # FUN_002727c8(): shows ui034's model frame with its L, R and stick words
     "money_write": 0xA52860,         # FUN_00a52860(obj, money, 1): writes the sum in the money box
+    "money_number": 0xC0DA68,        # FUN_00c0da68(gui, text ref, n): "<n>z" in the text, as the money box writes it
     "money_show": 0xA5D424,          # FUN_00a5d424(obj, shown, 0): shows / hides the money box (obj + 0xA010)
     "window_open": 0x2921CC,         # FUN_002921cc(kind, slot, 4[, 1]): the yes / no window of the Smithy (ui006)
     "window_update": 0x2A2414,       # FUN_002a2414(): draws the window every frame
@@ -2170,4 +2199,49 @@ GAME_SYMBOLS |= {
     "hunter_update_check": 0xB18618,    # FUN_00b18618(hunter): the update's first check before the action's frame
                                         # (0xB14960); non-zero when it started an action
     "hunter_update_check_more": 0xB0D784,   # FUN_00b0d784(hunter): its second (0xB1496C), when the first started none
+}
+
+# The jukebox (music/jukebox/jukebox.c): the town's theme
+# selector, the resume list, the queue's lookup and the sound driver's stream voices
+GAME_SYMBOLS |= {
+    "town_theme": 0x304990,             # FUN_00304990(manager, which): the place's request of bgm_lob
+    "resume_list": 0xFCCE54,            # u16 requests whose play position the town keeps (manager + 0x178C + 8 n),
+                                        # 0xFFFF after the last (FUN_0030ace0's list)
+    "strq_request": 0xCEBBDC,           # FUN_00cebbdc(queue handle, request): its record, 0 when the queue has none
+    "stream_voice_newest": 0xBD1580,    # FUN_00bd1580(driver, handle, request, set): the newest live stream voice, 0
+    "stream_voice_position": 0xBD2AD0,  # FUN_00bd2ad0(driver, handle, request, set): that voice's position, samples
+    "sound_request_play": 0xBCACBC,     # FUN_00bcacbc(driver, handle, request, set, 0, 0): a queue's request played
+}
+
+# The jukebox's block in the card file (music/jukebox/jukebox_save_stub.s, save_patch.py)
+GAME_SYMBOLS |= {
+    "card_read": 0x2ADC98,              # FUN_002adc98(file task): the card file read into the save (1), or refused (0)
+}
+
+# The jukebox's menu (music/jukebox/jukebox_menu.c): the house Felyne's lines, the list
+# ui443 and its page counter, the GUI's frames, the exit event and the name keyboard as the equipment sets use it
+GAME_SYMBOLS |= {
+    "housekeeper_lines": 0xAA771C,      # FUN_00aa771c(obj): the menu's actions (facility + 0x228) and count (+ 0xC)
+    "list_bind": 0x59E3AC,              # FUN_0059e3ac(list): ui443's panes looked up into the refs at obj + 0x12C8C
+    "list_unbind": 0x59E44C,            # FUN_0059e44c(list): the list's groups closed
+    "ribbon_title": 0xA5985C,           # FUN_00a5985c(obj, group hash, pane hash, file, message): a static text shown
+    "page_counter": 0x288FAC,           # FUN_00288fac(x, y, page, pages, 0, 0): ui036's counter at (x, y), pages > 1
+    "page_arrow_idle": 0x29F084,        # FUN_0029f084(sprite ref): a page arrow's flash fades, every frame
+    "page_arrow_flash": 0x29EBAC,       # FUN_0029ebac(sprite ref): a page arrow flashes
+    "page_turn_next": 0x28BAE0,         # FUN_0028bae0(): the page counter's next-page animation
+    "page_turn_back": 0x28BABC,         # FUN_0028babc(): its previous-page animation
+    "touch_owner": 0x289708,            # FUN_00289708(): the touch menus' shared owner (ui036), made once
+    "touch_owner_close": 0x289544,      # FUN_00289544(): as the Gallery and the Song Select close their list
+    "touch_panels": 0x28BFA0,           # FUN_0028bfa0(0): the lower screen's panels for the place, as the Gallery and
+                                        # the Song Select open their list (0x9C5F74, 0x9F80F8)
+    "gui_layer_set": 0x29DF10,          # FUN_0029df10(0xB): as the Song Select opens its list
+    "menu_close_frames": 0x2A0778,      # FUN_002a0778(): as every Housekeeper screen closes
+    "gui_event": 0x288F4C,              # FUN_00288f4c(kind): 1 when the GUI's event record holds an event of the kind
+    "house_farewell": 0x9BCB90,         # FUN_009bcb90(obj, 1, 0): the house Felyne's farewell line (state 9 waits)
+    "keyboard_open": 0x2B5788,          # FUN_002b5788(manager, 1, characters, 1): the name keyboard set up
+    "keyboard_start": 0x2B59DC,         # FUN_002b59dc(manager, 0, text): opened on a text
+    "keyboard_poll": 0x2B58E8,          # FUN_002b58e8(manager): 0 open, 1 accepted, -1 cancelled or blank
+    "keyboard_text": 0x2AFC2C,          # FUN_002afc2c(manager): the typed text (manager + 0x2FC8)
+    "keyboard_copy": 0x2B5F48,          # FUN_002b5f48(manager, out, text, width, width): at most `width` units
+    "keyboard_close": 0x2B5DF8,         # FUN_002b5df8(manager): closes an open keyboard
 }

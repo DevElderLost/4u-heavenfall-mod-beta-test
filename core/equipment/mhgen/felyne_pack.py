@@ -23,7 +23,7 @@ from core.game.files.arc import Arc, ArcEntry, parse_arc, write_arc
 from core.game.executable.code_space import Layout, load_layout
 from core.equipment.mhgen import convert, equipment_pack as pack, sound
 from core.equipment.mhgen.felyne_face import (base_face_samples, dress_bare_skin, fit_head, hide_additive,
-                                               hide_second_form)
+                                               hide_second_form, hide_sheathed_form)
 from core.equipment.mhgen.gear_data import FELYNE_WEAPON_SIZE, XX_FORMAT, GenGame
 from core.equipment.mhgen.felyne_skin import reweight_cloth
 from core.equipment.mhgen.tables import CODE_BASE, hair_flags, repoint
@@ -73,6 +73,7 @@ TAIL_OBJECTS = range(2, 7)
 MHGEN_SOUNDS = "arc/otomo/wp_se/{:03d}.arc"
 SKIN_ARC = "arc/otomo/mod/skin/000.arc"   # the first coat: its texture is the one the pieces name as their skin
 ARMOR_MODEL, ARMOR_FORMS = 6, 0x1D         # an `otArmorData` record of MH XX: its model, and non-zero for two forms
+ARMOR_HEAD = 0x0C                          # its byte that is 0 when the record has no head piece (a whole suit's)
 ARMOR_PRICE = 8                            # its u32 price (gear_data.parse_felyne_armor)
 WEAPON_MODEL, WEAPON_PRICE = 4, 25         # an `otWeaponData` record: u16 model, u32 price (parse_felyne_weapon)
 DONOR_WEAPON = "data/o_we001.arc"   # a MH4U Felyne weapon whose sounds a model without its own gets
@@ -367,9 +368,10 @@ def weapon_arc(source: bytes, source_shaders, target_shaders, model: FelyneModel
     """MHGen weapon archive `source` as MH4U's `o_we<N>`, with MHGen's own sounds (`own_sounds`, wp_se/<N>.arc;
     weapon_sounds) or, without them or when they do not convert, those of MH4U Felyne weapon archive `donor`
     renamed (`donor_used`, when given, then gets a True appended). A weapon with neither has no sound. Its additive
-    shells are hidden (felyne_face.hide_additive)."""
+    shells are hidden (felyne_face.hide_additive), then the sheathed form of one with two (hide_sheathed_form)."""
     arc = _converted(source, source_shaders, target_shaders, model)
     hide_additive(arc, target_shaders[1])
+    hide_sheathed_form(arc, target_shaders[1])
     if own_sounds is not None:
         try:
             arc.entries += weapon_sounds(own_sounds, model)

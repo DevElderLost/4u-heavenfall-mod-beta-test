@@ -81,15 +81,17 @@ EXT_START = 0x111E000
 # + Alatreon's icicle ground marker and the ported monsters' XX turn cut (1 page)
 # + the diagnostics block, packed after everything (1 page)
 # + Boltreaver Astalos' pull on the hunter, limited to the ball (1 page)
-EXT_SIZE = 0x1FA000
+# + the jukebox: its engine, its card's and menu's units and its data (4 pages)
+EXT_SIZE = 0x1FE000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
 # uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
 # records, em data slots and save records; a third for Damage Numbers'
 # state. 26 more for the diagnostics ring (105 KB, only a diagnostics
-# file reaches it: the product's variables are packed first and the file ends at the last page a build uses).
-EXT_VARS_SIZE = 29 * PAGE
+# file reaches it: the product's variables are packed first and the file ends at the last page a build uses). One more
+# for the jukebox's saved block, its engine and its menu.
+EXT_VARS_SIZE = 30 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000

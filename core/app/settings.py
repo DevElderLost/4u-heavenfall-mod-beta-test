@@ -377,11 +377,11 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "hold_a", "camera_speed",
                    "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
-                   "mhw_fatalis_music", "alatreon_music", "radial_menu",
+                   "mhw_fatalis_music", "alatreon_music", "jukebox", "radial_menu",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled")
+                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled", "hd_pack")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only), a 3DS run takes their defaults (Settings.for_console) and the START menu's
@@ -391,7 +391,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
 # moves layouts
 # between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard")
+                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard", "hd_pack")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -519,6 +519,10 @@ class Settings:
     # ingredients, the yes / no boxes...) are shown on the top screen
     # (interface/single_screen/executable/single_screen.py, interface/single_screen/layout/single_screen.py)
     single_screen: bool = False
+    # HD texture pack compatibility: an install into an emulator with a pack writes our HD pictures of the textures the
+    # mod makes or changes (core/install/hd_textures.py); off, it removes them. Not in
+    # the build: installs before the switch always wrote them
+    hd_pack: bool = True
     # Holding B runs through the conversation windows: every page at once, the next one every other frame
     # (core/interface/fast_text/fast_text.py)
     fast_text: bool = False
@@ -566,6 +570,9 @@ class Settings:
     # Monster Hunter World's music for Black and Crimson Fatalis: its battle theme, phase 2 from half health, Proof of
     # a Hero from 10 %, its slain theme when that death ends the quest (core/music/mhw/music.py)
     mhw_fatalis_music: bool = False
+    # The Housekeeper's line "Jukebox": playlists of the game's music played in the towns instead of their themes
+    # (core/music/jukebox/). The GUI starts with it on (curated/gui_defaults.json)
+    jukebox: bool = False
 
     # Cheats (emulator only; executable patches written from the players' cheat codes for 1.1: core/app/
     # cheats.py). The neutral values leave the game as it is; the GUI's defaults are in

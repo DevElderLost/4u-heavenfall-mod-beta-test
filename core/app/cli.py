@@ -7,9 +7,9 @@ single-screen mode, the lock-on with L, holding A, fast text, Layered Gear (its 
 Materials Exchange, the HUD at 70 % and the cheats' defaults; each option below changes one of them. They come in three
 modules, each with a switch: --single-screen (with the HUD size, the lock-on, the aspect ratio and Select's kick),
 --layered-equipment (with its unlocking by rank and the Rare Materials Exchange) and --quality-of-life (holding A, fast
-text, the camera, the item boxes and the cheats); a module switched off leaves the game as it is in all it holds. The
-game's START menu page Mod Settings lets the player change the lock-on, holding A, fast text and the cheats during play:
-what is chosen here is what a character with no choice of its own gets.
+text, the camera, the item boxes, the Jukebox and the cheats); a module switched off leaves the game as it is in all it
+holds. The game's START menu page Mod Settings lets the player change the lock-on, holding A, fast text and the
+cheats during play: what is chosen here is what a character with no choice of its own gets.
 The game is your decrypted base game, European or American (.3ds, .cia, .zcci, .zcia...), never modified; the update is
 not needed. The output folder is a mod folder: copy its contents into the emulator's load/mods/<title>/
 (0004000000126100 for the European game, 0004000000126300 for the American one).
@@ -46,6 +46,9 @@ def main(argv=None) -> int:
     parser.add_argument("--quality-of-life", action=argparse.BooleanOptionalAction,
                         help="the quality-of-life module: holding A, fast text, the camera, the item boxes and the "
                              "cheats (off: the game's own)")
+    parser.add_argument("--jukebox", action=argparse.BooleanOptionalAction,
+                        help="the Housekeeper's Jukebox: playlists of the game's music played in the towns "
+                             "(with the quality-of-life module)")
     parser.add_argument("--code", type=Path,
                         help="advanced: the executable to build from (a code.bin or game file of any version with a "
                              "map); taken from --rom by default")

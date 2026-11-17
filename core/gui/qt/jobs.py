@@ -118,7 +118,7 @@ def copy_mod(request: InstallRequest, build_dir: Path, seed: str, checksum: str,
     from core.game.executable.romfs import RomFS
     from core.install.console import build_title, install_sd
     from core.install.deploy import UnsafeTarget, install
-    from core.install.hd_textures import adapt_pack
+    from core.install.hd_textures import adapt_pack, clear_generated
     if request.console:
         built = build_title(build_dir)
         if built != request.title.upper():
@@ -128,7 +128,10 @@ def copy_mod(request: InstallRequest, build_dir: Path, seed: str, checksum: str,
     else:
         install(build_dir, request.target, request.kind, seed=seed, checksum=checksum, settings=settings,
                 replace_unknown=request.replace_unknown, progress=progress, title=title or request.title)
-        adapt_pack(request.target, Path(build_dir) / "romfs", lambda: RomFS(request.rom), progress)
+        if request.settings.hd_pack:
+            adapt_pack(request.target, Path(build_dir) / "romfs", lambda: RomFS(request.rom), progress)
+        else:
+            clear_generated(request.target)
 
 
 def discard_build(request: InstallRequest, build_dir: Path) -> None:

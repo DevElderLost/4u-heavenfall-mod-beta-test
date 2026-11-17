@@ -334,6 +334,38 @@ def second_form_meshes(mod: bytes) -> list[int]:
     return [m for m, group in enumerate(groups) if group == max(forms)]
 
 
+def sheathed_form_meshes(mod: bytes, gone: Collection[int] = ()) -> list[int]:
+    """The meshes of a weapon's sheathed form in `mod`: group 2 when the meshes it draws (not `gone`, the shells already
+    hidden, nor the shadow's copy) have groups 1 and 2. Group 1 is the drawn form: MH4U clears it at rest for its own
+    weapons 0x48 and 0xAC, and F Fairy Tail Blade's sword is there, its wings in group 2. Nothing for one form."""
+    table = struct.unpack_from("<I", mod, MOD_MESHES)[0]
+    drawn = {}
+    for m in range(struct.unpack_from("<H", mod, MOD_COUNTS + 2)[0]):
+        kind, _, tag = struct.unpack_from("<3H", mod, table + MESH_SIZE * m)
+        if m not in gone and kind != SHADOW_KIND:
+            drawn[m] = tag & MESH_GROUP
+    if not set(FORM_GROUPS) <= set(drawn.values()):
+        return []
+    return [m for m, group in drawn.items() if group == max(FORM_GROUPS)]
+
+
+def hide_sheathed_form(arc: Arc, records: dict[int, str]) -> list[int]:
+    """Hide sheathed_form_meshes of the weapon in archive `arc` (`records`: MH4U's shader package's, to leave out its
+    additive shells): the game switches a weapon's forms only for its own ids, so both were drawn at once, and the
+    drawn form is the one kept. Returns the meshes.
+    ValueError as hide_additive."""
+    mrl = next((e for e in arc.entries if e.type_hash == convert.MRL), None)
+    hidden = []
+    for entry in arc.entries:
+        if entry.type_hash == convert.MOD:
+            shells = additive_meshes(entry.data, mrl.data, records) if mrl is not None else []
+            meshes = sheathed_form_meshes(entry.data, shells)
+            if meshes:
+                entry.data = hide_apart(entry.data, meshes, "sheathed form's")
+                hidden += meshes
+    return hidden
+
+
 def hide_second_form(arc: Arc) -> list[int]:
     """Hide second_form_meshes of the model in archive `arc`, a piece of a set with two forms. Gear draws every group
     unless the game clears one, and the game only does for its own ids: both forms would be drawn at once. Returns the

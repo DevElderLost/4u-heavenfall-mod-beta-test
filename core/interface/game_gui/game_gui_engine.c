@@ -27,7 +27,9 @@
  *
  * gui_engine_frame:
  *  1. walks every GUI manager (the uLayout family, told by its vtable) of sUnit's 32 move lines, and each manager's
- *     group list; a group is found in the table's names by its name hash (binary search: the names are sorted);
+ *     group list; a group is found in the table's names by its name hash (the table's name index, probed from the
+ *     hash's home slot); one walk a frame notes the shown names and keeps the groups of a block it meets, which step 3
+ *     places in that order (a scene with more than MATCH_LIMIT of them walks again to place);
  *  2. the screen: the first of the table's screens (in the order the build wrote: by number) whose rule matches the
  *     names of the shown groups (bit 0x400 of group + 0x44): all of `all`, one of `any` (or none listed), none of
  *     `none`. Kept in game_gui_state for the draw's hook (index + 1; 0: none, the blocks' defaults);
@@ -55,8 +57,9 @@
  *
  * The table (all little endian, offsets from its start; a table without the magic makes both entries do nothing):
  * a header, the names sorted by hash, their targets, the direct targets' file values, the screens, the rules' name
- * indices, a default place per block, each screen's places sorted by block and the photo screens (a record of the
- * screen, its first kept hash and their count each, then the hashes).
+ * indices, a default place per block, each screen's places sorted by block, the photo screens (a record of the
+ * screen, its first kept hash and their count each, then the hashes) and the name index (a u16 per slot: the index of
+ * the name whose probe from its home slot reaches it, INDEX_EMPTY in at least half of them).
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with game_gui_engine.ld).
  */
@@ -65,7 +68,7 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define MAGIC 0x31454747u            /* "GGE1" */
+#define MAGIC 0x32454747u            /* "GGE2": the table with its name index */
 #define SHOWN 0x400u                 /* group + 0x44: shown */
 #define VIEW_SHIFT 14                /* group + 0x44: bits 14-17 the view (screen) */
 #define VIEW_BOTTOM 7                /* the touch screen's view */
@@ -76,8 +79,12 @@ typedef unsigned char u8;
 #define UNIT_LIMIT 0x4000            /* units walked per line at most (a broken chain never hangs the frame) */
 #define GROUP_LIMIT 0x2000           /* a manager's group list length at most */
 #define MAX_NAMES 4096               /* the shown names' bits on the stack (the build refuses more names) */
+#define MATCH_LIMIT 256              /* groups of a block the frame's walk keeps to place (12 bytes each, on the stack) */
 #define NO_BLOCK 0xFFFFu
 #define WRAPPER 0xFFFFu              /* a target's `direct`: the build's wrapper null */
+#define INDEX_EMPTY 0xFFFFu          /* a free slot of the name index */
+#define INDEX_MULTIPLIER 0x9E3779B1u /* a hash's home slot: the top index_bits bits of hash * this (engine.py index_slot) */
+#define INDEX_MAX_BITS 16
 
 #define PLACE_VIEW 0x07u             /* place flags: the view to draw in (0 top, 7 touch) ... */
 #define PLACE_KEEP_VIEW 0x10u        /* ... or the group's own */
@@ -99,6 +106,7 @@ struct header {
     u32 photo_at, photos;            /* the photo screens' records (struct photo_screen), then the kept hashes */
     u32 toggle, dismiss;             /* the photo mode's raw pad bits: the settings' toggle (each record holds the one
                                         used), those that end it */
+    u32 index_at, index_bits;        /* the name index: 2 ** index_bits u16 slots, a name's index or INDEX_EMPTY */
 };
 struct name { u32 hash; u16 block, target_first, target_count, pad; };
 struct target { u32 hash; u16 direct, block; };        /* block: a part block's index, NO_BLOCK for the name's */
@@ -170,23 +178,30 @@ static int is_manager(u32 vtable)
            vtable == (u32)ulyt_anime_scheduler_vtable || vtable == (u32)ulyt_message_scheduler_vtable;
 }
 
-/* The name of `hash` and its index, or 0. */
+/* A table the engine can read: the build's magic, names within the shown bits, an index of a size it can probe. */
+static int usable(const struct header *h)
+{
+    return h->magic == MAGIC && h->names <= MAX_NAMES && h->index_bits && h->index_bits <= INDEX_MAX_BITS;
+}
+
+/* The name of `hash` and its index, or 0: the index probed from the hash's home slot, one slot on at a time, until
+ * the name or a free slot (the build leaves at least half the slots free, so a miss, most of a scene's groups, ends
+ * after a slot or two; at most every slot once). */
 static const struct name *find(u32 hash, u32 *index)
 {
     const struct header *h = TABLE;
     const struct name *names = AT(struct name, h->name_at);
-    u32 low = 0, high = h->names;
-    while (low < high) {
-        u32 mid = (low + high) >> 1;
-        u32 at = names[mid].hash;
-        if (at == hash) {
-            *index = mid;
-            return &names[mid];
+    const u16 *slots = AT(u16, h->index_at);
+    u32 mask = (1u << h->index_bits) - 1;
+    u32 at = (hash * INDEX_MULTIPLIER) >> (32 - h->index_bits);
+    for (u32 tries = 0; tries <= mask; tries++, at = (at + 1) & mask) {
+        u32 n = slots[at];
+        if (n == INDEX_EMPTY)
+            return 0;
+        if (names[n].hash == hash) {
+            *index = n;
+            return &names[n];
         }
-        if (at < hash)
-            low = mid + 1;
-        else
-            high = mid;
     }
     return 0;
 }
@@ -378,13 +393,19 @@ static void apply(u8 *manager, u8 *group, const struct name *n, u32 screen)
         W(manager, 0x04) |= 1u << (DRAW_VIEWS + (p->flags & PLACE_VIEW));
 }
 
-/* Each group of each GUI manager: `pass` 0 notes the shown names, 1 applies the places. */
-static void walk(u32 pass, u32 *bits, u32 screen)
+/* A group of a block met by the frame's walk, kept to be placed once the screen is chosen. */
+struct match { u8 *manager, *group; const struct name *n; };
+
+/* Each group of each GUI manager: `pass` 0 notes the shown names (and the watched group's flags, the groups met) and
+ * keeps each group of a block in `matches` while there is room (MATCH_LIMIT); 1 places every group of a block on
+ * `screen`. Returns the groups of a block met. */
+static u32 walk(u32 pass, u32 *bits, u32 screen, struct match *matches)
 {
     const struct header *h = TABLE;
     u8 *units = sunit;
+    u32 met = 0;
     if (!units)
-        return;
+        return 0;
     for (u32 line = 0; line < LINES; line++) {
         u8 *unit = P(units, 0x14 + 0x18 * line + 0x0C);
         for (u32 seen = 0; unit && seen < UNIT_LIMIT; seen++, unit = P(unit, 0x0C)) {
@@ -410,31 +431,50 @@ static void walk(u32 pass, u32 *bits, u32 screen)
                     game_gui_state.groups++;
                     if (W(group, 0x44) & SHOWN)
                         bits[index >> 5] |= 1u << (index & 31);
+                    if (n->block != NO_BLOCK) {
+                        if (met < MATCH_LIMIT) {
+                            matches[met].manager = unit;
+                            matches[met].group = group;
+                            matches[met].n = n;
+                        }
+                        met++;
+                    }
                 } else if (n->block != NO_BLOCK) {
                     apply(unit, group, n, screen);
                 }
             }
         }
     }
+    return met;
 }
 
+/* One walk a frame: it notes the shown names and keeps the
+ * groups of a block it meets; once the screen is chosen they are placed in the order the walk met them, so the frame
+ * writes what the walk to choose and the walk to place wrote, in the same order. A scene with more of them than
+ * MATCH_LIMIT walks again to place them all. */
 __attribute__((used)) void gui_engine_frame(void)
 {
     const struct header *h = TABLE;
     game_gui_state.frames++;
     game_gui_state.screen = 0;
-    if (h->magic != MAGIC || h->names > MAX_NAMES)
+    if (!usable(h))
         return;
     u32 bits[MAX_NAMES / 32];
+    struct match matches[MATCH_LIMIT];
     for (u32 i = 0; i < (h->names + 31) / 32; i++)
         bits[i] = 0;
     game_gui_state.groups = 0;
-    walk(0, bits, 0);
+    u32 met = walk(0, bits, 0, matches);
     u32 screen = screen_of(bits);
     game_gui_state.screen = screen;
     if (game_gui_photo.on && !photo_of(screen))
         game_gui_photo.on = 0;            /* the card closed or on its monster page: the next one starts without it */
-    walk(1, bits, screen);
+    if (met > MATCH_LIMIT) {
+        walk(1, bits, screen, 0);
+        return;
+    }
+    for (u32 i = 0; i < met; i++)
+        apply(matches[i].manager, matches[i].group, matches[i].n, screen);
 }
 
 /* The photo mode, after the pad update's chain: on a photo screen a fresh press of the
@@ -476,7 +516,7 @@ __attribute__((used)) u32 gui_engine_view(u8 *group, u32 flags)
 {
     u32 own = (flags >> VIEW_SHIFT) & 0xF;
     const struct header *h = TABLE;
-    if (h->magic != MAGIC)
+    if (!usable(h))
         return own << 28;
     if (game_gui_photo.on) {                   /* the photo mode: every group but the screen's kept ones draws nowhere */
         const struct photo_screen *photo = photo_of(game_gui_state.screen);

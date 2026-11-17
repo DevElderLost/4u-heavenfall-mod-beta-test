@@ -240,12 +240,26 @@ the facility menu's layout (`tree_layout.py`: the screen's five and the window t
 of the game's own sprites, and its words go after the game's in the Smithy's messages (`tree_texts.py`: among them,
 copies of the game's own help lines and price questions with the verb in capitals). Its code (`weapon_tree.c`) runs as a state of the Smithy the game never uses: when a class is
 chosen it reads the class's weapons, upgrade records and create recipes with the game's own readers, places the
-weapons the hunter has discovered as a tree, and draws the game's stats panels for the weapon under the cursor. A
+weapons the hunter has discovered as a tree, and draws the game's stats panels for the weapon under the cursor, with
+its price beside the money in a copy of the money window's own second box. A
 replays the game's own forge or upgrade, call by call, so the price, the materials, the box and the statistics change
 as they do in the game; both then play the forge's hammer scene and ask "Equip now?", an upgrade too (the game's own
 Upgrade has no scene). Nothing is computed when the mod is made: the tree is what the game's tables hold. Every
 size and colour is in `core/game/data/curated/weapon_tree.json`. The row Smithy View of Mod Settings stands before
 the tree's two entries (a class in Forge Weapons, a weapon in Upgrade): on List the game's own code runs.
+
+## The Jukebox
+
+The Jukebox (`music/jukebox/`) puts playlists of the game's music in the towns. `jukebox_build` (`build.py`) gives
+the files and `patch_executable` the three patches, both called by the run. For every song the lobby's music queue
+(`core_lobby.arc`, in each language) gets a request that copies Val Habar's theme, so the game's fades and room levels
+treat it as a town theme; the songs' stream entries and levels come from `generated/jukebox_streams.json`, so the run
+reads little of the game. The Housekeeper's menu texts go into the copies of `Room_s`.
+
+The code is one block (`jukebox.c`, with `jukebox_save.c` for the card file and `jukebox_menu.c` for the menu). It
+replaces the town theme selector's answer with the playlist's request, counts the passes of a song's loop to fade
+it out and move on, keeps the playlists in a block of the card file, and adds the Jukebox line and its screens to the
+house Felyne's menu with the game's own lists and windows (no new texture, so HD texture packs need nothing).
 
 ## Layered Gear and the Wyporium
 
@@ -309,6 +323,7 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/gameplay/select_kick/`, `core/gameplay/hold_a/`, `core/gameplay/death_camera_skip/`, `core/gameplay/intro_skip/`, `core/gameplay/modern_camera/` | Select and Start; holding A; skipping the death camera; skipping a monster's intro; the modern camera |
 | `core/interface/mod_settings/` | The START menu's page, its options and their values |
 | `core/equipment/layered/`, `core/equipment/mhgen/`, `core/gameplay/wyporium/` | Layered Gear, the models of MH XX's looks, the Wyporium's trades and exchange |
+| `core/music/` | The Jukebox: its build, patches and C, and the game's audio formats it reads |
 | `core/cheats/` | The emulator cheats and the aspect ratio |
 | `core/game/executable/` | Reading the game file, the executable, versions and their maps, free space, the blocks (compiled into `generated/code_space.json`) |
 | `core/game/files/` | The game's file formats: archives (`.arc`), layouts (`lyt.py`), texts |

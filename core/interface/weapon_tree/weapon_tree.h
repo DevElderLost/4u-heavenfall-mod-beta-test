@@ -35,7 +35,10 @@ enum { P_PLATE, P_LINK, P_TRUNK, P_TRUNK_LOW, P_ICON, P_FORGE, P_WORN, P_BOX, P_
 #define H_KEY_BAR (H_LINES + 4)
 #define H_HINT (H_KEY_BAR + 1)
 #define H_ARROWS (H_HINT + 1)                    /* 4: left, right, up, down */
-#define H_CHOICE (H_ARROWS + 4)                  /* the window "upgrade or craft" (panes.py choice_panes) */
+#define H_PRICE_BOX (H_ARROWS + 4)               /* 3: the box beside the money, its left end, middle, right end */
+#define H_COST (H_PRICE_BOX + 3)                 /* its word "Cost" */
+#define H_PRICE (H_COST + 1)                     /* and the price */
+#define H_CHOICE (H_PRICE + 1)                   /* the window "upgrade or craft" (panes.py choice_panes) */
 #define CHOICE_OPTIONS 2                         /* row 0 upgrade, row 1 craft */
 #define CH_BACK 0                                /* its fill, */
 #define CH_EDGE (CH_BACK + 1)                    /* 4: the thin edge, */
@@ -45,13 +48,13 @@ enum { P_PLATE, P_LINK, P_TRUNK, P_TRUNK_LOW, P_ICON, P_FORGE, P_WORN, P_BOX, P_
 #define CH_TITLE (CH_CURSOR + CHOICE_OPTIONS * BAND_PIECES)  /* the title, */
 #define CH_WORDS (CH_TITLE + 1)                  /* and each option's word */
 #define WT_HASHES (H_CHOICE + CH_WORDS + CHOICE_OPTIONS)
-_Static_assert(WT_HASHES == 560, "panes.py hash_names()");
+_Static_assert(WT_HASHES == 565, "panes.py hash_names()");
 
 /* ----- the data block weapon_tree_data (weapon_tree.py data_block) -------------------------------------------- */
 
 enum { C_BAND, C_BAND_ALT, C_PLATE, C_PLATE_LIT, C_PLATE_OWNED, C_LINK, C_LINK_LIT, C_WORN, C_CURSOR, C_KEY_BAR, C_HINT,
        C_COUNT, C_ARROW, C_UNPAYABLE, C_FORGE, C_CHOICE_ON, C_CHOICE_OFF, C_ELEMENT, C_ELEMENT_HIDDEN, C_BOX,
-       WT_COLOURS };                                 /* weapon_tree.py COLOURS */
+       C_PRICE, C_PRICE_SHORT, WT_COLOURS };         /* weapon_tree.py COLOURS */
 #define ELEMENT_ICONS 9          /* the stats panel's element and status icons (node_marks.py ELEMENTS) */
 /* The game's messages the tree shows from its own copies with the verb in capitals (tree_texts.py CAPS_SOURCES): the
    forge's help line and price question, then Upgrade's. */
@@ -89,7 +92,7 @@ struct wt_data {
     u32 hashes[WT_HASHES];
 };
 #define WT_MAGIC 0x31525457u     /* "WTR1" */
-#define WT_DATA_HEAD 252
+#define WT_DATA_HEAD 260
 _Static_assert(__builtin_offsetof(struct wt_data, hashes) == WT_DATA_HEAD, "weapon_tree.py DATA_HEAD");
 _Static_assert(sizeof(struct wt_data) == WT_DATA_HEAD + 4 * WT_HASHES, "game/executable/blocks.py WEAPON_TREE_DATA_SIZE");
 

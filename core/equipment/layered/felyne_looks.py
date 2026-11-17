@@ -32,10 +32,10 @@ DATA_MAGIC = 0x4C454646                     # "FFEL"
 KNOWN_BYTES = 42                            # felyne_looks.h: a bit per model number, for each part
 CASES = 10                                  # felyne_looks.h, FELYNE_CASES: looks.CASE_PIECES' pieces
 CASE = struct.Struct("<H2B")                # a model number; its part (LOOK_PARTS); the piece the game knows by its id
-# magic; looks; numbers the bitmaps hold; the messages; the bitmaps; the cases
-HEADER = struct.Struct(f"<I2H3H2x{3 * KNOWN_BYTES}s2x{CASES * CASE.size}s")
+# magic; looks; numbers the bitmaps hold; the messages; the bitmaps; the cases; the whole suits (a bit per body number)
+HEADER = struct.Struct(f"<I2H3H2x{3 * KNOWN_BYTES}s2x{CASES * CASE.size}s{KNOWN_BYTES}s2x")
 MESSAGES = ("felynes", "felyne_none", "felyne_choose")
-assert (FELYNE_IDS + 7) // 8 == KNOWN_BYTES and HEADER.size == 184 and tuple(PARTS.values()) == ("h", "b", "w")
+assert (FELYNE_IDS + 7) // 8 == KNOWN_BYTES and HEADER.size == 228 and tuple(PARTS.values()) == ("h", "b", "w")
 GAME_MH4U, GAME_GENERATIONS = 0, 1          # a row's game: the screen's filter (layered_forge.c, GAME_MH4U, GAME_GEN)
 GAME_FILES = {"head": "o_helm", "body": "o_body", "weapon": "o_we"}    # data/<name>NNN.arc, or in loc/data
 
@@ -47,6 +47,7 @@ class FelyneLook:
     rarity: int               # 1-11
     names: Mapping[str, str]  # language -> name
     price: int = 0            # what forging its piece cost in MH XX (xx_felyne_prices; 0: unknown)
+    suit: bool = False        # a body that wears the helm of its number as its head (load_catalog: a whole suit)
 
     @property
     def model(self) -> int:
@@ -108,7 +109,10 @@ def felyne_rows(looks: FelyneLooks) -> list[FelyneRow]:
 
 def load_catalog(exists=None, prices: Mapping[tuple[str, int], int] | None = None) -> FelyneLooks:
     """The curated looks; `exists(path)`, if given, keeps those whose file MH XX has (a RomFS's `exists`). `prices`:
-    (part, model folder) -> what forging the piece cost in MH XX (felyne_pack.xx_felyne_prices); none: unknown."""
+    (part, model folder) -> what forging the piece cost in MH XX (felyne_pack.xx_felyne_prices); none: unknown.
+    A body with no head look of its folder but a helm file there is a whole suit (`suit`): MH XX's record has no head
+    piece and draws that helm as the suit's head. Without
+    `exists` no file is known, so no body is one."""
     data = json.loads(NAMES_FILE.read_text(encoding="utf-8"))
     prices = prices or {}
     looks = {}
@@ -116,7 +120,9 @@ def load_catalog(exists=None, prices: Mapping[tuple[str, int], int] | None = Non
         rows = []
         for source, row in data[part].items():
             names = {lang: name for lang, name in row.items() if lang != "rarity"}
-            look = FelyneLook(part, int(source), row["rarity"], names, prices.get((part, int(source)), 0))
+            suit = (part == "body" and exists is not None and source not in data["head"]
+                    and exists(mhgen_file(int(source), PACK_PARTS["head"])))
+            look = FelyneLook(part, int(source), row["rarity"], names, prices.get((part, int(source)), 0), suit)
             if exists is None or exists(mhgen_file(look.source, PACK_PARTS[part])):
                 rows.append(look)
         looks[part] = tuple(rows)
@@ -154,23 +160,29 @@ def run_catalog(game_exists, xx_exists=None, xx_prices: Mapping[tuple[str, int],
 
 
 def convert_looks(xx, m4, looks: FelyneLooks) -> FelynePack:
-    """The archives of `looks`, read from MH XX's RomFS `xx`, and what the executable's tables need for them."""
+    """The archives of `looks`, read from MH XX's RomFS `xx`, and what the executable's tables need for them. A whole
+    suit's helm comes with its body: the suit wears it as its head."""
     parts: dict[int, set[str]] = {}
     for look in looks.all():
         parts.setdefault(look.source, set()).add(PACK_PARTS[look.part])
+        if look.suit:
+            parts[look.source].add(PACK_PARTS["head"])
     sources = sorted(parts)
     return convert_models(None, m4, sources, xx, sources, parts)
 
 
 def felyne_data(looks: FelyneLooks, messages: Mapping[str, int]) -> bytes:
     """The block felyne_looks_data: `messages` are the E_makeshop messages of the screens' own lines, by MESSAGES' keys.
-    `total` counts the parts of every look, MH XX's and the game's. Its size is BLOCK_SIZE."""
-    known = bytearray(3 * KNOWN_BYTES)
+    `total` counts the parts of every look, MH XX's and the game's. `suits` marks the bodies that are whole suits (they
+    wear the helm of their number). Its size is BLOCK_SIZE."""
+    known, suits = bytearray(3 * KNOWN_BYTES), bytearray(KNOWN_BYTES)
     for index, part in enumerate(LOOK_PARTS):
         for look in looks.looks[part]:
             if look.model >= FELYNE_IDS:
                 raise ValueError(f"Felyne look of folder {look.source}: number {look.model} is past the tables")
             known[index * KNOWN_BYTES + look.model // 8] |= 1 << (look.model % 8)
+            if look.suit:
+                suits[look.model // 8] |= 1 << (look.model % 8)
     cases = []
     for row in looks.game:
         for part, piece in row.cases.items():
@@ -182,7 +194,7 @@ def felyne_data(looks: FelyneLooks, messages: Mapping[str, int]) -> bytes:
         raise ValueError(f"{len(cases)} pieces the game goes by the id of, the block holds {CASES}")
     total = len(looks) + sum(len(row.pieces) for row in looks.game)
     data = HEADER.pack(DATA_MAGIC, total, FELYNE_IDS, *(messages[key] for key in MESSAGES), bytes(known),
-                       b"".join(cases))
+                       b"".join(cases), bytes(suits))
     return data + bytes(BLOCK_SIZE - len(data))
 
 

@@ -1,5 +1,5 @@
 {
-  "_doc": "The Smithy's weapon tree. Rectangles are top screen pixels [x, y, w, h]; a node's pieces are offsets from its icon's top left corner. Colours are [r, g, b] or [r, g, b, a].",
+  "_doc": "The Smithy's weapon tree. Rectangles are top screen pixels [x, y, w, h]; a node's pieces are offsets from its icon's top left corner. Colours are [r, g, b] or [r, g, b, a]. wt_pr_* and wt_m_cost / wt_m_price: the price beside the money, the money window's second box copied flush with the money box (x 307); cost is its word's colour, price and price_short its number's (the money's, and the materials box's grey while the money is short).",
   "reveal": "discovered",
   "priority": {"ui401_wt_frame": 40, "ui401_wt_rows": 41, "ui401_wt_nodes": 42, "ui401_wt_cursor": 43, "ui401_wt_keys": 44, "ui401_wt_choice": 45},
   "placing": {"pack": 1},
@@ -13,6 +13,8 @@
     "wt_band_0": [194, null, 95, 24], "wt_band_1": [289, null, 14, 24], "wt_band_2": [303, null, 89, 24],
     "wt_keybar": [194, 219, 198, 14], "wt_m_hint": [198, 222, 190, 10],
     "wt_arrow_l": [186, 122, 8, 12], "wt_arrow_r": [392, 122, 8, 12], "wt_arrow_u": [333, 24, 10, 8], "wt_arrow_d": [344, 24, 10, 8],
+    "wt_pr_l": [191, 1, 12, 15], "wt_pr_m": [203, 1, 92, 15], "wt_pr_r": [295, 1, 12, 15],
+    "wt_m_cost": [201, 3, 40, 12], "wt_m_price": [227, 2, 70, 14],
     "wt_ch_back": [218, 92, 150, 64],
     "wt_ch_e0": [218, 92, 150, 1], "wt_ch_e1": [218, 155, 150, 1], "wt_ch_e2": [218, 92, 1, 64], "wt_ch_e3": [367, 92, 1, 64],
     "wt_ch_head0": [220, 94, 42, 16], "wt_ch_head1": [261, 94, 105, 16],
@@ -25,7 +27,7 @@
     "fill": [0, 0, 0, 245], "edge": [150, 110, 70], "bar": [50, 15, 0, 230], "cursor": [118, 89, 0, 110]
   },
   "fonts": {"name": 10, "count": 9, "hint": 9, "choice": 10},
-  "rooms": {"name": 32, "count": 8, "hint": 44, "choice_title": 32, "choice_word": 24},
+  "rooms": {"name": 32, "count": 8, "hint": 44, "choice_title": 32, "choice_word": 24, "cost": 8, "price": 10},
   "node": {
     "icon": [0, 0, 20, 20],
     "plate": [0, 0, 20, 20],
@@ -77,7 +79,10 @@
     "unpayable": [66, 63, 60],
     "forge": [255, 214, 120],
     "choice_on": [240, 240, 240],
-    "choice_off": [120, 120, 120]
+    "choice_off": [120, 120, 120],
+    "cost": [0, 128, 255],
+    "price": [230, 230, 230],
+    "price_short": [100, 100, 100]
   },
   "unpayable_mix": 78,
   "hold": [[60, 2], [150, 5]],

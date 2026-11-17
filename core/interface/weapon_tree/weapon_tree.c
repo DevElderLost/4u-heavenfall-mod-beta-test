@@ -54,6 +54,7 @@ GAME void text_common(void *ref, u32 file, u32 message);               /* FUN_00
 GAME void forge_hide(u32 obj);                                         /* FUN_00a1c640 */
 GAME void money_write(u32 obj, u32 money, u32 one);                    /* FUN_00a52860 */
 GAME void money_show(u32 obj, u32 shown, u32 zero);                    /* FUN_00a5d424 */
+GAME void money_number(u32 gui, void *ref, u32 value);                 /* FUN_00c0da68: "<value>z", as the money box */
 GAME void preview_frame_close(u32 frame);                              /* FUN_0059f680 */
 GAME void viewport_close(u32 viewport);                                /* FUN_00c00ec8 */
 GAME void forge_row_show(u32 obj, u8 *st);                             /* FUN_00a38488: the list's row into the view */
@@ -243,6 +244,8 @@ extern const u32 materials_groups[];   /* ui402's groups: the materials box */
 #define BUTTONS_FLAGS 4
 #define BOX_PAGE 100             /* FUN_00a740ec: a slot as its cell in a page of 100 */
 #define BUTTON_AB (BUTTON_A | BUTTON_B)
+#define KITCHEN 0xA              /* the lobby's message file of the word beside the price (Layered Gear's price row's): */
+#define MSG_COST 34              /* "Cost" */
 #define FILE_SMITHY 6            /* the help line's files (FUN_00298560): E_makeshop, */
 #define FILE_FORGE 7             /* and the forge's other one */
 /* the help line's messages, as the game's state 4 (FUN_009e5734) and state 8 (FUN_009d8614) choose them */
@@ -1089,9 +1092,33 @@ static int both_ways(u32 id)
     return S->w[id].flags & W_LISTED && copy_of(id) != NO_ID;
 }
 
+/* The price beside the money (the money window's second box copied): the
+   Kitchen's "Cost" and the price of the way row 0 holds, written as the money box writes the money, grey while the
+   money is short of it (the row's bit, as FUN_009be7bc's). The forge's list wrote each row's price at its right. */
+static void draw_price(const u8 *st)
+{
+    struct ref r;
+    u32 group = group_of(G_KEYS);
+    u32 *text = kit_text(&r, group, WD->hashes[H_COST]);
+    if (text) {
+        text_lobby(&r, KITCHEN, MSG_COST);
+        text_show((u32)text, 1);
+        kit_text_changed(&r);
+    }
+    text = kit_text(&r, group, WD->hashes[H_PRICE]);
+    if (text) {
+        u32 flags = *(const u16 *)(st + ST_LIST + 2);
+        kit_text_colour(text, WD->colours[flags & RECIPE_MONEY ? C_PRICE_SHORT : C_PRICE]);
+        money_number(gui_control, &r, *(const u32 *)(st + ST_LIST + 8));
+        text_show((u32)text, 1);
+        kit_text_changed(&r);
+    }
+}
+
 /* The forge list's row 0 (what FUN_00a38488 shows: the stats panel and the materials box) filled with the cursor's
    weapon as S->buy gets it: its create recipe, else its upgrade record's materials, copied to the state's own recipe.
-   The row's bits say what is missing, as FUN_009be7bc's: with no copy to upgrade, the materials. */
+   The row's bits say what is missing, as FUN_009be7bc's: with no copy to upgrade, the materials. The price beside the
+   money follows it. */
 static void row_fill(u32 obj, u8 *st)
 {
     u32 id = S->cursor, flags, materials, index, price;
@@ -1127,6 +1154,7 @@ static void row_fill(u32 obj, u8 *st)
     *(const u8 **)(row + 0xC) = recipe;
     *(s16 *)(st + ST_ROW) = 0;
     *(u16 *)(st + ST_PAGE_ROWS) = 1;
+    draw_price(st);
 }
 
 static void show_stats(u32 obj, u8 *st)
