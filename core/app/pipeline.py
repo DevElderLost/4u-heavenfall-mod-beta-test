@@ -350,7 +350,6 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if felyne_looks_pack:
         felyne_pack.write_files(output_dir, felyne_looks_pack)
         made_from_xx.update({"romfs/" + path: read for path, read in felyne_looks_pack.sources.items()})
-    write_sources(output_dir, made_from_xx)
     gen_looks = prepared.gen_looks() if prepared else None
     jukebox.remove_files(output_dir)    # before the interface's: they write the same ARCs
     screen_offsets, engine_table, anchors = write_interface_files(
@@ -368,6 +367,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             target = output_dir / "romfs" / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
+        made_from_xx.update(jukebox_plan.made_from_xx)    # the Jukebox's songs of MH XX
+    write_sources(output_dir, made_from_xx)    # after every writer of files made from MH XX
     # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
     tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange

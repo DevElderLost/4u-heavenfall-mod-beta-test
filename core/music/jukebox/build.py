@@ -28,7 +28,7 @@ from core.music.jukebox.catalogue import CHECKOUT, Catalogue, Track, available, 
 from core.music.jukebox.extra import check_madp, in_mh4u_layout
 from core.music.jukebox.menu_patch import patch_jukebox_menu, supports_jukebox_menu
 from core.music.jukebox.patch import patch_jukebox, supports_jukebox
-from core.music.jukebox.queue import LOBBY_QUEUE, SHIPPED_FOLDER, jukebox_files
+from core.music.jukebox.queue import LOBBY_QUEUE, SHIPPED_FOLDER, jukebox_files, shipped_name
 from core.music.jukebox.save_patch import patch_jukebox_save, supports_jukebox_save
 from core.music.jukebox.streams import entry_of, load_streams
 from core.music.jukebox.texts import MenuTexts, jukebox_menu_texts, room_paths
@@ -63,6 +63,7 @@ class JukeboxBuild:
     menu: MenuTexts
     counter: tuple[int, int] | None
     files: Mapping[str, bytes] = field(repr=False)
+    made_from_xx: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
 
     def numbers(self) -> tuple:
         """Everything the executable takes from the files: two builds with the same numbers patch it the same."""
@@ -148,7 +149,18 @@ def jukebox_build(read: Callable[[str], bytes], head: Callable[[str, int], tuple
     have = tuple(t for t in tracks if t.id in requests)
     menu = jukebox_menu_texts(lambda path: files[path] if path in files else read(path), catalogue, have)
     files.update(menu.files)
-    return JukeboxBuild(catalogue, have, requests, menu, counter_place(single_screen), files)
+    return JukeboxBuild(catalogue, have, requests, menu, counter_place(single_screen), files,
+                        xx_provenance(have, files))
+
+
+def xx_provenance(tracks, files: Mapping[str, bytes]) -> dict[str, tuple[str, ...]]:
+    """{mod path: (MH XX RomFS path,)} of each shipped file made from a song of MH XX (the provenance file,
+    xx_sources.write_sources: the console's patch set rebuilds it from the player's MH XX). Only songs in `files`."""
+    out = {}
+    for track in tracks:
+        if track.source == "xx" and shipped_name(f"{track.level}.mca") in files:
+            out["romfs/" + shipped_name(f"{track.level}.mca")] = (track.path,)
+    return out
 
 
 def supports(code: bytes) -> bool:
