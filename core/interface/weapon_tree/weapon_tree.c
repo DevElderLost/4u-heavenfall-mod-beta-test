@@ -119,6 +119,7 @@ GAME void pager_right(void);                                           /* FUN_00
 
 extern u32 sound_control, save_control, equipment_control, camera_control;
 extern u8 *pad_control;
+extern u8 *game_main;              /* the main object: + 0x5C the frame's time */
 extern u8 *preview_mode;           /* + 0x6C: 1 / 2 while a preview is shown */
 extern u8 lobby_gui_anim[];        /* the lobby GUI's animation the forge's entry starts */
 extern u32 screens_open;           /* non-zero while a forge-style screen is on: single_screen.py HELP_FLAGS */
@@ -183,6 +184,10 @@ extern const u32 materials_groups[];   /* ui402's groups: the materials box */
 #define SOUND_CURSOR 4
 #define TEXT_SLOT 0              /* the text renderer's string slot of the counter */
 #define PANE_KIND 0x10           /* a pane's node: its kind, 0 a sprite */
+#define SP_BRIGHT 21             /* a sprite's data, in words: its brightness, a float (the clips' property 0x0C; 1.0 the
+                                    art's own, the engine keeps it within 0 .. 2: FUN_00ae7ed0) */
+#define MAIN_DELTA 0x5C          /* the main object: the frame's time, a float (2.0 at 30 frames a second, 1.0 at 60),
+                                    by which the game's animation players go on (FUN_00ae1ddc) */
 #define HELD_MAX 0xFFFF
 #define MATERIAL_GROUPS 10
 /* buying */
@@ -245,7 +250,7 @@ extern const u32 materials_groups[];   /* ui402's groups: the materials box */
 #define MSG_FORGE_EQUIP 0x10     /* FILE_FORGE: "Equip now?" */
 #define MSG_FORGE_BOX 0x12       /* FILE_FORGE: the box after it */
 #define MSG_UPGRADE_EQUIP 0x2C
-#define BUYING 1                 /* A buys (0: A buzzes, as the design probes) */
+#define BUYING 1                 /* A buys (0: A only buzzes) */
 #define RECIPE_MONEY 0x04
 #define RECIPE_FULL 0x02
 #define DECOS 3
@@ -1216,11 +1221,6 @@ static void buy_ask(u32 obj, u8 *st)
         }
         S->index = index;
         *(u16 *)(st + ST_CHOSEN) = 0;
-        gear_new_clear(save_control, S->type, id, GEAR_NEW);
-        if (S->w[id].flags & W_NEW) {    /* the node's "NEW" goes with the save's bit */
-            S->w[id].flags &= ~W_NEW;
-            draw();
-        }
     } else {
         u32 slot = copy_of(id);
         if (slot == NO_ID || !upgrade_paid(id)) {
@@ -1305,8 +1305,8 @@ static void view_back(u32 obj, u8 *st)
 }
 
 /* Every frame of the window: Up / Down change the way, and the panels with it; A asks its price (buy_ask: the forge's
-   refusal when it cannot be paid, and the window stays); B goes back to the tree. */
-static void choice_keys(u32 obj, u8 *st)
+   refusal when it cannot be paid, and the window stays); B goes back to the tree. Not inlined, as keys. */
+static __attribute__((noinline)) void choice_keys(u32 obj, u8 *st)
 {
     if (facility_pressed(obj, BUTTON_B)) {
         kit_group_show(group_of(G_CHOICE), 0, WD->priority[G_CHOICE]);
@@ -1325,11 +1325,18 @@ static void choice_keys(u32 obj, u8 *st)
     }
 }
 
-/* A on a node. */
+/* A on a node. Any A clears the weapon's "new" bit and its node's "NEW" (round 9): the game clears it only on an A it
+   takes (a payable create recipe), so on a tree whose weapons mostly cannot be bought yet the marks stayed for good. */
 static void ask(u32 obj, u8 *st)
 {
+    u32 id = S->cursor;
     S->chosen = 0;
-    if (both_ways(S->cursor))
+    gear_new_clear(save_control, S->type, id, GEAR_NEW);
+    if (S->w[id].flags & W_NEW) {
+        S->w[id].flags &= ~W_NEW;
+        draw();
+    }
+    if (both_ways(id))
         choice_open(obj, st);
     else
         buy_ask(obj, st);
@@ -1351,12 +1358,11 @@ static void buy_refused(u32 obj, u8 *st)
     screens_open = 1;
 }
 
-/* Yes on a create recipe: FUN_009ca7e8's sub-state 1, call by call. The box has room (recipe_state's bit 2 was 0). */
-static void forge_buy(u32 obj, u8 *st)
+/* The smith's hammer scene, as FUN_009ca7e8's Yes asks for it before the purchase: the status view as at the entry,
+   the preview closed, FUN_009d61e4 with the smith's kind (3 for the smith 'H', 2 when FUN_00a92af0, else 1). Both
+   ways start it on the tree, though the game's own upgrade has no scene. */
+static void scene_start(u32 obj, u8 *st)
 {
-    u8 ref[REF_SIZE];
-    u32 id = S->bought;
-    const u8 *recipe = create_recipe(equipment_control, RECIPE_WEAPON, S->index);
     status_reset(obj, st, 1);
     preview_close(obj);
     S->sub = T_SCENE_START;
@@ -1366,6 +1372,25 @@ static void forge_buy(u32 obj, u8 *st)
     else
         kind = hammer_kind(obj) ? 2 : 1;
     hammer_scene((u32)preview_mode, kind);
+}
+
+/* The Smithy's panels and our groups put away while the scene plays, as FUN_009ca7e8's Yes ends. */
+static void scene_panels(u32 obj)
+{
+    forge_hide(obj);
+    smithy_panel(obj, 0, 0);
+    smithy_panel_b(obj, 0, 0);
+    smithy_panel_c(obj, 0);
+    groups_show(0);
+}
+
+/* Yes on a create recipe: FUN_009ca7e8's sub-state 1, call by call. The box has room (recipe_state's bit 2 was 0). */
+static void forge_buy(u32 obj, u8 *st)
+{
+    u8 ref[REF_SIZE];
+    u32 id = S->bought;
+    const u8 *recipe = create_recipe(equipment_control, RECIPE_WEAPON, S->index);
+    scene_start(obj, st);
     make_record(equipment_control, ref, S->type, id);
     *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = NO_SLOT;
     *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = box_add(save_control, save_data(), ref[0], rd16(ref + REF_ID));
@@ -1374,17 +1399,14 @@ static void forge_buy(u32 obj, u8 *st)
     for (u32 i = 0; i < 4; i++)
         item_take(obj, rd16(recipe + RECIPE_MATERIALS + 4 * i), (s16)rd16(recipe + RECIPE_MATERIALS + 4 * i + 2));
     forge_tally(save_control, ref);
-    forge_hide(obj);
-    smithy_panel(obj, 0, 0);
-    smithy_panel_b(obj, 0, 0);
-    smithy_panel_c(obj, 0);
-    groups_show(0);
+    scene_panels(obj);
 }
 
 /* Yes on an upgrade: FUN_009e5cc8 for a weapon not customized, call by call, on the copy chosen. An Insect Glaive is
    upgraded as any class, with its record's two materials; the kinsect (the reference's [1], [4..5]) is not touched:
    FUN_00c25824 copies only the id and the decorations between two glaives, and the game's FUN_002f764c after it is
-   not called. */
+   not called. obj + 0xB958 is the slot even when it is worn (the game writes 0xFFFF and asks nothing): "Equip now?"
+   is asked after every upgrade on the tree, and Yes on a worn copy wears that slot again (FUN_00c1e064: no change). */
 static void upgrade_buy(u32 obj, u8 *st)
 {
     u8 child[REF_SIZE];
@@ -1415,14 +1437,14 @@ static void upgrade_buy(u32 obj, u8 *st)
     if (slot_worn(save_control, data, slot))
         *((u8 *)obj + OBJ_GEAR_CHANGED) = 1;
     st[ST_TYPE] = S->type;
-    *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = slot_worn(save_control, data, slot) ? NO_SLOT : slot;
+    *(u16 *)((u8 *)obj + OBJ_NEW_SLOT) = slot;
 }
 
 /* The tree read again after a purchase, the cursor on the weapon bought (its children show now). */
 static void rebuild(u32 obj, u8 *st, u32 id);
 
-/* "Equip now?" in the same window (the forge's after the scene; the upgrade's at once, unless the copy is worn). Until
-   it is answered S->buy stays the way bought. */
+/* "Equip now?" in the same window, after the scene (the forge's and, on the tree, the upgrade's). Until it is answered
+   S->buy stays the way bought. */
 static void equip_ask(void)
 {
     windows_open();
@@ -1439,7 +1461,7 @@ static void list_again(u32 obj, u8 *st)
     show_stats(obj, st);
 }
 
-static void prompt(u32 obj, u8 *st)
+static __attribute__((noinline)) void prompt(u32 obj, u8 *st)      /* not inlined, as keys */
 {
     u32 length = kit_number_text(S->price_text, row_price(st));
     text_slot(TEXT_SLOT, S->price_text, length);
@@ -1453,17 +1475,12 @@ static void prompt(u32 obj, u8 *st)
     } else if (said == 1 && S->buy == BUY_FORGE) {
         forge_buy(obj, st);
     } else if (said == 1) {
-        upgrade_buy(obj, st);
+        upgrade_buy(obj, st);            /* FUN_009fa2bc's Yes: the windows closed after FUN_009e5cc8 */
         *(u32 *)(st + ST_ANSWER) = 0;
         windows_close();
         trade_buttons(obj, BUTTONS_LIST, BUTTONS_FLAGS);
-        rebuild(obj, st, S->bought);
-        if (*(u16 *)((u8 *)obj + OBJ_NEW_SLOT) != NO_SLOT) {
-            equip_ask();
-        } else {
-            lobby_anim_step((u32)lobby_gui_anim, 0);
-            list_again(obj, st);
-        }
+        scene_start(obj, st);            /* then the forge's scene, and "Equip now?" at its end */
+        scene_panels(obj);
     }
 }
 
@@ -1709,8 +1726,9 @@ static void stats_page(u32 obj, const u8 *st)
 }
 
 /* The keys of the tree, the same in every view: the D-pad moves the cursor in try on too (the forge's list moves with
-   it there; the camera turns with the stick and zooms with L / R held, FUN_009fc74c). */
-static void keys(u32 obj, u8 *st)
+   it there; the camera turns with the stick and zooms with L / R held, FUN_009fc74c). Not inlined: update would outgrow
+   Thumb's b. */
+static __attribute__((noinline)) void keys(u32 obj, u8 *st)
 {
     u32 dirs = facility_dirs(obj), rows = held_rows(), id;
     st[ST_X] = 0;
@@ -1876,7 +1894,34 @@ static __attribute__((noinline)) u32 from_box(u32 obj, u8 *st, const u8 *ref)
     return 1;
 }
 
-/* The ARM entries of the hooks (the rest is Thumb). */
+/* Every frame of an open tree: each "NEW" shown takes the brightness of the forge list's own "NEW" (curated `new_pulse`:
+   ui407's clip on ui407_n_icon, its keys joined by straight lines and looped), the clip's time going on by the frame's
+   time as the game's players go, so it pulses as fast at any frame rate. The marks are the group's P_NEW panes, one
+   after the other (walk_sprite); a hidden one is left as it is. ARM: it computes with floats. */
+ARM static void new_pulse(void)
+{
+    const float (*key)[2] = WD->pulse;
+    float end = key[PULSE_KEYS - 1][0], t = S->pulse * (1.0f / PULSE_STEPS) + *(const float *)(game_main + MAIN_DELTA);
+    while (t >= end)
+        t -= end;
+    S->pulse = (u8)(t * PULSE_STEPS);
+    u32 k = 1;
+    while (k < PULSE_KEYS - 1 && t >= key[k][0])
+        k++;
+    union { float f; u32 bits; } bright = {key[k - 1][1] + (key[k][1] - key[k - 1][1]) * (t - key[k - 1][0])
+                                                            / (key[k][0] - key[k - 1][0])};
+    struct walk w = {{0, 0}, group_of(G_NODES)};
+    u32 at = H_CELLS + P_NEW * MAX_ROWS * MAX_COLUMNS;
+    for (u32 cell = 0; cell < MAX_ROWS * MAX_COLUMNS; cell++, at++) {
+        u32 *sprite = walk_sprite(&w, WD->hashes[at]);
+        if (sprite && sprite[SP_FLAGS] & SP_SHOWN && sprite[SP_BRIGHT] != bright.bits) {
+            sprite[SP_BRIGHT] = bright.bits;
+            kit_sprite_changed(&w.r);
+        }
+    }
+}
+
+/* The ARM entries of the hooks (the rest is Thumb, but new_pulse). */
 ARM u32 weapon_tree_enter(u32 obj, u8 *st)
 {
     S->fixed = NO_SLOT;
@@ -1891,6 +1936,8 @@ ARM u32 weapon_tree_from_box(u32 obj, u8 *st, const u8 *ref)
 ARM void weapon_tree_update(u32 obj, u8 *st)
 {
     update(obj, st);
+    if (S->open == OPEN)
+        new_pulse();
 }
 
 /* ----- the hooks -------------------------------------------------------------------------------------------- */

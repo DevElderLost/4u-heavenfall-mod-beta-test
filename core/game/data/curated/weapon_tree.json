@@ -3,6 +3,7 @@
   "reveal": "discovered",
   "priority": {"ui401_wt_frame": 40, "ui401_wt_rows": 41, "ui401_wt_nodes": 42, "ui401_wt_cursor": 43, "ui401_wt_keys": 44, "ui401_wt_choice": 45},
   "placing": {"pack": 1},
+  "new_pulse": {"_doc": "The NEW marks' brightness over time: the forge list's own clip (lyt\\lobby\\ui407's animation 2 on ui407_n_icon, property 0x0C: brightness, 1.0 the art's own). Keys [frame, brightness], frames of the GUI's clips (60 a second), joined by straight lines, looped at the last frame.", "keys": [[0, 1.0], [20, 1.3], [40, 1.0]]},
   "window": {"origin": [202, 41], "pitch": [27, 25], "columns": 7, "rows": 7},
   "panes": {
     "wt_waku0": [190, 18, 3, 176], "wt_waku1": [190, 194, 3, 42], "wt_waku2": [393, 18, 3, 176], "wt_waku3": [393, 194, 3, 42],

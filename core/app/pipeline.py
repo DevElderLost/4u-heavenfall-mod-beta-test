@@ -49,8 +49,10 @@ from core.game.executable.containers import kept_reads
 from core.game.executable import session, titles
 from core.cheats.cheats import patch_cheats, supports_cheats, wants_cheats
 from core.game.files.text.common_texts import remove_common_text_files
-from core.interface.mod_settings.mod_options import available_options, patch_mod_options, supports_mod_options
-from core.interface.mod_settings.mod_texts import mod_settings_texts
+from core.interface.mod_settings.mod_options import (
+    OPTION_IDS, available_options, patch_mod_options, supports_mod_options,
+)
+from core.interface.mod_settings.menu_files import menu_page_files
 from core.game.executable.memory_split import patch_memory_split, resource_to_root_mb
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
@@ -68,6 +70,8 @@ from core.interface.hud.build import hud_files, remove_hud_files
 from core.interface.hud.build import hint_files
 from core.interface.hud.code_patch import patch_interface
 from core.interface.hud.scale import NO_EDGE
+from core.interface.radial_menu.radial_draw import wheel_files
+from core.interface.radial_menu.radial_menu import patch_radial_menu, supports_radial_menu
 from core.interface.single_screen.layout.single_screen import remove_single_screen_files
 from core.interface.damage_numbers.damage_numbers import patch_damage_numbers
 from core.interface.damage_numbers.layout import damage_numbers_files, remove_damage_numbers_files
@@ -76,6 +80,7 @@ from core.interface.horn_songs.layout import horn_songs_files, remove_horn_songs
 from core.interface.weapon_tree.tree_layout import weapon_tree_files
 from core.interface.weapon_tree.tree_texts import message_base as tree_message_base
 from core.interface.weapon_tree.weapon_tree import patch_weapon_tree
+from core.interface.world_sharpness.world_sharpness import patch_world_sharpness
 from core.app import presets
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
@@ -146,11 +151,13 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
                           gen_looks: GenLooks | None = None, gear_texts: CommonTexts | None = None,
                           felynes: felyne_looks.FelyneLooks | None = None, damage_numbers: bool = False,
                           horn_songs: bool = False,
-                          weapon_tree: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
+                          weapon_tree: bool = False,
+                          radial_wheel: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's, the START menu page's (`menu_texts`), the new items' names (`gear_texts`: the rare materials of
     MH XX's monsters), Layered Gear's (with MH XX's looks: `gen_looks`; the Felynes': `felynes`), the Rare Materials
     Exchange's, the Smithy's weapon tree's (`weapon_tree`: its messages and its panes in the facility menu's layout),
-    Damage Numbers' and the Hunting Horn's songs' layouts (`damage_numbers`, `horn_songs`) and the
+    Damage Numbers', the Hunting Horn's songs' and the item wheel's layouts (`damage_numbers`, `horn_songs`,
+    `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common) and the
     single-screen mode's RomFS files, and with the game's
     files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
     made on the previous
@@ -178,8 +185,8 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         hud = dict(hint_files(rom)) if target_hint else {}
     anchored = settings.aspect_on and rom is not None
     names = gear_texts.files(lambda path: hud.get(path) or rom.read(path)) if gear_texts else {}
-    if menu_texts and rom is not None:      # the START menu's third page: the options and the aspect ratio's list
-        names |= mod_settings_texts().files(lambda path: {**hud, **names}.get(path) or rom.read(path))
+    if menu_texts and rom is not None:      # the START menu's third page: its texts, ui020's panes, Edit Slots' picture
+        names |= menu_page_files(rom, {**hud, **names}, wheel=radial_wheel)
     texts = dict(layered_text_files(rom, {**hud, **names}, gen=gen_looks, felynes=felynes)) if layered_texts else {}
     if exchange_texts:      # the Wyporium's messages and panes, on top of the other options' copies
         texts.update(exchange_text_files(rom, {**hud, **names, **texts}))
@@ -190,6 +197,8 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         own = dict(damage_numbers_files(rom, {**hud, **names, **texts}))
     if horn_songs and rom is not None:      # the Hunting Horn's songs', at the HUD's size and sides
         own |= horn_songs_files(rom, {**hud, **names, **texts, **own}, settings.hud_scale.factor, edge)
+    if radial_wheel and rom is not None:    # the item wheel's, one size whatever the HUD's
+        own |= wheel_files(rom, {**hud, **names, **texts, **own})
     screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the others added (single_screen.py)
         made = single_screen_romfs(rom, {**hud, **names, **texts, **own}, edge if anchored else None)
@@ -270,10 +279,16 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     target_switch = "touchless_target" in menu_options
     damage = in_menu and "damage_numbers" in menu_options     # its layout and its page's option
     horn = in_menu and "horn_songs" in menu_options           # the Hunting Horn's songs: the same, on by default
+    world_sharpness = in_menu and "world_sharpness" in menu_options     # the World-style sharpness gauge: only code
     # Forge Weapons' tree: its files and code whatever the installed view, which its row of the page chooses
     tree = in_menu and "smithy_view" in menu_options
     if in_menu and not tree and "smithy_view" in presets.in_game_fields() and "smithy_view" not in off:
         notices.append(left_out("Smithy View", "Forge Weapons keeps the game's list", NOT_AVAILABLE))
+    # The item wheel (interface/radial_menu/): always built with the quality-of-life module, whose Radial Menu row of
+    # the page switches it on and off in the game
+    wheel = in_menu and settings.quality_of_life and supports_radial_menu(code)
+    if in_menu and settings.quality_of_life and not wheel:
+        notices.append(left_out("item wheel", "the C-stick does not use items", NOT_AVAILABLE))
     patch_interface_code = settings.hud_scale != HudScale.FULL or target_switch
     # the touch screen's menus on the top screen (interface/single_screen/executable/single_screen.py, single_screen.py)
     single_screen = settings.single_screen and supports_single_screen(code)
@@ -332,7 +347,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     gen_looks = prepared.gen_looks() if prepared else None
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
-        gen_looks, added.texts if added else None, felynes, damage, horn, tree)
+        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel)
     # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
     tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange
@@ -350,8 +365,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             if layered:
                 if felyne_looks_pack:
                     patched = felyne_pack.patch_executable(patched, felyne_looks_pack.needs)
+                # the page's Layered Gear row (its place: the block reads that value) shows or hides the looks
+                switch = OPTION_IDS["layered_looks"] if in_menu and "layered_looks" in menu_options else None
                 patched = patch_layered_equipment(patched, gen=gen_looks, felynes=felynes, item_ids=item_ids,
-                                                  by_rank=settings.layered_by_rank)
+                                                  by_rank=settings.layered_by_rank, switch=switch)
                 if materials and materials.expedition:
                     # the run has XX's looks, so it has the foreign scraps: each Meownster Hunters expedition
                     # brings one more
@@ -360,8 +377,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_rare_exchange(patched, item_ids=item_ids)
             if select_start or select_plain:
                 patched = patch_select_kick(patched, plain=select_plain)
+            if wheel:       # its blocks, its picture's entry and its screens, which the page's Radial Menu row opens
+                patched = patch_radial_menu(patched)
             if in_menu:
-                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on)
+                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on, wheel=wheel)
             if tree:        # the START menu's row chooses the view: its gates stand before the tree's entries
                 patched = patch_weapon_tree(patched, message_base=tree_base, gated=True)
             if cheats:
@@ -376,6 +395,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_damage_numbers(patched)
             if horn:        # the quest's hooks it shares with Damage Numbers: whichever comes first places them
                 patched = patch_horn_songs(patched)
+            if world_sharpness:     # a frame-only entry of the same hooks
+                patched = patch_world_sharpness(patched)
             if prepared:    # the executable's tables for the pack's models
                 patched = patch_executable(patched, prepared.needs)
             if title_build:     # the installed title's: the game data as `rom:`, its own RomFS first

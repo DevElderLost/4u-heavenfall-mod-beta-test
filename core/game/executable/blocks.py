@@ -82,7 +82,7 @@ GEAR = "ported_gear"
 # gameplay/bubbleblight/bubbleblight.py), last, so the mods without Mizutsune keep every address.
 BUBBLEBLIGHT = "bubbleblight"
 # The item wheel (interface/radial_menu/radial_menu.py) goes last of the product's
-# features (only the trio probe's diagnostics after it), so a mod without it carries none of its pages and every
+# features (only the diagnostics block after it), so a mod without it carries none of its pages and every
 # other block keeps its address. Its data block (interface/radial_menu/radial_menu.py wheel_data) holds the curated
 # numbers, the default items and the save zone's place.
 RADIAL_MENU = "radial_menu"
@@ -95,6 +95,14 @@ RADIAL_DRAW_DATA_SIZE = 1188
 # The Radial Menu's screen in Mod Settings (interface/radial_menu/radial_editor.c; radial_editor.py editor_data fills
 # the texts' block)
 RADIAL_EDITOR_DATA_SIZE = 80
+# The cheats of the quest's timers (cheats/quest_timers/quest_timers.py) and of the minimap's skills
+# (cheats/map_skills/map_skills.py): their hooks' stubs, the C and the data with each cheat's
+# option of Mod Settings. After the item wheel, so they move no block of the product; only a mod with the cheats places
+# them.
+QUEST_TIMERS = "cheat_quest_timers"
+QUEST_TIMERS_DATA_SIZE = 8
+MAP_SKILLS = "cheat_map_skills"
+MAP_SKILLS_DATA_SIZE = 4
 # The game GUI engine (2 KB of code and its 48 KB table) goes first of the rest: after every small option's blocks, so a
 # mod without single-screen mode carries none of its pages, and before the ported monsters', so a mod with only
 # single-screen mode carries none of theirs.
@@ -124,10 +132,10 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 852
-MOD_SETTINGS_PANE_HASHES = (724, 840)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 936
+MOD_SETTINGS_PANE_HASHES = (808, 924)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
-MOD_OPTIONS_DATA_SIZE = 16 + 28 * 164
+MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8)   # mod_options.c: the header, 52 options, a pool of 256 values
 MOD_RAW_TABLE_SIZE = 64
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
@@ -157,26 +165,34 @@ QUEST_LAYOUTS_DATA_SIZE = 128
 HORN_SONGS = "horn_songs"
 HORN_SONGS_DATA_SIZE = 312
 HORN_SONGS_STATE_SIZE = 60
+# The World-style sharpness gauge (interface/world_sharpness/world_sharpness.py),
+# Jamo's mod adapted: the C and its data (struct world_data).
+WORLD_SHARPNESS = "world_sharpness"
+WORLD_SHARPNESS_DATA_SIZE = 64
 # The Smithy's weapon tree (interface/weapon_tree/weapon_tree.py): the C with its hooks,
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
 WEAPON_TREE = "weapon_tree"
-WEAPON_TREE_DATA_SIZE = 228 + 4 * 560
+WEAPON_TREE_DATA_SIZE = 252 + 4 * 560
 WEAPON_TREE_STATE_SIZE = 94 + 6 * 336
 # The new map numbers 28 and 29 (maps/new_map.py): packed after all of them
 # too, so that it moves no other block.
 NEW_MAP = "new_map"
 # Boltreaver Astalos' pulling ball on the hunter (gameplay/boltreaver_pull/boltreaver_pull.py): after the new maps too
 BOLTREAVER_PULL = "boltreaver_pull"
-# Misty Peaks' fog cycle (maps/misty_peaks/fog_cycle.py), with the map
+# The cheats Interruptible Flex and Whetstone Sharpening Cancel (cheats/action_cancel/action_cancel.py; docs/cheats/
+# cheats.md): after the item wheel, so that it moves no other product block
+ACTION_CANCEL = "cheat_action_cancel"
+ACTION_CANCEL_DATA_SIZE = 8
+# The new map's fog cycle (maps/misty_peaks/fog_cycle.py), with the map
 FOG_CYCLE_DATA_SIZE = 236
-# The debug fog control (maps/misty_peaks/fog_debug.py): only a
-# probe places it, so it goes last of all and moves nothing.
+# The debug fog control (maps/misty_peaks/fog_debug.py): only a diagnostics file places it, so it goes last of all and
+# moves nothing.
 MISTY_FOG_DEBUG = "misty_fog_debug"
 FOG_DEBUG_DATA_SIZE = 1036
 FOG_DEBUG_STATE_SIZE = 296
-# The trio probe's diagnostics (diagnostics/trio_diag.py): the rings of
-# voice starts, hits and aims, their hook stubs and the data of what they watch. Only a probe places them, so they go
+# The diagnostics block (diagnostics/trio_diag.py): the rings of voice starts, hits and aims, their hook stubs and the
+# data of what they watch. Only a diagnostics file places them, so they go
 # last of all and move nothing. TRIO_DIAG_LOG_SIZE is struct trio_log (trio_diag.c): the header, 64 voice events of 96
 # bytes, 2048 hit events of 32, 256 aim events of 128.
 TRIO_DIAG = "trio_diagnostics"
@@ -190,6 +206,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     an edition without the ported monsters) never loads. The list stays at the margin as
     before."""
     from core.monsters.porting.called_small import c_defines as pack_defines
+    from core.monsters.porting.ground_shadow import c_defines as shadow_defines
     from core.monsters.porting.hf_records import C_DEFINES as RECORDS_DEFINES, STUBS_SIZE as RECORDS_STUBS
     from core.monsters.porting.motion_places import C_DEFINES as PLACES_DEFINES, table_size as places_table_size
     from core.monsters.porting.new_id_data import C_DEFINES as NEW_ID_DEFINES
@@ -211,7 +228,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, TRIO_DIAG)
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, TRIO_DIAG)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -276,7 +293,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # 8-aligned: its size depends on its address mod 8 (alignment padding inside the C block).
     BlockSpec("layered_selector", "layered_equipment", "equipment/layered/layered_selector.c", region="ext", thumb=True,
               align=8, units=("equipment/layered/layered_forge.c", "equipment/layered/felyne_looks.c",
-                     "equipment/layered/layered_online.c",
+                     "equipment/layered/layered_online.c", "equipment/layered/layered_switch.c",
                      "interface/screen_kit/screen_kit.c")),
     BlockSpec("layered_data", "layered_equipment", size=0x9000, region="ext"),
     # The Wyporium's Rare Materials Exchange: its menu line and screens (gameplay/wyporium/rare_exchange.c), and its
@@ -357,8 +374,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # this block for the record, which writes layout B first when the record is not B
     BlockSpec("single_screen_panels", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_panels.c",
               region="ext"),
-    # ... and the creation's Aceptar / AtrÃ¡s buttons driven with left / right: the menu cursor's call on the main pages
-    # takes the pad's left and right as down and up on
+    # ... and the creation's Aceptar / AtrÃƒÂ¡s buttons driven with left / right: the menu cursor's call on the main
+    # pages takes the pad's left and right as down and up on
     # the buttons
     BlockSpec("single_screen_creation_pad", SINGLE_SCREEN,
               "interface/single_screen/executable/single_screen_creation_pad.s", region="ext"),
@@ -458,7 +475,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (monsters/porting/proof_blocks.py shared_block_specs, product.py, proof_hook.place), and the new monster ids
     # (monsters/porting/new_id.py): their code (monsters/porting/new_id.c), the
     # factory's cases, the stubs and the id tables extended to 200 ids
-    *(BlockSpec(name, SHARED, source, size=size, align=align, region="ext")
+    *(BlockSpec(name, SHARED, source, size=size, align=align, region="ext",
+                defines=shadow_defines() if source else ())     # the effect player's: the shadows' lead (curated)
       for name, source, size, align in shared_block_specs()),
     *(BlockSpec(name, SHARED, source, size=size, region="ext", defines=NEW_ID_DEFINES if source else ())
       for name, source, size in new_id_blocks()),
@@ -602,6 +620,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext"),
     BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext"),
     BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
+    BlockSpec("world_sharpness_code", WORLD_SHARPNESS, "interface/world_sharpness/world_sharpness.c", region="ext"),
+    BlockSpec("world_sharpness_data", WORLD_SHARPNESS, size=WORLD_SHARPNESS_DATA_SIZE, region="ext"),
     # 8-aligned: a Thumb block's size depends on its address mod 8
     BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", region="ext", thumb=True, align=8,
               units=("interface/screen_kit/screen_kit.c",)),
@@ -609,16 +629,30 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # The new map numbers 28 and 29 (maps/new_map.py): the sound bank's and map piece's switch stubs, the 20 map tables
     # grown to 30 entries and each new map's strings, lists and minimap records
     *(BlockSpec(name, NEW_MAP, source, size=size, region="ext") for name, source, size in new_map_blocks()),
-    # Misty Peaks' fog cycle: ColorFog's slot 10 and its data (each area's distances, the loop, the veils' levels)
+    # The new map's fog cycle: ColorFog's slot 10 and its data (each area's distances, the loop, the veils' levels)
     BlockSpec("misty_fog_cycle_code", NEW_MAP, "maps/misty_peaks/fog_cycle.c", region="ext"),
     BlockSpec("misty_fog_cycle_data", NEW_MAP, size=FOG_CYCLE_DATA_SIZE, region="ext"),
     # Boltreaver Astalos' pulling ball on the hunter: the hooks' code (its variable, boltreaver_pull_state, is the
     # extension's)
     BlockSpec("boltreaver_pull", BOLTREAVER_PULL, "gameplay/boltreaver_pull/boltreaver_pull.c", region="ext"),
-    # The debug fog control's code and data (a probe's only)
+    # The cheats Interruptible Flex and Whetstone Sharpening Cancel: the hunter's update's call of the action's frame,
+    # and the two Mod Settings options' ids (action_cancel.py action_cancel_data)
+    BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext"),
+    BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext"),
+    # The debug fog control's code and data (a diagnostics file's only)
     BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
     BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
-    # The trio probe's diagnostics: the hook stubs, the C and the watch lists (a probe's only)
+    # Skip Quest End Timer and No Time Limit on Rewards Screen: the three hooks' stubs, the C, each cheat's option and
+    # the countdown's speed (quest_timers.py timers_data)
+    BlockSpec("quest_timers_stub", QUEST_TIMERS, "cheats/quest_timers/quest_timers_stub.s", region="ext"),
+    BlockSpec("quest_timers", QUEST_TIMERS, "cheats/quest_timers/quest_timers.c", region="ext"),
+    BlockSpec("quest_timers_data", QUEST_TIMERS, size=QUEST_TIMERS_DATA_SIZE, region="ext"),
+    # Capture Guru and Autotracker always on: the two hooks' stubs, the C and each cheat's option (map_skills.py
+    # skills_data)
+    BlockSpec("map_skills_stub", MAP_SKILLS, "cheats/map_skills/map_skills_stub.s", region="ext"),
+    BlockSpec("map_skills", MAP_SKILLS, "cheats/map_skills/map_skills.c", region="ext"),
+    BlockSpec("map_skills_data", MAP_SKILLS, size=MAP_SKILLS_DATA_SIZE, region="ext"),
+    # The diagnostics block: the hook stubs, the C and the watch lists (a diagnostics file's only)
     BlockSpec("trio_diag_stub", TRIO_DIAG, "diagnostics/trio_diag_stub.s", region="ext"),
     BlockSpec("trio_diag_code", TRIO_DIAG, "diagnostics/trio_diag.c", region="ext",
               defines=(f"TRIO_LOG_SIZE={TRIO_DIAG_LOG_SIZE}",)),
@@ -643,7 +677,7 @@ VARIABLES = (
     VariableSpec("mod_settings_state", MOD_SETTINGS, 8),
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
-    VariableSpec("mod_options_state", MOD_SETTINGS, 80, region="ext_vars"),
+    VariableSpec("mod_options_state", MOD_SETTINGS, 104, region="ext_vars"),
     VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
@@ -678,6 +712,9 @@ VARIABLES = (
     # each hall hunter was last dressed with
     VariableSpec("layered_render", "layered_equipment", 72),
     VariableSpec("felyne_ui", "layered_equipment", 20),        # felyne_looks.h: struct felyne_ui
+    # Layered Gear's switch in the game (layered_switch.c struct layered_switch): the value the town's hunters were
+    # dressed with, the one a quest's preload took, a re-dress of the local hunter waiting for its load
+    VariableSpec("layered_switch", "layered_equipment", 4),
     VariableSpec("exchange_ui", RARE_EXCHANGE, 72),           # rare_exchange.c: struct xui
     # The game GUI recorder's frame counters (u32 started, done): only the
     # recording probe writes them (tools/ui/ui_probe.py, block gui_frame_marks_probe), never the product. Not a debug
@@ -785,9 +822,9 @@ VARIABLES = (
     # the variable holding the shells' manager sShell, which MH4U lacks (MH Generations keeps it at 0xDA95F0;
     # proof/shell_mgr.c, sdk/enemy_4u.h shell_launch_01_from)
     VariableSpec("proof_shell_mgr", "mhgen_port (core/monsters/porting/effect_player)", 4),
-    # The debug fog control's steps and live text (a probe's only), after every other variable
+    # The debug fog control's steps and live text (a diagnostics file's only), after every other variable
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
-    # The trio probe's rings (diagnostics/trio_diag.c struct trio_log; a probe's only), after every other variable
+    # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others
     VariableSpec("trio_diag_log", TRIO_DIAG, TRIO_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
 )
 
@@ -884,6 +921,7 @@ GAME_SYMBOLS = {
     "file_extdata_set": 0xC195FC,    # FUN_00c195fc(manager, id): the extdata the archive 1 operations mount
     "save_task_resume": 0x2ACAA4,    # FUN_002acaa0 after its first instruction (the archive 0 file operations)
     "extdata_task_resume": 0x2ABA08,  # FUN_002aba04 after its first instruction (the archive 1 file operations)
+    "slot_exists_resume": 0x2AF394,   # FUN_002af390 after its first instruction (whether a kind's file exists)
     # The forge-style screens: the forge's
     # materials box and money box, its yes / no window, the hammer scene, payment and the GUI's panes by hash; all in
     # the runs of the base games and the update (eur_base, usa_base, usa_update)
@@ -1153,6 +1191,7 @@ GAME_SYMBOLS |= {
     "sound_queue_at_pos": 0x312100,     # a sound request queued at a position (0x3F52E8)
     "sound_queue_plain": 0x31218C,      # unplaced (0x3F53E8)
     "sound_queue_on_joint": 0x312200,   # on a unit's joint (0x3F5458)
+    "sound_queue_unplaced": 0x312098,   # way 0, no position (MH XX's 0x3F09A4, its entry play's way 3)
 }
 
 # adapter, engine side (core/monsters/porting/effect_player/adapter_4u.c)
@@ -1269,12 +1308,11 @@ GAME_SYMBOLS |= {
     # the owner's playing bank-0 sound moved to a point (0x3EDBF8: the same code; SHELL_PAIRS owner_sound_bank,
     # candidate: no species of both games calls it)
     "owner_sound_bank_play": 0x301074,
-    # MH4U's own ground marker of a falling shell, which the adapter puts where MH XX drops its blob shadows: Crimson
-    # Fatalis' meteor (uShell029, FUN_00c7d864) plays it,
-    # its end (FUN_00c7da24) kills it
-    "effect_play_area": 0xC0856C,           # FUN_00c0856c(*0x10572A4, request) -> effect, 0 outside the request's area
-    "effect_kill": 0xC470DC,                # FUN_00c470dc(effect): a looping effect's end
-    "effect_marker_request_vtable": 0xE7F8F4,   # the vtable of FUN_00c7d864's request
+    # MH4U's way to put a model in the world, which the adapter takes for MH XX's blob shadows (docs/monsters/
+    # effects.md, "The shadow in MH4U"): the effect manager's model request FUN_00c092c8 gets its uModel from its slot
+    # 28, this function (r0 unread: uModel's operator new 0x9623F0 for 0xC78 bytes aligned 0x10, then its
+    # constructor 0x9620FC; 0 when out of memory)
+    "umodel_new": 0xC09264,
 }
 # ==== end of shell bases 41 and 02 ====
 # Shells, the manager (core/monsters/porting/effect_player/shell_mgr.c):
@@ -1536,6 +1574,9 @@ GAME_SYMBOLS |= {
     "target_binder": 0x1085650,         # ui601's binder: panel00, panel01, target00
     # ui202's binder: ui202_tairyoku, the health bar (interface/hud/code_patch.HUD_REF)
     "health_binder": 0x1083EDC,
+    # ui202's binder + 0x10: ui202_kireaji, the sharpness gauge's group, which FUN_00b9d0f0 places
+    # (interface/world_sharpness/world_sharpness.c)
+    "sharpness_binder": 0x1083EE8,
     "minimap_project": 0x6C40E0,        # FUN_006c40e0
     "minimap_area_zoom": 0x5A5F14,      # FUN_005a5f14(area, &zoom, offset): the zoomed area view's zoom and offset
     "minimap_area_point": 0x5A7BEC,     # FUN_005a7bec(point, area): the Everwood's fixed point of an area (whole map)
@@ -1556,6 +1597,8 @@ GAME_SYMBOLS |= {
     "glaive_old_record": 0x2F4B0C,      # FUN_002f4ac0: the game's record of ids below 0x87
     "glaive_record_zero": 0x2F4B00,     # ... and its record 0
     "sharpness_lookup_done": 0x2F0FC8,  # FUN_002f0f34: pop {r4, r5, pc}
+    # FUN_002f0f34(equipment, weapon): the weapon's sharpness, seven s16, where each colour ends (0 when it has none)
+    "sharpness_ends": 0x2F0F34,
 }
 
 # The single-screen mode's blocks (interface/single_screen/executable/single_screen.py)
@@ -1830,6 +1873,8 @@ GAME_SYMBOLS |= {
     "enemy_em588c_set": 0x91B0C8,           # 0x8A878C: (this, a, b) into em+0x79AF / 0x79B0 (XX's 4th: unread)
     "enemy_set_alpha": 0x90F7CC,            # 0x8A036C: (this, s0 target, s1 speed) into em+0x7E78, 0x7E7C, 0x7E74
     "enemy_homing_setup": 0x916BCC,         # 0x8A4F44: (this, kind, a, b, slot): homing target `slot`'s setup
+    "enemy_flag_timer_start": 0x934498,     # 0x8BD12C: (this, n): hunter n's bit of em+0x290, timer em+0x354 + 4n
+    "enemy_set_mode": 0x91B158,             # 0x8A8834: (this, mode): em+0x34C, entering 1 clears em+0x34B
     "game_random_4u": 0x2B568C,             # 0x2C8FCC's adapter: (sGameControl, stream) -> a random u16
     "gen_wake_manager": 0xF32004,           # 0xD2CAA0: sEnemy's pointer (monster_data_manager), enemy_gen.h's name
     # His leader's pack in MH4U (porting/sdk/pack.h)
@@ -1854,6 +1899,13 @@ GAME_SYMBOLS |= {
     "hunter_item_mode": 0xB28F54,       # FUN_00b28f54(hunter): item mode (L held), called by the hunter's input update
     "result_scene": 0xACCD24,           # FUN_00accd24(scene, ?, ?): the quest result scene, once per frame
     "claim_scene": 0x5E5CB8,            # FUN_005e5cb8(panel): the Wyporium's claim items panel, once per frame
+}
+
+# The cheats of the quest's timers and the minimap's skills (cheats/quest_timers/quest_timers_stub.s,
+# cheats/map_skills/map_skills_stub.s): the code their hooks go on to with the cheat off
+GAME_SYMBOLS |= {
+    "rewards_countdown_body": 0xAB88F8,  # FUN_00ab88f4(scene), the result scene's countdown, past its first word
+    "has_skill_entry": 0xD04F58,        # FUN_00d04f58(hunter, skill): `mov r0, r0`, then has_skill; the minimap's calls
 }
 
 # Select and Start follow the game's option START (gameplay/select_kick/select_kick.c): the SDK's Select-to-Start step,
@@ -2083,7 +2135,7 @@ GAME_SYMBOLS |= {
     "string_release_ref": 0x110940,     # FUN_00110940(MtString): one reference less, the count left
 }
 
-# The trio probe's diagnostics (diagnostics/trio_diag.py): the sound driver's mix gains, sHitcheck's placing of the
+# The diagnostics block (diagnostics/trio_diag.py): the sound driver's mix gains, sHitcheck's placing of the
 # spheres and one record's hit on one hunter, and the small functions the rings read the hunters and monsters with
 GAME_SYMBOLS |= {
     "voice_mix_gains": 0xBD43FC,        # FUN_00bd43fc(voice): the mix gains from the dry and send gains
@@ -2105,4 +2157,17 @@ GAME_SYMBOLS |= {
     "hunter_turn": 0xB6D944,            # FUN_00b6d944(hunter): the turn toward pw + 0xB0, the update's call at 0xB14CAC
     "enemy_list_get": 0x68FBD0,         # FUN_0068fbd0(sEnemy, index): the monster of a place of the list, or 0
     "boltreaver_hit_resume": 0xBE8FF0,  # FUN_00be8dfc's instruction after the load at 0xBE8FEC (`ldr r0, [r4, #0x3c]`)
+    "boltreaver_touch_resume": 0xBE8E00,    # FUN_00be8dfc's second instruction (after its stmdb at 0xBE8DFC)
+}
+
+# The cheats Interruptible Flex and Whetstone Sharpening Cancel (cheats/action_cancel/action_cancel.c; docs/cheats/
+# cheats.md, "Interruptible Flex and Whetstone Sharpening Cancel"): the hunter's action functions the cancel calls
+GAME_SYMBOLS |= {
+    "hunter_run_action": 0xB670C0,      # FUN_00b670c0(hunter): the frame of the hunter's action, by its group (p+0x371)
+    "hunter_end_action": 0xB1D7B4,      # FUN_00b1d7b4(hunter, pl_st, 4, 0, 0): back to the neutral action, as the
+                                        # flex (0xB57F68) and the sharpening (0xB5848C) end themselves
+    "hunter_face_stick": 0xB3D128,      # FUN_00b3d128(hunter): the heading (pw + 0xB0) toward the stick
+    "hunter_update_check": 0xB18618,    # FUN_00b18618(hunter): the update's first check before the action's frame
+                                        # (0xB14960); non-zero when it started an action
+    "hunter_update_check_more": 0xB0D784,   # FUN_00b0d784(hunter): its second (0xB1496C), when the first started none
 }

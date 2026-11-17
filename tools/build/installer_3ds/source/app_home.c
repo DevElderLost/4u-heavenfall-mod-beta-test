@@ -1,8 +1,8 @@
 /* The home screen: the edition, one state line in its colour (hf_home), what to
  * do next, the installed and the latest versions, the first lines of the release's notes, and the buttons: the big one
  * (Install, Update to X, Set up or Play), Play, the original MH4U and More. More's menu has Information (the old
- * status table), the save copy, Reinstall (the installed title again from the latest version), online play, the
- * language and Exit. The start's check (app_check.c) runs meanwhile and
+ * status table), the save copy, Reinstall (the installed title again from the latest version), Cheats (the title again
+ * with or without them), online play, the language and Exit. The start's check (app_check.c) runs meanwhile and
  * fills the page in when it answers. START exits; L and R change the edition when there are several; SELECT the
  * language. */
 #include <stdio.h>
@@ -16,7 +16,8 @@
 #define LANGUAGE_FILE "sdmc:/3ds/heavenfall/language.txt"
 #define MB(bytes) ((unsigned long)((bytes) / (1024 * 1024)))
 
-enum { ID_INFO = 20, ID_SAVE, ID_REINSTALL, ID_ONLINE, ID_LANGUAGE, ID_EXIT, ID_BACK };   /* More's (the home's are HfDo values) */
+/* More's (the home's are HfDo values) */
+enum { ID_INFO = 20, ID_SAVE, ID_REINSTALL, ID_CHEATS, ID_ONLINE, ID_LANGUAGE, ID_EXIT, ID_BACK };
 
 static void put(char *dst, size_t cap, const char *text) { snprintf(dst, cap, "%s", text ? text : ""); }
 
@@ -241,6 +242,9 @@ static void more_view(int selected, int language_changed) {
     ui_button(v, T(HT_BTN_INFO), ID_INFO, 0, 1);
     ui_button(v, T(HT_BTN_SAVE), ID_SAVE, 0, 1);
     ui_button(v, T(HT_BTN_REINSTALL), ID_REINSTALL, 0, app.status.title_installed);
+    /* the switch says the installed title's state; it works once a title is installed (off until the player asks) */
+    ui_button(v, T(app.status.installed_cheats ? HT_BTN_CHEATS_ON : HT_BTN_CHEATS_OFF), ID_CHEATS, 0,
+              app.status.title_installed);
     ui_button(v, T(HT_BTN_ONLINE), ID_ONLINE, 0, 1);
     ui_button(v, T(HT_BTN_LANGUAGE), ID_LANGUAGE, 0, 1);
     ui_button(v, T(HT_BTN_EXIT), ID_EXIT, 0, 1);
@@ -272,6 +276,12 @@ static int more_run(void) {
             if (!ui_confirm(T(HT_REINSTALL_ASK))) break;
             LOG("more: reinstall");
             return update_run(0, 1);
+        case ID_CHEATS: {    /* on: the warning first (never play with others without telling them); either way the
+                                mod's title is installed again from the release's other sets */
+            int on = !app.status.installed_cheats;
+            if (!ui_confirm(T(on ? HT_CHEATS_ASK_ON : HT_CHEATS_ASK_OFF))) break;
+            return update_cheats(on);
+        }
         case ID_ONLINE: online_run(); break;
         case ID_LANGUAGE:
             language_switch();

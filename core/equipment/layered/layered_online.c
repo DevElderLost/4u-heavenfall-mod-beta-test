@@ -77,10 +77,11 @@ extern struct remote layered_remote;
 
 #define FNV_PRIME ((1u << 24) + 0x193)   /* FNV-1a's 32-bit prime, written so that no game address is read in it */
 
-static u32 state_hash(void)      /* FNV-1a of layered_state and the cat's word: has it changed since the last message to everyone? */
+/* FNV-1a of layered_state, the switch and the cat's word: has it changed since the last message to everyone? */
+static u32 state_hash(void)
 {
     const u8 *s = (const u8 *)&layered_state;
-    u32 h = 0x811C9DC5, cat = felyne_online_word();
+    u32 h = (0x811C9DC5 ^ layered_shown()) * FNV_PRIME, cat = felyne_online_word();
     for (u32 i = 0; i < sizeof layered_state; i++)
         h = (h ^ s[i]) * FNV_PRIME;
     for (u32 i = 0; i < 4; i++)
@@ -105,7 +106,7 @@ static int build(struct looks_msg *m, u32 session, u32 flags)
     for (u32 i = 0; i < 8; i++)
         m->id[i] = id[i];
     u32 cat = felyne_online_word();
-    m->flags = (layered_state.enabled ? REMOTE_LOOKS : 0) | (cat ? REMOTE_CAT : 0) | flags;
+    m->flags = (layered_state.enabled && layered_shown() ? REMOTE_LOOKS : 0) | (cat ? REMOTE_CAT : 0) | flags;
     for (u32 i = 0; i < 4; i++)
         m->cat[i] = cat >> (8 * i);
     m->gender = gender;
@@ -271,7 +272,7 @@ __asm__(
 
 ARM const struct layered_remote_entry *layered_remote_by_slot(u32 slot)
 {
-    if (slot >= REMOTE_ENTRIES || !session_control)
+    if (slot >= REMOTE_ENTRIES || !session_control || !layered_shown())   /* our switch off: everyone's real gear */
         return 0;
     const u8 *member = (const u8 *)(session_control + slot * SESSION_MEMBER);
     const struct layered_remote_entry *e = &layered_remote.entry[slot];
@@ -358,7 +359,8 @@ static void state_of(struct layered_state *out, const struct layered_remote_entr
    It does not ask for the hunter's looks: a cat is judged apart from its owner. */
 static u32 cat_word(u32 slot, const u8 *info)
 {
-    if (slot >= REMOTE_ENTRIES || !session_control || slot == *(const u8 *)(session_control + SESSION_SLOT))
+    if (slot >= REMOTE_ENTRIES || !session_control || slot == *(const u8 *)(session_control + SESSION_SLOT) ||
+        !layered_shown())
         return 0;
     const u8 *member = (const u8 *)(session_control + slot * SESSION_MEMBER);
     const struct layered_remote_entry *e = &layered_remote.entry[slot];
@@ -433,8 +435,10 @@ static void take_snapshot(const u8 *game)
 /* FUN_00bc14cc's `bl FUN_002b3664` (the preloader takes player p's info): the snapshot first, when p is 0. */
 ARM u32 layered_quest_snapshot(const u8 *game, u32 player)
 {
-    if (player == 0)
+    if (player == 0) {
+        layered_switch_latch();      /* the quest's preload begins: the switch holds until the town */
         take_snapshot(game);
+    }
     return quest_info(game, player);
 }
 
@@ -490,8 +494,18 @@ static int redress(u32 slot)
     if (!hunter)
         return 1;
     u32 kind = (*(const u8 *const *)(hunter + HUNTER_STATUS))[STATUS_KIND];
+    return kind != 1 && kind != 3 ? 1 : layered_redress_index(index);
+}
+
+/* The hall loader's hunter of lobby index `index` (0-3; FUN_0065e31c makes them, the local one at game_control +
+   0x2F), dressed again unless one of its load states is 2 or more. */
+int layered_redress_index(u32 index)
+{
+    if (index > 3)
+        return 1;
+    u32 hunter = *(const u32 *)((u32)lobby_hunter_loader + HALL_HUNTERS + index * 4);
     const u8 *states = *(const u8 *const *)((u32)lobby_hunter_loader + HALL_STATES);
-    if ((kind != 1 && kind != 3) || !states)
+    if (!hunter || !states)
         return 1;
     states += index * STATE_SIZE + STATE_AT;
     for (u32 i = 0; i < STATES; i++)
@@ -554,10 +568,14 @@ static void redress_changed(void)
             cat_changed(slot);
 }
 
-/* FUN_009d9410's `bl FUN_00a0050c` (the town's per-frame update). */
+/* FUN_009d9410's `bl FUN_00a0050c` (the town's per-frame update): the switch first (layered_switch.c), so that the
+   others' re-dressing sees its value of now. */
 ARM u32 layered_town_frame(u32 town)
 {
     u32 result = town_update(town);
+    const u8 *game = game_control;
+    if (game)
+        layered_switch_frame(town, (u8)game[GAME_LOCAL]);
     redress_changed();
     return result;
 }

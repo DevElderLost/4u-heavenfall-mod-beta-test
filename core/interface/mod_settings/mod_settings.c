@@ -35,8 +35,8 @@ typedef short s16;
 
 #define ACTION 0x14             /* mod_settings.py ACTION */
 #define KIND 0x2F               /* mod_settings.py KIND */
-#define MAX_LISTS 10            /* mod_settings.py MAX_LISTS */
-#define MAX_TABLE 64            /* mod_settings.py MAX_TABLE */
+#define MAX_LISTS 11            /* mod_settings.py MAX_LISTS */
+#define MAX_TABLE 72            /* mod_settings.py MAX_TABLE */
 #define SUBLIST_ROWS 5          /* mod_settings.py SUBLIST_ROWS: the game's own lines of its small list */
 #define PAGE_LIST_ROWS 10       /* mod_settings.py LIST_PAGE_ROWS: a page of a small list */
 #define BIG_GAME_ROWS 8         /* the game's own lines of its big list; ui020 has two more (ten_rows.py) */
@@ -157,9 +157,9 @@ struct mod_settings_data {      /* the curated table (mod_settings.py settings_d
     u8 raise[PAGE_LIST_ROWS];   /* how far up a small list goes, by its first page's rows - 1 (single-screen mode, else 0) */
     u16 pad;
 };
-_Static_assert(sizeof(struct mod_settings_data) == 852, "blocks.py MOD_SETTINGS_DATA_SIZE");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 724, "blocks.py MOD_SETTINGS_PANE_HASHES");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 840, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(sizeof(struct mod_settings_data) == 936, "blocks.py MOD_SETTINGS_DATA_SIZE");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 808, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 924, "blocks.py MOD_SETTINGS_PANE_HASHES");
 
 enum { LEVEL_LIST, LEVEL_SCREEN };
 

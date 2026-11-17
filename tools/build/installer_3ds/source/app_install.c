@@ -245,7 +245,7 @@ static void record_write(const HfInstalled *rec, int region) {
 
 /* The mod title's record as it stands (the game data's fields kept from `base`, the layout too until the mod is whole). */
 static void record(const HfInstalled *base, const char *version, unsigned tmd, int region, int complete, int xx,
-                   int no_room, int save_pending, const char *save_restore) {
+                   int no_room, int cheats, int save_pending, const char *save_restore) {
     HfInstalled rec;
     memset(&rec, 0, sizeof rec);
     if (base) rec = *base;
@@ -254,6 +254,7 @@ static void record(const HfInstalled *base, const char *version, unsigned tmd, i
     rec.complete = complete;
     rec.xx = xx;
     rec.xx_no_room = no_room;
+    rec.cheats = cheats;
     rec.save_pending = save_pending;
     snprintf(rec.save_restore, sizeof rec.save_restore, "%s", save_restore);
     if (!xx) snprintf(rec.xx_dump, sizeof rec.xx_dump, "%s", install_xx_differs);
@@ -353,7 +354,7 @@ static int xx_adopt(const FileApi *api, void *set_h, uint64_t set_size, Dump *xx
     return TITLE_OK;
 }
 
-int install_set(const char *set_path, const char *version, int xx, int no_room, HfTitleKind kind) {
+int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind) {
     FileApi api;
     void *set_h = NULL, *dump_h = NULL, *xx_h = NULL;
     uint64_t set_size = 0, dump_size = 0, xx_size = 0, title_id = 0;
@@ -382,6 +383,7 @@ int install_set(const char *set_path, const char *version, int xx, int no_room, 
     if (hf_tmd_version(version, &tmd)) { rc = TITLE_E_FORMAT; goto done; }
     LOG("install: the %s title from set %s (%s), version %s (TMD %u)", game ? "game data" : "mod", set_path,
         xx ? "with MH XX" : "plain", version, (unsigned)tmd);
+    LOG("install: %s", cheats ? "with the cheats" : "without the cheats");
 
     if (api.open(api.ctx, app.status.dump_path, &dump_h, &dump_size) || dump_open(&dump, api.read, api.ctx, dump_h)) {
         LOG("install: the dump cannot be read");
@@ -466,7 +468,8 @@ int install_set(const char *set_path, const char *version, int xx, int no_room, 
         record_write(&cur, region);
     } else {   /* the save copy waits only after a first install: a save that stayed is never offered to be replaced */
         pending = hf_save_pending_after(app.status.title_installed, had_record ? &prev : NULL);
-        record(had_record ? &prev : NULL, version, tmd, region, 0, xx, no_room, pending, restore);   /* cut until done */
+        /* cut until done */
+        record(had_record ? &prev : NULL, version, tmd, region, 0, xx, no_room, cheats, pending, restore);
     }
     marked = 1;
     /* AM's pending imports of both titles of the edition (a cut or refused try leaves one: 0xC8E083FC) */
@@ -505,7 +508,7 @@ int install_set(const char *set_path, const char *version, int xx, int no_room, 
         ui_phase(HT_SAVE_RESTORING);
         if (use[0] && !saves_raw_restore(title_id, use) && !strcmp(use, restore)) restore[0] = 0;
         if (ctr_title_installed(update_id)) LOGR("delete old update title", ctr_title_delete(update_id));
-        record(had_record ? &prev : NULL, version, tmd, region, 1, xx, no_room, pending, restore);
+        record(had_record ? &prev : NULL, version, tmd, region, 1, xx, no_room, cheats, pending, restore);
         LOG("install: done%s", pending ? " (the save copy waits for the title's first run)" : "");
     }
 

@@ -58,5 +58,11 @@
    ],
    "description": "Felyne helms that show the base head's skin: the depths (same unit), tried in this order, by which a surface of the helm that hugs the head (within 'coplanar') is moved in front of its own surface so it stops sharing its depth with the head; the first that clears every sample is kept, none: the one that left the fewest. Each step swells the mesh a little: a longer list clears more helms and bends their hair more."
   }
+ },
+ "cheats": {
+  "quest_end_skip_speed": {
+   "value": 8,
+   "description": "Cheat 'Skip Quest End Timer' (cheats/quest_timers/quest_timers.py): how many times faster the countdown after a quest's end runs while A and B are held (the Gateway code's 8; from 1 to 64)."
+  }
  }
 }

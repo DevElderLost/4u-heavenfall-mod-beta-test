@@ -75,6 +75,9 @@ def main(argv=None) -> int:
                         help="how far the camera stays from the hunter, in percent of the game's distance (100: the "
                              "game's own; one of %(choices)s)")
     parser.add_argument("--hud-scale", choices=[scale.value for scale in HudScale], help="top-screen HUD size in %%")
+    parser.add_argument("--cheats-enabled", action=argparse.BooleanOptionalAction,
+                        help="turn the mod's cheats on (the Enable cheats box): an unfair advantage in quests, "
+                             "so do not play multiplayer with them without telling the other hunters")
     parser.add_argument("--cheat-3d-mode", choices=[value.value for value in Cheat3D],
                         help="3D: off (the game's own), dither_off or dither_on (3D forced off)")
     parser.add_argument("--cheat-no-bloom-dof", action=argparse.BooleanOptionalAction,
@@ -111,7 +114,8 @@ def main(argv=None) -> int:
     if args.camera_speed is not None and not low <= args.camera_speed <= high:
         parser.error(f"--camera-speed must be between {low} and {high}")
     defaults = presets.personal_defaults()
-    chosen = {name: value for name, value in vars(args).items() if name in defaults and value is not None}
+    offered = {*defaults, *presets.in_game_fields()}
+    chosen ={name: value for name, value in vars(args).items() if name in offered and value is not None}
     if args.cheat_aspect_ratio:
         chosen["cheat_aspect_allowed"] = True
     settings = presets.install_settings({**defaults, **chosen})

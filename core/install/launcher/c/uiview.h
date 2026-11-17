@@ -7,7 +7,7 @@
 
 #include "uimodel.h"
 
-#define HF_VIEW_BUTTONS 7   /* More's seven: four rows of the graphic layout, the simple display's rows 1-27 */
+#define HF_VIEW_BUTTONS 8   /* More's eight: four rows of the graphic layout, the simple display's rows 1-24 */
 #define HF_VIEW_LABEL 64
 #define HF_VIEW_LINE 192
 #define HF_VIEW_ROWS 14

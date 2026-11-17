@@ -50,6 +50,8 @@ void felyne_set_numbers(u32 numbers);
 /* The online half (layered_online.c): the word the main cat sends (0 none), whether a received word is wholly known, and a
    remote cat's record taking its owner's word. */
 u32 felyne_online_word(void);
+/* The town's own cats (`town` the town object) take their records' gear again: their looks follow the switch. */
+void felyne_redress(u32 town);
 int felyne_word_known(u32 word);
 void felyne_give_word(u8 *record, u32 word);
 /* The cats in the town take their looks (leaving the screens, when felyne_ui.dirty). */

@@ -57,6 +57,8 @@ typedef struct {
     char installed_xx_dump[65];   /* installed.json xx_dump */
     int installed_xx;             /* installed.json xx */
     int installed_xx_no_room;     /* installed.json xx_no_room */
+    int installed_cheats;         /* installed.json cheats: the title was built from a cheats set (More's Cheats) */
+    int record_cheats;            /* installed.json cheats, the title there or not: the sets the next update takes */
     char latest[48];              /* the latest release's tag, "" when not read */
     int dump;                     /* DUMP_* */
     char dump_path[512];
@@ -172,9 +174,10 @@ int write_whole(const char *path, const char *text, size_t len);
 long read_small(const char *path, char *buf, size_t cap);
 
 /* app_install.c: from a downloaded patch set to the installed title; `xx`: the set is the one with MH XX, `no_room`: the
- * plain set taken because this version's XX set did not fit the memory (both recorded in installed.json). After the
- * edition's first install the record says the save copy waits (save_pending). A TITLE_* / HF_* code (0 done). */
-int install_set(const char *set_path, const char *version, int xx, int no_room, HfTitleKind kind);
+ * plain set taken because this version's XX set did not fit the memory, `cheats`: the set is a cheats one (all three
+ * recorded in installed.json). After the edition's first install the record says the save copy waits (save_pending).
+ * A TITLE_* / HF_* code (0 done). */
+int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind);
 /* The XX set at `set_path` against the player's XX dump, before anything is installed: its
  * RomFS superblock hash when it equals the set's, else the set's second-game files one by one (srcfiles.h). *match is
  * 1 when the dump can be used; with files rather than the hash, install_set takes it for the set's (install_xx_by_files).
@@ -199,6 +202,10 @@ extern int install_old_removed;
  * and goes on; `reinstall`: More's Reinstall, the mod's title again whatever the version. 1 when the app must leave (a
  * title started, the app relaunching or to be reopened). */
 int update_run(int resuming, int reinstall);
+/* More's Cheats: the mod's title again from the latest release's cheats sets (`on`) or its sets without them, as
+ * update_run does it; a release without the region's cheats set
+ * changes nothing and says so. 1 when the app must leave. */
+int update_cheats(int on);
 /* The release file of this app's form: HF_W_CIA or HF_W_3DSX. */
 int app_asset(void);
 /* The latest release of edition `e` into `rel`, its notes into `notes` (NULL: not wanted). An HF_* code. Logged. */
@@ -209,9 +216,9 @@ int release_latest(const HfTransport *tr, const HfEdition *e, HfRelease *rel, ch
 int probe_test_app(HfRelease *rel, char *dir, size_t cap);
 /* A probe build's release from test_release/ on the card, notes included (0, else a HF_REL_* or -1). */
 int release_local(const HfEdition *e, HfRelease *rel, char *notes, size_t notes_cap);
-/* The region's XX set against a player's MH XX dump (xx: XX_*, its hash): the plan's XX inputs into `in`, and the
- * answer into `out` when the header was read. An HF_* code when it was not. */
-int release_xx_check(const HfTransport *tr, int edition, const HfRelease *rel, int region, int xx,
+/* The region's XX set (the cheats one with `cheats`) against a player's MH XX dump (xx: XX_*, its hash): the plan's XX
+ * inputs into `in`, and the answer into `out` when the header was read. An HF_* code when it was not. */
+int release_xx_check(const HfTransport *tr, int edition, const HfRelease *rel, int region, int cheats, int xx,
                      const uint8_t xx_hash[32], HfPlanIn *in, XxCheck *out);
 /* The resume file of any edition: deleted, and 1 (the edition chosen) when the update goes on with this app. */
 int resume_found(void);

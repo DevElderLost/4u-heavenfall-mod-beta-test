@@ -246,6 +246,11 @@ WIRE_MODELS = 256            # the looks message holds a weapon model in a byte
 SAVE_AT = 0x125C0
 SAVE_MAGIC = 0x4C            # its byte 1 (layered_state.reserved) in the save: the bytes are a layered_state
 
+# The switch in the game (layered_switch.c): the block's byte that holds Mod Settings' row (its place in
+# mod_options.py OPTION_IDS), NO_SWITCH in a mod without the row, where the looks always show.
+SWITCH_LABEL = "layered_switch_option"
+NO_SWITCH = 0xFF
+
 # The block layered_data (struct data in layered.h): a header with two catalogs (struct catalog: sets, XX's per-part
 # models, each class's weapons, their counts, the sets' own colours), MH4U's and XX's, the screens' numbers
 # (menu_layout.forge_screen_data), and their records, then the palette of the sets' colours.
@@ -512,15 +517,20 @@ def layered_data(code: bytes, looks: Looks | None = None, gen: "GenLooks | None"
 def patch_layered_equipment(code: bytes, layout: Layout | None = None, looks: Looks | None = None,
                             gen: "GenLooks | None" = None, felynes: FelyneLooks = NO_LOOKS,
                             item_ids: Mapping[str, int] | None = None, prices: Mapping | None = None,
-                            ported: Collection[str] | None = None, by_rank: bool = True) -> bytes:
+                            ported: Collection[str] | None = None, by_rank: bool = True,
+                            switch: int | None = None) -> bytes:
     """`code` (the update's executable, with the ported monsters' gear if the run has it) with the Smithy's Layered Gear
     line and its screens; `gen`: XX's looks, when its pack is in the run; `felynes`: the Felynes' looks, when their
     models are; `item_ids`: the new items of the ported monsters in the run by English name, which a look's recipe may
     name (layered_rules.py); `prices`: the price table (default: generated/layered_prices.json); `ported`: the keys of
     the ported monsters in the run (None: every look with `ported` items that resolve counts as his); `by_rank`: the
-    looks of the high and G ranks open with their rank (option layered_by_rank), False: every look from the start."""
+    looks of the high and G ranks open with their rank (option layered_by_rank), False: every look from the start;
+    `switch`: the place of Mod Settings' row that shows or hides the looks in mod_options_state.values (mod_options.py
+    OPTION_IDS), None when the mod has no such row (the looks always show)."""
     if not supports_layered_equipment(code):
         raise CodeSpaceError("unexpected code at the Smithy's menu: layered equipment needs the update's executable")
+    if switch is not None and not 0 <= switch < NO_SWITCH:
+        raise CodeSpaceError(f"the switch's row {switch} is no place of Mod Settings' options")
     layout = layout or load_layout()
     resolved = looks or load_looks()
     prices = prices if prices is not None else load_prices()
@@ -532,6 +542,7 @@ def patch_layered_equipment(code: bytes, layout: Layout | None = None, looks: Lo
                              "raise its size in game/executable/blocks.py")
     out = bytearray(code)
     layout.place(out, "layered_selector")
+    out[layout.symbol("layered_selector", SWITCH_LABEL) - BASE_ADDRESS] = NO_SWITCH if switch is None else switch
     layout.place(out, "layered_data", data + bytes(size - len(data)))
     layout.place(out, "felyne_looks_data", felyne_data(felynes, FELYNE_MESSAGES))
     rules = layered_rules(resolved, gen, felynes, tables=EquipmentTables.read(code), item_ids=item_ids, prices=prices,

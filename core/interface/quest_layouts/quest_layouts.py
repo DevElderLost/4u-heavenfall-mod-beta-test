@@ -1,8 +1,10 @@
 """The quest's layouts of our own: three sites of the game serve
-every feature that draws a layout of its own in a quest (Damage Numbers, the Hunting Horn's songs), so two features
-never hook one instruction. Each feature's patch adds its entry (add_quest_layout): its frame function, the index of its
-group in the GUI manager and its layout's path in core_quest.arc. The first one also places the shared stub and code
-(quest_layouts_stub.s, quest_layouts.c) and hooks the sites; the others only fill the table.
+every feature that draws a layout of its own in a quest (Damage Numbers, the Hunting Horn's songs, the item wheel), so
+two features never hook one instruction. Each feature's patch adds its entry (add_quest_layout): its frame function, the
+index of its group in the GUI manager and its layout's path in core_quest.arc; a feature that only needs the frame (the
+World-style sharpness gauge, which changes the game's own panes) adds a frame-only entry (frame_only). The first one
+also places the shared stub and code (quest_layouts_stub.s, quest_layouts.c) and hooks the sites; the others only fill
+the table.
 
 These functions change, in the update's executable (canonical):
 
@@ -40,7 +42,8 @@ FREE_INDICES = range(722, 1526)
 @dataclass(frozen=True)
 class QuestLayout:
     """A feature's entry: its frame function (an address of its code block), its group's slot in the GUI manager and
-    its layout's path in core_quest.arc without the language (the entry's name is "<lang>\\" + it)."""
+    its layout's path in core_quest.arc without the language (the entry's name is "<lang>\\" + it). An empty path is a
+    frame only (FRAME_ONLY: no layout, so no slot is loaded or freed; its index is 0)."""
     frame: int
     index: int
     path: str
@@ -77,12 +80,19 @@ def entries(code: bytes | bytearray, layout: Layout) -> list[QuestLayout]:
     return found
 
 
+def frame_only(frame: int) -> QuestLayout:
+    """An entry that only runs `frame` each frame: no layout of its own (quest_layouts.c loads and frees nothing)."""
+    return QuestLayout(frame, 0, "")
+
+
 def add_quest_layout(code: bytearray, entry: QuestLayout, layout: Layout) -> None:
     """`entry` in the table of `code` (the update's executable): the first feature places the shared blocks and hooks
-    the sites. Refuses an index outside FREE_INDICES or taken by another entry, a full table, and an executable whose
-    sites are neither the game's words nor our hooks."""
-    if entry.index not in FREE_INDICES:
+    the sites. Refuses a layout's index outside FREE_INDICES or taken by another entry's layout, a full table, and an
+    executable whose sites are neither the game's words nor our hooks."""
+    if entry.path and entry.index not in FREE_INDICES:
         raise CodeSpaceError(f"{entry.path}: index {entry.index:#x} is not free in every scene")
+    if not entry.path and entry.index != 0:
+        raise CodeSpaceError("a frame-only entry has index 0")
     if not hooked(code, layout):
         layout.place(code, STUB)
         layout.place(code, CODE)
@@ -91,8 +101,10 @@ def add_quest_layout(code: bytearray, entry: QuestLayout, layout: Layout) -> Non
         for site, word, label in WORDS:
             layout.hook(code, site, at(label), original=word)
     present = entries(code, layout)
-    if any(e.index == entry.index for e in present):
+    if entry.path and any(e.path and e.index == entry.index for e in present):
         raise CodeSpaceError(f"{entry.path}: index {entry.index:#x} is taken already")
+    if any(e.frame == entry.frame for e in present):
+        raise CodeSpaceError(f"{entry.frame:#x}: that frame function has an entry already")
     if len(present) >= ENTRIES:
         raise CodeSpaceError(f"the quest's layouts hold {ENTRIES} entries")
     at = layout.address(DATA) - BASE_ADDRESS + len(present) * ENTRY.size
@@ -100,4 +112,4 @@ def add_quest_layout(code: bytearray, entry: QuestLayout, layout: Layout) -> Non
 
 
 __all__ = ["CODE", "DATA", "ENTRIES", "FRAME_HOOK", "FREE_HOOK", "FREE_INDICES", "LOAD_HOOK", "PATH", "QuestLayout",
-           "STUB", "WORDS", "add_quest_layout", "entries", "hooked", "supports_quest_layouts"]
+           "STUB", "WORDS", "add_quest_layout", "entries", "frame_only", "hooked", "supports_quest_layouts"]

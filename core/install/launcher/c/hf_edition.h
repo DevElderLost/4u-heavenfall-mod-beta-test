@@ -14,10 +14,17 @@ typedef struct {
     const char *asset_patch_usa;
     const char *asset_patch_eur_xx;   /* the patch sets with MH XX (made from the player's XX dump too) */
     const char *asset_patch_usa_xx;
+    const char *asset_patch_eur_cheats;      /* the same four sets with the cheats (the mod made with them; More's */
+    const char *asset_patch_usa_cheats;      /* Cheats) */
+    const char *asset_patch_eur_xx_cheats;
+    const char *asset_patch_usa_xx_cheats;
 } HfEdition;
 
 /* The assets hf_latest_release is asked for, in this order (HfRelease.assets[] has the same order). */
-enum { HF_W_CIA, HF_W_3DSX, HF_W_PATCH_EUR, HF_W_PATCH_USA, HF_W_PATCH_EUR_XX, HF_W_PATCH_USA_XX, HF_W_COUNT };
+enum {
+    HF_W_CIA, HF_W_3DSX, HF_W_PATCH_EUR, HF_W_PATCH_USA, HF_W_PATCH_EUR_XX, HF_W_PATCH_USA_XX, HF_W_PATCH_EUR_CHEATS,
+    HF_W_PATCH_USA_CHEATS, HF_W_PATCH_EUR_XX_CHEATS, HF_W_PATCH_USA_XX_CHEATS, HF_W_COUNT
+};
 
 static inline void hf_edition_wanted(const HfEdition *e, const char *out[HF_W_COUNT]) {
     out[HF_W_CIA] = e->asset_cia;
@@ -26,11 +33,19 @@ static inline void hf_edition_wanted(const HfEdition *e, const char *out[HF_W_CO
     out[HF_W_PATCH_USA] = e->asset_patch_usa;
     out[HF_W_PATCH_EUR_XX] = e->asset_patch_eur_xx;
     out[HF_W_PATCH_USA_XX] = e->asset_patch_usa_xx;
+    out[HF_W_PATCH_EUR_CHEATS] = e->asset_patch_eur_cheats;
+    out[HF_W_PATCH_USA_CHEATS] = e->asset_patch_usa_cheats;
+    out[HF_W_PATCH_EUR_XX_CHEATS] = e->asset_patch_eur_xx_cheats;
+    out[HF_W_PATCH_USA_XX_CHEATS] = e->asset_patch_usa_xx_cheats;
 }
 
-/* The release file of the patch set for a region (0 EUR, 1 USA), with MH XX or without. */
-static inline int hf_w_patch(int region, int xx) {
-    return xx ? (region == 1 ? HF_W_PATCH_USA_XX : HF_W_PATCH_EUR_XX) : (region == 1 ? HF_W_PATCH_USA : HF_W_PATCH_EUR);
+/* The release file of the patch set for a region (0 EUR, 1 USA), with MH XX or without, with the cheats or without. */
+static inline int hf_w_patch(int region, int xx, int cheats) {
+    int usa = region == 1;
+    if (cheats)
+        return xx ? (usa ? HF_W_PATCH_USA_XX_CHEATS : HF_W_PATCH_EUR_XX_CHEATS)
+                  : (usa ? HF_W_PATCH_USA_CHEATS : HF_W_PATCH_EUR_CHEATS);
+    return xx ? (usa ? HF_W_PATCH_USA_XX : HF_W_PATCH_EUR_XX) : (usa ? HF_W_PATCH_USA : HF_W_PATCH_EUR);
 }
 
 #endif

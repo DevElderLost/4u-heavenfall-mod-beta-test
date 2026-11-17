@@ -67,15 +67,17 @@ typedef struct {
     char save_restore[18];  /* the save backup (saves/<stamp>, hf_save_stamp_ok) the title's save must come back from:
                                written before an install removes the title (its save goes with it), cleared once the
                                save is back; "" none */
+    int cheats;         /* the title was built from a cheats set (More's Cheats; launcher.md, "Cheats on a console") */
 } HfInstalled;
 
 /* Writes the JSON ({"version", "tmd", "region", "xx", "xx_no_room", "save_pending", "layout", "game", "game_complete",
- * "xx_dump", "save_restore", "complete"}); the length, or -1 when it does not fit or a field is damaged. */
+ * "xx_dump", "save_restore", "cheats", "complete"}); the length, or -1 when it does not fit or a field is damaged. */
 #define HF_INSTALLED_MAX 1024   /* the longest record with its terminator: the app reads and writes it whole */
 int hf_installed_format(const HfInstalled *in, const char *region, char *out, size_t cap);
 /* Reads it back: 0 on success, -1 for anything else. A record without "xx" (an older launcher's) is a title without
  * MH XX; without "xx_no_room", one whose XX set fitted; without "save_pending", no save copy waiting; without "layout",
- * layout 1 (the old single title), with no game data; without "save_restore", no save to bring back. */
+ * layout 1 (the old single title), with no game data; without "save_restore", no save to bring back; without
+ * "cheats", a title without the cheats. */
 int hf_installed_parse(const char *json, size_t len, HfInstalled *out);
 
 /* Whether an install leaves the save copy waiting (save_pending): what the edition's record says when there is one
@@ -83,6 +85,12 @@ int hf_installed_parse(const char *json, size_t len, HfInstalled *out);
  * by hand: its save stayed on the console, and copying the original over it would replace the player's progress);
  * without a record, only when no title of the edition is installed (a first install). */
 int hf_save_pending_after(int title_installed, const HfInstalled *prev);
+
+/* Whether an update installs the cheats sets: More's switch when it
+ * asked (`request` 1 or 0; -1 not asked), else the edition's record (`rec`, NULL: none), whether its title is there or
+ * not: a title built from a cheats set, or the set an install that stopped after removing the title was putting in
+ * (its record stays, cut). Without a record, none. */
+int hf_want_cheats(int request, const HfInstalled *rec);
 
 /* A dump's RomFS superblock hash as the record writes it: 64 lowercase hex digits and the terminator. */
 void hf_hex(const uint8_t hash[32], char out[65]);
@@ -214,6 +222,9 @@ typedef enum {
     HT_HOME_APP_NEW, HT_HOME_APP_HINT, HT_APP_NOW,
     /* HOME refused while an update works */
     HT_HOME_LATER,
+    /* More's Cheats (launcher.md, "Cheats on a console"): the switch's two labels, its questions with the warning, a
+     * release without the cheats sets */
+    HT_BTN_CHEATS_OFF, HT_BTN_CHEATS_ON, HT_CHEATS_ASK_ON, HT_CHEATS_ASK_OFF, HT_CHEATS_NONE, HT_CHEATS_NO_SET_NOTE,
     HT_COUNT
 } HfText;
 

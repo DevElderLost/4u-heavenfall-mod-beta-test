@@ -218,9 +218,10 @@ static u32 look_of(const u8 *record, u32 part)
 
 /* ----- which cat ------------------------------------------------------------------------------------------ */
 
+/* The own cats wear their looks: a look worn once (layered_state.enabled) and the switch in the game (layered_switch.c). */
 static int enabled(void)
 {
-    return layered_state.enabled;
+    return layered_state.enabled && layered_shown();
 }
 
 /* A hunter select screen's record: `felyne_select_note` has weighed the slot's own switch. */
@@ -492,9 +493,18 @@ void felyne_set_numbers(u32 numbers)
 void felyne_refresh(u32 obj)
 {
     const u8 *cats[FELYNE_MAX_ACTIVE];
+    if (felyne_active(cats) > 0)
+        *(u8 *)(obj + OBJ_MAIN_CHANGED) = 1;
+    felyne_redress(obj);
+}
+
+/* The cats in the area take their records again (FUN_00a3725c, whose model calls are the looks' stubs). The Smithy's
+   obj is the town object (FUN_009ecbf8 hands it on). */
+void felyne_redress(u32 obj)
+{
+    const u8 *cats[FELYNE_MAX_ACTIVE];
     u32 count = felyne_active(cats), actor;
     if (count > 0) {
-        *(u8 *)(obj + OBJ_MAIN_CHANGED) = 1;
         actor = felyne_town_actor(obj, 0);
         if (actor)
             felyne_actor_update(obj, actor, cats[0]);

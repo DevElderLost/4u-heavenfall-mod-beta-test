@@ -2,7 +2,8 @@
  * first, then the mod. A patch set whose format version the app does not know is not applied: the answer is "update the
  * app" (when the release carries a newer app), else an error. The mod is the XX set (MH XX's Layered Gear, made from
  * the player's XX dump too) whenever the right XX dump is on the card and the release has the region's XX set, else the
- * plain set; the title is rebuilt when that changes, the version alone unchanged. */
+ * plain set; the title is rebuilt when that changes, the version alone unchanged, and the same when the cheats sets
+ * come or go (More's Cheats). */
 #ifndef HF_UPDPLAN_H
 #define HF_UPDPLAN_H
 
@@ -33,6 +34,10 @@ typedef struct {
     int reinstall;             /* the player asked for it (More, Reinstall): the mod's title again whatever the version */
     const char *app_tag;       /* the release the app's own update comes from when not the mod's (a probe's test
                                   launcher: its CIA's version); NULL: release_tag */
+    /* the cheats: the sets with them are other release files; the
+       app picks the variant (set_in_release and the XX fields are then the cheats sets') */
+    int mod_cheats;            /* the installed title was built from a cheats set (installed.json's "cheats") */
+    int cheats;                /* this update takes the cheats sets: the title is rebuilt when that changes */
 } HfPlanIn;
 
 /* Run in the order APP, GAME, MOD (the numbers are only names). */

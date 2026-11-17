@@ -89,6 +89,13 @@ int aspect_saved(void)
     return save_zone() != 0;
 }
 
+/* The zone holds the mod's choices: its magic and the mod's version (an older zone's bytes are no choice) */
+static int zone_ours(const u8 *zone)
+{
+    return zone != 0 && *(const u32 *)zone == aspect_data.magic &&
+           *(const u16 *)(zone + ZONE_VERSION) == aspect_data.version;
+}
+
 int aspect_ratios(void)
 {
     return aspect_data.count;
@@ -99,7 +106,7 @@ int aspect_selected(void)
 {
     const u8 *zone = save_zone();
 
-    if (zone != 0 && *(const u32 *)zone == aspect_data.magic) {
+    if (zone_ours(zone)) {
         int chosen = zone[ZONE_ASPECT];
 
         if (chosen != 0 && chosen <= aspect_data.count)
@@ -108,7 +115,8 @@ int aspect_selected(void)
     return aspect_data.fallback;
 }
 
-/* The game's list: this character's ratio from now on, the next frame's picture. A new character's zone is zeros */
+/* The game's list: this character's ratio from now on, the next frame's picture. A new character's zone is zeros; one
+ * that is not the mod's (no magic, or an older version) is made anew first, as Mod Settings makes it */
 void aspect_choose(int place)
 {
     u8 *zone = save_zone();
@@ -116,7 +124,7 @@ void aspect_choose(int place)
 
     if (zone == 0)
         return;
-    if (*(u32 *)zone != aspect_data.magic) {
+    if (!zone_ours(zone)) {
         for (word = 0; word < ZONE_WORDS; word++)
             ((u32 *)zone)[word] = 0;
         *(u32 *)zone = aspect_data.magic;

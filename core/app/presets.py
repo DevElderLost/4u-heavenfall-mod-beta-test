@@ -29,11 +29,11 @@ def load_presets() -> dict:
     data["defaults"] = json.loads(DEFAULTS_PATH.read_text(encoding="utf-8"))
     names = {f.name for f in fields(Settings)}
     data.setdefault("in_game", [])
-    missing = set(data["install"]["options"]) - set(data["defaults"])
+    missing = (set(data["install"]["options"]) | set(data["in_game"])) - set(data["defaults"])
     if missing:
-        raise ValueError(f"gui_defaults.json: no value for the installer options {sorted(missing)}")
-    if not set(data["in_game"]) <= set(data["install"]["options"]):
-        raise ValueError("gui_presets.json: an option of the START menu's page (in_game) is no installer option")
+        raise ValueError(f"gui_defaults.json: no value for the installer options and in_game fields {sorted(missing)}")
+    if set(data["in_game"]) & set(data["install"]["options"]):
+        raise ValueError("gui_presets.json: an option of the START menu's page (in_game) is also an installer option")
     for name, bounds in data["ranges"].items():
         if name not in names or len(bounds) != 2 or bounds[0] > bounds[1]:
             raise ValueError(f"gui_presets.json, ranges: {name}")
@@ -49,8 +49,8 @@ def load_presets() -> dict:
     for source, targets in data["install"]["links"].items():
         if source not in data["install"]["options"] or not set(targets) <= names:
             raise ValueError(f"gui_presets.json, install.links: {source}")
-    for kind in (("common", "install_fixed", "install_options"),
-                 ("common", "randomizer_fixed", "randomizer_defaults", "install_options")):
+    for kind in (("common", "install_fixed", "install_options", "in_game"),
+                 ("common", "randomizer_fixed", "randomizer_defaults", "install_options", "in_game")):
         seen: dict[str, str] = {}
         for name in kind:
             for key in parts[name]:
@@ -85,7 +85,7 @@ def _sections(data: dict) -> dict[str, dict]:
     return {"common": data["fixed"], "install_fixed": data["install"]["fixed"],
             "install_options": {k: defaults[k] for k in options}, "in_game": {k: defaults[k] for k in in_game},
             "randomizer_fixed": data["randomizer"]["fixed"],
-            "randomizer_defaults": {k: v for k, v in defaults.items() if k not in options}}
+            "randomizer_defaults": {k: v for k, v in defaults.items() if k not in options and k not in in_game}}
 
 
 def section(name: str) -> dict:
@@ -169,7 +169,7 @@ def randomizer_defaults() -> dict:
 
 
 def _expand(personal: dict) -> dict:
-    unknown = set(personal) - set(section("install_options"))
+    unknown = set(personal) - set(section("install_options")) - set(section("in_game"))
     if unknown:
         raise ValueError(f"not installer options: {sorted(unknown)}")
     values = dict(personal)
@@ -185,7 +185,8 @@ def install_settings(personal: dict) -> Settings:
     """The mod without the randomizer: the common and install fixed fields, the installer options as the player
     set them (`personal`, keys of `personal_defaults()`; a missing one keeps the Settings default) and their links.
     No seed."""
-    return Settings.from_dict({**_expand(personal), **section("common"), **section("install_fixed")})
+    return Settings.from_dict({**section("in_game"), **_expand(personal), **section("common"),
+                               **section("install_fixed")})
 
 
 def randomizer_settings(chosen: dict, personal: dict, seed: str) -> Settings:
@@ -196,5 +197,5 @@ def randomizer_settings(chosen: dict, personal: dict, seed: str) -> Settings:
     unknown = set(chosen) - set(defaults)
     if unknown:
         raise ValueError(f"not randomizer widgets: {sorted(unknown)}")
-    return Settings.from_dict({**defaults, **chosen, **_expand(personal), **section("common"),
+    return Settings.from_dict({**defaults, **chosen, **section("in_game"), **_expand(personal), **section("common"),
                                **section("randomizer_fixed"), "seed": seed})

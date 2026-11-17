@@ -1,7 +1,8 @@
 """The options a player changes during play (blocks `mod_options_stub`, `mod_options_data`, `mod_raw_table`, variable
 `mod_options_state`, and the unit mod_options.c of `mod_settings_code`).
 
-Each option has a list of values (curated mod_settings.json, `options`) and a byte of the character's save zone. A
+Each option has a list of values (curated mod_settings.json, `options`) and half a byte of the character's save zone
+(option_half; the zone counts only with the magic and the mod's version). A
 character with no choice, and the title screen, take the default the mod is installed with: the Settings field of the
 same name, what the player chose in the installer (it starts at gui_defaults.json's). An option with a `default` of its
 own in the curated file is the page's only: it has no Settings field, every edition's mod has it, and that value is its
@@ -50,7 +51,7 @@ VARIABLES = ("mod_options_state", "option_list_state")
 # The options' numbers: mod_options.c's enum, and the offsets mod_options_stub.s reads (.equ OPT_*)
 OPTION_IDS = {
     "cheat_3d_mode": 0, "cheat_no_bloom_dof": 1, "cheat_fps": 2, "cheat_fov": 3, "cheat_net_fix": 4,
-    "cheat_raw_unbloat": 5, "touchless_target": 6, "hold_a": 7, "fast_text": 8, "fast_gathering": 9,
+    "cheat_raw_unbloat": 5, "touchless_target": 6, "hold_a": 7, "fast_text": 8,
     "camera_speed": 10, "box_equipment": 11, "system_keyboard": 12, "skip_death_camera": 13, "damage_numbers": 14,
     "damage_numbers_other": 15, "damage_numbers_style": 16, "damage_numbers_size": 17, "damage_numbers_duration": 18,
     "modern_camera": 19,
@@ -60,13 +61,22 @@ OPTION_IDS = {
     "horn_songs_colour": 24,
     "camera_distance": 25,
     "smithy_view": 26,
+    "layered_looks": 27,
+    # The Cheats group's rows:
+    # only a mod built with `cheats_enabled` has them, each kept per character and off at first
+    "fast_gathering": 28, "cheat_interruptible_flex": 29, "cheat_whetstone_cancel": 30, "cheat_skip_quest_end": 31,
+    "cheat_rewards_no_limit": 32, "cheat_capture_guru": 33, "cheat_autotracker": 34,
+    "world_sharpness": 35,
 }
-MAX_OPTIONS = 28                # the data block's room (mod_options.c MOD_OPTIONS; mod_options_state.values has 28)
-MAX_VALUES = 16                 # a list of values: two pages
+# The rows of a feature the installer chooses, which mean nothing without it: the row, the feature's Settings field
+FEATURE_ROWS = {"layered_looks": "layered_equipment"}  # Layered Gear's switch (equipment/layered/layered_switch.c)
+MAX_OPTIONS = 52                # the room (mod_options.c MOD_OPTIONS; mod_options_state.values): zone bytes 10-35
+MAX_VALUES = 15                 # a list of values (two pages): a value's place + 1 fits half a byte
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
-ZONE_FIRST_BYTE = 10            # option n's byte of the save zone is this + n (9: the ratio; the wheel's: 6-7, 37-47)
+VALUE_POOL = 256                # the values of all the options together (mod_options.c MOD_POOL); the first is none
+ZONE_FIRST_BYTE = 10            # the options' first byte of the save zone (9: the ratio; the wheel's: 6-7, 37-47)
 ZONE_BYTES = 48                 # the zone's size (curated mod_settings.json)
-OPTION_SIZE = 4 + 2 * MAX_VALUES + 4 * PAYLOAD_WORDS * MAX_VALUES
+OPTION_SIZE = 4                 # struct mod_option: count, default place, first value in the pool, half byte
 HEADER_SIZE = 16
 NO_MULTIPLIER = 100             # a weapon class's display multiplier in percent: 100 shows the true attack
 CLASS_MULTIPLIERS = 16          # the table's words
@@ -100,12 +110,18 @@ def _words(code: bytes | bytearray, at: int) -> int:
     return struct.unpack_from("<I", code, at - BASE_ADDRESS)[0]
 
 
+def option_half(number: int) -> int:
+    """The save zone's half byte of option `number`: byte half // 2, its low half for an even number and its high half
+    for an odd one, holding the value's place + 1 (0: no choice yet)."""
+    return 2 * ZONE_FIRST_BYTE + number
+
+
 def load_options(path: Path = SETTINGS_FILE) -> list[dict]:
     """The curated options: {"key", "name", "help", "title", "values": [{"name", "setting", "payload": [u32, u32]}]},
     and "default" for an option of the page only, in the order of the file (the title is the name, for a row without
     one of its own). Refuses an option the code has no number for, a repeated one, a list of values that is empty or
-    longer than MAX_VALUES, a value with more than PAYLOAD_WORDS numbers or both kinds of them, a default that is not
-    one of its values' settings, and a text that is no menu text."""
+    longer than MAX_VALUES, more values in all than the pool holds, a value with more than PAYLOAD_WORDS numbers or
+    both kinds of them, a default that is not one of its values' settings, and a text that is no menu text."""
     raw = json.loads(Path(path).read_text(encoding="utf-8")).get("options")
     entries = raw.get("value") if isinstance(raw, dict) else None
     if not isinstance(entries, list):
@@ -126,11 +142,17 @@ def load_options(path: Path = SETTINGS_FILE) -> list[dict]:
         option = {"key": key, "name": entry["name"], "help": entry["help"], "title": title,
                   "values": [{"name": value["name"], "setting": value["setting"], "payload": _payload(key, value)}
                              for value in values]}
+        if entry.get("cheat"):
+            if "default" not in entry:
+                raise ModOptionsError(f"mod_settings.json: {key} is a cheat: it needs a default of its own")
+            option["cheat"] = True
         if "default" in entry:
             if not any(_same(value["setting"], entry["default"]) for value in values):
                 raise ModOptionsError(f"mod_settings.json: {key}: its default is none of its values' settings")
             option["default"] = entry["default"]
         options.append(option)
+    if 1 + sum(len(option["values"]) for option in options) > VALUE_POOL:
+        raise ModOptionsError(f"mod_settings.json: the options have more values than the pool holds ({VALUE_POOL - 1})")
     return options
 
 
@@ -140,8 +162,14 @@ def _same(a: Any, b: Any) -> bool:
 
 def page_only_options(path: Path = SETTINGS_FILE) -> list[str]:
     """The options of the START menu's page only: a `default` of their own in the curated file, no Settings field and
-    no installer choice; every edition's mod has them."""
-    return [option["key"] for option in load_options(path) if "default" in option]
+    no installer choice; every edition's mod has them, but for the cheats (`cheat_options`)."""
+    return [option["key"] for option in load_options(path) if "default" in option and not option.get("cheat")]
+
+
+def cheat_options(path: Path = SETTINGS_FILE) -> list[str]:
+    """The rows of the Cheats group (`cheat`: true in the curated file): page-only options that only a mod built with
+    `cheats_enabled` has, each off at first."""
+    return [option["key"] for option in load_options(path) if option.get("cheat")]
 
 
 def _payload(key: str, value: dict) -> list[int]:
@@ -180,26 +208,29 @@ def default_value(option: dict, settings: Any) -> int:
 
 def options_data(settings: Any, available: set[str] | frozenset[str] | list[str], path: Path = SETTINGS_FILE) -> bytes:
     """The block `mod_options_data` (struct mod_options_data in mod_options.c): the save zone's place, magic and
-    version, the value list's texts, and per option (MAX_OPTIONS of them, in the order of OPTION_IDS) its count of
-    values (0: the mod does not have it), the default place, its byte of the zone, the name of each value, and what
-    each value writes (PAYLOAD_WORDS words)."""
+    version, the value list's texts, per option (MAX_OPTIONS of them, in the order of OPTION_IDS) its count of values
+    (0: the mod does not have it), the default place, its first value in the pool and its half byte of the zone
+    (option_half), then the pool: each value's name and what it writes (PAYLOAD_WORDS words), the options' values one
+    after another from the second; the first is none (no name, zeros), which an option the mod lacks points at."""
     from core.interface.mod_settings.mod_settings import load_zone
 
     zone, known = load_zone(path), message_indices()
     data = struct.pack("<I4sH3H", zone["offset"], zone["magic"], zone["version"], known["option_help"],
                        known["aspect_row"], known["aspect_marked"])
     by_id = {OPTION_IDS[option["key"]]: option for option in load_options(path) if option["key"] in available}
+    names, payload = [0], [0] * PAYLOAD_WORDS
     for number in range(MAX_OPTIONS):
         option = by_id.get(number)
         if option is None:
-            data += bytes(OPTION_SIZE)
+            data += struct.pack("<4B", 0, 0, 0, option_half(number))
             continue
         values = option["values"]
-        names = [known[value["name"]] for value in values] + [0] * (MAX_VALUES - len(values))
-        payload = [word for value in values for word in value["payload"]] + [0] * (
-            PAYLOAD_WORDS * (MAX_VALUES - len(values)))
-        data += struct.pack("<4B", len(values), default_value(option, settings), ZONE_FIRST_BYTE + number, 0)
-        data += struct.pack(f"<{MAX_VALUES}H", *names) + struct.pack(f"<{PAYLOAD_WORDS * MAX_VALUES}I", *payload)
+        data += struct.pack("<4B", len(values), default_value(option, settings), len(names), option_half(number))
+        names += [known[value["name"]] for value in values]
+        payload += [word for value in values for word in value["payload"]]
+    names += [0] * (VALUE_POOL - len(names))
+    payload += [0] * (PAYLOAD_WORDS * VALUE_POOL - len(payload))
+    data += struct.pack(f"<{VALUE_POOL}H", *names) + struct.pack(f"<{PAYLOAD_WORDS * VALUE_POOL}I", *payload)
     if len(data) != MOD_OPTIONS_DATA_SIZE:
         raise ModOptionsError(f"mod_options_data holds {MOD_OPTIONS_DATA_SIZE} bytes, the options make {len(data)}")
     return data
@@ -244,18 +275,37 @@ def supports_option(code: bytes, key: str) -> bool:
     from core.interface.damage_numbers.damage_numbers import OPTIONS, supports_damage_numbers
     if key in OPTIONS:
         return supports_damage_numbers(code)
+    cheat = _cheat_supports().get(key)
+    if cheat is not None:
+        return cheat(code)
     if key == "smithy_view":
         from core.interface.weapon_tree.weapon_tree import supports_weapon_tree
         return supports_weapon_tree(code)
     if key in ("horn_songs", "horn_songs_colour"):
         from core.interface.horn_songs.horn_songs import supports_horn_songs
         return supports_horn_songs(code)
+    if key == "layered_looks":
+        from core.equipment.layered.layered_equipment import supports_layered_equipment
+        return supports_layered_equipment(code)
+    if key == "world_sharpness":
+        from core.interface.world_sharpness.world_sharpness import supports_world_sharpness
+        return supports_world_sharpness(code)
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,
               "fast_gathering": supports_fast_gathering, "system_keyboard": supports_system_keyboard,
               "skip_death_camera": supports_death_camera_skip, "modern_camera": supports_modern_camera,
               "modern_camera_speed": supports_modern_camera, "modern_camera_acceleration": supports_modern_camera,
               "skip_monster_intro": supports_intro_skip}
     return checks[key](code) if key in checks else True
+
+
+def _cheat_supports() -> dict[str, Any]:
+    """The check of each cheat's hooks (core/cheats/), by the option key of its row. The modules import this one for
+    the number of rows, so they are loaded when asked for."""
+    from core.cheats.action_cancel.action_cancel import FLEX_OPTION, WHETSTONE_OPTION, supports_action_cancel
+    from core.cheats.map_skills.map_skills import CHEATS as MAP_SKILLS, supports_map_skills
+    from core.cheats.quest_timers.quest_timers import CHEATS as QUEST_TIMERS, supports_quest_timers
+    return {**dict.fromkeys((FLEX_OPTION, WHETSTONE_OPTION), supports_action_cancel),
+            **dict.fromkeys(MAP_SKILLS, supports_map_skills), **dict.fromkeys(QUEST_TIMERS, supports_quest_timers)}
 
 
 def supports_mod_options(code: bytes) -> bool:
@@ -267,11 +317,14 @@ def supports_mod_options(code: bytes) -> bool:
 
 def available_options(code: bytes, settings: Any, console: bool = False) -> list[str]:
     """The options the player's game can change during play, in the order of OPTION_IDS: the edition's
-    (gui_presets.json, `in_game`) and the page's own (page_only_options), the ones a 3DS can use when `console`, and
-    those whose hooks the executable has."""
+    (gui_presets.json, `in_game`) and the page's own (page_only_options), the ones a 3DS can use when `console`, those
+    of a feature the run has (FEATURE_ROWS) and those whose hooks the executable has."""
     from core.app.presets import in_game_fields
     from core.app.settings import EMULATOR_ONLY
-    wanted = [key for key in (*in_game_fields(), *page_only_options()) if not (console and key in EMULATOR_ONLY)]
+    cheats = cheat_options() if getattr(settings, "cheats_enabled", False) else []   # the Cheats group: only with them
+    wanted = [key for key in (*in_game_fields(), *page_only_options(), *cheats)
+              if not (console and key in EMULATOR_ONLY)
+              and (key not in FEATURE_ROWS or getattr(settings, FEATURE_ROWS[key]))]
     return sorted((key for key in wanted if supports_option(code, key)), key=OPTION_IDS.__getitem__)
 
 
@@ -327,8 +380,23 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
                        ("skip_monster_intro", patch_intro_skip)):
         if key in available:
             out = bytearray(patch(bytes(out), layout, gated=True))
-    return bytes(out)
+    return patch_cheats_options(bytes(out), available, layout)
 
 
-__all__ = ["OPTION_IDS", "available_options", "default_value", "load_options", "options_data", "page_only_options",
-           "patch_mod_options", "raw_table", "supports_mod_options", "supports_option"]
+def patch_cheats_options(code: bytes, available: list[str], layout: Layout) -> bytes:
+    """`code` with the hooks of the Cheats group's rows in `available` (a mod without `cheats_enabled` has none of them
+    there): each cheat reads its row's number in OPTION_IDS (core/cheats/gates.py)."""
+    from core.cheats.action_cancel.action_cancel import FLEX_OPTION, NO_OPTION, WHETSTONE_OPTION, patch_action_cancel
+    from core.cheats.map_skills.map_skills import patch_map_skills
+    from core.cheats.quest_timers.quest_timers import patch_quest_timers
+    chosen = {key: OPTION_IDS[key] for key in available if key in OPTION_IDS}
+    out = patch_map_skills(patch_quest_timers(code, chosen, layout), chosen, layout)
+    if FLEX_OPTION in chosen or WHETSTONE_OPTION in chosen:
+        out = patch_action_cancel(out, layout, (chosen.get(FLEX_OPTION, NO_OPTION),
+                                                chosen.get(WHETSTONE_OPTION, NO_OPTION)))
+    return out
+
+
+__all__ = ["OPTION_IDS", "available_options", "cheat_options", "default_value", "load_options", "option_half",
+           "options_data", "page_only_options", "patch_cheats_options", "patch_mod_options", "raw_table",
+           "supports_mod_options", "supports_option"]

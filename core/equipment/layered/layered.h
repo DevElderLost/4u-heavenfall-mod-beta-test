@@ -210,6 +210,20 @@ u32 layered_cat_of_compact(const u8 *compact);
 u32 layered_quest_cat(u32 owner);
 /* The screens are left (layered_selector.c back()): tell the other players when the looks changed. */
 void layered_net_state_left(void);
+/* The hall hunter of lobby index `index` dressed again with the looks of now (layered_online.c): 1 done, or nothing to
+   do (no hunter); 0 it is loading, try again later. */
+int layered_redress_index(u32 index);
+
+/* ----- Layered Gear's switch in the game (layered_switch.c) ------------------ */
+
+/* 1 while the looks are shown: Mod Settings' row says Yes (a mod without the row: always); in a quest, what its preload
+   took. Nothing else of the looks changes with it. */
+int layered_shown(void);
+/* The quest's preload begins: the switch's value holds for the quest (its models are the ones loaded). */
+void layered_switch_latch(void);
+/* Each town frame (layered_town_frame): back from a quest the row's value is live again, and a change dresses the local
+   hunter (lobby index `local`) and the own cats of the town object `town` again and tells the other players. */
+void layered_switch_frame(u32 town, u32 local);
 /* The preview hunter takes the colours of layered_preview.state again, at once (layered_selector.c; colours only, no
    model is loaded). The game puts every hunter's colours on again each frame anyway: this saves that frame. */
 void layered_dye_refresh(void);

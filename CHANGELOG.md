@@ -2,22 +2,65 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
-## Unreleased
+## 0.2.1
 
-### QoL
+### Weapon tree
 - Forge Weapons shows each weapon class as a tree of its upgrade lines, with only discovered weapons.
 - On the tree, A forges or upgrades right there; a hammer marks weapons forged from scratch.
 - Each weapon on the tree shows its element or status, and a box when a copy is stored.
+- New weapons on the tree show a pulsing NEW, as in the game's list, until you press A on them.
 - A weapon you can upgrade into or craft asks which, showing the materials of the choice under the cursor.
 - Upgrades take the weapon you wear first; choosing a weapon in Upgrade Equipment opens its tree to upgrade that one.
 - On the tree, X switches between stats, try on and comparison; Mod Settings can switch back to the list.
+- Upgrading on the tree plays the smith's hammering and then asks whether to equip the weapon.
+
+### Item wheel
+- With a C-Stick, holding L and pushing it uses one of eight items from a wheel, sheathing your weapon first.
+- The wheel shows each item's name and quantity; an empty item that can be combined is combined once.
+- Mod Settings' Radial Menu edits the wheel's items on the wheel itself, sets its place, size and trigger, or turns it off.
+
+### QoL
+- Damage numbers over monsters, in three styles; switch them on in Mod Settings.
+- With a Hunting Horn, its songs show under the minimap and light up as you play them.
+- A horn song whose effect you have turns green, or purple after an encore, blinking at its end.
+- Mod Settings can colour an active horn song's name or its background.
+- Start can skip a monster's intro scene and its music when the game allows it, as the touch screen's Skip does.
+- Better Camera: the New 3DS C-Stick turns and stops the camera and aim smoothly, at your speed and acceleration.
 - The camera can sit from half to twice the game's distance from your hunter.
+- Jamo's World-style sharpness gauge: the bar shrinks as each colour wears down; Mod Settings can turn it off.
+- The frame rate can be set from 30 to 60 FPS in fives (emulator only).
+
+### Mod Settings
+- Mod Settings sorts its options into Interface, Camera, QoL, Display and Other, most important first.
+- Mod Settings' lists show up to ten rows a page, each page in a frame its size; Left and Right turn pages.
+- Mod Settings has room for many more options; every character's choices return to their defaults once.
+- Field of View, Online Room Fix and True Weapon Attack work on a real 3DS too.
+
+### Layered Gear
+- A switch above the Layered Gear rank row shows only the looks you own.
+- Mod Settings can hide Layered Gear for each character; everyone then shows real gear, nothing is lost.
+
+### Cheats
+- Enable cheats, off at first, adds a Cheats group to Mod Settings; every cheat in it starts off.
+- Never play in multiplayer with cheats without telling the other hunters.
+- Cheats can make gathering, mining, bug catching, carving and fishing twice as fast.
+- Cheats can end the flex after drinking or eating at once, with the stick or a button.
+- Cheats can stop sharpening at once by pressing B.
+- Cheats can make the end-of-quest countdown run faster while you hold A and B.
+- Cheats can stop the timer on the main rewards screens and hide its countdown there.
+- Cheats can keep Capture Guru and Autotracker always on for your minimap.
+- On a 3DS, the launcher's More menu turns the cheats on or off.
 
 ### The program
+- The Options page shows only what Mod Settings does not: single screen, Layered Gear, HUD size, aspect ratio and cheats.
+- Choices that moved from the Options page to Mod Settings start again from their defaults.
 - The web installer reads your game files far less, so phones make the mod much faster.
 - While the web installer makes the mod, the screen stays on even after you leave and come back.
 - The web installer and the program make the mod from Azahar's compressed games (.zcci, .zcia) again.
 - A game file whose name says it is decrypted but is not now says so, and how to decrypt it.
+
+### Fixes
+- HD texture packs keep working after the program updates itself.
 
 ## 0.2.0
 
@@ -25,7 +68,6 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Layered Gear at the Smithy: wear the look of any armor, weapon or Felyne gear over your own.
 - A Relics list for the Guild Quests' relic gear.
 - A free color window for armor looks.
-- A switch above the Layered Gear rank row shows only the looks you own.
 - With Monster Hunter XX's game, its weapon and armor looks too, also from the web installer.
 - In multiplayer, players with the mod see each other's Layered Gear.
 
@@ -35,17 +77,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### QoL
 - Start can skip the camera over a slain monster.
-- Start can skip a monster's intro scene and its music when the game allows it, as the touch screen's Skip does.
 - The camera can turn up to five times faster.
-- Better Camera: the New 3DS C-Stick turns and stops the camera and aim smoothly, at your speed and acceleration.
-- With a Hunting Horn, its songs show under the minimap and light up as you play them.
-- A horn song whose effect you have turns green, or purple after an encore, blinking at its end.
-- Mod Settings can colour an active horn song's name or its background.
-- The frame rate can be set from 30 to 60 FPS in fives (emulator only).
 - Manage Equipment and Equipment Sets from every item box.
-- Damage numbers over monsters, in three styles; switch them on in Mod Settings.
-- Mod Settings sorts its options into Interface, Camera, QoL, Display and Other, most important first.
-- Mod Settings' lists show each page in a frame its size, with no empty rows.
 
 ### Real Hardware
 - Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.
@@ -85,7 +118,6 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### Cheats
 - The cheats can also be changed in the game: START menu, third page, Mod Settings.
-- Mod Settings' lists show ten rows a page; Left and Right turn the pages.
 - Each character keeps its own choices; one with none yet starts with what the Options page says.
 - Cheats can also show weapons' true attack instead of the inflated number.
 - Cheats can fit the game and its menus to screens from 4:3 to 32:9; experimental.

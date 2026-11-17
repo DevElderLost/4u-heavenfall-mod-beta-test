@@ -55,21 +55,34 @@ def _console_title(values: dict | None, path: Path) -> ConsoleTitle | None:
 class ConsoleRelease:
     """The files of the edition's GitHub release that the 3DS app reads:
     the app as a CIA and as a .3dsx, and the patch set of each region, without MH XX and with it (the app takes the XX
-    set when the player's MH XX dump is on the card; "MH XX on the console"). The titles' ids are console_title's."""
+    set when the player's MH XX dump is on the card; "MH XX on the console"), each also with the cheats (the mod made
+    with `cheats_enabled`: the app takes them when the player turned More's Cheats on; "Cheats on a console"). The
+    titles' ids are console_title's."""
     app_cia: str
     app_3dsx: str
     patch_eur: str
     patch_usa: str
     patch_eur_xx: str
     patch_usa_xx: str
+    patch_eur_cheats: str
+    patch_usa_cheats: str
+    patch_eur_xx_cheats: str
+    patch_usa_xx_cheats: str
 
-    def patch(self, region: str, xx: bool = False) -> str:
-        if xx:
-            return {"eur": self.patch_eur_xx, "usa": self.patch_usa_xx}[region]
-        return {"eur": self.patch_eur, "usa": self.patch_usa}[region]
+    def patch(self, region: str, xx: bool = False, cheats: bool = False) -> str:
+        key = f"patch_{region}{'_xx' if xx else ''}{'_cheats' if cheats else ''}"
+        if region not in ("eur", "usa"):
+            raise KeyError(region)
+        return getattr(self, key)
+
+    def patches(self) -> tuple[str, ...]:
+        """Every patch set's name: plain, with MH XX, and each again with the cheats."""
+        return tuple(self.patch(region, xx, cheats) for cheats in (False, True) for xx in (False, True)
+                     for region in ("eur", "usa"))
 
 
-_RELEASE_KEYS = ("app_cia", "app_3dsx", "patch_eur", "patch_usa", "patch_eur_xx", "patch_usa_xx")
+_RELEASE_KEYS = ("app_cia", "app_3dsx", "patch_eur", "patch_usa", "patch_eur_xx", "patch_usa_xx", "patch_eur_cheats",
+                 "patch_usa_cheats", "patch_eur_xx_cheats", "patch_usa_xx_cheats")
 
 
 def _console_release(values: dict | None, path: Path) -> ConsoleRelease | None:
@@ -103,7 +116,7 @@ class Edition:
     legacy_markers: tuple[str, ...] = ()            # a mod folder marked with one is still ours (install/deploy.py)
     legacy_build_markers: tuple[str, ...] = ()      # so do build folders (install/build.py)
     xx_optional: bool = False   # MH XX is never required; the Install page offers its file (state.offers_xx)
-    new_maps: bool = False      # the product builds the maps ported from XX (Misty Peaks) whenever XX's file is given
+    new_maps: bool = False      # the product builds the maps ported from XX whenever XX's file is given
     console_title: ConsoleTitle | None = None       # required with the "console" platform
     console_release: ConsoleRelease | None = None   # the release files the 3DS app downloads (launcher)
 

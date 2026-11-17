@@ -38,8 +38,10 @@ void hf_plan(const HfPlanIn *in, HfPlan *out) {
     }
     if (in->mod_version == NULL || in->mod_incomplete)
         mod_needed = 1;
-    else    /* a version not understood: rebuild; MH XX coming (another printing: its files compared) or going: rebuild */
-        mod_needed = hf_version_newer(in->release_tag, in->mod_version) != 0 || !in->mod_xx != !xx || hf_xx_came(in);
+    else    /* a version not understood: rebuild; MH XX coming (another printing: its files compared) or going, or the
+               cheats turned on or off: rebuild */
+        mod_needed = hf_version_newer(in->release_tag, in->mod_version) != 0 || !in->mod_xx != !xx || hf_xx_came(in) ||
+                     !in->mod_cheats != !in->cheats;
     /* the split title: the game data is made again when it is missing, cut or of another dump (the old single title
      * has none: its record names none); the mod always follows it, and the old single title is rebuilt as the mod */
     game_needed = in->game_stale;

@@ -33,10 +33,15 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Damage numbers** over monsters, in three styles (off unless you switch them on).
 - **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, and a
   **Hunting Horn's songs** under the minimap.
+- An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick).
 - A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.
+- A **World-style sharpness gauge** that shrinks as each colour wears down.
 - **A smaller HUD**, from 90% to 60%.
-- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange.
-- **Built-in cheats**: 3D, glow and blur off, frame rate, field of view and more.
+- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Mod Settings can hide it for a character.
+- **Display options**: 3D, glow and blur off, frame rate, field of view and more.
+- **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
+
+Almost everything is changed during play: START menu, third page, **Mod Settings**. The installer only asks for Single Screen Mode, Layered Gear, the HUD size, the aspect ratio and the cheats.
 
 The full list is in **[what the mod adds](docs/features.md)**, and every change in the **[changelog](CHANGELOG.md)**.
 
@@ -57,6 +62,7 @@ The full list is in **[what the mod adds](docs/features.md)**, and every change 
 - **Cheats:** the field-of-view (FOV) code is by mikewii7, and the online fix is by Klark231. The visual and frame-rate cheats come from the Monster Hunter 4 Ultimate community.
 - **Game data reference:** [Kiranico](https://mh4u.kiranico.com/).
 - **Damage numbers:** their features and options follow PurplefinNeptuna's Monster Hunter Generations Ultimate mod "Damage Numbers"; the digits are drawn from Open Sans (SIL Open Font License 1.1).
-- **Linux start script:** based hndll56 contributions.
+- **World-style sharpness gauge:** by Jamo (JamoMH), from the mod "MH4U MH4G World Style Sharpness Indicator"
+- **Linux start script:** based on the one hndll56 contributed.
 
 **License:** [GNU General Public License v3.0 or later](LICENSE). Monster Hunter is a trademark of Capcom. This is an unofficial fan project, not affiliated with or endorsed by Capcom.

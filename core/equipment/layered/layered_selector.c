@@ -365,7 +365,8 @@ static int creation_hunter(const u8 *st)
 
 /* The looks a hunter (its status) wears: the screen's preview, a hunter select screen's slot's, the local
    hunter's, another player's (a hall hunter: the entry of its member; a quest hunter: the quest's snapshot, both built
-   in `out`), or none (the character creation's included). */
+   in `out`), or none (the character creation's included). The switch (layered_switch.c) takes the local hunter's and
+   the others' off; the preview shows what it tries on whatever it says. */
 static const struct layered_state *looks_of(const u8 *st, struct layered_state *out)
 {
     struct preview *p = &layered_preview;
@@ -376,7 +377,7 @@ static const struct layered_state *looks_of(const u8 *st, struct layered_state *
         return &p->state;
     if (select_hunter(st, &slot_looks))
         return slot_looks;
-    if (creation_hunter(st))
+    if (creation_hunter(st) || !layered_shown())
         return 0;
     if (local_status(st))
         return layered_state.enabled ? &layered_state : 0;
@@ -499,11 +500,13 @@ ARM u32 layered_weapon_model(u32 equipment, const u8 *record)
 }
 
 /* The quest preloader's looks: the player's info is the local one when playing alone, else its index decides: the
-   local player's, or another's from the quest's snapshot (built in `out`). */
+   local player's, or another's from the quest's snapshot (built in `out`). The switch's value is taken for the quest
+   here: what the preload loads is what the quest's hunters wear. */
 static const struct layered_state *preload_looks(const u8 *loader, struct layered_state *out)
 {
     const u8 *game = GAME_STATE;
-    if (!game || !loader)
+    layered_switch_latch();
+    if (!game || !loader || !layered_shown())
         return 0;
     if ((signed char)game[0x2D] < 2 || loader[PRELOAD_PLAYER] == game[0x2F])
         return layered_state.enabled ? &layered_state : 0;

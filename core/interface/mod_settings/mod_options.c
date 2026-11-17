@@ -2,8 +2,10 @@
 frame, and what the hooks of
  * mod_options_stub.s read.
  *
- * Each option has a value: a place in its list of values. It is a byte of the character's save zone (0: no choice yet,
- * else the place + 1), and without a choice, a save, or on the title screen, the default the mod was installed with
+ * Each option has a value: a place in its list of values. It is half a byte of the character's save zone (0: no choice
+ * yet, else the place + 1; option n in half 20 + n: byte 10 + n / 2, the high half for an odd n), which counts only
+ * with the magic and the mod's version (an older zone holds no choice: nothing is carried over from an older save),
+ * and without a choice, a save, or on the title screen, the default the mod was installed with
  * (mod_options_data, from the curated gui_defaults.json). mod_frame, which the application's update calls first of all
  * each frame (FUN_00af52a0's call of FUN_00644320), reads every option into mod_options_state.values, where the hooks
  * of the game's functions find them, and does what only a write can do:
@@ -23,18 +25,22 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define MOD_OPTIONS 28          /* mod_options.py MAX_OPTIONS */
-#define MOD_VALUES 16           /* mod_options.py MAX_VALUES */
+#define MOD_OPTIONS 52          /* mod_options.py MAX_OPTIONS */
+#define MOD_POOL 256            /* mod_options.py VALUE_POOL: the values of all the options; the first is none */
 #define SAVE_DATA 0x5C          /* the save object's data starts here */
 #define ZONE_WORDS 12           /* the save zone's size in words (curated mod_settings.json) */
 #define ZONE_VERSION 4          /* its u16 */
 
-/* mod_options.py OPTION_IDS (a number the list skips is an option this code does not have) */
+/* mod_options.py OPTION_IDS (a number the list skips is an option this code does not have: 27 is Layered Gear's;
+   28 on is the Cheats group, whose own code reads its ids from its data block) */
 enum {
-    OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT, OPT_FAST_GATHERING,
-    OPT_CAMERA, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA, OPT_DAMAGE_NUMBERS, OPT_DAMAGE_OTHER, OPT_DAMAGE_STYLE,
+    OPT_3D, OPT_BLOOM, OPT_FPS, OPT_FOV, OPT_NET, OPT_RAW, OPT_LOCK, OPT_HOLD_A, OPT_FAST_TEXT,
+    OPT_CAMERA = 10, OPT_BOX, OPT_KEYBOARD, OPT_DEATH_CAMERA, OPT_DAMAGE_NUMBERS, OPT_DAMAGE_OTHER, OPT_DAMAGE_STYLE,
     OPT_DAMAGE_SIZE, OPT_DAMAGE_DURATION, OPT_MODERN_CAMERA, OPT_HORN_SONGS, OPT_INTRO_SKIP,
-    OPT_CAMERA_MAX, OPT_CAMERA_ACCEL, OPT_HORN_COLOUR, OPT_DISTANCE, OPT_SMITHY_VIEW
+    OPT_CAMERA_MAX, OPT_CAMERA_ACCEL, OPT_HORN_COLOUR, OPT_DISTANCE, OPT_SMITHY_VIEW,
+    OPT_LAYERED_LOOKS,
+    OPT_FAST_GATHERING = 28, OPT_FLEX, OPT_WHETSTONE, OPT_QUEST_END, OPT_REWARDS, OPT_CAPTURE_GURU, OPT_AUTOTRACKER,
+    OPT_WORLD_SHARPNESS = 35
 };
 
 #define SLOT_3D 0               /* mod_options_state.saved: the game's word an option overwrites */
@@ -49,53 +55,54 @@ enum {
 struct mod_option {             /* mod_options.py options_data */
     u8 count;                   /* its values; 0: the mod does not have the option */
     u8 default_value;           /* the place the mod was installed with */
-    u8 byte;                    /* its byte of the save zone */
-    u8 pad;
-    u16 names[MOD_VALUES];      /* the message of each value's name */
-    u32 payload[MOD_VALUES][2]; /* what each value writes or hands to a hook */
+    u8 first;                   /* its first value in the pool (0, the none value, without the option) */
+    u8 half;                    /* its half byte of the save zone: byte half / 2, the high half when odd */
 };
 
 struct mod_options_data {
     u32 zone_at;                /* the save zone in the save data */
     u32 magic;                  /* what marks it written */
-    u16 version;                /* the zone's */
+    u16 version;                /* the zone's: an older one holds no choice */
     u16 help, row, marked;      /* the value list's texts: its description, a row, the row in use */
     struct mod_option options[MOD_OPTIONS];
+    u16 names[MOD_POOL];        /* the pool: the message of each value's name */
+    u32 payload[MOD_POOL][2];   /* and what each value writes or hands to a hook */
 };
 
 struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u8 values[MOD_OPTIONS];     /* 0: each option's value this frame */
-    u16 net_waits;              /* 28: the online waits (frames, polls; mod_options.py NET_LIMIT) */
-    u16 net_polls;              /* 30 */
-    u32 fov_one;                /* 32: the camera's literal in the reset case with the flags "not equal", and the other */
-    u32 fov_other;              /* 36: and in the case "equal" */
-    u32 raw_base;               /* 40: the weapon classes' table the menus read */
-    u32 saved[3];               /* 44: the game's words (SLOT_*) */
-    u32 camera_cap;             /* 56: the cap of how long a camera turn has been held (FUN_00bfd028; a float) */
-    u32 hide_face;              /* 60: the mod has the lock-on and it is off: no target face (hud/target_face.c) */
-    u8 box_lines;               /* 64: a menu's count of lines at a box away from home (FUN_009ec82c); 0: the game's */
-    u8 box_away;                /* 65: the box being opened is not the house's (mod_box_kind keeps the game's box) */
-    u8 live;                    /* 66: bit n set while the option writes into slot n */
-    u8 frame;                   /* 67: the frames counted (mod_frame), for a block that must know one went by */
-    u32 camera_rest;            /* 68: the camera's resting distance (FUN_00bfff70; a float, 0 the game's 490) */
-    u32 camera_event;           /* 72: an event's zoom-out (FUN_00c056d4; 0 the game's 630) */
-    u32 camera_state;           /* 76: the distance in a state of the hunter (FUN_00c009ac; 0 the game's 300) */
+    u16 net_waits;              /* 52: the online waits (frames, polls; mod_options.py NET_LIMIT) */
+    u16 net_polls;              /* 54 */
+    u32 fov_one;                /* 56: the camera's literal in the reset case with the flags "not equal", and the other */
+    u32 fov_other;              /* 60: and in the case "equal" */
+    u32 raw_base;               /* 64: the weapon classes' table the menus read */
+    u32 saved[3];               /* 68: the game's words (SLOT_*) */
+    u32 camera_cap;             /* 80: the cap of how long a camera turn has been held (FUN_00bfd028; a float) */
+    u32 hide_face;              /* 84: the mod has the lock-on and it is off: no target face (hud/target_face.c) */
+    u8 box_lines;               /* 88: a menu's count of lines at a box away from home (FUN_009ec82c); 0: the game's */
+    u8 box_away;                /* 89: the box being opened is not the house's (mod_box_kind keeps the game's box) */
+    u8 live;                    /* 90: bit n set while the option writes into slot n */
+    u8 frame;                   /* 91: the frames counted (mod_frame), for a block that must know one went by */
+    u32 camera_rest;            /* 92: the camera's resting distance (FUN_00bfff70; a float, 0 the game's 490) */
+    u32 camera_event;           /* 96: an event's zoom-out (FUN_00c056d4; 0 the game's 630) */
+    u32 camera_state;           /* 100: the distance in a state of the hunter (FUN_00c009ac; 0 the game's 300) */
 };
 
-_Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 28, "mod_options_stub.s NET_WAITS");
-_Static_assert(__builtin_offsetof(struct mod_options_state, net_polls) == 30, "mod_options_stub.s NET_POLLS");
-_Static_assert(__builtin_offsetof(struct mod_options_state, fov_one) == 32, "mod_options_stub.s FOV_ONE");
-_Static_assert(__builtin_offsetof(struct mod_options_state, fov_other) == 36, "mod_options_stub.s FOV_OTHER");
-_Static_assert(__builtin_offsetof(struct mod_options_state, raw_base) == 40, "mod_options_stub.s RAW_BASE");
-_Static_assert(__builtin_offsetof(struct mod_options_state, camera_cap) == 56, "mod_options_stub.s CAMERA_CAP");
-_Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 60, "hud/target_face.c, face_show.s HIDE_FACE");
-_Static_assert(__builtin_offsetof(struct mod_options_state, box_lines) == 64, "mod_options_stub.s BOX_LINES");
-_Static_assert(__builtin_offsetof(struct mod_options_state, box_away) == 65, "mod_options_stub.s BOX_AWAY");
-_Static_assert(__builtin_offsetof(struct mod_options_state, frame) == 67, "modern_camera.c MOD_FRAME");
-_Static_assert(__builtin_offsetof(struct mod_options_state, camera_rest) == 68, "mod_options_stub.s CAMERA_REST");
-_Static_assert(__builtin_offsetof(struct mod_options_state, camera_event) == 72, "mod_options_stub.s CAMERA_EVENT");
-_Static_assert(__builtin_offsetof(struct mod_options_state, camera_state) == 76, "mod_options_stub.s CAMERA_STATE");
-_Static_assert(sizeof(struct mod_options_state) <= 80, "blocks.py: the variable mod_options_state");
+_Static_assert(__builtin_offsetof(struct mod_options_state, values) == 0, "equipment/layered/layered_switch.c reads values[]");
+_Static_assert(__builtin_offsetof(struct mod_options_state, net_waits) == 52, "mod_options_stub.s NET_WAITS");
+_Static_assert(__builtin_offsetof(struct mod_options_state, net_polls) == 54, "mod_options_stub.s NET_POLLS");
+_Static_assert(__builtin_offsetof(struct mod_options_state, fov_one) == 56, "mod_options_stub.s FOV_ONE");
+_Static_assert(__builtin_offsetof(struct mod_options_state, fov_other) == 60, "mod_options_stub.s FOV_OTHER");
+_Static_assert(__builtin_offsetof(struct mod_options_state, raw_base) == 64, "mod_options_stub.s RAW_BASE");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_cap) == 80, "mod_options_stub.s CAMERA_CAP");
+_Static_assert(__builtin_offsetof(struct mod_options_state, hide_face) == 84, "hud/target_face.c, face_show.s HIDE_FACE");
+_Static_assert(__builtin_offsetof(struct mod_options_state, box_lines) == 88, "mod_options_stub.s BOX_LINES");
+_Static_assert(__builtin_offsetof(struct mod_options_state, box_away) == 89, "mod_options_stub.s BOX_AWAY");
+_Static_assert(__builtin_offsetof(struct mod_options_state, frame) == 91, "modern_camera.c MOD_FRAME");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_rest) == 92, "mod_options_stub.s CAMERA_REST");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_event) == 96, "mod_options_stub.s CAMERA_EVENT");
+_Static_assert(__builtin_offsetof(struct mod_options_state, camera_state) == 100, "mod_options_stub.s CAMERA_STATE");
+_Static_assert(sizeof(struct mod_options_state) <= 104, "blocks.py: the variable mod_options_state");
 
 extern const struct mod_options_data mod_options_data;
 extern struct mod_options_state mod_options_state;
@@ -115,6 +122,13 @@ int mod_option_saved(void)
     return save_zone() != 0;
 }
 
+/* The zone holds the mod's choices: its magic and the mod's version (an older zone's bytes mean other things) */
+static int zone_ours(const u8 *zone)
+{
+    return zone != 0 && *(const u32 *)zone == mod_options_data.magic &&
+           *(const u16 *)(zone + ZONE_VERSION) == mod_options_data.version;
+}
+
 /* The value of an option: the character's choice, else the default */
 static int value_of(int id)
 {
@@ -123,8 +137,8 @@ static int value_of(int id)
 
     if (option->count == 0)
         return 0;
-    if (zone != 0 && *(const u32 *)zone == mod_options_data.magic) {
-        int chosen = zone[option->byte];
+    if (zone_ours(zone)) {
+        int chosen = zone[option->half >> 1] >> ((option->half & 1) * 4) & 0xF;
 
         if (chosen != 0 && chosen <= option->count)
             return chosen - 1;
@@ -142,15 +156,16 @@ int mod_option_count(int id)
     return mod_options_data.options[id].count;
 }
 
-/* What the option's value in use writes or hands to a hook (two words; Damage Numbers reads its floats) */
+/* What the option's value in use writes or hands to a hook (two words; Damage Numbers reads its floats); zeros for an
+ * option the mod does not have */
 const u32 *mod_option_payload(int id)
 {
-    return mod_options_data.options[id].payload[mod_options_state.values[id]];
+    return mod_options_data.payload[mod_options_data.options[id].first + mod_options_state.values[id]];
 }
 
 int mod_option_name(int id, int value)
 {
-    return mod_options_data.options[id].names[value];
+    return mod_options_data.names[mod_options_data.options[id].first + value];
 }
 
 /* The value list's texts: 0 its description, 1 a row, 2 the row in use */
@@ -159,21 +174,23 @@ int mod_option_text(int which)
     return which == 0 ? mod_options_data.help : which == 1 ? mod_options_data.row : mod_options_data.marked;
 }
 
-/* The character's choice, used from the next frame. A new character's zone is zeros */
+/* The character's choice, used from the next frame. A new character's zone is zeros; one that is not the mod's (no
+ * magic, or an older version) is made anew first: zeros, the magic and the version */
 void mod_option_choose(int id, int value)
 {
+    const struct mod_option *option = &mod_options_data.options[id];
     u8 *zone = save_zone();
-    int word;
+    int word, shift = (option->half & 1) * 4;
 
     if (zone == 0)
         return;
-    if (*(u32 *)zone != mod_options_data.magic) {
+    if (!zone_ours(zone)) {
         for (word = 0; word < ZONE_WORDS; word++)
             ((u32 *)zone)[word] = 0;
         *(u32 *)zone = mod_options_data.magic;
         *(u16 *)(zone + ZONE_VERSION) = mod_options_data.version;
     }
-    zone[mod_options_data.options[id].byte] = value + 1;
+    zone[option->half >> 1] = (zone[option->half >> 1] & ~(0xF << shift)) | (value + 1) << shift;
     mod_options_state.values[id] = value;
 }
 
@@ -198,7 +215,7 @@ static void write_word(u32 object, int offset, int active, u32 word, int slot, u
 
 static const u32 *payload_of(int id)
 {
-    return mod_options_data.options[id].payload[mod_options_state.values[id]];
+    return mod_option_payload(id);
 }
 
 /* The camera's own field of view: the literal FUN_00bff28c loads for the camera's state, 58.0 when the state byte

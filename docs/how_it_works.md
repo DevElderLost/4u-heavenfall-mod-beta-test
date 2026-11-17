@@ -40,7 +40,7 @@ install: copied into <emulator>/load/mods/<title>/   (0004000000126100 European,
    the options chosen at install. The options themselves are described in `core/gui/options.py` (texts in English and
    Spanish); which ones Heavenfall Beta shows, which the game's START menu holds too (`in_game`) and their starting
    values are data: `core/game/data/curated/gui_presets.json` and `gui_defaults.json`. Its `install.modules` makes the
-   page's three tabs, one per module (single screen, Layered Gear, quality of life), each starting with its switch:
+   page's four tabs, one per module (single screen, Layered Gear, cheats, quality of life), each starting with its switch:
    every other option of the tab is greyed out while the switch is off.
 2. **The build** (`core/install/build.py`): checks that the file is MH4U (European or American, not the
    update) and calls `pipeline.run` into a build folder under `~/.heavenfall_beta/build/`.
@@ -242,7 +242,8 @@ copies of the game's own help lines and price questions with the verb in capital
 chosen it reads the class's weapons, upgrade records and create recipes with the game's own readers, places the
 weapons the hunter has discovered as a tree, and draws the game's stats panels for the weapon under the cursor. A
 replays the game's own forge or upgrade, call by call, so the price, the materials, the box and the statistics change
-as they do in the game. Nothing is computed when the mod is made: the tree is what the game's tables hold. Every
+as they do in the game; both then play the forge's hammer scene and ask "Equip now?", an upgrade too (the game's own
+Upgrade has no scene). Nothing is computed when the mod is made: the tree is what the game's tables hold. Every
 size and colour is in `core/game/data/curated/weapon_tree.json`. The row Smithy View of Mod Settings stands before
 the tree's two entries (a class in Forge Weapons, a weapon in Upgrade): on List the game's own code runs.
 
