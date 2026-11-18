@@ -37,9 +37,9 @@
 
 **Skipping the prologue**
 
-- A new character starts in Val Habar, already registered with the Guild: no prologue on the sand ship with Dah'ren Mohran, no arrival and registration scenes and no Gathering Hall introduction.
-- The character gets what the prologue gave: 1500z, the starting armor (worn) and Hunter Rank 1. The Gathering Hall and online play are open from the start.
-- The caravan and its tutorial stay as in the original game.
+- A new character starts on arriving in Val Habar, without the prologue on the sand ship with Dah'ren Mohran.
+- The character gets what the prologue gave: 1500z and the starting armor, worn.
+- The Caravaneer's first talk, the Guild registration and the caravan tutorial stay as in the original game.
 - Only characters created with the mod installed change; existing saves do not. You can turn it off on the **Options** page (Other / QoL tab).
 
 **Holding A**

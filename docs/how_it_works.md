@@ -230,10 +230,12 @@ when the event was skipped. The fight's music is on other queues and plays as th
 The character creation (FUN_00b7961c) ends with a call to FUN_00c25b50, the new profile, at 0xB79B2C. The option
 `skip_intro` (on by default, in the quality-of-life module) turns that call into one to block `new_game_skip`
 (`gameplay/new_game_skip/new_game_skip.s`, patch in `new_game_skip.py`), which makes the same call and then leaves the
-new save as the game leaves it after the prologue on the sand ship, the registration with the Guild and the first visit
-to the Gathering Hall: 1500z, Hunter Rank 1, the starting armor in the box and worn, the prologue's quest cleared and
-the story flags those scenes set (its data, block `new_game_data`, is written by `new_game_data()`). Only a character
-created with the option on changes; the caravan and its tutorial stay the game's.
+new save as the game leaves it after the prologue on the sand ship: 1500z, the starting armor in the box and worn, the
+prologue's quest cleared and the prologue's story flags, with the arrival seen (flag 0x5BA). Its data, block
+`new_game_data`, is written by `new_game_data(prologue_only=True)` (`install.intro_skip_stop` of the presets). The flags
+of the arrival's events, the registration and the Gathering Hall's introduction stay off and the Hunter Rank 0, so the
+town plays them: the Caravaneer's first talk, then the registration. Only a character created with the option on
+changes; the caravan and its tutorial stay the game's.
 
 ## Holding A
 

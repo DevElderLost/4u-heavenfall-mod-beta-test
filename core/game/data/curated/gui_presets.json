@@ -1,5 +1,5 @@
 {
- "description": "Heavenfall Beta's GUI presets (presets.py): which settings are the program's options (the Options page), which the START menu's Mod Settings page holds (in_game: no widget; their gui_defaults.json value is what a character with no choice yet gets), how far apart a number's values are (steps) and what a run fixes without a widget. Their starting values are in gui_defaults.json. install.modules: the Options page's tabs, in order; each module starts with its switch and lists every option it holds (and the rows of the START menu's page it holds), and one that is off leaves the game as it is in all of them (presets.apply_modules). Keys are fields of core/app/settings.py; Heavenfall Beta has no randomizer, so its part is empty.",
+ "description": "Heavenfall Beta's GUI presets (presets.py): which settings are the program's options (the Options page), which the START menu's Mod Settings page holds (in_game: no widget; their gui_defaults.json value is what a character with no choice yet gets), how far apart a number's values are (steps) and what a run fixes without a widget. install.intro_skip_stop: the intro skip leaves a new character at the arrival in Val Habar, where the Caravaneer's first talk and the registration play. Their starting values are in gui_defaults.json. install.modules: the Options page's tabs, in order; each module starts with its switch and lists every option it holds (and the rows of the START menu's page it holds), and one that is off leaves the game as it is in all of them (presets.apply_modules). Keys are fields of core/app/settings.py; Heavenfall Beta has no randomizer, so its part is empty.",
  "fixed": {},
  "ranges": {"cheat_fov": [30, 90], "camera_speed": [10, 50]},
  "steps": {"cheat_fov": 5, "camera_speed": 5},
@@ -13,7 +13,8 @@
    "cheats": ["cheats_enabled"],
    "quality_of_life": ["quality_of_life", "hold_a", "fast_text", "camera_speed", "camera_distance", "box_equipment", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps", "cheat_fov", "cheat_net_fix", "cheat_raw_unbloat", "skip_death_camera", "skip_monster_intro", "modern_camera", "modern_camera_speed", "modern_camera_acceleration", "damage_numbers", "damage_numbers_other", "damage_numbers_style", "damage_numbers_size", "damage_numbers_duration", "horn_songs", "world_sharpness", "smithy_view", "jukebox", "skip_intro"]
   },
-  "links": {}
+  "links": {},
+  "intro_skip_stop": "arrival"
  },
  "randomizer": {"fixed": {}, "legacy_choices": {}}
 }

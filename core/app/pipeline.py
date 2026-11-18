@@ -314,8 +314,9 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     select_plain = (not screen_module and (layered or "skip_death_camera" in menu_options
                                            or "skip_monster_intro" in menu_options)
                     and supports_select_kick(code))
-    # a new character starts in Val Habar, registered with the Guild, without the prologue on the sand ship
-    # (gameplay/new_game_skip/new_game_skip.py); the caravan's tutorial stays the game's
+    # a new character starts at the arrival in Val Habar, without the prologue on the sand ship: the Caravaneer's
+    # first talk, the registration and the caravan's tutorial stay the game's (gameplay/new_game_skip/new_game_skip.py;
+    # gui_presets.json install.intro_skip_stop)
     intro = settings.skip_intro and supports_new_game_skip(code)
     if settings.skip_intro and not intro:
         notices.append(left_out("skip intro", "new games start with the prologue", NOT_AVAILABLE))
@@ -391,7 +392,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             book = added.book if added else None    # the new items by name
             item_ids = {book.english[key]: item for key, item in book.ids.items()} if book else None
             if intro:       # the character creation's last call
-                patched = patch_new_game_skip(patched)
+                patched = patch_new_game_skip(patched, prologue_only=presets.intro_skip_stop() == "arrival")
             if layered:
                 if felyne_looks_pack:
                     patched = felyne_pack.patch_executable(patched, felyne_looks_pack.needs)

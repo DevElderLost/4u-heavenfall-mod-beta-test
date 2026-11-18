@@ -48,6 +48,11 @@ STORY_FLAGS = (
     0x8B4,  # Gathering Hall visited (its introduction; online play waits for it)
 )
 DATA_SIZE = 0x64  # blocks.py, new_game_data
+# A skip that stops at the arrival in Val Habar (prologue_only) leaves these to the town, which plays their events from
+# them: the arrival (the Caravaneer's first talk), the registration with the Guild (which gives hunter rank 1) and the
+# Gathering Hall's introduction. The arrival seen (0x5BA) stays set: the character creation's load then takes the
+# town's own path (FUN_00b7e290 asks FUN_009ed0b8), and no quest's return plays the arrival later (0xB7D994).
+ARRIVAL_FLAGS = (0x001, 0x002, 0x1B8, 0x2E1, 0x1B9, 0x21E, 0x8B4)
 
 # ---- The caravan tutorial (option skip_caravan_tutorial) ----
 # Measured on a retail character right after the Caravaneer's deliveries (a save and two emulator states). Training
@@ -87,12 +92,15 @@ class NewGameSkipError(ValueError):
     pass
 
 
-def new_game_data() -> bytes:
-    """The data block the routine reads (gameplay/new_game_skip/new_game_skip.s)."""
-    data = struct.pack("<IH", FUNDS, HUNTER_RANK)
+def new_game_data(prologue_only: bool = False) -> bytes:
+    """The data block the routine reads (gameplay/new_game_skip/new_game_skip.s). `prologue_only`: what the sand ship
+    leaves, without the arrival's, the registration's and the Gathering Hall's flags (ARRIVAL_FLAGS) and the hunter
+    rank."""
+    data = struct.pack("<IH", FUNDS, 0 if prologue_only else HUNTER_RANK)
     data += b"".join(struct.pack("<3H", *piece) for piece in ARMOR) + struct.pack("<H", 0)
     data += b"".join(struct.pack("<H", quest) for quest in QUESTS_CLEARED) + struct.pack("<H", 0xFFFF)
-    data += b"".join(struct.pack("<H", flag) for flag in STORY_FLAGS) + struct.pack("<H", 0xFFFF)
+    flags = [flag for flag in STORY_FLAGS if not (prologue_only and flag in ARRIVAL_FLAGS)]
+    data += b"".join(struct.pack("<H", flag) for flag in flags) + struct.pack("<H", 0xFFFF)
     if len(data) > DATA_SIZE:
         raise NewGameSkipError(f"new_game_data is {len(data)} bytes, its block {DATA_SIZE}")
     return data.ljust(DATA_SIZE, b"\0")
@@ -144,17 +152,22 @@ def supports_new_game_skip(code: bytes) -> bool:
                for va, signature in SIGNATURES.items())
 
 
-def patch_new_game_skip(code: bytes, layout: Layout | None = None, caravan_tutorial: bool = False) -> bytes:
+def patch_new_game_skip(code: bytes, layout: Layout | None = None, caravan_tutorial: bool = False,
+                        prologue_only: bool = False) -> bytes:
     """`code` (the update's) with the routine in its free space and the character creation calling it.
     `caravan_tutorial` (option skip_caravan_tutorial): the creation calls new_game_tutorial instead, which runs the
-    routine and then leaves the caravan tutorial done and the first Palico equipped (blocks in the extension)."""
+    routine and then leaves the caravan tutorial done and the first Palico equipped (blocks in the extension).
+    `prologue_only`: the skip stops at the arrival in Val Habar (new_game_data), where the Caravaneer's first talk and
+    the registration play; the caravan tutorial's skip needs the whole one."""
+    if caravan_tutorial and prologue_only:
+        raise NewGameSkipError("the caravan tutorial's skip needs the skip of the arrival and the registration")
     if not supports_new_game_skip(code):
         raise NewGameSkipError("unexpected bytes in the character creation: skipping the intro needs the update's "
                                "executable")
     layout = layout or load_layout()
     out = bytearray(code)
     layout.place(out, "new_game_skip")
-    layout.place(out, "new_game_data", new_game_data())
+    layout.place(out, "new_game_data", new_game_data(prologue_only))
     entry = "new_game_skip"
     if caravan_tutorial:
         layout.place(out, "new_game_tutorial")

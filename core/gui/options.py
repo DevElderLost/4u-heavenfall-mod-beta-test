@@ -1211,10 +1211,18 @@ def _install_sections() -> tuple[Section, ...]:
     if presets.modules():
         sections = module_sections(sections, presets.modules())
     links = presets.install_links()
-    # the intro skip that also skips the caravan tutorial (its link) says so; an edition without the link keeps the
-    # plain option
-    swaps = {} if not links.get("skip_intro") else {
-        "skip_intro": Option(
+    swaps = {}
+    if presets.intro_skip_stop() == "arrival":     # the skip stops at the arrival in Val Habar
+        swaps["skip_intro"] = Option(
+            "skip_intro", T("Saltar el prólogo", "Skip the prologue"),
+            T("Un personaje nuevo empieza al llegar a Val Habar, sin el prólogo en el barco de arena. Recibe lo que "
+              "daba el prólogo (1500z y la armadura inicial puesta); la charla del Caravanero, el registro en el "
+              "Gremio y el tutorial de la caravana siguen como en el juego original.",
+              "A new character starts on arriving in Val Habar, without the prologue on the sand ship. It gets what "
+              "the prologue gave (1500z and the starting armor, worn); the Caravaneer's first talk, the Guild "
+              "registration and the caravan tutorial stay as in the original game."))
+    elif links.get("skip_intro"):                  # the skip that also skips the caravan tutorial says so
+        swaps["skip_intro"] = Option(
             "skip_intro", T("Empezar en Val Habar con la caravana hecha", "Start in Val Habar with the caravan done"),
             T("Un personaje nuevo empieza directamente en Val Habar, ya registrado en el Gremio, sin el prólogo, las "
               "escenas de llegada y la presentación del Gran Salón. Recibe 1500z, la armadura inicial y RC 1, y ya "
@@ -1224,8 +1232,7 @@ def _install_sections() -> tuple[Section, ...]:
               "arrival scenes and the Gathering Hall introduction. It gets 1500z, the starting armor and HR 1, and "
               "the caravan tutorial is already done: the first Felyne is the partner, equipped and ready for the "
               "caravan quests."),
-            links=tuple(links["skip_intro"])),
-    }
+            links=tuple(links["skip_intro"]))
     result = []
     for section in sections:
         groups = []
