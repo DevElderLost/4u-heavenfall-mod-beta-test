@@ -751,6 +751,9 @@ VARIABLES = (
     # The photo mode (interface/game_gui/game_gui_engine.c, struct photo): on (+0, the Guild Card's GUI hidden but the
     # characters, the sky and the greeting), and the raw pad bits it hid from the game last frame (+4)
     VariableSpec("game_gui_photo", GAME_GUI, 8),
+    # The name keyboard is open (interface/game_gui/game_gui_engine.c, gui_engine_frame): u32, 1 while a keyboard's group
+    # is shown on the top screen, when the draw's hook leaves out the other managers' groups there
+    VariableSpec("game_gui_keyboard", GAME_GUI, 4),
     # The item wheel's state (interface/radial_menu/radial_wheel.c, struct state): the hunter whose use awaits its
     # result (+0), whether the stick came back since the wheel opened or fired (+4), whether the wheel was open last
     # frame (+5), the frames the stick has held one sector (+6) and that sector (+7), the hunter whose item waits for
