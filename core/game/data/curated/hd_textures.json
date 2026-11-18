@@ -13,6 +13,14 @@
   "cmn_micon_BM_MQ_NOMIP": "the new and ported monsters' icons: 36 px art (MH World's, MH XX's); enlarged smoothly",
   "qst_icon_BM_MQ_NOMIP": "Bubbleblight's icons: MH Generations' 12 x 16 art; enlarged smoothly",
   "m2[89]a\\d+_ID": "Misty Peaks' area maps: MH XX's art",
-  "m2[89]d_ID": "Misty Peaks' whole map: MH XX's art"
+  "m2[89]d_ID": "Misty Peaks' whole map: MH XX's art",
+  "m2[89](a\\d+)?d[-_][\\w-]*": "Misty Peaks' stage (maps 28 and 29): MH XX's 3D art, which no pack of this game has",
+  "m03d_[\\w-]+": "Misty Peaks' pit traps: map 3's own textures copied unchanged, so a pack's pictures of them apply",
+  "em\\d+_[\\w-]+": "the ported monsters' models: MH XX's 3D art",
+  "cm\\d+_\\w+": "the ported monsters' effects: MH XX's art",
+  "env_\\w+": "the ported models' environment maps: MH XX's art",
+  "(f|m)_((arm|body|helm|leg|wst)\\d+|skin)_BM": "the ported gear's armour (and Layered Gear's): MH XX's 3D art",
+  "(axe|bow|gaxe|gun|ham|hbg|hue|lan|lbg|one|rod|sou|swo|two)\\d+_BM": "the ported gear's weapons: MH XX's 3D art",
+  "o_((body|helm|we)\\d+|skin\\d+)_BM": "MH XX's Felyne gear (Layered Gear): MH XX's 3D art"
  }
 }

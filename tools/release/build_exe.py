@@ -55,6 +55,7 @@ ASSET_FOLDERS = (
     "interface/monster_icons/icons",
     "interface/monster_icons/mhw",  # MH World's icons
     "music/mhw/music",              # MH World's music
+    "music/jukebox/extra",          # the Jukebox's extra songs (music/jukebox/catalogue.py shipped_bytes)
     "install/installer_3ds",        # the 3DS app
     "interface/single_screen/layout/images",
     "interface/damage_numbers/art",  # Damage Numbers' picture and its cells

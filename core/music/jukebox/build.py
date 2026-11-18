@@ -84,6 +84,12 @@ def jukebox_tracks(catalogue: Catalogue, world: bool, themes: Mapping[str, PortT
     return available(catalogue, build_sources(world, bool(themes), xx), themes.keys())
 
 
+def volume_key(track: Track) -> str:
+    """The track's level's name in the volumes file (VOLUMES_FILE), for a song the mod ships (not retail nor ported):
+    an MH XX song's level, else its file's stem."""
+    return track.level if track.source == "xx" else Path(track.path).stem
+
+
 def queue_track(track: Track, streams: Mapping[str, Mapping], levels: Mapping[str, float],
                 themes: Mapping[str, PortTheme], root: Path = CHECKOUT,
                 xx_read: Callable[[str], bytes] | None = None) -> dict:
@@ -102,7 +108,7 @@ def queue_track(track: Track, streams: Mapping[str, Mapping], levels: Mapping[st
             raise JukeboxBuildError(f"track {track.id}: {track.needs}'s theme is {theme.path}, not {track.path}")
         return {**base, "path": track.path, "entry": stream_entry(stream_path(track.path), theme.data),
                 "percent": theme.percent}
-    key = track.level if track.source == "xx" else Path(track.path).stem
+    key = volume_key(track)
     if key not in levels:
         raise JukeboxBuildError(f"track {track.id}: no level for {key} in {VOLUMES_FILE.name}")
     if track.source == "xx":
