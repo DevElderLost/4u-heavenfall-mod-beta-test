@@ -48,6 +48,12 @@
  *     The priority (bits 19-26 of group + 0x18) is written when the place sets one and it differs, then
  *     FUN_00ae65b0(group) as FUN_00ae63c8 does. A view the manager does not draw in is added to its mDrawView (bits
  *     16-25 of + 4: the keyboard's managers draw in the top screen's view only).
+ *  4. the keyboard in front of everything (`keyboard_on_top`): every group of a keyboard manager (uSwkbdLayout) that
+ *     is in no block gets the priority 0xFF and, in the order word's second byte (bits 11-18, 0x80 as the game leaves
+ *     every group), 0x80 + its own priority / 2. The draw sorts by the whole word, so the keyboard is drawn over every
+ *     other group, even one at 0xFF (the page counter's arrows,
+ *     clamped there by the priority hook), and its own groups keep their order (its background 0x50 behind its frames
+ *     0x64 and its keys 0x80, a page it opens over those). A priority the game writes again is taken the next frame.
  *  Nothing is read back from what was written: every value is a function of the table, the group's translate and
  *  its own screen, so a frame that chose a wrong screen is right again the next one.
  *
@@ -74,6 +80,8 @@ typedef unsigned char u8;
 #define VIEW_BOTTOM 7                /* the touch screen's view */
 #define VIEW_NONE 15                 /* a view no camera draws: the group is hidden */
 #define PRIORITY_SHIFT 19            /* group + 0x18: bits 19-26 */
+#define SECOND_SHIFT 11              /* group + 0x18: bits 11-18, the order's second byte (0x80 in every game group) */
+#define KEYBOARD_PRIORITY 0xFFu      /* the keyboard's groups: the highest priority */
 #define DRAW_VIEWS 16                /* manager + 4: bit 16 + view, the views its unit draws in */
 #define LINES 32                     /* sUnit's move lines: + 0x14, 0x18 each, + 0x0C the first unit */
 #define UNIT_LIMIT 0x4000            /* units walked per line at most (a broken chain never hangs the frame) */
@@ -393,6 +401,19 @@ static void apply(u8 *manager, u8 *group, const struct name *n, u32 screen)
         W(manager, 0x04) |= 1u << (DRAW_VIEWS + (p->flags & PLACE_VIEW));
 }
 
+/* A keyboard's group in front of every other group, its own priority kept below as the second byte (step 4 above).
+ * Written once: a group already at KEYBOARD_PRIORITY is left alone, until the game writes its priority again. */
+static void keyboard_on_top(u8 *group)
+{
+    u32 order = W(group, 0x18);
+    u32 priority = (order >> PRIORITY_SHIFT) & 0xFF;
+    if (priority == KEYBOARD_PRIORITY)
+        return;
+    W(group, 0x18) = (order & ~(0xFFFFu << SECOND_SHIFT)) | KEYBOARD_PRIORITY << PRIORITY_SHIFT |
+                     (0x80u | priority >> 1) << SECOND_SHIFT;
+    gui_group_changed(group);
+}
+
 /* A group of a block met by the frame's walk, kept to be placed once the screen is chosen. */
 struct match { u8 *manager, *group; const struct name *n; };
 
@@ -411,6 +432,7 @@ static u32 walk(u32 pass, u32 *bits, u32 screen, struct match *matches)
         for (u32 seen = 0; unit && seen < UNIT_LIMIT; seen++, unit = P(unit, 0x0C)) {
             if (!is_manager(W(unit, 0)))
                 continue;
+            u32 keyboard = pass == 0 && W(unit, 0) == (u32)uswkbd_layout_vtable;
             u8 *list = P(unit, 0x154);
             u32 count = W(unit, 0x160);
             if (!list)
@@ -425,6 +447,8 @@ static u32 walk(u32 pass, u32 *bits, u32 screen, struct match *matches)
                 if (pass == 0 && h->watch && hash == h->watch)
                     game_gui_state.watch_flags = W(group, 0x44);
                 const struct name *n = find(hash, &index);
+                if (keyboard && (!n || n->block == NO_BLOCK))
+                    keyboard_on_top(group);
                 if (!n)
                     continue;
                 if (pass == 0) {
