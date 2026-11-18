@@ -48,11 +48,13 @@
  *     The priority (bits 19-26 of group + 0x18) is written when the place sets one and it differs, then
  *     FUN_00ae65b0(group) as FUN_00ae63c8 does. A view the manager does not draw in is added to its mDrawView (bits
  *     16-25 of + 4: the keyboard's managers draw in the top screen's view only).
- *  4. the name keyboard: `game_gui_keyboard` is 1 while a group of a keyboard manager (uSwkbdLayout) is shown on the
- *     top screen. Its background covers the whole top screen (single_screen.json, keyboard `backdrop_width`), so
- *     nothing of another manager can be seen there but what is wrongly drawn over it (a panel whose priority passes the
- *     keyboard's): while it is open the draw's hook draws no other
- *     manager's group on the top screen. The keyboard's own groups (its pages, the language list) keep the game's order.
+ *  4. the name keyboard: `game_gui_keyboard` is its line + 1 (sUnit's line of a keyboard manager, uSwkbdLayout, 27)
+ *     while one of its groups is shown on the top screen. Its background covers the whole top screen
+ *     (single_screen.json, keyboard `backdrop_width`), so nothing drawn before it can be seen there but what is wrongly
+ *     drawn over it (a panel whose priority passes the keyboard's): while it is open the draw's hook draws no group of
+ *     a manager on an earlier line (the main GUI's, 26) on
+ *     the top screen. The keyboard's line keeps all of its own: its rows and the four other classes there that draw its
+ *     name box and its suggestion bar.
  *  Nothing is read back from what was written: every value is a function of the table, the group's translate and
  *  its own screen, so a frame that chose a wrong screen is right again the next one.
  *
@@ -81,6 +83,8 @@ typedef unsigned char u8;
 #define PRIORITY_SHIFT 19            /* group + 0x18: bits 19-26 */
 #define GROUP_MANAGER 0x14           /* group + 0x14: its manager + MANAGER_CONTEXT */
 #define MANAGER_CONTEXT 0x104
+#define UNIT_LINE_SHIFT 3            /* cUnit + 4: bits 3-9 its move line (the order units draw in) */
+#define UNIT_LINE_MASK 0x7F
 #define DRAW_VIEWS 16                /* manager + 4: bit 16 + view, the views its unit draws in */
 #define LINES 32                     /* sUnit's move lines: + 0x14, 0x18 each, + 0x0C the first unit */
 #define UNIT_LIMIT 0x4000            /* units walked per line at most (a broken chain never hangs the frame) */
@@ -434,7 +438,7 @@ static u32 walk(u32 pass, u32 *bits, u32 screen, struct match *matches)
                 if (pass == 0 && h->watch && hash == h->watch)
                     game_gui_state.watch_flags = W(group, 0x44);
                 if (keyboard && (W(group, 0x44) & SHOWN) && ((W(group, 0x44) >> VIEW_SHIFT) & 0xF) == 0)
-                    game_gui_keyboard = 1;
+                    game_gui_keyboard = line + 1;
                 const struct name *n = find(hash, &index);
                 if (!n)
                     continue;
@@ -548,14 +552,14 @@ static u32 view_of(u8 *group, u32 flags)
     return (u32)(p->flags & PLACE_VIEW) << 28;
 }
 
-/* The view to draw `group` in, << 28: the arrangement's, but none on the top screen for another manager's group while
- * the name keyboard is open there (step 4 above). */
+/* The view to draw `group` in, << 28: the arrangement's, but none on the top screen for a group of a manager on a line
+ * before the name keyboard's while it is open there (step 4 above). */
 __attribute__((used)) u32 gui_engine_view(u8 *group, u32 flags)
 {
     u32 view = view_of(group, flags);
     if (game_gui_keyboard && view == 0) {
         u8 *manager = P(group, GROUP_MANAGER);
-        if (manager && W(manager - MANAGER_CONTEXT, 0) != (u32)uswkbd_layout_vtable)
+        if (manager && ((W(manager - MANAGER_CONTEXT, 0x04) >> UNIT_LINE_SHIFT) & UNIT_LINE_MASK) + 1 < game_gui_keyboard)
             return (u32)VIEW_NONE << 28;
     }
     return view;
