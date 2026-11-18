@@ -69,15 +69,15 @@
     "description": "How large the whole wheel (its ring, pictures, numbers and names) is drawn at the centre, at the right and at the bottom left at the size 1 of draw_sizes: 1 is the art's full size, about 200 pixels across with its diamonds."
   },
   "menu_centre": {
-    "value": [200, 118],
-    "description": "Edit Slots (the START menu's Mod Settings): where the wheel's middle is on the top screen while the player picks a slot, in pixels from the screen's left and top. At menu_scale's first scale everything it may show stays under the list's title bar (y 18 to 38) and above y 196, where single-screen mode puts the menu's description."
+    "value": [200, 100, 118],
+    "description": "Edit Slots (the START menu's Mod Settings): where the wheel's middle is on the top screen while the player picks a slot, in pixels from the screen's left and top: x, then the highest and the lowest y. Each size and text size takes the y in that range (whole pixels, the lowest first) where the wheel can be drawn largest; the lowest when every one allows the size's scale. Everything it may show stays off the list's title bar (x 228 to 396, y 18 to 38) and above y 196, where single-screen mode puts the menu's description; a scale that would not is brought back to the largest that does."
   },
   "menu_left": {
     "value": [112, 112],
     "description": "Edit Slots: where the wheel's middle is while the pouch list is open, in pixels from the screen's left and top. At menu_scale's second scale everything it may show stays left of the list's frame (x 228; the rows take 254 to 396) and above y 196."
   },
   "menu_scale": {
-    "value": [0.66, 0.52],
+    "value": [0.76, 0.6],
     "description": "How large the whole wheel is drawn in Edit Slots: while a slot is picked (centred) and beside the pouch list (small), as draw_scale's scales (1 is the art's full size, about 370 by 230 pixels with every name). The player's position and size are not used there. 0.1 to 1."
   },
   "draw_craft_mark": {
@@ -85,8 +85,24 @@
     "description": "The mark of a slot whose item can be combined from what the hunter carries (a plus of the game's own item sheet): its width and height in pixels, and its middle's offset from the middle of the slot's picture, right and down (so 10, -10 is the picture's top right). Its colour is draw_colours.craft."
   },
   "draw_sizes": {
-    "value": [0.8, 0.9, 1.0, 1.1, 1.2],
-    "description": "The sizes Configuration's Size row offers, smallest first (A goes to the next and from the last back to the first), each times draw_scale. 1 to 8 sizes from 0.5 to 2; each needs its row text wheel_size_<percent> in mod_settings.json (0.8 is wheel_size_80), and the wheel must fit the screen at every one."
+    "value": [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4],
+    "description": "The sizes Configuration's Size row offers, smallest first (A goes to the next and from the last back to the first), each times draw_scale. 1 to 8 sizes from 0.5 to 2; each needs its row text wheel_size_<percent> in mod_settings.json (0.8 is wheel_size_80). A size at which the wheel (with the chosen Text Size) would leave the screen is drawn at the largest scale that fits, draw_screen_margin from the edges; at the centre the wheel's middle then moves as little as it must."
+  },
+  "draw_text_sizes": {
+    "value": [1.0, 1.3, 1.6, 2.0],
+    "description": "The sizes Configuration's Text Size row offers for the slots' names (small and gold), smallest first, each times the name's box and letters (draw_name_box, draw_name_font, draw_big_box, draw_big_font); the names keep to their diamonds and run outwards. 1 to 4 sizes from 1 to 3; each needs its row text text_size_<percent> in mod_settings.json (1.3 is text_size_130)."
+  },
+  "default_text_size": {
+    "value": 0,
+    "description": "The names' size in a new character: an index of draw_text_sizes (0 is its 1, the 100 % size). It is stored in the save, where Configuration's Text Size changes it."
+  },
+  "draw_fit_name_width": {
+    "value": 120,
+    "description": "How wide a name counts when a size is checked against the screen (draw_sizes), in advances of the game's 14-pixel font (the boxes keep room for the longest name of the five languages, about 160). 120 is a little over most names of the items a wheel holds, consumables, ammo and tools (English: half are under 75 and nine in ten under 102; French, the longest: half under 99, four in five under 120); a longer name may run past the screen's edge at the largest sizes. Larger keeps every name on the screen and stops the wheel growing sooner."
+  },
+  "draw_screen_margin": {
+    "value": 3,
+    "description": "Pixels the wheel keeps from every edge of the 400 by 240 top screen when a size with the chosen Text Size would not fit (draw_sizes): the largest scale that fits, and at the centre and the right the middle moved inside."
   },
   "draw_radius": {
     "value": 80,

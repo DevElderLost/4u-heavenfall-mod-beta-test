@@ -37,7 +37,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Item wheel
 - With a C-Stick, holding L and pushing it uses one of eight items from a wheel, sheathing your weapon first.
 - The wheel shows each item's name and quantity; an empty item that can be combined is combined once.
-- Mod Settings' Radial Menu edits the wheel's items on the wheel itself, sets its place, size and trigger, or turns it off.
+- Mod Settings' Radial Menu edits the wheel's items, place, size, text size and trigger, or turns it off.
 
 ### QoL
 - Damage numbers over monsters, in three styles; switch them on in Mod Settings.

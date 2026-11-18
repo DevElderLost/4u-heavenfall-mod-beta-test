@@ -51,8 +51,8 @@
  * save object; curated mod_settings.json save_zone): byte 6 the position in its low half and the size in its high
  * half (each 0 no choice yet, else the value + 1: 1 centre, 2 right, 3 bottom left, the size's index + 1), byte 7 three
  * fields of 2 bits, each 0 no choice yet: bits 0-1 on (1) / off (2), bits 2-3 Auto-Combine (1 on, 2 off), bits 4-5 the
- * trigger + 1 (1 Tilt, 2 Flick, 3 Release), byte 8 unused (the three are the zone's header bytes Mod Settings does not
- * use), bytes 37-47 the eight slots, 11 bits each from the low bits up (0 no choice yet, SLOT_EMPTY emptied, else the
+ * trigger + 1 (1 Tilt, 2 Flick, 3 Release), byte 8 the text size + 1 in its low half (its high half unused; the three
+ * are the zone's header bytes Mod Settings does not use), bytes 37-47 the eight slots, 11 bits each from the low bits up (0 no choice yet, SLOT_EMPTY emptied, else the
  * item's id; the options' half bytes in bytes 10-35 are never touched, nor the byte after the zone). A zone written
  * before the size has 0 in its high half: the default size; one written before Auto-Combine and the trigger has 0 in
  * their bits (byte 7 = 1 or 2): their defaults. They count only in a zone with the magic and the mod's version (an
@@ -96,6 +96,9 @@ struct radial_data {            /* the curated numbers (radial_menu.py wheel_dat
     u8 autocraft;               /* the default of Auto-Combine */
     u8 pad;
     u32 flick_limit;            /* a float: a flick's window in the game's time; copied, never computed */
+    u8 text;                    /* the default text size: an index of the curated draw_text_sizes */
+    u8 texts;                   /* how many text sizes there are (1 to MAX_TEXTS) */
+    u16 pad2;
 };
 
 
@@ -139,7 +142,7 @@ struct debug {                  /* radial_debug, read from a save state (tools/i
     u8 pad2[3];
 };
 
-_Static_assert(sizeof(struct radial_data) == 0x3C, "blocks.py RADIAL_DATA_SIZE, radial_menu.py wheel_data");
+_Static_assert(sizeof(struct radial_data) == 0x40,"blocks.py RADIAL_DATA_SIZE, radial_menu.py wheel_data");
 _Static_assert(sizeof(struct state) == 32, "blocks.py radial_state");
 _Static_assert(sizeof(struct debug) == 64, "blocks.py radial_debug");
 
@@ -215,7 +218,8 @@ GAME u32 timer_step(u32 hunter, u32 *timer);                            /* FUN_0
 #define AIM_NONE 0
 #define AIM_AIMED 1
 #define AIM_SPENT 2
-#define ZONE_SLOTS 37                   /* the slots' bytes, 37-47; the header's are 6-8 (8 unused) */
+#define ZONE_TEXT 8                     /* the text size + 1 in its low half (HALF bits) */
+#define ZONE_SLOTS 37                   /* the slots' bytes, 37-47; the header's are 6-8 */
 #define SLOT_BITS 11
 #define SLOT_EMPTY 0x7FFu
 
@@ -277,7 +281,7 @@ static int choices_read(struct choices *out)
     u32 placing = saved ? B(zone, ZONE_POSITION) : 0, flags = saved ? B(zone, ZONE_FLAGS) : 0;
     u32 position = placing & HALF_MASK, size = placing >> HALF;
     u32 enabled = flags >> FIELD_ENABLED & FIELD_MASK, autocraft = flags >> FIELD_AUTOCRAFT & FIELD_MASK;
-    u32 trigger = flags >> FIELD_TRIGGER & FIELD_MASK;
+    u32 trigger = flags >> FIELD_TRIGGER & FIELD_MASK, text = saved ? B(zone, ZONE_TEXT) & HALF_MASK : 0;
     out->position = position && position <= POSITIONS ? position - 1 : radial_data.position;
     out->size = size && size <= radial_data.sizes ? size - 1 : radial_data.size;
     out->enabled = enabled ? enabled == 1 : radial_data.enabled;
@@ -287,7 +291,7 @@ static int choices_read(struct choices *out)
         u32 code = saved ? slot_code(zone, slot) : 0;
         out->slots[slot] = code == 0 ? radial_data.items[slot] : code == SLOT_EMPTY ? 0 : code;
     }
-    out->pad = 0;
+    out->text = text && text <= radial_data.texts ? text - 1 : radial_data.text;
     return 1;
 }
 
@@ -321,8 +325,8 @@ static void field_store(u32 zone, u32 shift, u32 code)
 
 /* A choice: `which` 0-7 a slot (`value` the item, 0 empties it), CHOOSE_POSITION (0 centre, 1 right, 2 bottom left; past
  * the last, the default), CHOOSE_SIZE (an index of the sizes; past the last, the default), CHOOSE_ENABLED (0 off, 1 on),
- * CHOOSE_AUTOCRAFT (0 off, 1 on), CHOOSE_TRIGGER (0 Tilt, 1 Flick, 2 Release; past the last, the default). Nothing
- * without a save object */
+ * CHOOSE_AUTOCRAFT (0 off, 1 on), CHOOSE_TRIGGER (0 Tilt, 1 Flick, 2 Release; past the last, the default), CHOOSE_TEXT
+ * (an index of the text sizes; past the last, the default). Nothing without a save object */
 ARM void radial_choose(u32 which, u32 value)
 {
     u32 zone = zone_for_write();
@@ -342,6 +346,8 @@ ARM void radial_choose(u32 which, u32 value)
         field_store(zone, FIELD_AUTOCRAFT, value ? 1 : 2);
     else if (which == CHOOSE_TRIGGER)
         field_store(zone, FIELD_TRIGGER, (value < TRIGGERS ? value : radial_data.trigger) + 1);
+    else if (which == CHOOSE_TEXT)
+        B(zone, ZONE_TEXT) = (B(zone, ZONE_TEXT) & ~HALF_MASK) | ((value < radial_data.texts ? value : radial_data.text) + 1);
 }
 
 /* The state the wheel has while closed: nothing armed or counted. */

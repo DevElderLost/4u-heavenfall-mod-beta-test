@@ -86,15 +86,15 @@ BUBBLEBLIGHT = "bubbleblight"
 # other block keeps its address. Its data block (interface/radial_menu/radial_menu.py wheel_data) holds the curated
 # numbers, the default items and the save zone's place.
 RADIAL_MENU = "radial_menu"
-RADIAL_DATA_SIZE = 0x3C
+RADIAL_DATA_SIZE = 0x40
 # The wheel's picture (interface/radial_menu/radial_draw.c, a unit of the wheel's block; radial_draw.py draw_data fills
 # the block): the group's and panes' name hashes, its index and draw order, each slot's and its big name's
-# place, the places and scales of each position by size, the digits' cells in the wheel's art, the quantity's
-# colours, the thresholds and tables; and Edit Slots' (the START menu's) panes and places by size
-RADIAL_DRAW_DATA_SIZE = 1188
+# place, the places and scales of each position by size and text size, the digits' cells in the wheel's art, the
+# quantity's colours, the thresholds and tables; and Edit Slots' (the START menu's) panes and places by size
+RADIAL_DRAW_DATA_SIZE = 3092
 # The Radial Menu's screen in Mod Settings (interface/radial_menu/radial_editor.c; radial_editor.py editor_data fills
 # the texts' block)
-RADIAL_EDITOR_DATA_SIZE = 80
+RADIAL_EDITOR_DATA_SIZE = 92
 # The cheats of the quest's timers (cheats/quest_timers/quest_timers.py) and of the minimap's skills
 # (cheats/map_skills/map_skills.py): their hooks' stubs, the C and the data with each cheat's
 # option of Mod Settings. After the item wheel, so they move no block of the product; only a mod with the cheats places
