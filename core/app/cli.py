@@ -49,6 +49,9 @@ def main(argv=None) -> int:
     parser.add_argument("--jukebox", action=argparse.BooleanOptionalAction,
                         help="the Housekeeper's Jukebox: playlists of the game's music played in the towns "
                              "(with the quality-of-life module)")
+    parser.add_argument("--skip-intro", action=argparse.BooleanOptionalAction,
+                        help="a new character starts in Val Habar registered with the Guild, without the prologue on "
+                             "the sand ship (with the quality-of-life module)")
     parser.add_argument("--code", type=Path,
                         help="advanced: the executable to build from (a code.bin or game file of any version with a "
                              "map); taken from --rom by default")

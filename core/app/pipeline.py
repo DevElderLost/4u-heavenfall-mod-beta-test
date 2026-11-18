@@ -7,9 +7,10 @@ line), the Wyporium's new trades and its Rare Materials Exchange, and the house 
 game's music for the villages), all for the emulator (docs/how_it_works.md). They
 come in three modules, each with a switch of its own (gui_presets.json `install.modules`): single screen (with the HUD
 size, the lock-on, the aspect ratio and Select's kick), Layered Gear (with the new trades and the Rare Materials
-Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree, the Jukebox
-and the cheats); a module that is off leaves the game as it is, but for Layered Gear's new items (the rare materials
-of MH XX's monsters, Foreign Scrap), which every run defines so that a save holding them reads them whatever is on.
+Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree, the Jukebox,
+the intro skip and the cheats); a module that is off leaves the game as it is, but for Layered Gear's new items
+(the rare materials of MH XX's monsters, Foreign Scrap), which every run defines so that a save holding them reads
+them whatever is on.
 Input: the player's decrypted base game, European or American; the executable and the interface's files are read
 from it in memory, and the update is never needed. MH XX's decrypted game is optional: with it, Layered Gear also
 offers XX's looks and the Wyporium trades the new materials they cost.
@@ -60,6 +61,7 @@ from core.game.executable.rebase import feature_gaps
 from core.interface.single_screen.executable.single_screen import patch_single_screen, supports_single_screen
 from core.game.executable.versions import VersionMap
 from core.gameplay.meownster_scrap.meownster_scrap import patch_meownster_scrap
+from core.gameplay.new_game_skip.new_game_skip import patch_new_game_skip, supports_new_game_skip
 from core.gameplay.select_kick.select_kick import patch_select_kick, supports_select_kick
 from core.gameplay.wyporium.exchange_texts import exchange_text_files, remove_exchange_text_files
 from core.gameplay.wyporium.rare_exchange import patch_rare_exchange, supports_rare_exchange
@@ -312,6 +314,11 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     select_plain = (not screen_module and (layered or "skip_death_camera" in menu_options
                                            or "skip_monster_intro" in menu_options)
                     and supports_select_kick(code))
+    # a new character starts in Val Habar, registered with the Guild, without the prologue on the sand ship
+    # (gameplay/new_game_skip/new_game_skip.py); the caravan's tutorial stays the game's
+    intro = settings.skip_intro and supports_new_game_skip(code)
+    if settings.skip_intro and not intro:
+        notices.append(left_out("skip intro", "new games start with the prologue", NOT_AVAILABLE))
     exchange = layered and settings.rare_exchange and supports_rare_exchange(code)
     if layered and settings.rare_exchange and not exchange:
         notices.append(left_out("rare materials exchange", "the Wyporium has no Rare Materials Exchange line",
@@ -371,7 +378,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     write_sources(output_dir, made_from_xx)    # after every writer of files made from MH XX
     # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
     tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
-    if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange
+    if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange or intro
             or jukebox_plan is not None or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
@@ -383,6 +390,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             patched = patch_memory_split(patched, resource_to_root_mb())
             book = added.book if added else None    # the new items by name
             item_ids = {book.english[key]: item for key, item in book.ids.items()} if book else None
+            if intro:       # the character creation's last call
+                patched = patch_new_game_skip(patched)
             if layered:
                 if felyne_looks_pack:
                     patched = felyne_pack.patch_executable(patched, felyne_looks_pack.needs)

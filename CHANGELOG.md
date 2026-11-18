@@ -14,6 +14,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Your Housekeeper has a Jukebox: playlists of the game's music can play in the towns instead of theirs.
 - A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
 - The top-screen menus and the smaller HUD take less of the game's time each frame: smoother at 60 FPS (emulator only).
+- New characters skip the sand ship's prologue and start in Val Habar, registered with the Guild.
 
 ### The program
 - With an HD texture pack, the weapon tree's marks, item wheel, damage numbers and target hint look sharp too.

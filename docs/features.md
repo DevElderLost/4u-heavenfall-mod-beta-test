@@ -35,6 +35,13 @@
 - Story scenes cannot be skipped, as in the original game.
 - You can turn it off in the game: START, third page, Mod Settings.
 
+**Skipping the prologue**
+
+- A new character starts in Val Habar, already registered with the Guild: no prologue on the sand ship with Dah'ren Mohran, no arrival and registration scenes and no Gathering Hall introduction.
+- The character gets what the prologue gave: 1500z, the starting armor (worn) and Hunter Rank 1. The Gathering Hall and online play are open from the start.
+- The caravan and its tutorial stay as in the original game.
+- Only characters created with the mod installed change; existing saves do not. You can turn it off on the **Options** page (Other / QoL tab).
+
 **Holding A**
 
 - Holding A with your weapon sheathed keeps picking up, gathering and carving, without pressing it again.

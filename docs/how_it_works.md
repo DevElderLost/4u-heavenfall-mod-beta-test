@@ -225,6 +225,16 @@ of; a stream without one would play on into the fight. The block takes that call
 every live voice of the sound driver on the two event queues, by the voice's own queue and request; at the end only
 when the event was skipped. The fight's music is on other queues and plays as the game starts it.
 
+## Skipping the prologue
+
+The character creation (FUN_00b7961c) ends with a call to FUN_00c25b50, the new profile, at 0xB79B2C. The option
+`skip_intro` (on by default, in the quality-of-life module) turns that call into one to block `new_game_skip`
+(`gameplay/new_game_skip/new_game_skip.s`, patch in `new_game_skip.py`), which makes the same call and then leaves the
+new save as the game leaves it after the prologue on the sand ship, the registration with the Guild and the first visit
+to the Gathering Hall: 1500z, Hunter Rank 1, the starting armor in the box and worn, the prologue's quest cleared and
+the story flags those scenes set (its data, block `new_game_data`, is written by `new_game_data()`). Only a character
+created with the option on changes; the caravan and its tutorial stay the game's.
+
 ## Holding A
 
 Block `hold_a` (`gameplay/hold_a/hold_a.c`, patch in `hold_a.py`) hooks three calls of the game. In a quest, with the

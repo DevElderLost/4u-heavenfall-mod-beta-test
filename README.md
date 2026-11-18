@@ -31,7 +31,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Single Screen Mode** (emulators): every menu of the bottom screen on the top screen.
 - **Lock-on with L**, **Kick on Select**, **holding A** to keep gathering, **faster text**, a **faster camera** and a **closer or farther camera**.
 - **Damage numbers** over monsters, in three styles (off unless you switch them on).
-- **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, and a
+- **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, **new characters skip the prologue** on the sand ship, and a
   **Hunting Horn's songs** under the minimap.
 - An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick).
 - A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.

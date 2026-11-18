@@ -1211,7 +1211,9 @@ def _install_sections() -> tuple[Section, ...]:
     if presets.modules():
         sections = module_sections(sections, presets.modules())
     links = presets.install_links()
-    swaps = {
+    # the intro skip that also skips the caravan tutorial (its link) says so; an edition without the link keeps the
+    # plain option
+    swaps = {} if not links.get("skip_intro") else {
         "skip_intro": Option(
             "skip_intro", T("Empezar en Val Habar con la caravana hecha", "Start in Val Habar with the caravan done"),
             T("Un personaje nuevo empieza directamente en Val Habar, ya registrado en el Gremio, sin el prólogo, las "
@@ -1222,7 +1224,7 @@ def _install_sections() -> tuple[Section, ...]:
               "arrival scenes and the Gathering Hall introduction. It gets 1500z, the starting armor and HR 1, and "
               "the caravan tutorial is already done: the first Felyne is the partner, equipped and ready for the "
               "caravan quests."),
-            links=tuple(links.get("skip_intro", ()))),    # an edition without it has no such link
+            links=tuple(links["skip_intro"])),
     }
     result = []
     for section in sections:
