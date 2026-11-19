@@ -97,6 +97,16 @@
 - It works with HD texture packs: the frame is the game's own picture, only darker.
 - In the game: START, third page, Mod Settings, Interface, World Sharpness (on by default).
 
+**Item marks**
+
+- An item that is a better version of another with the same icon shows a small yellow star in its icon's top left
+  corner, inside the icon: Mega Potion, Mega Nutrients, Barrel Bomb L+, level 2 ammo and more; level 3 ammo shows two.
+  The star shows wherever the item's icon does: pouch, box, shops, combinations, the item bar and the item wheel.
+- On the quest rewards screen, rare materials (gems, plates, mantles, hearts and the like) glow and twinkle.
+- The marks are drawn into the game's own icon picture, so HD texture packs show them sharp too.
+- In the game: START, third page, Mod Settings, Interface, Item Icons: Show Upgrade Stars and Rare Rewards (both on by
+  default), and Star Color (Yellow by default, or White).
+
 **Weapon tree**
 
 - At the Smithy, Forge Weapons shows the weapon class you choose as a tree: every weapon you have discovered, joined

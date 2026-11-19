@@ -83,6 +83,8 @@ from core.interface.weapon_tree.tree_layout import weapon_tree_files
 from core.interface.weapon_tree.tree_texts import message_base as tree_message_base
 from core.interface.weapon_tree.weapon_tree import patch_weapon_tree
 from core.interface.world_sharpness.world_sharpness import patch_world_sharpness
+from core.interface.item_marks.art import sheet_files as item_marks_sheet_files
+from core.interface.item_marks.item_marks import OPTIONS as ITEM_MARKS_OPTIONS, patch_item_marks
 from core.app import presets
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
@@ -155,13 +157,14 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
                           felynes: felyne_looks.FelyneLooks | None = None, damage_numbers: bool = False,
                           horn_songs: bool = False,
                           weapon_tree: bool = False,
-                          radial_wheel: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
+                          radial_wheel: bool = False,
+                          item_marks: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's, the START menu page's (`menu_texts`), the new items' names (`gear_texts`: the rare materials of
     MH XX's monsters), Layered Gear's (with MH XX's looks: `gen_looks`; the Felynes': `felynes`), the Rare Materials
     Exchange's, the Smithy's weapon tree's (`weapon_tree`: its messages and its panes in the facility menu's layout),
     Damage Numbers', the Hunting Horn's songs' and the item wheel's layouts (`damage_numbers`, `horn_songs`,
-    `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common) and the
-    single-screen mode's RomFS files, and with the game's
+    `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common), the
+    single-screen mode's RomFS files and the item marks' stars in the icon sheet (`item_marks`), and with the game's
     files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
     made on the previous
     one's copies and everything is written once; files of an earlier run are removed first (they would still be
@@ -207,6 +210,8 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         made = single_screen_romfs(rom, {**hud, **names, **texts, **own}, edge if anchored else None)
         screens, offsets, engine_table, engine_groups = made.files, made.offsets, made.engine_table, made.engine_groups
     written = {**hud, **names, **texts, **own, **screens}
+    if item_marks and rom is not None:      # the stars and halo in each language's icon sheet, on the others' copies
+        written |= dict(item_marks_sheet_files(rom.read, written))
     if rom is not None:     # always: the font's blank characters away from its glyphs (interface/font/blank_glyphs.py)
         written |= font_files(lambda path: written.get(path) or rom.read(path))
     # after all of them: the backdrops of the files as they are, and the table of each layout's final places
@@ -283,6 +288,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     damage = in_menu and "damage_numbers" in menu_options     # its layout and its page's option
     horn = in_menu and "horn_songs" in menu_options           # the Hunting Horn's songs: the same, on by default
     world_sharpness = in_menu and "world_sharpness" in menu_options     # the World-style sharpness gauge: only code
+    item_marks = in_menu and any(key in menu_options for key in ITEM_MARKS_OPTIONS)   # code and the icon sheet's art
     # Forge Weapons' tree: its files and code whatever the installed view, which its row of the page chooses
     tree = in_menu and "smithy_view" in menu_options
     if in_menu and not tree and "smithy_view" in presets.in_game_fields() and "smithy_view" not in off:
@@ -362,7 +368,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     jukebox.remove_files(output_dir)    # before the interface's: they write the same ARCs
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
-        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel)
+        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel, item_marks)
     jukebox_plan = None
     if with_jukebox:    # on what the interface left in the lobby's ARCs; the game's own songs and the shipped ones
         game_files = RomFS(game)
@@ -430,6 +436,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_horn_songs(patched)
             if world_sharpness:     # a frame-only entry of the same hooks
                 patched = patch_world_sharpness(patched)
+            if item_marks:          # another one; no ported monsters' items in this edition
+                patched = patch_item_marks(patched, ported=False)
             if prepared:    # the executable's tables for the pack's models
                 patched = patch_executable(patched, prepared.needs)
             if title_build:     # the installed title's: the game data as `rom:`, its own RomFS first

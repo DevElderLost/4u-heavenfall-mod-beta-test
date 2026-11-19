@@ -15,7 +15,7 @@ feature, its frame function, the index of its group in the GUI
 
 typedef unsigned int u32;
 
-#define ENTRIES 4               /* quest_layouts.py ENTRIES */
+#define ENTRIES 5               /* quest_layouts.py ENTRIES */
 #define PATH 24                 /* quest_layouts.py PATH: the path, NUL ended */
 #define GUI_LAYOUTS 0x100       /* the GUI object -> its layout manager */
 #define TOP_SCREEN 0
@@ -32,7 +32,7 @@ struct quest_layouts {          /* the block quest_layouts_data (quest_layouts.p
     struct quest_layout entry[ENTRIES];
 };
 
-_Static_assert(sizeof(struct quest_layouts) == 128, "blocks.py QUEST_LAYOUTS_DATA_SIZE");
+_Static_assert(sizeof(struct quest_layouts) == 160, "blocks.py QUEST_LAYOUTS_DATA_SIZE");
 
 extern const struct quest_layouts quest_layouts_data;
 extern u32 resource_manager;    /* the variable holding sResource */

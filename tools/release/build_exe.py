@@ -62,6 +62,7 @@ ASSET_FOLDERS = (
     "interface/radial_menu/art",    # the item wheel's picture and its cells
     "interface/hud/art",            # the target hint's HD glyph
     "interface/weapon_tree/art",    # the weapon tree's HD marks
+    "interface/item_marks/art",     # the item marks' HD stars and halo
 )
 # What the program reads at run time, relative to core/ (a folder: every file in it that is not code).
 RESOURCES = ASSET_FOLDERS + (

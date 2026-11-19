@@ -15,9 +15,11 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
 - The top-screen menus and the smaller HUD take less of the game's time each frame: smoother at 60 FPS (emulator only).
 - New characters skip the sand ship's prologue and start on arriving in Val Habar.
+- Upgraded items like Mega Potions show a yellow star, two on level 3 ammo; Mod Settings can make them white.
+- Rare materials like gems glow and twinkle on the quest rewards screen; Mod Settings can turn either mark off.
 
 ### The program
-- With an HD texture pack, the weapon tree's marks, item wheel, damage numbers and target hint look sharp too.
+- With an HD texture pack, the weapon tree, item wheel, item stars, damage numbers and target hint look sharp.
 
 ### Fixes
 - The town map's place name no longer shows over the fade to black and the loading screen.

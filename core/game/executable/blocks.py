@@ -132,8 +132,8 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 936
-MOD_SETTINGS_PANE_HASHES = (808, 924)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 948
+MOD_SETTINGS_PANE_HASHES = (820, 936)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
 MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8)   # mod_options.c: the header, 52 options, a pool of 256 values
 MOD_RAW_TABLE_SIZE = 64
@@ -159,7 +159,7 @@ MODERN_CAMERA_STATE_SIZE = 72
 # Numbers and the horn's songs share, their code and their table
 # (struct quest_layouts).
 QUEST_LAYOUTS = "quest_layouts"
-QUEST_LAYOUTS_DATA_SIZE = 128
+QUEST_LAYOUTS_DATA_SIZE = 160
 # The Hunting Horn's songs (interface/horn_songs/horn_songs.py): the C and its data
 # (struct horn_data); its state is in the extension's variables.
 HORN_SONGS = "horn_songs"
@@ -169,6 +169,11 @@ HORN_SONGS_STATE_SIZE = 60
 # Jamo's mod adapted: the C and its data (struct world_data).
 WORLD_SHARPNESS = "world_sharpness"
 WORLD_SHARPNESS_DATA_SIZE = 64
+# Item marks (interface/item_marks/item_marks.py): the hook stubs, the C (both ARM: the
+# stubs call the C), its data (struct marks_data) and its state in the extension's variables (struct marks_state).
+ITEM_MARKS = "item_marks"
+ITEM_MARKS_DATA_SIZE = 788
+ITEM_MARKS_STATE_SIZE = 3424
 # The Smithy's weapon tree (interface/weapon_tree/weapon_tree.py): the C with its hooks,
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
@@ -640,6 +645,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
     BlockSpec("world_sharpness_code", WORLD_SHARPNESS, "interface/world_sharpness/world_sharpness.c", region="ext"),
     BlockSpec("world_sharpness_data", WORLD_SHARPNESS, size=WORLD_SHARPNESS_DATA_SIZE, region="ext"),
+    BlockSpec("item_marks_stub", ITEM_MARKS, "interface/item_marks/item_marks_stub.s", region="ext"),
+    BlockSpec("item_marks_code", ITEM_MARKS, "interface/item_marks/item_marks.c", region="ext"),
+    BlockSpec("item_marks_data", ITEM_MARKS, size=ITEM_MARKS_DATA_SIZE, region="ext"),
     # 8-aligned: a Thumb block's size depends on its address mod 8
     BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", region="ext", thumb=True, align=8,
               units=("interface/screen_kit/screen_kit.c",)),
@@ -831,6 +839,9 @@ VARIABLES = (
     VariableSpec("modern_camera_state", MODERN_CAMERA, MODERN_CAMERA_STATE_SIZE, region="ext_vars"),
     # The horn's songs' rows and lights (horn_songs.c struct horn_state); patch_horn_songs reserves it
     VariableSpec("horn_songs_state", HORN_SONGS, HORN_SONGS_STATE_SIZE, align=0x10, region="ext_vars"),
+    # The item marks' noted icons, their stars and the rare effect (item_marks.c struct marks_state); patch_item_marks
+    # reserves it
+    VariableSpec("item_marks_state", ITEM_MARKS, ITEM_MARKS_STATE_SIZE, align=0x10, region="ext_vars"),
     # The weapon tree's class, placing, cursor and window (weapon_tree.h struct wt_state); patch_weapon_tree reserves it
     VariableSpec("weapon_tree_state", WEAPON_TREE, WEAPON_TREE_STATE_SIZE, align=0x10, region="ext_vars"),
     # The pull's registration of the hunter and the ball's marks (boltreaver_pull.c struct pull_state: 4 + 4 owners of
@@ -1759,6 +1770,17 @@ GAME_SYMBOLS |= {
     "item_icon": 0xC0DE18,              # FUN_00c0de18(any, sprite data + 0x10, item): the picture's cell (+0x20, +0x24)
                                         # and the four corners' colour (+0x30 to +0x3C) of that item
     "item_name": 0x5A86F8,              # FUN_005a86f8({group, pane}, item): the item's name in a text pane
+}
+
+# Item marks (interface/item_marks/item_marks_stub.s, item_marks.c): the item setters'
+# third instructions (where their entry stubs go back to), the vertex builder each drawn sprite goes through, and the
+# variable holding the quest result scene's object
+GAME_SYMBOLS |= {
+    "item_icon_body": 0xC0DE20,         # FUN_00c0de18, after its `stmdb sp!, {r4, r5, r6, lr}`: `cpy r4, r1`
+    "item_icon_small_body": 0xC0E270,   # FUN_00c0e268, after the same: `cpy r4, r1`
+    "sprite_vertices": 0xAE7098,        # FUN_00ae7098(sprite data + 0x10, context, state): its vertex record
+    "result_scene_object": 0xEF32B4,    # the result scene (FUN_00accd24's first argument): + 4 the page, + 0x4A /
+                                        # + 0x10A the cells of pages 1 and 2
 }
 
 # The wheel's Auto-Combine (interface/radial_menu/radial_craft.c): the four steps of the game's combining (START menu's

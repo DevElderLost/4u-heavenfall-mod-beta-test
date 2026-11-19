@@ -67,6 +67,7 @@ OPTION_IDS = {
     "fast_gathering": 28, "cheat_interruptible_flex": 29, "cheat_whetstone_cancel": 30, "cheat_skip_quest_end": 31,
     "cheat_rewards_no_limit": 32, "cheat_capture_guru": 33, "cheat_autotracker": 34,
     "world_sharpness": 35,
+    "upgrade_stars": 36, "rare_rewards": 37, "upgrade_stars_colour": 38,
 }
 # The rows of a feature the installer chooses, which mean nothing without it: the row, the feature's Settings field
 FEATURE_ROWS = {"layered_looks": "layered_equipment"}  # Layered Gear's switch (equipment/layered/layered_switch.c)
@@ -290,6 +291,9 @@ def supports_option(code: bytes, key: str) -> bool:
     if key == "world_sharpness":
         from core.interface.world_sharpness.world_sharpness import supports_world_sharpness
         return supports_world_sharpness(code)
+    if key in ("upgrade_stars", "rare_rewards", "upgrade_stars_colour"):
+        from core.interface.item_marks.item_marks import supports_item_marks
+        return supports_item_marks(code)
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,
               "fast_gathering": supports_fast_gathering, "system_keyboard": supports_system_keyboard,
               "skip_death_camera": supports_death_camera_skip, "modern_camera": supports_modern_camera,

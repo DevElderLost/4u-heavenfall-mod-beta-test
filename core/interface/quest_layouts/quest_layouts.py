@@ -24,7 +24,7 @@ from core.game.executable.blocks import QUEST_LAYOUTS_DATA_SIZE
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target
 
 STUB, CODE, DATA = "quest_layouts_stub", "quest_layouts_code", "quest_layouts_data"
-ENTRIES, PATH = 4, 24           # quest_layouts.c ENTRIES, PATH
+ENTRIES, PATH = 5, 24           # quest_layouts.c ENTRIES, PATH
 ENTRY = struct.Struct(f"<2I{PATH}s")
 
 # The hooks: (address, the word the game has, the stub's label)

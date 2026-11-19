@@ -5,7 +5,8 @@
   {"texture": "hf_wt_marks_BM_NOMIP", "picture": "interface/weapon_tree/art/marks_hd.png"},
   {"texture": "hf_dmg_GSM_NOMIP", "picture": "interface/damage_numbers/art/damage_numbers_4x.png"},
   {"texture": "hf_wheel_GSM_NOMIP", "picture": "interface/radial_menu/art/radial_menu_4x.png"},
-  {"texture": "qst00_ID", "region": [448, 448, 16, 16], "picture": "interface/hud/art/dpad_up_4x.png"}
+  {"texture": "qst00_ID", "region": [448, 448, 16, 16], "picture": "interface/hud/art/dpad_up_4x.png"},
+  {"texture": "cmn_icon_GSM_NOMIP", "region": [0, 492, 64, 20], "picture": "interface/item_marks/art/marks_4x.png"}
  ],
  "no_hd_source": {
   "hf_horn_GSM_NOMIP": "plain white, tinted by the layout: the same at any size",

@@ -82,7 +82,8 @@ EXT_START = 0x111E000
 # + the diagnostics block, packed after everything (1 page)
 # + Boltreaver Astalos' pull on the hunter, limited to the ball (1 page)
 # + the jukebox: its engine, its card's and menu's units and its data (4 pages)
-EXT_SIZE = 0x1FE000
+# + the item marks: their stubs, their C and its data (2 pages)
+EXT_SIZE = 0x200000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
