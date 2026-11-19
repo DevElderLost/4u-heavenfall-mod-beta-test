@@ -21,8 +21,9 @@ These functions change, in the update's executable (canonical):
   long a turn has been held, and so of the turn's top speed (CAMERA_CAP, 10.0), takes the mod's value;
 - FUN_009ec82c, which opens an item box's menu: its store of the box's kind (BOX_KIND; 0 the house's, 1 the
   Gathering Hall's) makes every box the house's, and its store of the menu's count of lines (BOX_LINES; 7 at home, 4
-  at the Hall's box) takes the option's count at a box away from home, so Manage Equipment and Equipment Sets are at
-  every box, drawn, and Change Appearance stays at the house's;
+  at the Hall's box) keeps Change Appearance only where its screen's layout is loaded (mod_options.c mod_box_count),
+  so Manage Equipment, Equipment Sets and Change Appearance are at every box, drawn: every town area's stage list
+  loads the layout too (box_appearance.py);
 - FUN_00b0b0ac and FUN_00b0a658, which load a Honed weapon's glow and put it on the weapon's models: their reads of
   the weapon's honing (HONING_SITES) see none while the option is No;
 - FUN_002b58e8, the poll of the game's keyboard: through a gate to the system keyboard (system_keyboard);
@@ -349,7 +350,9 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
     """`code` (the update's executable) with the START menu's page for `available` options, each frame's read of them,
     and the hooks of those that need one. The Settings field of an option is its installed default. `aspect`: the
     aspect ratio's switch is on, so its row is in the page; `wheel`: the mod has the item wheel, so its Radial Menu
-    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data).
+    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data). With the box's option a
+    run also gives every town area Change Appearance's layout (box_appearance.py: the lobby's ARC and, after the
+    single-screen mode's patches, the stage lists).
     Refuses an executable where a site is not the game's word."""
     from core.interface.mod_settings.mod_settings import load_settings, patch_mod_settings
     if not supports_mod_options(code):

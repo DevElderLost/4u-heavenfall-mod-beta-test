@@ -47,7 +47,8 @@
  *     its bits differ, and then the pane is redrawn (its draw node's byte + 0x12 = 3, or FUN_00ae6bcc without one).
  *     The priority (bits 19-26 of group + 0x18) is written when the place sets one and it differs, then
  *     FUN_00ae65b0(group) as FUN_00ae63c8 does. A view the manager does not draw in is added to its mDrawView (bits
- *     16-25 of + 4: the keyboard's managers draw in the top screen's view only).
+ *     16-25 of + 4: the keyboard's managers draw in the top screen's view only), but the top screen's while
+ *     `top_screen_hidden` is set (L held in Change Appearance took it away: it would come back the same frame).
  *  4. the name keyboard: `game_gui_keyboard` is its line + 1 (sUnit's line of a keyboard manager, uSwkbdLayout, 27)
  *     while one of its groups is shown on the top screen. Its background covers the whole top screen
  *     (single_screen.json, keyboard `backdrop_width`), so nothing drawn before it can be seen there but what is wrongly
@@ -134,6 +135,8 @@ extern struct state game_gui_state;                    /* .bss */
 extern struct photo game_gui_photo;                    /* .bss */
 extern u32 game_gui_keyboard;                          /* .bss: a keyboard's group is shown on the top screen */
 extern float aspect_way;                               /* .bss, cheats/aspect_ratio.c: 0 without the aspect ratio */
+extern u32 top_screen_hidden;                          /* .bss, interface/appearance_peek/appearance_peek.c: L took the
+                                                          top screen's view from the main GUI: not given back */
 extern u8 *pad_control;                                /* the pad object (its variable) */
 extern u8 *sunit;                                      /* the game's sUnit (the units' move lines) */
 extern const u8 ulayout_vtable[], ulayout_monnyan_vtable[], uswkbd_layout_vtable[], ulayout_scheduler_vtable[],
@@ -401,8 +404,9 @@ static void apply(u8 *manager, u8 *group, const struct name *n, u32 screen)
             gui_group_changed(group);
         }
     }
-    if (!(p->flags & PLACE_KEEP_VIEW) && (!(p->flags & PLACE_HIDDEN) || parted))
-        W(manager, 0x04) |= 1u << (DRAW_VIEWS + (p->flags & PLACE_VIEW));
+    u32 view = p->flags & PLACE_VIEW;
+    if (!(p->flags & PLACE_KEEP_VIEW) && (!(p->flags & PLACE_HIDDEN) || parted) && !(view == 0 && top_screen_hidden))
+        W(manager, 0x04) |= 1u << (DRAW_VIEWS + view);
 }
 
 /* A group of a block met by the frame's walk, kept to be placed once the screen is chosen. */

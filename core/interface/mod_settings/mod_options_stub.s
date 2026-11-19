@@ -38,11 +38,10 @@
 @   uses them).
 @
 @ mod_box_lines: FUN_009ec82c(scene, box) then stores the menu's count of lines, 7 for box 0 and 4 for box 1, with
-@   `strb r1, [r4, #0xa]`. At a box away from home (the game's box was not 0) with the option on the count is its
-@   value's: the lines past 4 are Manage Equipment, Equipment Sets and Change Appearance, and the value leaves out
-@   Change Appearance, whose screen only the house loads. The house's box keeps the game's
-@   7; off, or before mod_frame has run, the game's. Only the flags change (the function compares again before it uses
-@   them).
+@   `strb r1, [r4, #0xa]`. The count stored is mod_box_count's (mod_options.c): at a box away from home with the option
+@   on, the house's 7 where Change Appearance's screen is loaded, else the option's count without it; off, at home, or
+@   before mod_frame has run, the
+@   game's. Every register but r1 and the flags is kept (the function compares again before it uses them).
 @
 @ mod_honing_glow: a Honed weapon's glow. FUN_00b0b0ac, which loads the
 @   glow's material animation into the weapon's models, and FUN_00b0a658, which puts it on them, read the weapon's
@@ -253,15 +252,12 @@ mod_box_kind:
     bx      lr
 
 mod_box_lines:
-    push    {r12}
-    ldr     r12, =mod_options_state
-    ldrh    r12, [r12, #BOX_LINES]  @ the count, and above it the box away from home
-    tst     r12, #0xFF00
-    andne   r12, r12, #0xFF
-    cmpne   r12, #0
-    movne   r1, r12
+    push    {r0, r2, r3, r4, r12, lr}
+    mov     r0, r1
+    bl      mod_box_count
+    mov     r1, r0
+    pop     {r0, r2, r3, r4, r12, lr}
     strb    r1, [r4, #0xa]
-    pop     {r12}
     b       box_lines_return
 
 mod_honing_glow:

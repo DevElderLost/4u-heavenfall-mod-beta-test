@@ -103,7 +103,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### QoL
 - Start can skip the camera over a slain monster.
 - The camera can turn up to five times faster.
-- Manage Equipment and Equipment Sets from every item box.
+- Manage Equipment, Equipment Sets and Change Appearance from every item box.
+- In Change Appearance, holding L hides the interface so you can see your hunter; no Camera or Back button.
 
 ### Real Hardware
 - Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.

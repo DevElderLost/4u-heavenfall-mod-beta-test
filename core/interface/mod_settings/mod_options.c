@@ -80,7 +80,8 @@ struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u32 saved[3];               /* 68: the game's words (SLOT_*) */
     u32 camera_cap;             /* 80: the cap of how long a camera turn has been held (FUN_00bfd028; a float) */
     u32 hide_face;              /* 84: the mod has the lock-on and it is off: no target face (hud/target_face.c) */
-    u8 box_lines;               /* 88: a menu's count of lines at a box away from home (FUN_009ec82c); 0: the game's */
+    u8 box_lines;               /* 88: a menu's count of lines at a box away from home without Change Appearance's
+                                       layout (FUN_009ec82c, mod_box_count); 0: the game's */
     u8 box_away;                /* 89: the box being opened is not the house's (mod_box_kind keeps the game's box) */
     u8 live;                    /* 90: bit n set while the option writes into slot n */
     u8 frame;                   /* 91: the frames counted (mod_frame), for a block that must know one went by */
@@ -111,6 +112,13 @@ extern const u32 mod_raw_table[16];
 extern const u32 class_multipliers[16];
 extern u32 save_control, gx_main, game_main, camera_control;
 extern float fps_carry_state;   /* blocks.py: the vsyncs' fraction frame_rate_word carries */
+extern u32 gui_control;         /* the GUI object (+ GUI_LAYOUTS its layout manager) */
+extern const u32 appearance_binds[];    /* FUN_005976a8's table of ui415's root groups: 12 bytes each, the hash first */
+u32 group_find(u32 manager, const u32 *key);                /* FUN_00b045a8: a group's index by the name's hash */
+u32 group_at(u32 manager, u32 index);                       /* FUN_00b048f0: that group, 0 for none */
+void appearance_peek_frame(void);       /* interface/appearance_peek/appearance_peek.c: the cue's end */
+
+#define GUI_LAYOUTS 0x100
 
 /* The save zone of the character in play, 0 without a save */
 static u8 *save_zone(void)
@@ -303,4 +311,30 @@ void mod_frame(void)
     state->camera_event = camera_distance(CAMERA_EVENT, payload_of(OPT_DISTANCE)[0]);
     state->camera_state = camera_distance(CAMERA_STATE, payload_of(OPT_DISTANCE)[0]);
     state->frame++;
+    appearance_peek_frame();
+}
+
+/* The hunter's edit screen (Change Appearance) binds ui415's root groups, which only some areas load (the rooms', and
+   the Gathering Hall's with interface/mod_settings/box_appearance.py): 1 when its first group is loaded. */
+static int appearance_loaded(void)
+{
+    u32 manager, key[2] = {appearance_binds[0], 0};
+
+    if (gui_control == 0 || (manager = *(u32 *)(gui_control + GUI_LAYOUTS)) == 0)
+        return 0;
+    return group_at(manager, group_find(manager, key)) != 0;
+}
+
+/* mod_box_lines (FUN_009ec82c's store of an item box menu's count of lines): the count to store. At a box away from
+   home (mod_box_kind kept the game's box) with the option on, `lines` is the house's (the box became the house's) and
+   its last line, Change Appearance, stays only where its screen's layout is loaded; else the option's count, which
+   leaves it out. Off, at home, or before mod_frame has
+   run, the game's. */
+u32 mod_box_count(u32 lines)
+{
+    const struct mod_options_state *state = &mod_options_state;
+
+    if (state->box_away == 0 || state->box_lines == 0)
+        return lines;
+    return appearance_loaded() ? lines : state->box_lines;
 }
