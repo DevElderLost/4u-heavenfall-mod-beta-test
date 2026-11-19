@@ -44,6 +44,14 @@
 @   7; off, or before mod_frame has run, the game's. Only the flags change (the function compares again before it uses
 @   them).
 @
+@ mod_honing_glow: a Honed weapon's glow. FUN_00b0b0ac, which loads the
+@   glow's material animation into the weapon's models, and FUN_00b0a658, which puts it on them, read the weapon's
+@   honing from its reference's halfword +0x12 with `lsr r0, r0, #14` and `lsrs r0, r0, #14` (0 none, 1 Attack,
+@   2 Defense, 3 Life). Each becomes `bl mod_honing_glow`: the game's shift, but 0 while the option is No, so the
+@   functions take the way of a weapon that is not Honed. The flags are those of the `lsrs` (FUN_00b0a658 branches on
+@   Z; FUN_00b0b0ac compares again). lr is free at both sites (the functions pushed it on entry); r12 is kept. The
+@   reference keeps its honing, and with it the weapon's bonus.
+@
 @ keyboard_poll_game: FUN_002b58e8, the poll of the game's keyboard, from its second instruction on: the game's poll
 @   for the gate and for the system keyboard's block, whose hook replaced the first (`push {r4, r5, r6, lr}`).
 @
@@ -73,7 +81,7 @@
     .global _start
     .global mod_frame_stub, mod_bloom, mod_fov_reset, mod_fov_other, mod_net_waits, mod_net_polls_a, mod_net_polls_b
     .global mod_raw_a, mod_raw_b, mod_camera_cap, mod_box_kind, mod_box_lines
-    .global mod_camera_rest, mod_camera_event, mod_camera_state
+    .global mod_camera_rest, mod_camera_event, mod_camera_state, mod_honing_glow
     .global gate_hold_a_field, gate_hold_a_rewards, gate_hold_a_claim, gate_fast_text, gate_fast_motion
     .global gate_fast_timer, gate_lock, gate_system_keyboard, keyboard_poll_game, gate_death_camera, gate_intro_skip
     .global gate_intro_music, gate_intro_end, gate_smithy_view, gate_smithy_upgrade, smithy_upgrade_game
@@ -105,6 +113,7 @@
     .equ OPT_MODERN_CAMERA, 19
     .equ OPT_INTRO_SKIP, 21
     .equ OPT_SMITHY_VIEW, 26
+    .equ OPT_HONING_GLOW, 39
     .equ GAME_FOV_ONE, 0x42480000       @ 50.0, the game's literal of the reset case "not equal" and of FUN_00c06a14
     .equ GAME_FOV_OTHER, 0x42680000     @ 58.0, the reset case "equal"
     .equ GAME_CAMERA_CAP, 0x41200000    @ 10.0, FUN_00bfd028's cap
@@ -254,6 +263,16 @@ mod_box_lines:
     strb    r1, [r4, #0xa]
     pop     {r12}
     b       box_lines_return
+
+mod_honing_glow:
+    push    {r12}
+    ldr     r12, =mod_options_state
+    ldrb    r12, [r12, #OPT_HONING_GLOW]
+    cmp     r12, #0
+    pop     {r12}
+    moveq   r0, #0                  @ No: the weapon is not Honed for its glow
+    lsrs    r0, r0, #14
+    bx      lr
 
     .macro gate name, option, entry, original
 \name:

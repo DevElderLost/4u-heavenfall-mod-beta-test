@@ -2163,6 +2163,8 @@
   "interface.mod_settings.mod_options.FOV_OTHER[0]": "run",
   "interface.mod_settings.mod_options.FOV_RESET[0][0]": "run",
   "interface.mod_settings.mod_options.FOV_RESET[1][0]": "run",
+  "interface.mod_settings.mod_options.HONING_SITES[0][0]": "run",
+  "interface.mod_settings.mod_options.HONING_SITES[1][0]": "run",
   "interface.mod_settings.mod_options.NET_POLLS[0][0]": "run",
   "interface.mod_settings.mod_options.NET_POLLS[1][0]": "run",
   "interface.mod_settings.mod_options.NET_WAITS[0]": "run",

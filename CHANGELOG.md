@@ -17,6 +17,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - New characters skip the sand ship's prologue and start on arriving in Val Habar.
 - Upgraded items like Mega Potions show a yellow star, two on level 3 ammo; Mod Settings can make them white.
 - Rare materials like gems glow and twinkle on the quest rewards screen; Mod Settings can turn either mark off.
+- Honed weapons keep their bonus without the glow; Mod Settings can turn the glow back on.
+- Mod Settings can start the town map hidden on arriving; L still shows or hides it.
 
 ### The program
 - With an HD texture pack, the weapon tree, item wheel, item stars, damage numbers and target hint look sharp.
