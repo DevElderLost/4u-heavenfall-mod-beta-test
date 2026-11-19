@@ -1,7 +1,7 @@
 /* The item wheel's choices for the character in play, as radial_wheel.c reads them from the save zone each frame: the
 item of each slot (0 none), the position (0 centre, 1 right, 2 bottom
  * left), the size (an index of the curated draw_sizes), whether the wheel is on, whether Auto-Combine is on, the
- * trigger (0 Tilt, 1 Flick, 2 Release) and the names' text size (an index of the curated draw_text_sizes). A choice the
+ * trigger (0 Tilt, 1 Flick, 2 Release, 3 ZR) and the names' text size (an index of the curated draw_text_sizes). A choice the
  * character never made is the curated default (radial_data). */
 
 #ifndef RADIAL_CHOICES_H
@@ -16,7 +16,7 @@ item of each slot (0 none), the position (0 centre, 1 right, 2 bottom
 #define CHOOSE_TRIGGER 12
 #define CHOOSE_TEXT 13
 #define POSITIONS 3             /* centre, right, bottom left */
-#define TRIGGERS 3              /* Tilt, Flick, Release */
+#define TRIGGERS 4              /* Tilt, Flick, Release, ZR */
 #define MAX_TEXTS 4             /* radial_draw.py MAX_TEXTS: the Text Size row's sizes the draw data holds */
 
 struct choices {

@@ -94,7 +94,7 @@ RADIAL_DATA_SIZE = 0x40
 RADIAL_DRAW_DATA_SIZE = 3092
 # The Radial Menu's screen in Mod Settings (interface/radial_menu/radial_editor.c; radial_editor.py editor_data fills
 # the texts' block)
-RADIAL_EDITOR_DATA_SIZE = 92
+RADIAL_EDITOR_DATA_SIZE = 94
 # The cheats of the quest's timers (cheats/quest_timers/quest_timers.py) and of the minimap's skills
 # (cheats/map_skills/map_skills.py): their hooks' stubs, the C and the data with each cheat's
 # option of Mod Settings. After the item wheel, so they move no block of the product; only a mod with the cheats places
@@ -473,6 +473,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # radial_menu.md, "Editor"): Mod Settings (mod_settings.c) opens them from the wheel's row, in ARM; their texts
     BlockSpec("radial_editor", RADIAL_MENU, "interface/radial_menu/radial_editor.c", region="ext"),
     BlockSpec("radial_editor_data", RADIAL_MENU, size=RADIAL_EDITOR_DATA_SIZE, region="ext"),
+    # The trigger ZR: the stub that stands in for the pad
+    # update's raw read (FUN_005b8460 in FUN_005b8284) and then lets radial_wheel.c take ZR's bit from the raw words
+    BlockSpec("radial_pad_stub", RADIAL_MENU, "interface/radial_menu/radial_pad_stub.s", region="ext"),
     # Bubbleblight (gameplay/bubbleblight/bubbleblight.py): the
     # hunter's code (hit, status, tick, resets), and the entry points of the effects task (bubble_changed) and the large
     # bubbles (bubble_large), each in a block of its own
@@ -779,6 +782,10 @@ VARIABLES = (
     # camera does not see the C-stick, set by radial_editor.c each frame Edit Slots is open and counted down by
     # radial_wheel.c
     VariableSpec("radial_stick_hold", RADIAL_MENU, 4, region="ext_vars"),
+    # The wheel's hold on ZR (radial_wheel.c, struct zr): the pad updates its claim lasts (set by the hunter's frame
+    # with L held and the trigger ZR), ZR held at the last raw read, ZR taken from the game until it is released, and a
+    # press the hunter's frame has not seen yet
+    VariableSpec("radial_zr", RADIAL_MENU, 4, region="ext_vars"),
     VariableSpec("face_dump", "target_face (FACE_DEBUG)", 0x20, align=0x10, debug=True),
     # +0 next entry, +4 call count, +0x10 last values (16 bytes), +0x20 ring of 88 entries of 32 bytes (100 until
     # the merge of xx and main, whose variables left bss_tail no room for more).
@@ -1742,6 +1749,8 @@ GAME_SYMBOLS |= {
     "list_has": 0xB2ADFC,               # FUN_00b2adfc(hunter, group, action): the transition list holds the record
     "use_ready": 0xB08F94,              # FUN_00b08f94(hunter): the current list accepts an item (p + 0x6FA, p + 0x93F1)
     "item_control": 0xED2E40,           # the variable FUN_005e588c takes as its first argument
+    "pad_raw_read": 0x5B8460,           # FUN_005b8460(pad object, pad + 0x2C, status): the raw words (+0x60 on), which
+                                        # radial_pad_stub.s calls before the wheel takes ZR from them
 }
 
 # The wheel's picture (interface/radial_menu/radial_draw.c): an item's picture on a sprite (with its colour) and an

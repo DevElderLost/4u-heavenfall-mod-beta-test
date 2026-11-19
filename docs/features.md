@@ -71,6 +71,7 @@
 - In a quest, hold L and push the C-Stick towards one of eight directions to use the item set there. The camera stays still while L is held.
 - It needs a C-Stick: a New 3DS or the emulator. An old 3DS cannot use it.
 - Choose each direction's item and the wheel's place in the game: START, third page, Mod Settings, Radial Menu (Edit Slots and the menu's settings). The same row turns the wheel off.
+- Trigger: Tilt uses the item as soon as the C-Stick points at it, Flick and Release when the stick comes back, and ZR when ZR is pressed while the C-Stick points at it. With ZR, the button does nothing else while L is held (no dash, guard or target switch).
 
 **Damage numbers**
 

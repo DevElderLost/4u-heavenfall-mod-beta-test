@@ -38,6 +38,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - With a C-Stick, holding L and pushing it uses one of eight items from a wheel, sheathing your weapon first.
 - The wheel shows each item's name and quantity; an empty item that can be combined is combined once.
 - Mod Settings' Radial Menu edits the wheel's items, place, size, text size and trigger, or turns it off.
+- The wheel's trigger can be ZR: point with the C-Stick, press ZR, and ZR does nothing else.
 
 ### QoL
 - Damage numbers over monsters, in three styles; switch them on in Mod Settings.

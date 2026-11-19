@@ -34,7 +34,7 @@
   },
   "default_trigger": {
     "value": 0,
-    "description": "How a direction is chosen in a new character: 0 Tilt (the item is used as the stick stays out for dwell_frames at fire_magnitude), 1 Flick (push into a direction and let the stick go within flick_window: that direction's item is used on the release; held longer, nothing is used), 2 Release (the same, with no time limit). It is stored in the save, where Configuration's Trigger changes it."
+    "description": "How a direction is chosen in a new character: 0 Tilt (the item is used as the stick stays out for dwell_frames at fire_magnitude), 1 Flick (push into a direction and let the stick go within flick_window: that direction's item is used on the release; held longer, nothing is used), 2 Release (the same, with no time limit), 3 ZR (the stick only points; a press of ZR uses the slot it points at, from draw_mark_magnitude, and ZR does nothing else while L is held). It is stored in the save, where Configuration's Trigger changes it."
   },
   "flick_window": {
     "value": 15,
@@ -134,7 +134,7 @@
   },
   "draw_mark_magnitude": {
     "value": 30,
-    "description": "The C-stick's magnitude (0 to 127) from which the slot in the stick's direction is chosen (its gold diamond and glow, the needle, its name larger and gold); 30 is the game's dead zone, so any push chooses one. Under it nothing is highlighted."
+    "description": "The C-stick's magnitude (0 to 127) from which the slot in the stick's direction is chosen (its gold diamond and glow, the needle, its name larger and gold); 30 is the game's dead zone, so any push chooses one. Under it nothing is highlighted. With the trigger ZR a press of ZR uses that slot from this magnitude too, so ZR uses the slot shown in gold (1 to 127)."
   },
   "draw_dark_icon": {
     "value": 0.55,

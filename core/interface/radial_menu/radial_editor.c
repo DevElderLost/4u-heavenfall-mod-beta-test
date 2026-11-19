@@ -7,7 +7,7 @@
  * Three levels share the widget:
  *   - the menu level, under the row's title: the switch (Enabled / Disabled, first as every feature's switch),
  *     Edit Slots, Trigger, Autocombine, Position, Size and Text Size, the switch and the settings with their values.
- *     Up and Down walk them, A changes the row's value to the next one (Trigger: Tilt, Flick, Release; Position:
+ *     Up and Down walk them, A changes the row's value to the next one (Trigger: Tilt, Flick, Release, ZR; Position:
  *     centre, right, bottom left; Size and Text Size: the next size), from the last back to the first, or opens Edit
  *     Slots; B goes back to the small list. It draws no wheel;
  *   - Edit Slots, the wheel level: the big list is hidden and the wheel is shown centred (radial_menu_wheel, layout 1)
@@ -102,7 +102,7 @@ struct radial_editor_data {     /* radial_editor.py editor_data */
     u16 size_help;
     u16 autocraft_help, trigger_help;
     u16 autocraft_values[2];    /* 0 off, 1 on */
-    u16 trigger_values[TRIGGERS];       /* 0 Tilt, 1 Flick, 2 Release */
+    u16 trigger_values[TRIGGERS];       /* 0 Tilt, 1 Flick, 2 Release, 3 ZR */
     u16 edit_slots, edit_help;  /* the Edit Slots row, its description and its levels' title */
     u16 size_values[MAX_SIZES]; /* the Size row's text at each size */
     u8 sizes;                   /* how many sizes there are (1 to MAX_SIZES) */
@@ -113,7 +113,7 @@ struct radial_editor_data {     /* radial_editor.py editor_data */
     u8 texts;                   /* how many text sizes there are (1 to MAX_TEXTS) */
 };
 
-_Static_assert(sizeof(struct radial_editor_data) == 92, "blocks.py RADIAL_EDITOR_DATA_SIZE, radial_editor.py");
+_Static_assert(sizeof(struct radial_editor_data) == 94, "blocks.py RADIAL_EDITOR_DATA_SIZE, radial_editor.py");
 
 enum { LEVEL_SLOTS, LEVEL_POUCH, LEVEL_MENU };
 

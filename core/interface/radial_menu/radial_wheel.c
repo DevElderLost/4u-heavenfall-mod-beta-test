@@ -23,8 +23,16 @@
  *     trigger says when it goes. Tilt: at once, once, and the wheel disarms. Flick: that sector is aimed and a clock of
  *     `flick_limit` starts; the item goes when the stick falls under `rearm` before the clock ends, and the push is
  *     cancelled if the clock ends first (nothing more until the stick is back at rest). Release: the same with no
- *     clock. L let go first cancels an aim. The sector gives a slot (radial_data.sector_to_slot) and the slot an item
- *     (the save zone);
+ *     clock. L let go first cancels an aim. ZR: the stick only points; a press of ZR uses the slot in its direction
+ *     from the magnitude at which the picture shows that slot in gold, once a press. The sector gives a slot
+ *     (radial_data.sector_to_slot) and the slot an item (the save zone);
+ *   - ZR (the trigger ZR): with L held (the hunter's own buttons, the game's "L is usable now", or the item mode) the
+ *     frame claims ZR for the next ZR_HOLD pad updates. The pad update's raw read is hooked too (radial_pad_stub.s):
+ *     radial_pad sees a new press of ZR while the claim lasts, keeps it for the hunter's next frame and takes ZR's bit
+ *     out of the raw words, until ZR is released, before the game makes its buttons and the GUI's of them, so ZR is
+ *     none of what the game's Circle Pad Pro Buttons option makes it (R, the D-pad's right or down, the target
+ *     switch). A ZR held from before the claim stays the game's until it is released; the console's own R is never
+ *     touched;
  *   - using: the game's own route of the touch shortcuts: the gate of
  *     FUN_00b9dc6c plus the transition list's record (0x80, 0xF4) and the timer pw + 0x204, then pw + 0x592 = the
  *     pouch slot, command 0x4B (p + 0x3DC |= 0x800) and, on weapon type 1 (Sword and Shield), the second set's bit
@@ -50,8 +58,8 @@
  * The choices are in Mod Settings' save zone, radial_data.zone_at bytes into the save data (the data starts 0x5C into the
  * save object; curated mod_settings.json save_zone): byte 6 the position in its low half and the size in its high
  * half (each 0 no choice yet, else the value + 1: 1 centre, 2 right, 3 bottom left, the size's index + 1), byte 7 three
- * fields of 2 bits, each 0 no choice yet: bits 0-1 on (1) / off (2), bits 2-3 Auto-Combine (1 on, 2 off), bits 4-5 the
- * trigger + 1 (1 Tilt, 2 Flick, 3 Release), byte 8 the text size + 1 in its low half (its high half unused; the three
+ * fields, each 0 no choice yet: bits 0-1 on (1) / off (2), bits 2-3 Auto-Combine (1 on, 2 off), bits 4-6 the
+ * trigger + 1 (1 Tilt, 2 Flick, 3 Release, 4 ZR), byte 8 the text size + 1 in its low half (its high half unused; the three
  * are the zone's header bytes Mod Settings does not use), bytes 37-47 the eight slots, 11 bits each from the low bits up (0 no choice yet, SLOT_EMPTY emptied, else the
  * item's id; the options' half bytes in bytes 10-35 are never touched, nor the byte after the zone). A zone written
  * before the size has 0 in its high half: the default size; one written before Auto-Combine and the trigger has 0 in
@@ -92,13 +100,14 @@ struct radial_data {            /* the curated numbers (radial_menu.py wheel_dat
     u16 items[8];               /* the default items */
     u32 queue_limit;            /* a float: the queue's limit in the game's time; it is copied, never computed */
     u8 sizes;                   /* how many sizes there are (1 to MAX_SIZES) */
-    u8 trigger;                 /* the default trigger: 0 Tilt, 1 Flick, 2 Release */
+    u8 trigger;                 /* the default trigger: 0 Tilt, 1 Flick, 2 Release, 3 ZR */
     u8 autocraft;               /* the default of Auto-Combine */
     u8 pad;
     u32 flick_limit;            /* a float: a flick's window in the game's time; copied, never computed */
     u8 text;                    /* the default text size: an index of the curated draw_text_sizes */
     u8 texts;                   /* how many text sizes there are (1 to MAX_TEXTS) */
-    u16 pad2;
+    u8 zr_magnitude;            /* the stick's magnitude from which a press of ZR uses a slot (the picture's gold) */
+    u8 pad2;
 };
 
 
@@ -139,16 +148,26 @@ struct debug {                  /* radial_debug, read from a save state (tools/i
     u32 crafts;                 /* picks Auto-Combine combined */
     u32 craft_failures;         /* those whose roll failed (Garbage) */
     u8 craft_mask;              /* the craft mask of the last frame (bit k: slot k) */
-    u8 pad2[3];
+    u8 zr_taken;                /* presses of ZR taken from the game (counts on, wrapping) */
+    u8 pad2[2];
+};
+
+struct zr {                     /* radial_zr: the trigger ZR's hold on the button */
+    u8 claim;                   /* the pad updates left in which a new press of ZR is the wheel's */
+    u8 down;                    /* ZR was held at the last raw read */
+    u8 taken;                   /* ZR is out of the raw words until it is released */
+    u8 press;                   /* a press taken that the hunter's frame has not seen yet */
 };
 
 _Static_assert(sizeof(struct radial_data) == 0x40,"blocks.py RADIAL_DATA_SIZE, radial_menu.py wheel_data");
 _Static_assert(sizeof(struct state) == 32, "blocks.py radial_state");
 _Static_assert(sizeof(struct debug) == 64, "blocks.py radial_debug");
+_Static_assert(sizeof(struct zr) == 4, "blocks.py radial_zr");
 
 extern const struct radial_data radial_data;
 extern struct state radial_state;
 extern struct debug radial_debug;
+extern struct zr radial_zr;
 extern u32 pad_control;         /* the variables holding the pad object, the save object, the sound manager and the */
 extern u32 save_control;        /* item manager */
 extern u32 sound_control;
@@ -174,6 +193,8 @@ GAME u32 timer_step(u32 hunter, u32 *timer);                            /* FUN_0
 #define P_ACTION 0x372
 #define P_GROUP_BEFORE 0x377            /* the previous action, kept by FUN_00b1c6f0 */
 #define P_ACTION_BEFORE 0x378
+#define P_BUTTONS 0x3A0                 /* the player copy of the game layout's held buttons (cleared when busy) */
+#define BUTTON_L 0x8u                   /* L in it */
 #define P_STICK 0x3C6                   /* the stick's magnitude copy (u16) */
 #define P_ACTIONS 0x3CC
 #define P_SHEATHE 0x3D4                 /* the commands' first word: commands 13 and 14 are its bits 13 and 14 */
@@ -213,8 +234,18 @@ GAME u32 timer_step(u32 hunter, u32 *timer);                            /* FUN_0
 #define FIELD_ENABLED 0                 /* a field's first bit */
 #define FIELD_AUTOCRAFT 2
 #define FIELD_TRIGGER 4
+#define TRIGGER_MASK 7u                 /* the trigger's field is 3 bits: 4 codes and "no choice yet" */
 #define TRIGGER_TILT 0
 #define TRIGGER_FLICK 1
+#define TRIGGER_ZR 3
+#define RAW_ZR 0x800u                   /* ZR in the pad's raw words (FUN_005b8460) */
+#define RAW_HELD 0x60                   /* the raw words from pad + 0x2C: held, previous, pressed, released, changed, */
+#define RAW_PRESSED 0x68                /* pressed or repeating */
+#define RAW_RELEASED 0x6C
+#define RAW_CHANGED 0x70
+#define RAW_REPEAT 0x74
+#define ZR_HOLD 2                       /* pad updates a claim lasts: the order of the pad's and the hunter's frame does
+                                           not matter, and a claim no frame renews (the quest left) ends a frame later */
 #define AIM_NONE 0
 #define AIM_AIMED 1
 #define AIM_SPENT 2
@@ -281,7 +312,7 @@ static int choices_read(struct choices *out)
     u32 placing = saved ? B(zone, ZONE_POSITION) : 0, flags = saved ? B(zone, ZONE_FLAGS) : 0;
     u32 position = placing & HALF_MASK, size = placing >> HALF;
     u32 enabled = flags >> FIELD_ENABLED & FIELD_MASK, autocraft = flags >> FIELD_AUTOCRAFT & FIELD_MASK;
-    u32 trigger = flags >> FIELD_TRIGGER & FIELD_MASK, text = saved ? B(zone, ZONE_TEXT) & HALF_MASK : 0;
+    u32 trigger = flags >> FIELD_TRIGGER & TRIGGER_MASK, text = saved ? B(zone, ZONE_TEXT) & HALF_MASK : 0;
     out->position = position && position <= POSITIONS ? position - 1 : radial_data.position;
     out->size = size && size <= radial_data.sizes ? size - 1 : radial_data.size;
     out->enabled = enabled ? enabled == 1 : radial_data.enabled;
@@ -317,15 +348,15 @@ ARM int radial_choices(struct choices *out)
     return choices_read(out);
 }
 
-/* One of the flags byte's (7) fields of FIELD_BITS (`code` 0 no choice yet, else the value + 1) */
-static void field_store(u32 zone, u32 shift, u32 code)
+/* One of the flags byte's (7) fields, `mask` its bits (`code` 0 no choice yet, else the value + 1) */
+static void field_store(u32 zone, u32 shift, u32 mask, u32 code)
 {
-    B(zone, ZONE_FLAGS) = (B(zone, ZONE_FLAGS) & ~(FIELD_MASK << shift)) | code << shift;
+    B(zone, ZONE_FLAGS) = (B(zone, ZONE_FLAGS) & ~(mask << shift)) | code << shift;
 }
 
 /* A choice: `which` 0-7 a slot (`value` the item, 0 empties it), CHOOSE_POSITION (0 centre, 1 right, 2 bottom left; past
  * the last, the default), CHOOSE_SIZE (an index of the sizes; past the last, the default), CHOOSE_ENABLED (0 off, 1 on),
- * CHOOSE_AUTOCRAFT (0 off, 1 on), CHOOSE_TRIGGER (0 Tilt, 1 Flick, 2 Release; past the last, the default), CHOOSE_TEXT
+ * CHOOSE_AUTOCRAFT (0 off, 1 on), CHOOSE_TRIGGER (0 Tilt, 1 Flick, 2 Release, 3 ZR; past the last, the default), CHOOSE_TEXT
  * (an index of the text sizes; past the last, the default). Nothing without a save object */
 ARM void radial_choose(u32 which, u32 value)
 {
@@ -341,11 +372,11 @@ ARM void radial_choose(u32 which, u32 value)
         B(zone, ZONE_POSITION) = (B(zone, ZONE_POSITION) & HALF_MASK) |
                                  ((value < radial_data.sizes ? value : radial_data.size) + 1) << HALF;
     else if (which == CHOOSE_ENABLED)
-        field_store(zone, FIELD_ENABLED, value ? 1 : 2);
+        field_store(zone, FIELD_ENABLED, FIELD_MASK, value ? 1 : 2);
     else if (which == CHOOSE_AUTOCRAFT)
-        field_store(zone, FIELD_AUTOCRAFT, value ? 1 : 2);
+        field_store(zone, FIELD_AUTOCRAFT, FIELD_MASK, value ? 1 : 2);
     else if (which == CHOOSE_TRIGGER)
-        field_store(zone, FIELD_TRIGGER, (value < TRIGGERS ? value : radial_data.trigger) + 1);
+        field_store(zone, FIELD_TRIGGER, TRIGGER_MASK, (value < TRIGGERS ? value : radial_data.trigger) + 1);
     else if (which == CHOOSE_TEXT)
         B(zone, ZONE_TEXT) = (B(zone, ZONE_TEXT) & ~HALF_MASK) | ((value < radial_data.texts ? value : radial_data.text) + 1);
 }
@@ -530,12 +561,55 @@ static void fire(u32 hunter, u32 p, u32 pw, u32 sector, const struct choices *ch
         use_item(p, pw, slot);
 }
 
+/* For the pad update's raw read (radial_pad_stub.s), an ARM block's call: `raw` is pad + 0x2C, its words from RAW_HELD.
+ * A new press of ZR while the hunter's frame claims it is the wheel's: kept for that frame (press) and, with every frame
+ * until ZR is released, taken out of the words the game makes its buttons and the GUI's of. A ZR already held when the
+ * claim began stays the game's. The previous word is left: it holds the held word as this left it a frame ago */
+ARM void radial_pad(u32 raw)
+{
+    u32 claim = radial_zr.claim;
+    if (claim)
+        radial_zr.claim = claim - 1;
+    if (!(W(raw, RAW_HELD) & RAW_ZR)) {
+        radial_zr.down = 0;
+        radial_zr.taken = 0;
+        return;
+    }
+    if (!radial_zr.down && claim) {
+        radial_zr.taken = 1;
+        radial_zr.press = 1;
+        radial_debug.zr_taken++;
+    }
+    radial_zr.down = 1;
+    if (!radial_zr.taken)
+        return;
+    W(raw, RAW_HELD) &= ~RAW_ZR;
+    W(raw, RAW_PRESSED) &= ~RAW_ZR;
+    W(raw, RAW_RELEASED) &= ~RAW_ZR;
+    W(raw, RAW_CHANGED) &= ~RAW_ZR;
+    W(raw, RAW_REPEAT) &= ~RAW_ZR;
+}
+
+/* The trigger ZR's side of the hunter's frame: the claim on ZR while L is held (the hunter's own buttons, which a menu
+ * or a busy state clears, or the item mode), and the press the pad update took since the last frame, which is the
+ * frame's only (one taken while the wheel is not open yet uses nothing) */
+static int zr_frame(u32 p, const struct choices *choices)
+{
+    int press = radial_zr.press;
+    radial_zr.press = 0;
+    if (choices && choices->enabled && choices->trigger == TRIGGER_ZR &&
+        ((W(p, P_BUTTONS) & BUTTON_L) || (W(p, P_ACTIONS) & ITEM_MODE)))
+        radial_zr.claim = ZR_HOLD;
+    return press;
+}
+
 __attribute__((noinline)) static void wheel_frame(u32 hunter, const struct choices *choices)
 {
     u32 p = W(hunter, PLAYER_STATUS), pw = W(hunter, PLAYER_WORK);
     radial_debug.calls++;
     if (!p || !pw)
         return;
+    int zr_press = zr_frame(p, choices);
     check_pending(pw, choices);
     queue_frame(hunter, p, pw, choices);
     if (radial_stick_hold != 0) {       /* Edit Slots points with the C-stick: the camera stays, on or off */
@@ -566,6 +640,12 @@ __attribute__((noinline)) static void wheel_frame(u32 hunter, const struct choic
     radial_debug.open = 1;
     H(p, P_STICK) = 0;
     u32 trigger = choices ? choices->trigger : TRIGGER_TILT;
+    if (trigger == TRIGGER_ZR) {        /* the stick only points: ZR uses the slot it points at */
+        radial_state.aim = AIM_NONE;
+        if (zr_press && magnitude >= radial_data.zr_magnitude)
+            fire(hunter, p, pw, sector, choices);
+        return;
+    }
     if (trigger == TRIGGER_TILT)
         radial_state.aim = AIM_NONE;
     if (radial_state.aim == AIM_AIMED && trigger == TRIGGER_FLICK && timer_step(hunter, &radial_state.aim_left)) {

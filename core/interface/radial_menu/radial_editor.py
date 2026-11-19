@@ -21,7 +21,7 @@ TEXTS = (
     "size_help",
     "autocraft_help", "trigger_help",
     "autocraft_off", "autocraft_on",
-    "trigger_tilt", "trigger_flick", "trigger_release",
+    "trigger_tilt", "trigger_flick", "trigger_release", "trigger_zr",
     "edit_slots", "edit_slots_help",
 )
 
