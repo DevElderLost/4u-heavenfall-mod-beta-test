@@ -102,12 +102,26 @@ def item_monsters(sets: Iterable[SetMonster], series_items: Mapping[int, Mapping
             if len(monsters) == 1 and item not in common}
 
 
-def ported_item_monsters(records: Iterable, names: Mapping[str, str]) -> dict[int, str]:
+def ported_item_monsters(records: Iterable, names: Mapping[str, str], item_names: Mapping[int, str] | None = None,
+                         extra: Mapping[str, str] | None = None) -> dict[int, str]:
     """XX's item id -> the ported monster it is a material of, for each curated ported monster (`records`:
     ported_gear.curated.MonsterRecord) read from XX: his weapons ask his own items, which few armor sets name.
-    `names`: a monster's key -> the name the file uses for him."""
-    return {item.mhgen: names[record.key] for record in records if record.source == "xx" and record.key in names
-            for item in record.items if item.mhgen is not None and not item.shared}
+    `names`: a monster's key -> the name the file uses for him. `item_names` (`english_item_names`): an item MH4U
+    already has carries only its MH4U id in the record, so it is found by its English name; `extra`: an English name ->
+    the monster, for XX items his record does not list (Silverwind's base Scale and Blackfur)."""
+    out = {item.mhgen: names[record.key] for record in records if record.source == "xx" and record.key in names
+           for item in record.items if item.mhgen is not None and not item.shared}
+    by_name: dict[str, list[int]] = {}
+    for index, name in (item_names or {}).items():
+        by_name.setdefault(name, []).append(index)
+    for record in records:
+        if record.source == "xx" and record.key in names:
+            for item in record.items:
+                if item.mhgen is None and getattr(item, "name", None) and not item.shared:
+                    out.update({index: names[record.key] for index in by_name.get(item.name, ())})
+    for name, monster in (extra or {}).items():
+        out.update({index: monster for index in by_name.get(name, ())})
+    return out
 
 
 def family_roots(data) -> dict[str, str]:

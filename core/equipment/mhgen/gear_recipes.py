@@ -54,7 +54,15 @@ def _create_entries(data: bytes, start: int, count: int) -> tuple[GenMaterial, .
 
 
 def _upgrade_entries(data: bytes, start: int, role: str) -> tuple[GenMaterial, ...]:
+    """The four materials of an upgrade row (u16 item, u8 quantity each) or its three scraps (u16 item, u16 quantity:
+    the last twelve bytes of the row; read as four of three bytes the second scrap came out as a wrong item)."""
     out = []
+    if role == "scrap":
+        for slot in range(3):
+            item, qty = struct.unpack_from("<HH", data, start + 4 * slot)
+            if item:
+                out.append(GenMaterial(item, qty, role))
+        return tuple(out)
     for slot in range(4):
         item, qty = struct.unpack_from("<HB", data, start + 3 * slot)
         if item:
@@ -96,13 +104,14 @@ def _upgrade(row: int, data: bytes, level: int, materials: int, category: int, e
 
 
 def weapon_upgrade(row: int, data: bytes) -> GenRecipe:
-    """A `weaponProcessWNN` row (32 bytes): u16 line, u16 level, 4 items at +4, category at +16, 4 scraps at +20."""
+    """A `weaponProcessWNN` row (32 bytes): u16 line, u16 level, 4 items at +4, category at +16,
+    3 scraps of u16 item and u16 quantity at +20."""
     return _upgrade(row, data, struct.unpack_from("<H", data, 2)[0], 4, 16, 20)
 
 
 def armor_upgrade(row: int, data: bytes) -> GenRecipe:
     """An `armorProcessA00` row (38 bytes): u16 blademaster and gunner series, u32, u16 level at +8, 4 items at +10,
-    category at +22, 4 scraps at +26."""
+    category at +22, 3 scraps (u16, u16) at +26."""
     return _upgrade(row, data, struct.unpack_from("<H", data, 8)[0], 10, 22, 26)
 
 

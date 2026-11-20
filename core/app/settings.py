@@ -166,6 +166,14 @@ class DeviantMode(str, Enum):
     EXTENDED = "extended"        # his quest, randomized as any quest, and he joins the randomized monsters
 
 
+class MistyOnlyMode(str, Enum):
+    """Where a monster that lives only on Misty Peaks (Nargacuga and Silverwind Nargacuga, from MH XX) is met: his
+    quests are records of curated/misty_peaks_quests.json (`built_with`), never a table, and he is never a randomizer
+    candidate."""
+    OFF = "off"
+    QUESTS = "quests"            # his Misty Peaks quests (Silverwind: off while Nargacuga is off)
+
+
 @dataclass(frozen=True)
 class PortedOption:
     """The option of one ported monster: an entry of PORTED_OPTIONS, the one place that names the
@@ -277,6 +285,23 @@ PORTED_OPTIONS: tuple[PortedOption, ...] = (
         cli_help="add Soulseer Mizutsune from MH XX (switches the additional monsters on): a quest of his own, "
                  "only among the randomized monsters, or `extended`; off while --mizutsune is off (needs --rom and "
                  "--xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
+    # Nargacuga and Silverwind Nargacuga: only on Misty Peaks, so no pool, quests
+    # table
+    # or extended mode, only the switch that builds them and adds their Misty Peaks quests (`built_with`). No installer
+    # or GUI option and not yet fixed on: they are in spec.KNOWN only (phase G2 builds them; a run asking for either is
+    # refused until then, pipeline.unbuilt_monsters).
+    PortedOption(
+        "nargacuga", "Nargacuga", MistyOnlyMode, MistyOnlyMode.OFF,
+        cli_help="add Nargacuga from MH XX (switches the additional monsters on): three quests of his own on "
+                 "Misty Peaks (low rank 3 stars, high rank 6 stars and G rank 1 star; needs --rom and --xx-rom, "
+                 "MH XX's decrypted .3ds)",
+        game="xx"),
+    PortedOption(
+        "silverwind", "Silverwind Nargacuga", MistyOnlyMode, MistyOnlyMode.OFF, base="nargacuga",
+        cli_help="add Silverwind Nargacuga from MH XX (switches the additional monsters on): a quest of his own on "
+                 "Misty Peaks (G rank 3 stars); off while --nargacuga is off (needs --rom and --xx-rom, "
+                 "MH XX's decrypted .3ds)",
         game="xx"),
 )
 
@@ -621,6 +646,9 @@ class Settings:
     boltreaver: DeviantMode = DeviantMode.OFF
     hellblade: DeviantMode = DeviantMode.OFF
     soulseer: DeviantMode = DeviantMode.OFF
+    # Nargacuga and his Deviant, only on Misty Peaks (no option in the GUI: fixed on once built; not built yet)
+    nargacuga: MistyOnlyMode = MistyOnlyMode.OFF
+    silverwind: MistyOnlyMode = MistyOnlyMode.OFF
 
     # Debug
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster

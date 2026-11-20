@@ -24,8 +24,35 @@ WINDOW = 200                       # ids per piece type in the save's bit arrays
 FEATURE = "felyne_gear"            # the blocks' feature (game/executable/blocks.py)
 
 TABLE = {t.key: t for t in PALICO_TABLES}
-MAX_NEW = {key: WINDOW - table.count for key, table in TABLE.items()}     # weapon 21, head 32, body 26
 KINDS = tuple(TABLE)
+
+# The save's marks (had it once, seen, new): three bit arrays of 3 x WINDOW bits, a piece's bit base + id, the bases
+# the i16 table at felyne_marks.BASES. A kind's own bits hold OWN ids past the game's: weapon 21, head 32, body 26.
+# The weapons' ids past the window are marked on the heads' last bits, counting down from the window's last
+# (felyne_marks.py, felyne_marks.c), so that every kind gets ROOM new ids: the most the bodies' own bits hold.
+MARK_BASE = {"body": 0, "head": WINDOW, "weapon": 2 * WINDOW}
+OWN = {key: WINDOW - table.count for key, table in TABLE.items()}
+SPILL_KIND, SPILL_INTO = "weapon", "head"      # the kind with the fewest own bits, the one with the most
+
+
+def _room() -> int:
+    """The most new ids every kind can have: the ids past the spill kind's own bits take bits of the heads' window,
+    which the heads' own ids then cannot use."""
+    room = min(OWN.values())
+    while all(OWN[key] >= room + 1 for key in KINDS if key not in (SPILL_KIND, SPILL_INTO)) and \
+            room + 1 + max(0, room + 1 - OWN[SPILL_KIND]) <= OWN[SPILL_INTO]:
+        room += 1
+    return room
+
+
+ROOM = _room()                                  # 26
+SPILL = ROOM - OWN[SPILL_KIND]                  # 5: weapon ids 200-204 on the heads' bits of ids 199-195
+MAX_NEW = {key: OWN[key] + SPILL if key == SPILL_KIND else OWN[key] - SPILL if key == SPILL_INTO else OWN[key]
+           for key in KINDS}                    # weapon 26, head 27, body 26
+LIMIT = {key: TABLE[key].count + MAX_NEW[key] for key in KINDS}   # the first id past the room: 205, 195, 200
+# The constants of felyne_marks.c (block felyne_marks_code)
+MARK_DEFINES = (f"FELYNE_WINDOW={WINDOW}", f"FELYNE_SPILL_BASE={MARK_BASE[SPILL_KIND]}", f"FELYNE_SPILL={SPILL}",
+                f"FELYNE_SPILL_TOP={MARK_BASE[SPILL_INTO] + WINDOW - 1}")
 
 # The literal-pool words that hold each table's address (virtual addresses of the words).
 WEAPON_POOL = 0x2F4760             # one of the 11 words that hold the weapons' (never repointed)
@@ -81,10 +108,11 @@ def _moved(code: bytes, address: int) -> int | None:
     return value - BASE if BASE <= value < BASE + len(code) else None
 
 
-def _used(code: bytes, offset: int, size: int, floor: int) -> int:
-    """Records of a stats table up to the last one that is not all zeros (never fewer than `floor`)."""
+def _used(code: bytes, offset: int, size: int, floor: int, end: int) -> int:
+    """Records of a stats table up to the last one that is not all zeros (never fewer than `floor`, never `end` or
+    more)."""
     count = floor
-    for i in range(floor, WINDOW):
+    for i in range(floor, end):
         if any(code[offset + i * size:offset + (i + 1) * size]):
             count = i + 1
     return count
@@ -111,7 +139,7 @@ def locate(code: bytes) -> dict[str, Location]:
         if stats_moved:
             pool = WEAPON_POOL if key == "weapon" else STATS_POOL[key][0]
             offset = _moved(code, pool) or offset
-            count = _used(code, offset, table.record_size, table.count)
+            count = _used(code, offset, table.record_size, table.count, LIMIT[key])
         if recipes_moved:
             recipe_offset = _moved(code, RECIPE_POOL[key]) or recipe_offset
             recipe_count = _listed(code, recipe_offset)

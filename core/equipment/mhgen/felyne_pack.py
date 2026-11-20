@@ -44,8 +44,9 @@ FELYNE_IDS = FIRST_LOOK + LAST_SOURCE + 1 + SPARE_MODELS      # entries of the m
 # looks (118 on); the next ported sets take the numbers past the last look: FIRST_LOOK + LAST_SOURCE + 1 (333) on
 # The Deviants' sets (folders 184 Boltreaver, 151 Hellblade, 185 Soulseer) wear the number of their own look
 # (FIRST_LOOK + folder): the files are the same, so a run with both writes them once (`merged`); no spare is used.
+# So do Nargacuga's X set (folder 18, 136) and Silverwind's two G sets (folder 147, 265).
 MODEL_SLOTS = {124: 114, 119: 115, 121: 116, 191: 117, 122: 333, 184: FIRST_LOOK + 184, 151: FIRST_LOOK + 151,
-               185: FIRST_LOOK + 185}
+               185: FIRST_LOOK + 185, 18: FIRST_LOOK + 18, 147: FIRST_LOOK + 147}
 PARTS = {"helm": "h", "body": "b", "we": "w"}   # MH4U's archive prefix `o_<part>` -> MHGen's file
 
 # The update's tables (VA; file offset + CODE_BASE) and the literal words their readers load them from. All

@@ -80,6 +80,7 @@
   {"id": 58, "path": "sound/bgm/battle/wav/bgm_em127.mca", "category": "monsters", "source": "ported", "name": {"monster": 127}, "needs": "great_maccao"},
   {"id": 59, "path": "sound/bgm/battle/wav/bgm_em129.mca", "category": "monsters", "source": "ported", "name": {"monster": 129}, "needs": "valstrax"},
   {"id": 60, "path": "sound/bgm/battle/wav/bgm_em130.mca", "category": "monsters", "source": "ported", "name": {"monster": 130}, "needs": "astalos"},
+  {"id": 86, "path": "sound/bgm/battle/wav/bgm_em134.mca", "category": "monsters", "source": "ported", "name": {"monster": 134}, "needs": "nargacuga"},
   {"id": 61, "path": "sound/bgm/battle/wav/bgm_Eiyu.mca", "category": "other", "source": "retail", "name": {"text": {"eng": "Proof of a Hero", "fre": "Preuve d'un héros", "ger": "Beweis eines Helden", "ita": "Prova di un eroe", "spa": "Prueba de un héroe"}}},
   {"id": 62, "path": "sound/bgm/system/wav/bgm_title.mca", "category": "other", "source": "retail", "name": {"text": {"eng": "Title", "fre": "Titre", "ger": "Titel", "ita": "Titolo", "spa": "Título"}}},
   {"id": 63, "path": "sound/bgm/system/wav/bgm_selectchara.mca", "category": "other", "source": "retail", "name": {"message": {"arc": "core_lobby", "file": "CharMake", "id": 0}}},

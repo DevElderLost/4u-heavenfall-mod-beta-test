@@ -447,11 +447,11 @@ def _base_cost(record: Mapping | None, rank: int, where: str,
     if record is not None and record.get("rule") == "free":
         return (), 0
     rank = max(rank, (record or {}).get("shown_rank", 0))       # a look moved up costs that rank's zenny
-    resolved = [(item if isinstance(item, int) else items.resolve_new(item), int(quantity))
+    resolved = [(item if isinstance(item, int) else items.resolve(item), int(quantity))
                 for item, quantity in (record or {}).get("materials", ())]
     materials = tuple(resolved) if all(item is not None for item, _ in resolved) else ()
     here = items.ported is None or (record or {}).get("ported", {}).get("key") in items.ported
-    ported = [(item if isinstance(item, int) else items.resolve_new(item), int(quantity)) for item, quantity in
+    ported = [(item if isinstance(item, int) else items.resolve(item), int(quantity)) for item, quantity in
               (record or {}).get("ported", {}).get("materials", ())] if here else []
     if ported and all(item for item, _ in ported):
         materials = tuple(ported)       # type: ignore[arg-type]

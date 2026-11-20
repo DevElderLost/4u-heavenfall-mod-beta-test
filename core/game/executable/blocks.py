@@ -242,6 +242,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.equipment.mhgen.felyne_pack import FELYNE_IDS, FIRST_MODEL, SOUND_SLOT
     from core.equipment.new_gear.felyne_data import FEATURE as FELYNE
     from core.equipment.new_gear.felyne_data import block_specs as felyne_blocks
+    from core.equipment.new_gear.felyne_data import MARK_DEFINES as FELYNE_MARK_DEFINES
     from core.gameplay.quests.quest_lists import HALL_LIST_LENGTH, NEW_QUEST_ROOM, SAVE_LIST_LENGTH
     from core.gameplay.wyporium import trades as wyporium_trades
     from core.gameplay.tail_fall.tail_fall import ANIMATION_SIZE as TAIL_FALL_ANIMATION_SIZE
@@ -308,7 +309,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
     BlockSpec("virtual_map", "monster_routes", "monsters/routes/virtual_map.s", region="ext"),
-    BlockSpec("virtual_maps", "monster_routes", size=4 * 320 + 4, region="ext"),
+    BlockSpec("virtual_maps", "monster_routes", size=4 * 352 + 4, region="ext"),
     BlockSpec("virtual_map_tables", "monster_routes", size=32 * 160, region="ext"),
     # The Smithy's layered gear screens (layered_selector.c, layered_forge.c) and its catalogs (equipment/layered/
     # layered_equipment.py, layered_data()), with the Felynes' looks (felyne_looks.c, felyne_looks_data:
@@ -366,6 +367,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("quest_special_levels", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
     BlockSpec("hall_quest_list", "new_quests", size=2 * (HALL_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
     BlockSpec("save_quest_list", "new_quests", size=2 * (SAVE_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
+    # the three instructions that address the save's cleared bits: positions 512-543 in one more word of the save data
+    BlockSpec("quest_bits", "new_quests", "gameplay/quests/quest_bits.s", region="ext"),
     # Black and Crimson Fatalis and Alatreon at low health (gameplay/monster_phases/monster_phases.py): their speed,
     # their World music by phase and the slain theme at the quest's end; the options and requests the patcher fills in
     # (8 bytes)
@@ -585,6 +588,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # bodies' and heads' stats and the body and weapon recipes, moved here with room for the new pieces
     # (felyne_data.block_specs)
     *(BlockSpec(name, FELYNE, size=size, region="ext") for name, size in felyne_blocks()),
+    # The save's marks of the Felyne ids past the window (equipment/new_gear/felyne_marks.py; docs/equipment/
+    # equipment_data.md, "What the save keeps"): the function that gives an id its bit and the four places' stubs
+    BlockSpec("felyne_marks_code", FELYNE, "equipment/new_gear/felyne_marks.c", region="ext",
+              defines=FELYNE_MARK_DEFINES),
+    BlockSpec("felyne_marks_stubs", FELYNE, "equipment/new_gear/felyne_marks.s", region="ext"),
     # A Felyne wearing a new piece is written to the save file wearing a Derring piece, and the real one is put back at
     # load (gameplay/felyne_save/felyne_save.py): both
     # hooks and their table
@@ -1134,6 +1142,20 @@ GAME_SYMBOLS = {
     "quest_cleared": 0xC21FE0,         # FUN_00c21fe0(save, quest id): non-zero if cleared
     "story_flag": 0xC1C278,            # FUN_00c1c278(save, flag): non-zero if the story flag is set (layered ranks)
     "quest_available_body": 0xA15B64,  # FUN_00a15b60's second instruction (the hook runs the first)
+    # The save's cleared bits past 512 (gameplay/quests/quest_bits.s): after each hooked `add rA, rA, #0x3F4`
+    "quest_bit_set_resume": 0xC1F1BC,     # FUN_00c1f170 (sets a quest's bit), after 0xC1F1B8
+    "quest_bit_count_resume": 0xC21EA8,   # FUN_00c21e24 (counts the cleared quests), after 0xC21EA4
+    "quest_bit_read_resume": 0xC22050,    # FUN_00c21fe0 (quest_cleared), after 0xC2204C
+    # The save's Felyne marks past the window (equipment/new_gear/felyne_marks.s): after each hooked `add` of the id
+    # and the base, and each function's way out with no mark
+    "felyne_mark_get_resume": 0xC1E9C4,   # FUN_00c1e998(save, type, id, array): a mark, after 0xC1E9C0
+    "felyne_mark_get_none": 0xC1EA44,     # its mov r0, #0; bx lr
+    "felyne_mark_set_resume": 0xC1FB04,   # FUN_00c1fadc(save, type, id, array): sets a mark, after 0xC1FB00
+    "felyne_mark_set_none": 0xC1FB48,     # its bx lr
+    "felyne_mark_clear_resume": 0xC22704,  # FUN_00c226dc(save, type, id, array): clears a mark, after 0xC22700
+    "felyne_mark_clear_none": 0xC22748,   # its bx lr
+    "felyne_mark_had_resume": 0xC2359C,   # FUN_00c23500(save, data, entry): a piece into the box, after 0xC23598
+    "felyne_mark_had_none": 0xC235CC,     # its pop {r4, r5, pc}
     # Monster phases (gameplay/monster_phases/monster_phases.s)
     "monster_theme": 0x30E16C,         # FUN_0030e16c(manager, monster id, u8 *queue, u32 *request)
     "music_play": 0x309D5C,            # FUN_00309d5c(manager, player, state, queue, [request, instance, force])
@@ -1358,6 +1380,9 @@ GAME_SYMBOLS |= {
     "bit_ref_copy": 0xD11F98,              # 0xB14824: a bit reference's copy (the same five instructions)
     "mt_mat_identity": 0x10E6448,          # 0xE2F4E0: the identity matrix, written at start-up
     "collision_ray_attr": 0x2B96E4,        # 0x2F6C38: a ray's hit attribute (engine_pairs.json, verified)
+    # 0x2F6F1C (MH XX 0x2CEE8C, xx_pairs.json verified): the line query (from, to, area, out, normal, record, kind,
+    # mask), MH XX's base 46's setup's (engine_pairs.json: the candidate the line checks 0x2B9888 / 0x2B9CD4 call)
+    "collision_line_query": 0x2B9904,
 }
 # ==== end of shell bases 00, 01 and 11 ====
 
@@ -2061,6 +2086,21 @@ GAME_SYMBOLS |= {
     "collision_line_4u": 0x2B9CD4,              # 0x2CF17C: (sCollision, this, from, to, area, out, normal, record, b),
                                                 # s0 the radius; XX's two virtual calls on `this` are direct uEnemy
                                                 # calls (0x911D34, 0x91DFC0); its Rathian calls it at 0x6D6034
+}
+
+# Nargacuga's MH4U engine calls (phase G2e; the comment holds the MH XX address; each
+# is a verified row of nargacuga/em037/pairs.py, read in both games by phase B1)
+GAME_SYMBOLS |= {
+    "enemy_fight_point_add": 0x933B30,  # 0x8BC884: (this, points) toward his rage (Boltreaver's name)
+    "enemy_set_em59ac": 0x94C57C,       # 0x8D94CC: (this, v) the word em+0x7E6C = v (em+0x5998 in XX)
+    # 0x8B6140 / 0x8B6668: (this, st, no) st 10 and no one of nine reactions (0x1F, 0x23 ... 0x85) / the nine after them
+    "enemy_is_reaction_a": 0x92D71C,
+    "enemy_is_reaction_b": 0x92E37C,
+    # 0x8DD018 (uFestaEnemy's slot 9, its two Festa core records and time left out): uEnemy's slot 9, the unit's move
+    "enemy_base_slot_9": 0x94CD6C,
+    # an adapter's callee (xx_area_pos_test, 0x895574: em037/engine_4u.c)
+    "area_zone_test_4u": 0x6C5878,      # (sStage, area, pos, zone out, kind out): pos in one of the area's zone
+                                        # cylinders (sStage+0x34C + 4 x area) of an active kind (sStage+0x14)
 }
 
 # The C-stick turns the camera analogically (gameplay/modern_camera/modern_camera.c)

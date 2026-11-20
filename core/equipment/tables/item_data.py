@@ -116,7 +116,7 @@ CARVE_POINTERS = 0x1002A5C
 CARVE_COUNT = 1124
 CARVE_WORDS = (0x684BB0, 0x912298, 0x926374, 0x9358FC)
 CARVE_WINDOW = 4
-MAX_CARVE_TABLES = 50            # windows added past the game's 1124 entries (ORDER's places x 4, and the shiny ones)
+MAX_CARVE_TABLES = 60            # windows added past the game's 1124 entries (ORDER's places x 4, and the shiny ones)
 CARVE_POINTER_BYTES = (CARVE_COUNT + CARVE_WINDOW * MAX_CARVE_TABLES) * 4
 CARVE_LIST_BYTES = 6144          # the new lists: 4 bytes an entry and a 4-byte end, shared when identical
 CARVE_END = b"\xff\xff\x00\x00"
@@ -136,7 +136,7 @@ BREAK_BITS = 8                   # reward bits a monster has (em+0x7987 is a byt
 BREAK_TABLE_ENTRIES = BREAK_BITS * BREAK_WINDOW
 MAX_BREAK_TABLES = 12            # monsters with a table of their own, a place each (curated.ORDER's length at most)
 BREAK_POINTER_BYTES = (BREAK_COUNT + BREAK_TABLE_ENTRIES * MAX_BREAK_TABLES) * 4
-BREAK_LIST_BYTES = 2048          # the new lists: 6 bytes a row and a 2-byte end, shared when identical
+BREAK_LIST_BYTES = 2560          # the new lists: 6 bytes a row and a 2-byte end, shared when identical
 BREAK_END = b"\xff\xff"
 
 # The shiny drops: FUN_00911f58 reads a list of the carve pointer

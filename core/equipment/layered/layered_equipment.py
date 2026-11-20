@@ -244,6 +244,7 @@ WIRE_MODELS = 256            # the looks message holds a weapon model in a byte
 # game's save data in memory never holds it: it is cleared there as soon as a save is loaded. A save of an earlier
 # build wrote 0x32 bytes: the colours past them are zero there, the looks' own.
 SAVE_AT = 0x125C0
+SAVE_SIZE = 0x3C             # sizeof(struct layered_state) (layered.h's _Static_assert)
 SAVE_MAGIC = 0x4C            # its byte 1 (layered_state.reserved) in the save: the bytes are a layered_state
 
 # The switch in the game (layered_switch.c): the block's byte that holds Mod Settings' row (its place in

@@ -161,11 +161,14 @@
    "diablos": "Diablos", "monoblos": "Monoblos", "cham": "Chameleos", "cephalos": "Cephadrome",
    "hermitaur": "Daimyo Hermitaur", "ukanlos": "Ukanlos", "shagaru": "Shagaru Magala", "arc": "Shagaru Magala",
    "storge": "Shagaru Magala", "mizutsune": "Mizutsune", "glavenus": "Glavenus", "escadora": "Alatreon",
-   "maccao": "Great Maccao", "valstrax": "Valstrax", "astalos": "Astalos"
+   "maccao": "Great Maccao", "valstrax": "Valstrax", "astalos": "Astalos", "nargacuga": "Nargacuga"
   },
   "ported": {"Mizutsune": "mizutsune", "Glavenus": "glavenus", "Alatreon": "alatreon", "Great Maccao": "great_maccao", "Valstrax": "valstrax", "Astalos": "astalos",
               "Boltreaver Astalos": "boltreaver",
-              "Hellblade Glavenus": "hellblade", "Soulseer Mizutsune": "soulseer"},
+              "Hellblade Glavenus": "hellblade", "Soulseer Mizutsune": "soulseer", "Nargacuga": "nargacuga",
+              "Silverwind Nargacuga": "silverwind"},
+  "ported_items": {"Silverwind Scale": "Silverwind Nargacuga", "Silverwind Blackfur": "Silverwind Nargacuga"},
+  "ported_family": {"Silverwind Nargacuga": "Nargacuga"},
   "monster": {
    "Snowbaron": ["Lagombi", "deviant Lagombi: its recipe asks the white-hare materials"],
    "Stonefist": ["Daimyo Hermitaur", "deviant Hermitaur: shield-crab materials"],
@@ -192,7 +195,7 @@
    "Hylian Hair Tie": ["Kushala Daora", "a crossover set made only of steel-dragon (Kushala Daora) materials"],
    "Hylian Hood": ["Kushala Daora", "a crossover set made only of steel-dragon (Kushala Daora) materials"],
    "Redhelm": ["none", "deviant Arzuros: MH4U has no Arzuros"],
-   "Silverwind": ["none", "deviant Nargacuga: MH4U has no Nargacuga"],
+   "Silverwind": ["Silverwind Nargacuga", "deviant Nargacuga: a ported monster; asks his own item"],
    "Crystalbeard": ["none", "deviant Uragaan: MH4U has no Uragaan"],
    "Hellblade": ["Hellblade Glavenus", "deviant Glavenus: a ported monster; asks his own item"],
    "Nightcloak": ["none", "deviant Malfestio: MH4U has no large Malfestio"],
