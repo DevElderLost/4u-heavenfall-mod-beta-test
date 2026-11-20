@@ -88,7 +88,8 @@ EXT_START = 0x111E000
 # + Silverwind Nargacuga's shells on bases 45 and 46: the two bases' code, his sp_45 and sp_46 images and four vtables
 #   (6 pages)
 # + the item marks: their stubs, their C and its data (2 pages)
-EXT_SIZE = 0x22E000
+# + Layered Gear's item box line and its screens there (1 page)
+EXT_SIZE = 0x22F000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that

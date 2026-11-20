@@ -8,7 +8,10 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Beside your money, the tree shows the price of the weapon under the cursor, grey when you are short.
 
 ### Layered Gear
+- Layered Gear gains Nargacuga's and Silverwind Nargacuga's looks from Monster Hunter XX.
 - Monster Hunter XX's Felyne costumes, like Happy's, show their own head; transforming weapons show their drawn form.
+- Every item box has a Layered Gear line to put on the looks you own.
+- Your Guild Card shows your Layered Gear, and modded players' cards keep and show theirs.
 
 ### QoL
 - Your Housekeeper has a Jukebox: playlists of the game's music can play in the towns instead of theirs.

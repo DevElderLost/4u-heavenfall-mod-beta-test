@@ -39,7 +39,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Item marks**: a yellow star (white if you prefer) on upgraded items such as Mega Potions (two on level 3 ammo), and rare materials that glow on the quest rewards screen.
 - A **Jukebox** at your Housekeeper: playlists of the game's music, played in the towns instead of their own.
 - **A smaller HUD**, from 90% to 60%.
-- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Mod Settings can hide it for a character.
+- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Every item box puts on the looks you own, and your Guild Card shows them. Mod Settings can hide it for a character.
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.
 - **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
 

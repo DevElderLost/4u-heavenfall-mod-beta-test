@@ -232,6 +232,30 @@ ONLINE_FRAME = 0x9D9430
 # cat from a compact (FUN_00c35ec4 when it is made, FUN_00a47160 when its owner changed its gear or a look arrived)
 ONLINE_FELYNE_GEAR = 0x2455E4
 ONLINE_HALL_CATS = (0xC35F88, 0xA47194)
+# The Guild Card (equipment/layered/layered_card.c): FUN_009fbd08's `bl FUN_009b9f30(screen, card, info)`, its 3D hunter
+# built from the card shown, which the stub notes.
+CARD_INFO = 0x9FBD80
+CARD_CALLS = {CARD_INFO: ("layered_card_info", 0x9B9F30)}
+# The item box's Layered Gear line (equipment/layered/layered_box.c). Calls: FUN_009ec82c's `bl FUN_00589bf0` after the
+# line count's store (the line added), FUN_009fd87c's
+# `bl FUN_00a55a20` (the box menu's commands, then the line's panes and help).
+BOX_CALLS = {0x9EC8B0: ("layered_box_opened", 0x589BF0), 0x9FD8C8: ("layered_box_menu", 0xA55A20)}
+# Instructions a stub runs in place of the game (a `bl` there): FUN_00a20634's count store (a menu with no line),
+# FUN_00a46694's test of the line before its A switch, FUN_009c9ee0's read of the line chosen.
+BOX_WORDS = {0xA20690: ("layered_box_other", 0xE5C4000A), 0xA4672C: ("layered_box_key", 0xE3590007),
+             0x9CA0B0: ("layered_box_pick", 0xE1D400D6)}
+# Branches a stub takes over, going on to the same place: FUN_009c9ee0's choice default (the line opens the screens),
+# the default of its states (BOX_STATE runs them).
+BOX_JUMPS = {0x9CA0C0: ("layered_box_open", 0x9CA31C), 0x9C9F64: ("layered_box_state", 0x9CA580)}
+# FUN_00a9a38c's default `bx lr` (the box's way out of a state: back to its menu, or closed by force): a `b` to the
+# stub, which takes the screens down when the state is ours and returns as the game does.
+BOX_OUT = 0xA9A398
+BX_LR = 0xE12FFF1E
+# FUN_00a46694's A switch on the lines' column: its default (a line past 6) opened a line's choices; it takes the
+# choice instead, as lines 0 and 1 do (the decide sound, return 1). Only the line can be there (layered_box_key).
+BOX_KEY_DEFAULT = 0xA4673C
+BOX_KEY_CHOICES = 0xA46768
+BOX_KEY_TAKEN = 0xA468C4
 ONLINE_CALLS = {ONLINE_GEAR: ("layered_net_gear", 0x248A30), ONLINE_ANSWER: ("layered_net_answer", 0x24A2A8),
                 ONLINE_SNAPSHOT: ("layered_quest_snapshot", 0x2B3664), ONLINE_FRAME: ("layered_town_frame", 0xA0050C),
                 ONLINE_FELYNE_GEAR: ("layered_net_gear", 0x248A30),
@@ -300,10 +324,13 @@ def supports_layered_equipment(code: bytes) -> bool:
         return False
     if any(_word(code, at) != words[0] for at, words in FELYNE_NUMBERS.items()):
         return False
-    if any(bl_target(code, at) != callee for at, (_, callee) in {**GAME_CALLS, **FELYNE_CALLS, **ONLINE_CALLS}.items()):
+    if any(bl_target(code, at) != callee
+           for at, (_, callee) in {**GAME_CALLS, **FELYNE_CALLS, **ONLINE_CALLS, **CARD_CALLS, **BOX_CALLS}.items()):
         return False
     if any(code[at - BASE_ADDRESS:at - BASE_ADDRESS + 4] != branch_word(at, callee)
-           for at, (_, callee) in GAME_JUMPS.items()):
+           for at, (_, callee) in {**GAME_JUMPS, **BOX_JUMPS, BOX_KEY_DEFAULT: (None, BOX_KEY_CHOICES)}.items()):
+        return False
+    if any(_word(code, at) != word for at, (_, word) in BOX_WORDS.items()) or _word(code, BOX_OUT) != BX_LR:
         return False
     receive = ONLINE_RECEIVE - BASE_ADDRESS
     if code[receive:receive + 4] != branch_word(ONLINE_RECEIVE, ONLINE_DONE):
@@ -592,8 +619,20 @@ def patch_layered_equipment(code: bytes, layout: Layout | None = None, looks: Lo
     # The looks message: the game's sends, and the dispatcher's way out for the types it does not know.
     for at, (stub, callee) in ONLINE_CALLS.items():
         layout.hook(out, at, symbol(stub), calls=callee)
+    # The Guild Card's hunter: the card it is built from.
+    for at, (stub, callee) in CARD_CALLS.items():
+        layout.hook(out, at, symbol(stub), calls=callee)
     layout.hook(out, ONLINE_RECEIVE, symbol("layered_net_receive_hook"), link=False,
                 original=branch_word(ONLINE_RECEIVE, ONLINE_DONE))
+    # The item box's line.
+    for at, (stub, callee) in BOX_CALLS.items():
+        layout.hook(out, at, symbol(stub), calls=callee)
+    for at, (stub, word) in BOX_WORDS.items():
+        layout.hook(out, at, symbol(stub), original=struct.pack("<I", word))
+    for at, (stub, target) in BOX_JUMPS.items():
+        layout.hook(out, at, symbol(stub), link=False, original=branch_word(at, target))
+    layout.hook(out, BOX_OUT, symbol("layered_box_out"), link=False, original=struct.pack("<I", BX_LR))
+    out[BOX_KEY_DEFAULT - BASE_ADDRESS:BOX_KEY_DEFAULT - BASE_ADDRESS + 4] = branch_word(BOX_KEY_DEFAULT, BOX_KEY_TAKEN)
     for at, (stub, word) in FELYNE_WORDS.items():
         layout.hook(out, at, symbol(stub), original=struct.pack("<I", word))
     for at, (_, word) in FELYNE_NUMBERS.items():

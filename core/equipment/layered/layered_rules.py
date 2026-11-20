@@ -86,7 +86,8 @@ RECIPE_SLOTS = 4                  # the game's recipe record has four, and the g
 # looks (2), of each class' weapons (2 x 14) and of the Felyne rows (u32 each, parallel to the rules); the screens'
 # order of the armor looks, of each class' weapons (14) and of the Felyne rows (look_order.py: u16 entries, both
 # catalogs); the owned bit of each armor look (2: u16 each, parallel to the rules; `armor_bits`); where the zone's
-# format byte is in it and its value; the messages of the entry's Relics line and of its help (RELIC_KEYS)
+# format byte is in it and its value; the messages of the entry's Relics line and of its help (RELIC_KEYS); the help
+# lines of a screen refused at the item box, in the screens' modes' order (NONE_KEYS), and a spare
 UNLOCK_ROOM = 4                   # entries per rank (0 ends a list)
 UNLOCK_FLAG = 0x8000              # an entry with this bit is a story flag (the other bits), else a quest id
 UNLOCK_OPEN = 0xFFFF              # an entry that always holds: the rank opens at once (layered_by_rank off)
@@ -97,8 +98,10 @@ HEADER = struct.Struct(f"<I{CATALOGS}I{CATALOGS * CLASSES}I{CATALOGS}I{CATALOGS 
                        f"{len(RANK_UNLOCKS) * UNLOCK_ROOM}H"
                        f"{CATALOGS}I{CATALOGS * CLASSES}II"
                        f"I{CLASSES}II"
-                       f"{CATALOGS}I2H2H")
+                       f"{CATALOGS}I2H2H"
+                       "3Hxx")
 RELIC_KEYS = ("relics", "help_relics")
+NONE_KEYS = ("none_armor", "none_weapons", "none_felyne")   # layered.h M_ARMOR, M_WEAPON, M_FELYNE
 ROW = struct.Struct("<2H3Bx")         # a Felyne row: number, message, parts mask (LOOK_PARTS order), rank, game
 RECIPE = struct.Struct(f"<{2 * RECIPE_SLOTS}H")        # 4 x (item, quantity): what the game's box reads
 MAX_ZENNY = 999_999               # a look's zenny: a u32 of the block, at most the price row's six digits
@@ -176,6 +179,7 @@ class Rules:
     armor_bits: list[list[int]] = field(default_factory=list)  # per catalog, per look: its owned bit (armor_bits)
     zone_format: tuple[int, int] = (0, 0)                      # (ZONE_FORMAT_AT, ZONE_FORMAT)
     relic_messages: tuple[int, int] = (0, 0)                   # RELIC_KEYS -> E_makeshop message
+    none_messages: tuple[int, ...] = ()                        # NONE_KEYS -> E_makeshop message
 
 
 def rank_unlock_words(unlocks: Mapping, by_rank: bool = True) -> list[int]:
@@ -794,7 +798,8 @@ def layered_rules(looks: Looks | None = None, gen=None, felynes: FelyneLooks = N
                          *(message_id(key) for key in FORGE_KEYS), *unlocks,
                          *armor_zenny_at, *weapon_zenny_at, felyne_zenny_at,
                          armor_order_at, *weapon_order_at, felyne_order_at,
-                         *armor_bits_at, ZONE_FORMAT_AT, ZONE_FORMAT, *(message_id(key) for key in RELIC_KEYS))
+                         *armor_bits_at, ZONE_FORMAT_AT, ZONE_FORMAT, *(message_id(key) for key in RELIC_KEYS),
+                         *(message_id(key) for key in NONE_KEYS))
     return header + bytes(body) + bytes(-(len(header) + len(body)) % 4)
 
 
@@ -824,7 +829,8 @@ def read_rules(data: bytes) -> Rules:
     armor_bits_at = [next(at) for _ in range(CATALOGS)]
     zone_format = (next(at), next(at))
     relic_messages = (next(at), next(at))
-    conds = struct.unpack_from(f"<{words_n}H", data, conds_at)
+    none_messages = tuple(next(at) for _ in NONE_KEYS)
+    conds =struct.unpack_from(f"<{words_n}H", data, conds_at)
 
     def listed(rule: int) -> tuple[int, ...]:
         end = conds.index(0, rule)
@@ -859,4 +865,4 @@ def read_rules(data: bytes) -> Rules:
                       for k in range(CLASSES)],
         felyne_order=list(struct.unpack_from(f"<{rows_n}H", data, felyne_order_at)),
         armor_bits=[list(struct.unpack_from(f"<{armor_n[c]}H", data, armor_bits_at[c])) for c in range(CATALOGS)],
-        zone_format=zone_format, relic_messages=relic_messages)
+        zone_format=zone_format, relic_messages=relic_messages, none_messages=none_messages)

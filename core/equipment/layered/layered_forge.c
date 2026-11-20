@@ -735,6 +735,31 @@ static const struct fg_mode *mode_of(void)
     return &FS->modes[U->mode];
 }
 
+/* The model's rectangle beside the list: over the materials box at the Smithy, the whole left column at the item box,
+   which has no box. */
+static const int *list_camera(void)
+{
+    return U->from_box ? FS->box.camera : FS->camera;
+}
+
+/* How much lower the cues on the model's frame sit: as much as the model's rectangle grows. */
+static int cue_shift(void)
+{
+    return list_camera()[3] - FS->camera[3];
+}
+
+/* The left column's panes as the screen has them: the Smithy's, or the item box's taller ones. Placed on every screen,
+   so a screen of the other kind finds them as it wants them. */
+static void left_column(void)
+{
+    const struct fg_rect *at = FS->box.left[U->from_box != 0];
+    u32 group = group_of(G_LEFT);
+    struct ref r;
+    for (u32 i = 0; i < LEFT_PANES; i++)
+        if (kit_sprite_place(&r, group, FS->box.left_hashes[i], at[i].x, at[i].y, at[i].w, at[i].h))
+            sprite_changed(&r);
+}
+
 static u32 button_index(u32 row, u32 button)
 {
     return row < ARMOR_ROWS ? row * ROW_BUTTONS + button : ARMOR_ROWS * ROW_BUTTONS + row - ARMOR_ROWS;
@@ -903,6 +928,13 @@ static void draw_owned(void)
     const struct fg_owned *o = &FS->owned;
     u32 rows = group_of(G_ROWS);
     struct ref r;
+    if (U->from_box) {           /* always on there: nothing to show or change */
+        for (u32 piece = 0; piece < OWNED_CURSOR; piece++)
+            sprite_hide(piece < OWNED_SELECTED ? group_of(G_RIGHT) : rows, H_OWNED + piece);
+        text_hide(rows, H_OWNED + OWNED_WORD);
+        text_hide(rows, H_OWNED + OWNED_LETTERS);
+        return;
+    }
     for (u32 piece = 0; piece < OWNED_CURSOR; piece++) {
         const struct fg_rect *at = &o->rect[piece];
         u32 group = piece < OWNED_SELECTED ? group_of(G_RIGHT) : rows;
@@ -1255,6 +1287,7 @@ static void draw_dye_once(void)
 static void draw_select_cue(int shown)
 {
     u32 group = group_of(G_CUE);
+    int dy = cue_shift();
     struct ref r;
     for (u32 i = 0; i < 6; i++) {
         u32 hash = DY->hashes[DH_SELECT + i];
@@ -1262,7 +1295,7 @@ static void draw_select_cue(int shown)
         if (i < 4) {
             if (!shown || i > 0)
                 kit_sprite_hide(group, hash);
-            else if (kit_sprite_place(&r, group, hash, at->x, at->y, at->w, at->h))
+            else if (kit_sprite_place(&r, group, hash, at->x, at->y + dy, at->w, at->h))
                 sprite_changed(&r);
             continue;
         }
@@ -1273,7 +1306,7 @@ static void draw_select_cue(int shown)
         u32 *text = kit_text(&r, group, hash);
         if (!text)
             continue;
-        kit_text_place(text, at->x, at->y, at->w);
+        kit_text_place(text, at->x, at->y + dy, at->w);
         if (i == 4)
             text_lobby(&r, MAKESHOP, DY->msg_select);
         else
@@ -1290,16 +1323,17 @@ static void draw_select_cue(int shown)
 static void draw_cue(u32 in_mode)
 {
     const struct fg_rect *at = !in_mode && U->mode == M_ARMOR ? DY->start_cue : FS->cue[in_mode];
+    int dy = in_mode ? 0 : cue_shift();
     u32 group = group_of(G_CUE);
     struct ref r;
     for (u32 piece = 0; piece < 2; piece++)
-        if (sprite_place(&r, group, H_CUE + piece, at[piece].x, at[piece].y, at[piece].w, at[piece].h))
+        if (sprite_place(&r, group, H_CUE + piece, at[piece].x, at[piece].y + dy, at[piece].w, at[piece].h))
             sprite_changed(&r);
     u32 *text = text_of(&r, group, H_CUE + 2);
     if (text) {
         u32 *holder = (u32 *)text[0];
         holder[0] = text[TX_X] = float_bits(HALF_WIDTH - (int)at[2].x);
-        holder[1] = text[TX_X + 1] = float_bits(HALF_HEIGHT - (int)at[2].y);
+        holder[1] = text[TX_X + 1] = float_bits(HALF_HEIGHT - (int)(at[2].y + dy));
         text[TX_W] = float_bits(at[2].w);
         text_lobby(&r, ITEMBOX, in_mode ? MSG_SHOW_MENU : MSG_CAMERA);
         text_show((u32)text, 1);
@@ -1352,10 +1386,19 @@ static void draw_materials(u32 obj, const struct look *l)
     draw_price(l);
 }
 
+/* The money window: the Smithy's screens only. The item box's buy nothing, and its scene need not have the window. */
 static void draw_money(u32 obj)
 {
+    if (U->from_box)
+        return;
     money_write(obj, *(u32 *)(save_control + SAVE_MONEY), 1);
     money_show(obj, 1, 0);
+}
+
+static void hide_money(u32 obj)
+{
+    if (!U->from_box)
+        money_show(obj, 0, 0);
 }
 
 /* The cursor moved or the list changed. A row without the button takes the nearest one to the left. */
@@ -1369,7 +1412,8 @@ static void refresh(u32 obj, int rows)
         U->button--;
     draw_cursor();
     draw_keys();
-    draw_materials(obj, &l);
+    if (!U->from_box)
+        draw_materials(obj, &l);
 }
 
 /* ----- the preview ----------------------------------------------------------------------------------------- */
@@ -1430,7 +1474,7 @@ static void preview_open(u32 obj)
             p->pushed = 1;          /* FUN_009edcec in this mode does not put the record on */
         }
     }
-    preview_rectangle(obj, FS->camera);
+    preview_rectangle(obj, list_camera());
 }
 
 static void preview_close(u32 obj)
@@ -1660,10 +1704,12 @@ static void buy_prompt(u32 obj)
 static void screen_on(u32 obj)
 {
     groups_show(1);
+    left_column();
     preview_open(obj);
     screens_open = 1;
     U->sub = F_LIST;
-    box_cut(1);
+    if (!U->from_box)
+        box_cut(1);
     draw_filters();
     draw_owned();
     draw_cue(0);
@@ -1689,10 +1735,14 @@ int forge_open(u32 obj, u32 mode)
     u->mode = mode;
     u->box_cut = 0;              /* no screen is on, so the box is whole: a game that ended on one loaded it again */
     u->unlocked = unlocked_rank();
-    u->owned_only = 0;           /* a screen opens with the owned plate off, as with every filter at All */
+    u->owned_only = u->from_box; /* a screen opens with the owned plate off, as with every filter at All; the item box's
+                                    lists only what is bought */
     u->grey = grey_mask();
     if (u->grey == ALL_GREY) {
         play(SOUND_ERROR);
+        if (u->from_box)
+            u->refused = 1 + mode;   /* the help line: nothing of it bought (the Smithy's refusal, no look of the ranks
+                                        open, keeps its help) */
         return 0;
     }
     u->rank = RANK_ALL;
@@ -1719,11 +1769,24 @@ static void forge_close(u32 obj)
     box_cut(0);
     groups_show(0);
     forge_hide(obj);
-    money_show(obj, 0, 0);
+    hide_money(obj);
     preview_close(obj);
     screens_open = 0;
     P->pushed = 0;
     forge_back_to_menu(obj);
+}
+
+/* Everything of the screens off at once, at whatever level and in whatever mode (the item box's teardown, which the box's
+   forced close runs too: layered_box.c). The game's own panels and the facility menu are the caller's. */
+void forge_shut(u32 obj)
+{
+    if (screens_open) {
+        kit_group_show(dye_group(), 0, DY->priority);
+        groups_show(0);
+        screens_open = 0;
+    }
+    preview_close(obj);
+    P->pushed = 0;
 }
 
 /* START: as the game's View Mode (FUN_00a93250) the panels go, and as its forge's "try on" tab the model has the whole frame
@@ -1732,7 +1795,7 @@ static void camera_enter(u32 obj)
 {
     groups_show(0);
     forge_hide(obj);
-    money_show(obj, 0, 0);
+    hide_money(obj);
     screen_group_show(G_CUE, 1);
     model_frame();
     preview_rectangle(obj, FS->camera_full);
@@ -1746,7 +1809,7 @@ static void camera_leave(u32 obj)
 {
     forge_hide(obj);
     groups_show(1);
-    preview_rectangle(obj, FS->camera);
+    preview_rectangle(obj, list_camera());
     draw_cue(0);
     refresh(obj, 0);
     draw_money(obj);
@@ -2052,7 +2115,10 @@ static void row_a(u32 obj)
     } else if (owned(&l)) {
         wear(&l, U->button, 1);
     } else {
-        buy_ask(obj, &l);
+        if (U->from_box)
+            play(SOUND_ERROR);   /* nothing is sold at the item box */
+        else
+            buy_ask(obj, &l);
         return;
     }
     play(SOUND_DECIDE);
@@ -2139,7 +2205,8 @@ static __attribute__((noinline)) void list_keys(u32 obj)
     struct ui *u = U;
     u32 dirs = facility_dirs(obj), rows = held_rows();
     if (pad_word(PAD_RAW_PRESSED) & RAW_ZL) {
-        owned_toggle(obj);       /* from the list or a filter, before everything else */
+        if (!u->from_box)
+            owned_toggle(obj);   /* from the list or a filter, before everything else; the item box's stays on */
         return;
     }
     if (pad_word(PAD_RAW_HELD) & RAW_ZL)
@@ -2159,7 +2226,7 @@ static __attribute__((noinline)) void list_keys(u32 obj)
         if (dirs & DIR_UP) {
             if (u->focus == FOCUS_GAME)
                 focus_to(FOCUS_RANK);
-            else if (u->focus == FOCUS_RANK)
+            else if (u->focus == FOCUS_RANK && !u->from_box)
                 focus_to(FOCUS_OWNED);
         } else if (dirs & DIR_DOWN) {
             if (u->focus == FOCUS_OWNED)

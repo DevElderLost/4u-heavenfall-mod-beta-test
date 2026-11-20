@@ -363,9 +363,9 @@ static int creation_hunter(const u8 *st)
     return game && st[0x30] == SELECT_KIND && *(const u32 *)(st + ST_INFO) == (u32)(game + GAME_INFO);
 }
 
-/* The looks a hunter (its status) wears: the screen's preview, a hunter select screen's slot's, the local
-   hunter's, another player's (a hall hunter: the entry of its member; a quest hunter: the quest's snapshot, both built
-   in `out`), or none (the character creation's included). The switch (layered_switch.c) takes the local hunter's and
+/* The looks a hunter (its status) wears: the screen's preview, a hunter select screen's slot's, the Guild Card's (the
+   card shown: layered_card.c), the local hunter's, another player's (a hall hunter: the entry of its member; a quest
+   hunter: the quest's snapshot, both built in `out`), or none (the character creation's included). The switch (layered_switch.c) takes the local hunter's and
    the others' off; the preview shows what it tries on whatever it says. */
 static const struct layered_state *looks_of(const u8 *st, struct layered_state *out)
 {
@@ -379,6 +379,8 @@ static const struct layered_state *looks_of(const u8 *st, struct layered_state *
         return slot_looks;
     if (creation_hunter(st) || !layered_shown())
         return 0;
+    if (layered_card_hunter(st))
+        return layered_card_looks(out);
     if (local_status(st))
         return layered_state.enabled ? &layered_state : 0;
     const u8 *game = GAME_STATE;
@@ -734,8 +736,12 @@ static void back(u32 obj, u8 *state)
         else
             show_entry(obj, 0);
     } else {
-        state[0] = 1;  /* the Smithy's menu again, on our line */
-        facility_menu_set(obj, u->smithy_menu, u->smithy_row, 0xFF);
+        if (u->from_box) {
+            u->box_state |= BOX_LEAVING;                /* the box's menu again (layered_box_frame, layered_box_down) */
+        } else {
+            state[0] = 1;  /* the Smithy's menu again, on our line */
+            facility_menu_set(obj, u->smithy_menu, u->smithy_row, 0xFF);
+        }
         if (*(u32 *)(obj + OBJ_HUNTER))
             hunter_reload(*(u32 *)(obj + OBJ_HUNTER), 0);   /* the real hunter wears the looks chosen */
         layered_net_state_left();                           /* and the other players see them */
@@ -804,6 +810,9 @@ ARM void layered_open(u32 obj, u8 *state)
     struct ui *u = &layered_ui;
     u->smithy_menu = *(u8 *)(obj + OBJ_MENU);
     u->smithy_row = state[STATE_ROW];
+    u->from_box = 0;             /* the Smithy's screens sell, */
+    u->box_state = 0;            /* and nothing a box left behind stops their menu */
+    u->refused = 0;
     felyne_ui.dirty = 0;
     state[0] = LAYERED_STATE;
     play(SOUND_DECIDE);
@@ -818,6 +827,8 @@ u32 help_message(void)
     const u8 *cats[FELYNE_MAX_ACTIVE];
     if (u->level == FORGE)
         return R->messages[u->mode == M_WEAPON ? MSG_HELP_WEAPONS : u->mode == M_ARMOR ? MSG_HELP_ARMOR : MSG_HELP_FELYNE];
+    if (u->refused)
+        return R->msg_none[u->refused - 1];
     if (u->level == CATS)
         return felyne_looks_data.msg_choose;
     if (u->level == CLASSES_MENU || u->cursor.index == 0)
@@ -829,7 +840,8 @@ u32 help_message(void)
     return felyne_active(cats) ? R->messages[MSG_HELP_FELYNE] : felyne_looks_data.msg_none;
 }
 
-/* layered_smithy_update: every frame of the Smithy's state 3. */
+/* layered_smithy_update: every frame of the Smithy's state 3 (layered_box_frame: of the box's BOX_STATE, `state` the box
+   menu). */
 ARM void layered_update(u32 obj, u8 *state)
 {
     struct ui *u = &layered_ui;
@@ -838,12 +850,66 @@ ARM void layered_update(u32 obj, u8 *state)
         return;
     }
     facility_help(1, MAKESHOP, help_message());
+    u32 at = u->cursor.index;
     u32 result = menu_cursor_update(obj, &u->cursor, 0);
+    if (result || u->cursor.index != at)
+        u->refused = 0;          /* a refusal's help lasts until the cursor moves (choose may refuse again) */
     if (result == 2)
         back(obj, state);
     else if (result == 1)
         choose(obj, u->cursor.index);
-    if (state[0] != LAYERED_STATE || u->level == FORGE)
+    /* At a box, only leaving stops the menu (BOX_FRAME alone is the box's frame to bind again later); the Smithy never
+       reads the box's flags */
+    if (state[0] != (u->from_box ? BOX_STATE : LAYERED_STATE) || u->level == FORGE
+        || (u->from_box && u->box_state & (BOX_LEAVING | BOX_DOWN)))
         return;
     facility_menu_set(obj, menu_shown(), u->cursor.row, 0xFF);
+}
+
+/* ----- from the item box (layered_box.c) ----------------------------------------------------------------------- */
+
+#define FRAME_BOUND 0x50         /* the preview's frame widget (obj + OBJ_FRAME): 1 once FUN_0059e5d0 bound it */
+
+/* layered_box_open: the item box's Layered Gear line was chosen (FUN_00a46694 played the decide sound, FUN_00a9a38c hid
+   the box's menu); `menu` is the box menu, whose state byte the screens then run in. The facility menu is opened with
+   FUN_00a5d584, which binds its panes (scene + 0x98D0) as the Smithy's first state does: a box of an area whose Smithy
+   was never visited has them unbound. */
+ARM void layered_box_entry(u32 obj, u8 *menu)
+{
+    struct ui *u = &layered_ui;
+    u->from_box = 1;             /* equip only */
+    u->box_state = *(u8 *)(obj + OBJ_FRAME + FRAME_BOUND) ? BOX_FRAME : 0;
+    u->refused = 0;
+    felyne_ui.dirty = 0;
+    box_screens_open(obj);
+    menu[0] = BOX_STATE;
+    show_entry(obj, 0);
+    facility_menu_open(obj, LAYERED_MENU, 0, 0xFF);
+}
+
+/* layered_box_state: every frame of the box's BOX_STATE: the screens, and the facility menu drawn as the Smithy's own tail
+   draws it; 2 once the entry was left: the box takes the screens down (its FUN_00a9a38c: layered_box_down), then
+   rebuilds its menu, the cursor still on the line. Nothing once they are down (the box closed by force keeps the state). */
+ARM u32 layered_box_frame(u32 obj, u8 *menu)
+{
+    struct ui *u = &layered_ui;
+    if (u->box_state & BOX_DOWN)
+        return 0;
+    layered_update(obj, menu);
+    if (u->box_state & BOX_LEAVING)
+        return 2;
+    facility_menu_draw(obj);
+    return 0;
+}
+
+/* FUN_00a9a38c, the box's way out of a state, with BOX_STATE: B on the entry, or the box closed by force (a quest, the
+   network). The screens go, once. */
+ARM void layered_box_down(u32 obj, u8 *menu)
+{
+    struct ui *u = &layered_ui;
+    (void)menu;
+    if (!u->from_box || u->box_state & BOX_DOWN)
+        return;
+    u->box_state |= BOX_DOWN;
+    box_screens_close(obj);
 }

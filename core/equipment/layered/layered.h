@@ -37,6 +37,7 @@ extern u8 lobby_hunter_loader[];
 #define MAKESHOP 6               /* E_makeshop among the lobby's message files */
 #define COMMON 0x100             /* a common message file (layered_text_kind) */
 #define LAYERED_STATE 3          /* the Smithy's state the screens run in */
+#define BOX_STATE 0x14           /* the item box's (FUN_009c9ee0) state they run in from the box: the first past its own */
 #define LAYERED_MENU 18          /* the facility menu the block adds: its lines are layered_ui.lines */
 #define NO_MENU 0xFF             /* facility_menu_set: FUN_00a0a708 hides ui401's own groups */
 #define NO_ARMOR 0xFFFE          /* an armor value of layered_state that is no model: the part is drawn as armor id 0
@@ -128,22 +129,30 @@ struct ui {                      /* the variable layered_ui: a screen's whole st
     u8 unlocked;                 /* the highest rank open (RANK_LOW, RANK_HIGH, RANK_G): set when a screen opens */
     u8 hover;                    /* the frames the cursor has rested on a weapon's row, up to the preview's wait */
     u16 held;                    /* the frames up or down has been held since it was pressed */
-    u8 relics, owned_only, pad[2];   /* relics: non-zero from the entry's Relics line on, its screens list the relics
-                                        alone; owned_only: the owned plate is on (a screen opens with it off) */
+    u8 relics, owned_only;       /* relics: non-zero from the entry's Relics line on, its screens list the relics alone;
+                                    owned_only: the owned plate is on (a screen opens with it off) */
+    u8 from_box, box_state;      /* from_box: the screens were opened from the item box: they equip only (the looks
+                                    bought, the owned plate always on and never drawn, no money, no materials box);
+                                    box_state: BOX_* below (layered_box.c) */
+    u8 refused, pad[3];          /* 1 + the mode of the screen A was refused at the item box (nothing of it bought): the
+                                    help line says so until the cursor moves (layered_selector.c) */
 };
+#define BOX_LEAVING 1            /* B on the entry: the box's menu again (layered_box_frame returns 2) */
+#define BOX_DOWN 2               /* the screens taken down (layered_box_down): nothing runs until the next entry */
+#define BOX_FRAME 4              /* the box had its preview frame bound when the screens opened: bound again after */
 #define UI_LEVEL 0
 #define UI_COUNT 0xA
 #define UI_LINES 0x2C
 _Static_assert(__builtin_offsetof(struct ui, level) == UI_LEVEL, "UI_LEVEL");
 _Static_assert(__builtin_offsetof(struct ui, count) == UI_COUNT, "UI_COUNT");
 _Static_assert(__builtin_offsetof(struct ui, lines) == UI_LINES, "UI_LINES");
-_Static_assert(sizeof(struct ui) == 0x64, "layered_ui size (game/executable/blocks.py)");
+_Static_assert(sizeof(struct ui) == 0x68, "layered_ui size (game/executable/blocks.py)");
 _Static_assert(sizeof(struct dye_window) <= 2 * 8 * sizeof(u16) && __builtin_offsetof(struct ui, dye) == 0x3C,
                "the colour window: in the strings' room (test_layered_dye_window.py UI_DYE)");
 _Static_assert(__builtin_offsetof(struct ui, hover) == 0x5D && __builtin_offsetof(struct ui, held) == 0x5E,
                "test_layered_forge_cursor.py UI_HOVER, UI_HELD");
-_Static_assert(__builtin_offsetof(struct ui, relics) == 0x60 && __builtin_offsetof(struct ui, owned_only) == 0x61,
-               "test_layered_selector_run.py ui()");
+_Static_assert(__builtin_offsetof(struct ui, relics) == 0x60 && __builtin_offsetof(struct ui, owned_only) == 0x61
+               && __builtin_offsetof(struct ui, from_box) == 0x62, "test_layered_selector_run.py ui()");
 _Static_assert(__builtin_offsetof(struct layered_state, weapon) == 0x16
                && __builtin_offsetof(struct layered_state, dye) == 0x32 && sizeof(struct layered_state) == 0x3C,
                "layered_state: the contract (0x3C bytes, weapon at +0x16, dye at +0x32)");
@@ -213,6 +222,21 @@ void layered_net_state_left(void);
 /* The hall hunter of lobby index `index` dressed again with the looks of now (layered_online.c): 1 done, or nothing to
    do (no hunter); 0 it is loading, try again later. */
 int layered_redress_index(u32 index);
+
+/* ----- the Guild Card (layered_card.c) ------------------------- */
+
+/* Every town frame: the own card's block of looks is what the hunter wears (so a card sent or saved carries it). */
+void layered_card_store(void);
+/* Is the status `st` the Guild Card's 3D hunter? */
+int layered_card_hunter(const u8 *st);
+/* What the card's hunter wears: the own card's looks worn now, another card's from its block (built in `out`), or 0
+   (its real gear). Layered Gear's switch is the caller's. */
+const struct layered_state *layered_card_looks(struct layered_state *out);
+/* The item box's screens (layered_box.c): what they need set up at a box, and taken down when they are left. */
+void box_screens_open(u32 obj);
+void box_screens_close(u32 obj);
+GAME void facility_menu_draw(u32 obj);                                 /* FUN_00a0a708 */
+GAME void facility_menu_open(u32 obj, u32 menu, u32 row, u32 bright);  /* FUN_00a5d584: binds scene + 0x98D0, draws */
 
 /* ----- Layered Gear's switch in the game (layered_switch.c) ------------------ */
 
@@ -317,6 +341,26 @@ struct fg_owned {                /* the owned plate (menu_layout.py _owned_data)
     struct fg_rect rect[OWNED_SPRITES];
     u16 msg_word, msg_letters;   /* E_makeshop messages of the word and of the key's letters */
 };
+#define LEFT_PANES 4             /* the left column's sprites (menu_layout.py LEFT_SPRITES): two sides, its ground, the model's */
+struct fg_box {                  /* the screens opened from the item box (menu_layout.py BOX_SCREEN): the curated `box` */
+    int camera[4];               /* the model's rectangle: left, top, right, bottom */
+    struct fg_rect left[2][LEFT_PANES];   /* the left column's panes: [0] the Smithy's, [1] the box's */
+    u32 left_hashes[LEFT_PANES];
+};
+#define BOX_GAME_ROWS 7          /* the box menu's rows (ui406; box_row.py GAME_ROWS) */
+#define BOX_PLACES 3              /* the lines the Layered Gear line can be at (box_row.py LINES) */
+struct fg_box_line {             /* one of them: */
+    u8 line, kind, own_frame, pad;   /* its line, the frame it shows in (0 the 7-row one, 1 the 4-row one), ours drawn */
+    u32 panes[3];                /* our copy of the row there: the plate pair, the text */
+};
+struct fg_box_row {              /* the item box's Layered Gear line (box_row.py BOX_ROW, layered_box.c) */
+    u32 groups[3];               /* ui406's roots of the frames, the plates, the texts */
+    u32 frames[2][2][3];         /* [kind][the game's, ours]: the frame's two sides and middle */
+    u32 rows[BOX_GAME_ROWS][3];  /* the game's rows: the plate pair, the text */
+    struct fg_box_line lines[BOX_PLACES];
+    u16 msg_entry, pad;          /* E_makeshop: the line's word */
+};
+_Static_assert(sizeof(struct fg_box_row) == 196, "box_row.py BOX_ROW");
 struct forge_screen {
     u32 groups[6];               /* left, right, rows, keys, cursor, START's cue: the names' hashes */
     u8 priority[6], pad0[2];
@@ -341,10 +385,14 @@ struct forge_screen {
     struct fg_owned owned;
     u32 hashes[FORGE_HASHES];
     struct fg_dye dye;
+    struct fg_box box;
+    struct fg_box_row box_row;
 };
 _Static_assert(sizeof(struct fg_mode) == 16, "menu_layout.py ROWS_RECORD");
 _Static_assert(sizeof(struct fg_dye) == 200 + 4 * DYE_HASHES, "menu_layout.py DYE_SCREEN");
-_Static_assert(sizeof(struct forge_screen) == 372 + 56 + 4 * FORGE_HASHES + sizeof(struct fg_dye), "menu_layout.py FORGE_SCREEN");
+_Static_assert(sizeof(struct fg_box) == 96, "menu_layout.py BOX_SCREEN");
+_Static_assert(sizeof(struct forge_screen) == 372 + 56 + 4 * FORGE_HASHES + sizeof(struct fg_dye) + sizeof(struct fg_box)
+               + sizeof(struct fg_box_row), "menu_layout.py FORGE_SCREEN");
 
 struct data {                    /* the block layered_data (layered_equipment.py, HEADER) */
     u32 magic;
@@ -402,6 +450,8 @@ struct rules {
                                             place (layered_rules.py armor_bits) */
     u16 zone_format_at, zone_format;     /* the zone's format byte: where in it, and what each purchase writes there */
     u16 msg_relics, msg_help_relics;     /* E_makeshop: the entry's Relics line, its help */
+    u16 msg_none[3], pad2;               /* E_makeshop: the help line of a screen refused at the item box, by mode
+                                            (M_ARMOR, M_WEAPON, M_FELYNE; layered_rules.py NONE_KEYS) */
 };
 #define ORDER_EVERY 0x8000
 #define ORDER_RELIC 0x4000       /* a relic: on the Relics screens (layered_ui.relics) and no other */
@@ -409,7 +459,7 @@ struct rules {
 _Static_assert(__builtin_offsetof(struct rules, zone_at) == 332, "layered_rules.py HEADER");
 _Static_assert(__builtin_offsetof(struct rules, messages) == 372, "layered_rules.py HEADER");
 _Static_assert(__builtin_offsetof(struct rules, unlock) == 396 && __builtin_offsetof(struct rules, armor_bits) == 600
-               && sizeof(struct rules) == 616, "layered_rules.py HEADER");
+               && sizeof(struct rules) == 624, "layered_rules.py HEADER");
 _Static_assert(sizeof(struct recipe) == 16 && sizeof(struct felyne_row) == 8, "records");
 extern const u8 layered_rules[] __attribute__((aligned(4)));
 #define R ((const struct rules *)layered_rules)
@@ -428,6 +478,7 @@ int forge_open(u32 obj, u32 mode);
 void forge_update(u32 obj);
 /* The level to go back to has just been shown again (layered_selector.c): the screen is closed. */
 void forge_back_to_menu(u32 obj);
+void forge_shut(u32 obj);
 u32 help_message(void);
 
 static inline void play(u32 sound)

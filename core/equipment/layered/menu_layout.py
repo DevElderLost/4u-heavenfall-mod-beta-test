@@ -14,6 +14,7 @@ import struct
 from collections.abc import Mapping
 
 from core.equipment.layered.looks import STATE_WEAPONS, load_curated
+from core.equipment.layered.box_row import box_row_data
 from core.game.files.arc import ArcEntry, parse_arc, write_arc
 from core.game.files.gui.lyt import LYT_TYPE_HASH, Layout, Pane, name_hash, parse_lyt
 from core.game.files.gui.tex import TEX_TYPE_HASH
@@ -565,6 +566,22 @@ def dye_screen_data(screen: Mapping) -> bytes:
         *(name_hash(name) for name in dye_pane_names()))
 
 
+# struct fg_box in layered.h: the model's rectangle, the left column's panes as the Smithy has them and as the item
+# box's screens have them (LEFT_SPRITES' order), their hashes
+BOX_SCREEN = struct.Struct(f"<4i{2 * 4 * len(LEFT_SPRITES)}H{len(LEFT_SPRITES)}I")
+assert BOX_SCREEN.size == 96
+
+
+def box_screen_data(screen: Mapping) -> bytes:
+    """The item box's screens (the curated `box`), as struct fg_box in layered.h."""
+    box, panes = screen["box"], screen["panes"]
+    if set(box["panes"]) != set(LEFT_SPRITES) or len(box["camera"]) != 4:
+        raise ValueError(f"forge_screen.box: the model's camera rectangle and the panes {', '.join(LEFT_SPRITES)}")
+    rects = [panes[name] for name in LEFT_SPRITES] + [box["panes"][name] for name in LEFT_SPRITES]
+    return BOX_SCREEN.pack(*box["camera"], *(value for rect in rects for value in rect),
+                           *(name_hash(name) for name in LEFT_SPRITES))
+
+
 def _preview_frames(screen: Mapping) -> int:
     frames = screen["weapon_preview_frames"]
     if not 1 <= frames <= PREVIEW_MAX:
@@ -612,5 +629,7 @@ def forge_screen_data(curated: Mapping | None = None) -> bytes:
         screen["materials"]["cut"], screen["materials"]["price_widen"], *screen["camera_full"],
         *(value for state in ("list", "camera") for name in CUE_PANES for value in screen["cue"][state][name]),
         *_hold_steps(screen), _preview_frames(screen), *_owned_data(screen))
+    from core.equipment.layered.texts import message_id   # texts.py imports this module
     hashes = pane_hashes()
-    return head + struct.pack(f"<{len(hashes)}I", *hashes) + dye_screen_data(screen)
+    return (head + struct.pack(f"<{len(hashes)}I", *hashes) + dye_screen_data(screen) + box_screen_data(screen)
+            + box_row_data(message_id("entry")))

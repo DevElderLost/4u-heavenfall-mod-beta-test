@@ -318,6 +318,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("layered_selector", "layered_equipment", "equipment/layered/layered_selector.c", region="ext", thumb=True,
               align=8, units=("equipment/layered/layered_forge.c", "equipment/layered/felyne_looks.c",
                      "equipment/layered/layered_online.c", "equipment/layered/layered_switch.c",
+                     "equipment/layered/layered_card.c", "equipment/layered/layered_box.c",
                      "interface/screen_kit/screen_kit.c")),
     BlockSpec("layered_data", "layered_equipment", size=0x9000, region="ext"),
     # The Wyporium's Rare Materials Exchange: its menu line and screens (gameplay/wyporium/rare_exchange.c), and its
@@ -752,7 +753,7 @@ VARIABLES = (
     # The looks worn: written by the selector, read by the
     # render.
     VariableSpec("layered_state", "layered_equipment", 0x3C),
-    VariableSpec("layered_ui", "layered_equipment", 0x64),     # layered.h: struct ui
+    VariableSpec("layered_ui", "layered_equipment", 0x68),     # layered.h: struct ui
     VariableSpec("layered_preview", "layered_equipment", 0x68),  # layered.h: struct preview
     # single_screen_prompt.s reads it (HELP_FLAGS): non-zero while a forge-style screen of Layered Gear is on, which
     # closes the help strips (layered.h screens_open); the Rare Materials Exchange does not use it
@@ -770,6 +771,10 @@ VARIABLES = (
     # Layered Gear's switch in the game (layered_switch.c struct layered_switch): the value the town's hunters were
     # dressed with, the one a quest's preload took, a re-dress of the local hunter waiting for its load
     VariableSpec("layered_switch", "layered_equipment", 4),
+    # The Guild Card (layered_card.c struct card): the card its 3D hunter was last built from
+    VariableSpec("layered_card", "layered_equipment", 8),
+    # The item box's Layered Gear line (layered_box.c struct box_line_state): the line of the box last opened, or none
+    VariableSpec("layered_box", "layered_equipment", 4),
     VariableSpec("exchange_ui", RARE_EXCHANGE, 72),           # rare_exchange.c: struct xui
     # The game GUI recorder's frame counters (u32 started, done): only the
     # recording probe writes them (tools/ui/ui_probe.py, block gui_frame_marks_probe), never the product. Not a debug
@@ -1645,6 +1650,20 @@ GAME_SYMBOLS |= {
     "equipment_control": 0xF3ED1C,      # the variable holding the equipment data object of the getters
     "lobby_hunter_loader": 0x109D8C4,   # the lobby's hunter model loader
     "preview_hunter": 0x109EB10,        # the variable holding the Smithy's preview hunter, once created
+    # The Guild Card's 3D hunter (equipment/layered/layered_card.c): FUN_009fbd08 builds it from this static info
+    "card_hunter_info": 0x109E970,
+    "card_to_info": 0x9B9F30,           # FUN_009b9f30(screen, card, info): the card shown into its hunter's info
+    # The item box's Layered Gear line (equipment/layered/layered_box.c)
+    "box_frame_setup": 0x589BF0,        # FUN_00589bf0(frame, box): the box menu's frame object
+    "box_menu_update": 0xA55A20,        # FUN_00a55a20(scene, menu): the box menu's commands of the frame
+    "box_menu_done": 0x9CA31C,          # FUN_009c9ee0: the end of a choice of the box menu (its FUN_00a99430 call)
+    "box_states_done": 0x9CA580,        # FUN_009c9ee0: the end of its states (r0 2: back to the menu, rebuilt)
+    "facility_menu_draw": 0xA0A708,     # FUN_00a0a708(scene): the facility menu drawn as set (the Smithy's tail's)
+    "facility_menu_open": 0xA5D584,     # FUN_00a5d584(scene, menu, row, bright): binds scene + 0x98D0, sets and draws
+    "facility_gui_open": 0x9BB2B0,      # FUN_009bb2b0(scene): the Smithy's GUI set up (ui401, ui402, ui407 bound)
+    "facility_gui_close": 0x9BB1AC,     # FUN_009bb1ac(scene): the Smithy's end
+    "preview_target_make": 0x9C32A0,    # FUN_009c32a0(scene): the preview's camera target and its two objects
+    "preview_target_drop": 0x9C3180,    # FUN_009c3180(scene): those destroyed, the preview's viewport closed
     "preview_mode": 0xEDBE90,           # the variable holding the preview's state: + 0x6C 1 / 2 while one is shown
     "menu_line_pictures": 0xE045B2,     # u8 per facility menu line (7: the cursor's copy): its first picture
     "menu_line_texts": 0xE045E6,        # ... and its first text pane
