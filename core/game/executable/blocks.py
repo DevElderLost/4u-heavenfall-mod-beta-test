@@ -137,6 +137,9 @@ MOD_SETTINGS_PANE_HASHES = (820, 936)   # where struct mod_settings_data holds u
 ASPECT_LIST_DATA_SIZE = 28
 MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8)   # mod_options.c: the header, 52 options, a pool of 256 values
 MOD_RAW_TABLE_SIZE = 64
+# The town's stage lists with ui415 (interface/mod_settings/box_appearance.py): six lists' paths and bytes
+BOX_APPEARANCE_LISTS_SIZE = 160
+APPEARANCE_PEEK_DATA_SIZE = 16       # appearance_peek.c struct peek_data
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
 # The split title's two RomFS, `rom:` from the game data title and `mod:` from the title's own (install/title/
@@ -624,11 +627,17 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext"),
     BlockSpec("mod_settings_code", MOD_SETTINGS, "interface/mod_settings/mod_settings.c", region="ext",
               units=("interface/mod_settings/aspect_list.c", "interface/mod_settings/mod_options.c",
-                     "interface/mod_settings/option_list.c")),
+                     "interface/mod_settings/option_list.c", "interface/appearance_peek/appearance_peek.c",
+                     "interface/screen_kit/screen_kit.c")),
     BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext"),
     BlockSpec("mod_options_stub", MOD_SETTINGS, "interface/mod_settings/mod_options_stub.s", region="ext"),
     BlockSpec("mod_options_data", MOD_SETTINGS, size=MOD_OPTIONS_DATA_SIZE, region="ext"),
     BlockSpec("mod_raw_table", MOD_SETTINGS, size=MOD_RAW_TABLE_SIZE, region="ext"),
+    # Change Appearance at every item box: the town's stage lists with ui415 (box_appearance.py)
+    BlockSpec("box_appearance_lists", MOD_SETTINGS, size=BOX_APPEARANCE_LISTS_SIZE, region="ext"),
+    # Holding L in Change Appearance hides the interface (interface/appearance_peek/appearance_peek.py): the cue's
+    # names, word and priority
+    BlockSpec("appearance_peek_data", MOD_SETTINGS, size=APPEARANCE_PEEK_DATA_SIZE, region="ext"),
     BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext"),
     # The split title's RomFS (install/title/split_romfs.py): the mount, the game data's open and the lookup, and the
     # game's nn::fs::FileStream::TryInitialize with its first instruction (the lookup's hook takes it)
@@ -721,6 +730,10 @@ VARIABLES = (
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
     VariableSpec("mod_options_state", MOD_SETTINGS, 104, region="ext_vars"),
+    VariableSpec("appearance_peek_state", MOD_SETTINGS, 4, region="ext_vars"),   # appearance_peek.c struct peek_state
+    # appearance_peek.c took view 0 from the main GUI manager; the game GUI engine (single-screen mode) then does not
+    # give it back
+    VariableSpec("top_screen_hidden", MOD_SETTINGS, 4),
     VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
@@ -1874,6 +1887,8 @@ GAME_SYMBOLS |= {
     "camera_event_return": 0xC056E0,    # FUN_00c056d4 after its load of an event's zoom-out distance (630.0)
     "camera_state_return": 0xC00AA8,    # FUN_00c009ac after its load of the distance of a state of the hunter (300.0)
     "box_lines_return": 0x9EC8A8,       # FUN_009ec82c after its store of the box menu's count of lines
+    "appearance_binds": 0xDFF050,       # FUN_005976a8's table of ui415's ten root groups (12 bytes each, hash first)
+    "box_view_mode": 0xA8BB9C,          # FUN_00a8bb9c(scene, menu, mode): the item box's View Mode (START); 1: acted
     "keyboard_poll_body": 0x2B58EC,     # FUN_002b58e8 (the poll of the game's keyboard) after its first instruction
 }
 
