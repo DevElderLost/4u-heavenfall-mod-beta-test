@@ -19,14 +19,6 @@
  * ui420's owners may be missing. The groups' owners are the lobby scene's: + 0x171BC ui422's (the map first), + 0x171B8
  * ui421's, + 0x171B4 ui420's (second group each at + 4).
  *
- * minimap_start(state), called by the minimap block every frame its state group is found, before it reads the state:
- * where the minimap is when the town arrives (Mod Settings' Minimap (L), option OPT_TOWN_MAP: Shown, the game's way, or
- * Hidden). The game creates the state group hidden (the minimap on) with the lobby's layouts and never touches it or its
- * one null (single_screen_minimap.add_state_group), so the null's shown bit (its data + 0x24, bit 0; the group's
- * first pane record at + 8, its data at + 8) marks a load whose choice is made: hidden, the choice is made now (Hidden
- * shows the state group: the map off) and the null is shown (it draws nothing). A later L press then holds until the
- * layouts load again. A state group without a pane is left alone.
- *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with single_screen_minimap_hall.ld where it places the
  * block); the game functions and variables are named in blocks.py GAME_SYMBOLS.
  */
@@ -44,14 +36,8 @@ typedef unsigned char u8;
 #define MAP_OWNER 0x171BC           /* ... ui422's groups: the map first */
 #define LABEL_OWNER 0x171B8         /* ... ui421's: the place name second */
 #define MENU_OWNER 0x171B4          /* ... ui420's: the group FUN_00aab4dc hides second */
-#define FIRST_PANE 0x08             /* a group's first pane record; a record's data at + 8 */
-#define PANE_DATA 0x08
-#define NULL_SHOWN 0x24             /* a null's data: bit 0 shows it */
-#define OPT_TOWN_MAP 40             /* interface/mod_settings/mod_options.py OPTION_IDS: the value's place, 1 Hidden */
-#define MAP_HIDDEN 1
 
 extern u8 *game_control;            /* the game control (its variable) */
-extern const volatile u8 mod_options_state[];   /* interface/mod_settings/mod_options.c: values[] first, a byte each */
 extern u8 *lobby_scene;             /* the lobby scene (its variable) */
 void gui_group_show(u8 *group, u32 shown);      /* FUN_00ae53e0 */
 u32 lobby_stage(u8 *game);                      /* FUN_002b5ad8: the stage's kind */
@@ -104,15 +90,4 @@ __attribute__((section(".text.entry"))) void minimap_hall(u32 on)
         if (label)
             gui_group_show(label, 0);
     }
-}
-
-void minimap_start(u8 *state)
-{
-    u8 *pane = P(state, FIRST_PANE);
-    u8 *data = pane ? P(pane, PANE_DATA) : 0;
-    if (!data || (W(data, NULL_SHOWN) & 1u))
-        return;
-    W(data, NULL_SHOWN) |= 1u;
-    if (mod_options_state[OPT_TOWN_MAP] == MAP_HIDDEN)
-        gui_group_show(state, 1);
 }

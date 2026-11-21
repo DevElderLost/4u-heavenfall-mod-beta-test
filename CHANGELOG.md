@@ -20,14 +20,14 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - New characters skip the sand ship's prologue and start on arriving in Val Habar.
 - Upgraded items like Mega Potions show a yellow star, two on level 3 ammo; Mod Settings can make them white.
 - Rare materials like gems glow and twinkle on the quest rewards screen; Mod Settings can turn either mark off.
-- Honed weapons keep their bonus without the glow; Mod Settings can turn the glow back on.
-- Mod Settings can start the town map hidden on arriving; L still shows or hides it.
 
 ### The program
 - With an HD texture pack, the weapon tree, item wheel, item stars, damage numbers and target hint look sharp.
 
 ### Fixes
 - The town map's place name no longer shows over the fade to black and the loading screen.
+- Holding A in the Wyporium's Claim Items no longer leaves old icons behind or hides the item's details.
+- In Claim Items, the item's icon stays inside its details panel at wide aspect ratios (emulator only).
 
 ## 0.2.1
 
@@ -106,8 +106,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### QoL
 - Start can skip the camera over a slain monster.
 - The camera can turn up to five times faster.
-- Manage Equipment, Equipment Sets and Change Appearance from every item box.
-- In Change Appearance, holding L hides the interface so you can see your hunter; no Camera or Back button.
+- Manage Equipment and Equipment Sets from every item box.
 
 ### Real Hardware
 - Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.

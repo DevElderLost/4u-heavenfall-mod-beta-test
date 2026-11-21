@@ -8,8 +8,7 @@
 @  1. the groups are found afresh, never kept: the GUI manager's list (*(*(gui + 0x100) + 0x154), 0x600 pointers) is
 @     scanned once, and each hash of minimap_hashes (the state group, the hint, then up to 7 groups that follow the
 @     state and last the place name's; 0 unused) gets the first group whose name hash (group + 0) is it. A null gui,
-@     manager or list: none found. When the state group is found, minimap_start(state)
-@     (single_screen_minimap_hall.c) makes Mod Settings' choice of the minimap's start once per load of the town;
+@     manager or list: none found;
 @  2. ACTIVE (r7) is 1 only when the button may turn the minimap: the game control's byte +0x2B is 2 (the lobby), the
 @     lobby scene exists, scene + 0x9788 is 0 (no talk, menu, box or map), the halfword +0x97D6 (the input lock) is
 @     0, the hub machine is set up (+0x172D4 not 0) and idle (+0x172D5 is 2), the state group and the first following
@@ -124,9 +123,6 @@ next:
     subs    r2, r2, #1
     bne     scan
 scanned:
-    ldr     r0, [sp, #FOUND]          @ the state's start in a town just loaded (minimap_start: once per load)
-    cmp     r0, #0
-    blne    minimap_start
     mov     r7, #0                    @ 2. ACTIVE
     mov     r11, #0                   @ TALK
     ldr     r0, =game_control

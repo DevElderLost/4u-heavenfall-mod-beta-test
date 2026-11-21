@@ -7,9 +7,7 @@
 - Menus normally displayed on the bottom screen are moved to the top screen, including the title screen and main menu, quest list, Canteen, yes/no prompts and menu descriptions.
 - Shops, equipment sets, the Melding Pot, Palico menus, help screens, tutorials and the Arena are also displayed on the top screen, along with the Gathering Hall's menus, Guild Cards, friends, chat and gestures.
 - Character creation also takes place on the top screen, and you can enter character names using the D-pad.
-- In towns and Gathering Halls, X opens the World Map on the top screen, while L displays the town map. Whether the
-  town map is up on arriving is chosen in the game: START, third page, Mod Settings, Interface, Minimap (L): Shown
-  (the default) or Hidden.
+- In towns and Gathering Halls, X opens the World Map on the top screen, while L displays the town map.
 - In a Gathering Hall, a box in the top-left corner displays each hunter's weapon, name, Hunter Rank and ticket.
 - On the Guild Card, Y hides the menus surrounding the hunters so you can take pictures (press X while editing the card).
 - The touchscreen remains fully functional whenever the bottom screen is visible.
@@ -108,12 +106,6 @@
 - The marks are drawn into the game's own icon picture, so HD texture packs show them sharp too.
 - In the game: START, third page, Mod Settings, Interface, Item Icons: Show Upgrade Stars and Rare Rewards (both on by
   default), and Star Color (Yellow by default, or White).
-
-**Honing glow**
-
-- A weapon Honed at the Smithy (Attack, Defense or Life) keeps its bonus but no longer glows.
-- In the game: START, third page, Mod Settings, Display, Honing Glow: Yes brings the glow back (No by default). The
-  change shows the next time the weapon is loaded: a quest, the village or a weapon change.
 
 **Weapon tree**
 

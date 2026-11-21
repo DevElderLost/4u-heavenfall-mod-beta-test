@@ -21,11 +21,8 @@ These functions change, in the update's executable (canonical):
   long a turn has been held, and so of the turn's top speed (CAMERA_CAP, 10.0), takes the mod's value;
 - FUN_009ec82c, which opens an item box's menu: its store of the box's kind (BOX_KIND; 0 the house's, 1 the
   Gathering Hall's) makes every box the house's, and its store of the menu's count of lines (BOX_LINES; 7 at home, 4
-  at the Hall's box) keeps Change Appearance only where its screen's layout is loaded (mod_options.c mod_box_count),
-  so Manage Equipment, Equipment Sets and Change Appearance are at every box, drawn: every town area's stage list
-  loads the layout too (box_appearance.py);
-- FUN_00b0b0ac and FUN_00b0a658, which load a Honed weapon's glow and put it on the weapon's models: their reads of
-  the weapon's honing (HONING_SITES) see none while the option is No;
+  at the Hall's box) takes the option's count at a box away from home, so Manage Equipment and Equipment Sets are at
+  every box, drawn, and Change Appearance stays at the house's;
 - FUN_002b58e8, the poll of the game's keyboard: through a gate to the system keyboard (system_keyboard);
 - the calls of hold A, fast text, fast gathering, the lock-on's D-pad filter, the death camera skip (FUN_00c006f4's
   call of a camera sequence's frame), the modern camera (FUN_00b3cc64's question "is the C-stick tilted", the
@@ -71,13 +68,9 @@ OPTION_IDS = {
     "cheat_rewards_no_limit": 32, "cheat_capture_guru": 33, "cheat_autotracker": 34,
     "world_sharpness": 35,
     "upgrade_stars": 36, "rare_rewards": 37, "upgrade_stars_colour": 38,
-    "honing_glow": 39,
-    "town_map": 40,
 }
 # The rows of a feature the installer chooses, which mean nothing without it: the row, the feature's Settings field
-FEATURE_ROWS = {"layered_looks": "layered_equipment",  # Layered Gear's switch (equipment/layered/layered_switch.c)
-                # the town minimap's start (interface/single_screen/executable/single_screen_minimap_hall.c)
-                "town_map": "single_screen"}
+FEATURE_ROWS = {"layered_looks": "layered_equipment"}  # Layered Gear's switch (equipment/layered/layered_switch.c)
 MAX_OPTIONS = 52                # the room (mod_options.c MOD_OPTIONS; mod_options_state.values): zone bytes 10-35
 MAX_VALUES = 15                 # a list of values (two pages): a value's place + 1 fits half a byte
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
@@ -106,10 +99,6 @@ CAMERA_DISTANCE = ((0xBFFF78, 0xED9F1A2A),      # FUN_00bfff70: vldr s2, [pc, #0
 CAMERA_DISTANCE_STUBS = ("mod_camera_rest", "mod_camera_event", "mod_camera_state")
 BOX_KIND = (0x9EC870, 0xE5C46002)                       # FUN_009ec82c: strb r6, [r4, #0x2] (the box's kind)
 BOX_LINES = (0x9EC8A4, 0xE5C4100A)                      # FUN_009ec82c: strb r1, [r4, #0xa] (the menu's lines)
-# The two reads of a weapon's honing (its reference's halfword +0x12, bits 14-15) that give it its glow, each replaced
-# by a call of mod_honing_glow
-HONING_SITES = ((0xB0B0E0, 0xE1A00720),     # FUN_00b0b0ac: lsr r0, r0, #14 (which glow to load)
-                (0xB0A680, 0xE1B00720))     # FUN_00b0a658: lsrs r0, r0, #14 (put it on the weapon's models)
 CLASS_TABLE = 0xED24A0
 CLASS_WORDS = (480, 140, 520, 230, 150, 130, 130, 330, 540, 230, 120, 140, 520, 310, 360, 170)
 
@@ -280,8 +269,6 @@ def supports_option(code: bytes, key: str) -> bool:
         return _static_ok(code, CAMERA_DISTANCE)
     if key == "box_equipment":
         return _static_ok(code, (BOX_KIND, BOX_LINES))
-    if key == "honing_glow":
-        return _static_ok(code, HONING_SITES)
     from core.interface.system_keyboard.system_keyboard import supports_system_keyboard
     from core.gameplay.death_camera_skip.death_camera_skip import supports_death_camera_skip
     from core.gameplay.modern_camera.modern_camera import supports_modern_camera
@@ -350,9 +337,7 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
     """`code` (the update's executable) with the START menu's page for `available` options, each frame's read of them,
     and the hooks of those that need one. The Settings field of an option is its installed default. `aspect`: the
     aspect ratio's switch is on, so its row is in the page; `wheel`: the mod has the item wheel, so its Radial Menu
-    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data). With the box's option a
-    run also gives every town area Change Appearance's layout (box_appearance.py: the lobby's ARC and, after the
-    single-screen mode's patches, the stage lists).
+    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data).
     Refuses an executable where a site is not the game's word."""
     from core.interface.mod_settings.mod_settings import load_settings, patch_mod_settings
     if not supports_mod_options(code):
@@ -386,9 +371,6 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
     if "box_equipment" in available:
         layout.hook(out, BOX_KIND[0], at("mod_box_kind"), original=word(BOX_KIND[1]))
         layout.hook(out, BOX_LINES[0], at("mod_box_lines"), original=word(BOX_LINES[1]), link=False)
-    if "honing_glow" in available:
-        for site, original in HONING_SITES:
-            layout.hook(out, site, at("mod_honing_glow"), original=word(original))
     from core.gameplay.fast_gathering.fast_gathering import patch_fast_gathering
     from core.gameplay.hold_a.hold_a import patch_hold_a
     from core.interface.fast_text.fast_text import patch_fast_text

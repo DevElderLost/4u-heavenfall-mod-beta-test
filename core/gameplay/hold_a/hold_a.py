@@ -21,6 +21,7 @@ RESULT_SCENE_CALLS = (0x65CAA4, 0x65CABC)   # in FUN_0065c5b8, which runs the sc
 
 CLAIM_SCENE = 0x5E5CB8        # FUN_005e5cb8(panel): the Wyporium's claim items panel, once per frame
 CLAIM_SCENE_CALLS = (0xA0A350, 0x9B74E4)    # in FUN_00a0a220 and in the function that redraws after a move
+CLAIM_TAKE = "hold_a_claim_take"           # the variable: the cell the last call's take emptied (hold_a.c)
 
 # (block label, the game function the call is to, the calls it replaces, the gate of the START menu's options)
 HOOKS = (
@@ -45,6 +46,7 @@ def patch_hold_a(code: bytes, layout: Layout | None = None, gated: bool = False)
     layout = layout or load_layout()
     out = bytearray(code)
     layout.place(out, BLOCK)
+    layout.reserve(out, CLAIM_TAKE)
     for label, callee, calls, gate in HOOKS:
         for at in calls:
             layout.hook(out, at, layout.symbol("mod_options_stub", gate) if gated else layout.symbol(BLOCK, label),

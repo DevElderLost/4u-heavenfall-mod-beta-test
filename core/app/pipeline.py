@@ -84,10 +84,6 @@ from core.interface.weapon_tree.tree_texts import message_base as tree_message_b
 from core.interface.weapon_tree.weapon_tree import patch_weapon_tree
 from core.interface.world_sharpness.world_sharpness import patch_world_sharpness
 from core.interface.item_marks.art import sheet_files as item_marks_sheet_files
-from core.interface.mod_settings.box_appearance import lobby_files, patch_stage_lists, supports_stage_lists
-from core.interface.appearance_peek.appearance_peek import (
-    patch_appearance_peek, peek_files, peek_message, supports_appearance_peek,
-)
 from core.interface.item_marks.item_marks import OPTIONS as ITEM_MARKS_OPTIONS, patch_item_marks
 from core.app import presets
 from core.app.record import RunRecord, save_run
@@ -162,16 +158,13 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
                           horn_songs: bool = False,
                           weapon_tree: bool = False,
                           radial_wheel: bool = False,
-                          item_marks: bool = False,
-                          box_appearance: bool = False,
-                          appearance_peek: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
+                          item_marks: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's, the START menu page's (`menu_texts`), the new items' names (`gear_texts`: the rare materials of
     MH XX's monsters), Layered Gear's (with MH XX's looks: `gen_looks`; the Felynes': `felynes`), the Rare Materials
     Exchange's, the Smithy's weapon tree's (`weapon_tree`: its messages and its panes in the facility menu's layout),
     Damage Numbers', the Hunting Horn's songs' and the item wheel's layouts (`damage_numbers`, `horn_songs`,
     `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common), the
-    single-screen mode's RomFS files, the item marks' stars in the icon sheet (`item_marks`), Change Appearance's
-    layout in the lobby's ARC (`box_appearance`), its L cue and word (`appearance_peek`), and with the game's
+    single-screen mode's RomFS files and the item marks' stars in the icon sheet (`item_marks`), and with the game's
     files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
     made on the previous
     one's copies and everything is written once; files of an earlier run are removed first (they would still be
@@ -212,14 +205,6 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         own |= horn_songs_files(rom, {**hud, **names, **texts, **own}, settings.hud_scale.factor, edge)
     if radial_wheel and rom is not None:    # the item wheel's, one size whatever the HUD's
         own |= wheel_files(rom, {**hud, **names, **texts, **own})
-    # Change Appearance at every item box: the room's ui415 in the lobby's ARC, which every town area's stage list
-    # names (interface/mod_settings/box_appearance.py); before the single-screen mode, which places it as the room's
-    if box_appearance and rom is not None:
-        own |= lobby_files(rom, {**hud, **names, **texts, **own})
-    # Change Appearance's cue "L Hide Interface": its group in the lobby's ui401, its word in ItemBox
-    # (interface/appearance_peek/appearance_peek.py; the run's patch_appearance_peek)
-    if appearance_peek and rom is not None:
-        own |= dict(peek_files(rom, {**hud, **names, **texts, **own}))
     screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the others added (single_screen.py)
         made = single_screen_romfs(rom, {**hud, **names, **texts, **own}, edge if anchored else None)
@@ -304,12 +289,6 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     horn = in_menu and "horn_songs" in menu_options           # the Hunting Horn's songs: the same, on by default
     world_sharpness = in_menu and "world_sharpness" in menu_options     # the World-style sharpness gauge: only code
     item_marks = in_menu and any(key in menu_options for key in ITEM_MARKS_OPTIONS)   # code and the icon sheet's art
-    # Change Appearance at every item box: its layout in the lobby's ARC and every town area's stage list, with the
-    # box's option (interface/mod_settings/box_appearance.py); both halves or neither
-    box_appearance = in_menu and "box_equipment" in menu_options
-    # Change Appearance's L, which hides the interface: with Mod Settings (its frame ends the cue) and the quality of
-    # life module, its cue in the lobby's ARC (interface/appearance_peek/)
-    appearance_peek = in_menu and settings.quality_of_life and supports_appearance_peek(code)
     # Forge Weapons' tree: its files and code whatever the installed view, which its row of the page chooses
     tree = in_menu and "smithy_view" in menu_options
     if in_menu and not tree and "smithy_view" in presets.in_game_fields() and "smithy_view" not in off:
@@ -389,8 +368,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     jukebox.remove_files(output_dir)    # before the interface's: they write the same ARCs
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
-        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel, item_marks, box_appearance,
-        appearance_peek)
+        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel, item_marks)
     jukebox_plan = None
     if with_jukebox:    # on what the interface left in the lobby's ARCs; the game's own songs and the shipped ones
         game_files = RomFS(game)
@@ -407,10 +385,6 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     write_sources(output_dir, made_from_xx)    # after every writer of files made from MH XX
     # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
     tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
-    game_files = RomFS(game)
-    peek_word = peek_message(lambda path: (output_dir / "romfs" / path).read_bytes()
-                             if (output_dir / "romfs" / path).is_file() else game_files.read(path)) \
-        if appearance_peek else None
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange or intro
             or jukebox_plan is not None or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
@@ -444,8 +418,6 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_radial_menu(patched)
             if in_menu:
                 patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on, wheel=wheel)
-            if appearance_peek:     # the hunter edit's calls of its View Mode, to the block patch_mod_options placed
-                patched = patch_appearance_peek(patched, peek_word)
             if tree:        # the START menu's row chooses the view: its gates stand before the tree's entries
                 patched = patch_weapon_tree(patched, message_base=tree_base, gated=True)
             if cheats:
@@ -456,10 +428,6 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 result.interface_patched = True
             if single_screen:
                 patched = patch_single_screen(patched, screen_offsets, engine_table=engine_table)
-            # Change Appearance's layout in every town area's stage list: copies of the lists as the patches before
-            # left them (the single-screen mode's screen bytes), with the lobby's ARC holding it (the interface files)
-            if box_appearance and supports_stage_lists(patched):
-                patched = patch_stage_lists(patched)
             if jukebox_plan is not None:    # the Jukebox's engine, the card's hooks and the house Felyne's menu
                 patched = jukebox.patch_executable(patched, jukebox_plan)
             if damage:     # after the target face: its loader and freer hooks go on to the face's
