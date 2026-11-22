@@ -2,7 +2,7 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
-## Unreleased
+## 0.2.2
 
 ### Weapon tree
 - Beside your money, the tree shows the price of the weapon under the cursor, grey when you are short.
@@ -14,23 +14,36 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Your Guild Card shows your Layered Gear, and modded players' cards keep and show theirs.
 
 ### QoL
+- Your save is MH4U's own, clean; Heavenfall Beta's extras live in files beside it, so nothing is lost either way.
+- Without the mod, MH4U keeps every hunter you saved in Heavenfall Beta; install it again and the extras return.
+- A save MH4U would not fully understand is cleaned as soon as the title screen reads it.
+- On a 3DS, the launcher's More menu can take your hunter's save to MH4U and put MH4U's save back (3DS only).
+- It shows both saves' hunters and play time first, and warns when you would go back in time.
+- Both saves are backed up on the SD card before anything changes.
+- The program backs up your saves before it installs or updates the mod.
 - Your Housekeeper has a Jukebox: one song or a playlist of the game's music plays in the towns.
 - With Monster Hunter XX's game, the Jukebox can also have its monster, area, town and hall themes.
 - A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
 - The top-screen menus and the smaller HUD take less of the game's time each frame: smoother at 60 FPS (emulator only).
-- New characters skip the sand ship's prologue and start on arriving in Val Habar.
+- New characters can skip the sand ship's prologue and start on arriving in Val Habar.
 - Upgraded items like Mega Potions show a yellow star, two on level 3 ammo; Mod Settings can make them white.
 - Rare materials like gems glow and twinkle on the quest rewards screen; Mod Settings can turn either mark off.
 - Honed weapons keep their bonus without the glow; Mod Settings can turn the glow back on.
 - Mod Settings can start the town map hidden on arriving; L still shows or hides it.
+- Change Appearance works from every item box too, not only at home.
+- In Change Appearance, holding L hides the interface so you can see your hunter.
+- In single-screen mode, Change Appearance shows no Camera or Back button (emulator only).
 
 ### The program
 - With an HD texture pack, the weapon tree, item wheel, item stars, damage numbers and target hint look sharp.
 
 ### Fixes
+- The 3DS launcher no longer says there is no internet when the console's date is wrong.
+- The 3DS launcher still finds updates when GitHub limits requests from your network.
 - The town map's place name no longer shows over the fade to black and the loading screen.
 - Holding A in the Wyporium's Claim Items no longer leaves old icons behind or hides the item's details.
 - In Claim Items, the item's icon stays inside its details panel at wide aspect ratios (emulator only).
+- At wide aspect ratios, monsters' marks stay on the moved minimap instead of hiding under it (emulator only).
 
 ## 0.2.1
 
@@ -109,8 +122,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### QoL
 - Start can skip the camera over a slain monster.
 - The camera can turn up to five times faster.
-- Manage Equipment, Equipment Sets and Change Appearance from every item box.
-- In Change Appearance, holding L hides the interface so you can see your hunter; no Camera or Back button.
+- Manage Equipment and Equipment Sets from every item box.
 
 ### Real Hardware
 - Heavenfall Beta on a real 3DS, installed and kept up to date by the new Heavenfall Launcher.

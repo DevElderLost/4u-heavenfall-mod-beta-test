@@ -712,9 +712,9 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "ends the quest, World's Fatalis slain theme plays instead of the quest complete music. White "
                      "Fatalis and Crimson Fatalis (Super) do not change.")),
         ), T("La música viene con el randomizer.", "The music comes with the randomizer.")),
-        Group(T("Gramola", "Jukebox"), (
-            Option("jukebox", T("Gramola", "Jukebox"),
-                   T("El Ayudante tiene una línea nueva, «Gramola»: elige una canción de la música del juego "
+        Group(T("Caja de música", "Jukebox"), (
+            Option("jukebox", T("Caja de música", "Jukebox"),
+                   T("El Ayudante tiene una línea nueva, «Caja de música»: elige una canción de la música del juego "
                      "(temas de los pueblos, las zonas y los monstruos), que suena sin parar, o haz listas, en "
                      "orden o al azar, para que suenen en los pueblos en lugar de su música. Su menú también puede "
                      "ponerlas en las salas de reunión.",
@@ -722,7 +722,7 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "and monster themes), which plays without end, or make playlists, in order or shuffled, to play "
                      "in the towns instead of their own music. Its menu can play them in the Gathering Halls too.")),
             Option("jukebox_xx", T("Canciones de MH XX", "MH XX's songs"),
-                   T("Con la ROM de MH XX, la gramola también tiene sus temas de monstruos, zonas, pueblos y "
+                   T("Con la ROM de MH XX, la caja de música también tiene sus temas de monstruos, zonas, pueblos y "
                      "salas, en categorías propias (los que suenan igual que los de MH4U no se repiten). Sin la ROM "
                      "de XX no cambia nada.",
                      "With MH XX's ROM, the Jukebox also has its monster, area, town and hall themes, in "

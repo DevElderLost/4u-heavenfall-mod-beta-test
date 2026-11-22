@@ -98,9 +98,9 @@ def retitle_exheader(exheader: bytes, title_id: str, program_id: str | None = No
     """`exheader` with `title_id` as the system info's jump id and `program_id` (default `title_id`) as the ARM11
     local capabilities' program id and the access descriptor's copy of it. An update title passes its base's
     program id, as the official update's exheader does (0004000E00126100 runs as 0004000000126100). The save data
-    size and the extdata id stay (event quests are shared with the game). An update title (`is_update`) also gets
-    the official update's remaster version and SD application flag. First `common_exheader`: the copy of the game
-    does not matter."""
+    size and the extdata id stay as the mod's exheader has them (the extdata its executable opens). An update title
+    (`is_update`) also gets the official update's remaster version and SD application flag. First `common_exheader`:
+    the copy of the game does not matter."""
     if len(exheader) != EXHEADER_SIZE:
         raise ValueError(f"an exheader has {EXHEADER_SIZE:#x} bytes, not {len(exheader):#x}")
     out = bytearray(common_exheader(exheader))

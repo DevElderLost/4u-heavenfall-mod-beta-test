@@ -103,8 +103,8 @@ static void page(HfSetupStep step) {
     case HF_SETUP_SAVE:
         put(v->heading, sizeof v->heading, T(HT_GUIDE_SAVE_TITLE));
         line_filled(v, HT_GUIDE_SAVE_RUN, app_edition()->name);
-        line(v, HT_GUIDE_SAVE_COPY);
-        ui_button(v, T(HT_BTN_SAVE), W_SAVE, 1, 1);
+        line(v, app_edition()->own_save ? HT_GUIDE_BRING_COPY : HT_GUIDE_SAVE_COPY);
+        ui_button(v, T(app_edition()->own_save ? HT_BTN_BRING : HT_BTN_SAVE), W_SAVE, 1, 1);
         ui_button(v, T(HT_BTN_PLAY_NOW), W_PLAY, 0, 1);
         ui_button(v, T(HT_BTN_CHECK_AGAIN), W_CHECK, 0, 1);
         break;

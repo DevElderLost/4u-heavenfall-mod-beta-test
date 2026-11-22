@@ -96,6 +96,7 @@ class Rebased:
     branch_slots: tuple[int, ...]
     pointer_slots: tuple[int, ...]
     carried: int                # changed words carried
+    version_words: tuple[int, ...] = ()     # version addresses of the words written from `Session.version_words`
 
 
 def _word(code: bytes | bytearray, at: int) -> int:
@@ -252,7 +253,8 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
     inside a `session.recording()` that gave `notes`) carried onto `original`, the player's executable of version
     `vmap`. `layout`: the blocks `notes.placed` names (their relocations); `canonical`: the unpatched image if the
     caller has it; `symbols`: the names of the relocations (GAME_SYMBOLS); `game_code` and `free`: the canonical
-    ranges of the game's code and of our free regions (the leak detector's)."""
+    ranges of the game's code and of our free regions (the leak detector's). `notes.version_words` (words in a hole of
+    the version) are checked and written at the version's own address."""
     if symbols is None:
         from core.game.executable.blocks import GAME_SYMBOLS as symbols
     if vmap.is_canonical:
@@ -389,7 +391,21 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
             raise RebaseError(f"{vmap.key}: the Thumb branch at {place(at)} does not reach {moved:#x}")
         struct.pack_into("<2H", out, here - BASE, *pair)
         branch_slots.append(here | 1)
-    return Rebased(bytes(out), tuple(sorted(set(branch_slots))), tuple(sorted(set(pointer_slots))), len(changed))
+
+    # The words in a hole of the version that the patcher gave the version's own place of, each checked first
+    version_words = []
+    for at, words in sorted(notes.version_words.items()):
+        if vmap.key not in words:
+            raise RebaseError(f"{vmap.key}: the patch writes {place(at)}, which this game version has at no place the "
+                              f"patch knows")
+        here, old, new = words[vmap.key]
+        if here + 4 - BASE > len(original) or _word(original, here) != old:
+            raise RebaseError(f"{vmap.key}: {place(at)} is this game version's {here:#x}, which does not hold "
+                              f"{old:#x}")
+        put(here, new)
+        version_words.append(here)
+    return Rebased(bytes(out), tuple(sorted(set(branch_slots))), tuple(sorted(set(pointer_slots))), len(changed),
+                   tuple(version_words))
 
 
 def from_canonical(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes: Session,

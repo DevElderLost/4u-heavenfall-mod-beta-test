@@ -66,7 +66,17 @@ def table_entry(values: dict, path: Path) -> dict | None:
         "patch_eur_xx": release["patch_eur_xx"], "patch_usa_xx": release["patch_usa_xx"],
         "patch_eur_cheats": release["patch_eur_cheats"], "patch_usa_cheats": release["patch_usa_cheats"],
         "patch_eur_xx_cheats": release["patch_eur_xx_cheats"], "patch_usa_xx_cheats": release["patch_usa_xx_cheats"],
+        "own_save": _own_save(values, path),
     }
+
+
+def _own_save(values: dict, path: Path) -> int:
+    """`own_save` (core/app/edition.py): the game plays on Heavenfall's own extdata, so the app's save copy brings a
+    hunter into it (app_saves.c); without it the copy goes into the title's save, as before."""
+    own = values.get("own_save", False)
+    if not isinstance(own, bool):
+        raise ValueError(f"{path}: own_save must be true or false")
+    return int(own)
 
 
 def render(root: Path = ROOT) -> str:
@@ -91,7 +101,7 @@ def render(root: Path = ROOT) -> str:
         fields = ("slug", "name", "repository", "title_eur", "title_usa", "cia", "dsx", "patch_eur", "patch_usa",
                   "patch_eur_xx", "patch_usa_xx", "patch_eur_cheats", "patch_usa_cheats", "patch_eur_xx_cheats",
                   "patch_usa_xx_cheats")
-        out.append("    {" + ", ".join(_c_string(row[f]) for f in fields) + "},")
+        out.append("    {" + ", ".join(_c_string(row[f]) for f in fields) + f", {row['own_save']}" + "},")
     out += ["};", "", "#endif", ""]
     return "\n".join(out)
 

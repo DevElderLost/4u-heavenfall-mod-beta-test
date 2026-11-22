@@ -141,6 +141,9 @@ jobs:
           cp tools/build/installer_3ds/heavenfall_launcher.cia dist/HeavenfallBeta-3ds.cia
           cp tools/build/installer_3ds/heavenfall_launcher.3dsx dist/HeavenfallBeta-3ds.3dsx
           cp console/*.hfpatch dist/
+          # the release's own copy of its API answer: the launcher reads it when the API refuses (its hourly limit per address)
+          python3 tools/release/console_release_file.py --repo "$GITHUB_REPOSITORY" --tag "v$version" \
+            --changelog CHANGELOG.md --out dist/HeavenfallBeta-3ds-release.json dist/*
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:

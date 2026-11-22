@@ -16,6 +16,7 @@ download checked by SHA-256, the patch set's format peek. The rules
 #define HF_RETRY_WAIT_MS 2000   /* before the next try */
 #define HF_API_MAX (512 * 1024) /* the releases/latest answer is a few KB; more is refused */
 #define HF_API_BASE "https://api.github.com"
+#define HF_WEB_BASE "https://github.com"
 
 enum {
     HF_OK = 0,
@@ -67,6 +68,16 @@ typedef struct {
 int hf_latest_release(const HfTransport *tr, const char *api_base, const char *repository, const char *user_agent,
                       const char *const *wanted, int nwanted, HfRelease *out, char *notes, size_t notes_cap,
                       int *http);
+
+/* hf_latest_release, and when the API gives no release (its rate limit, another error, no answer, an answer that breaks
+ * the rules) the same answer from `release_file`, a file of the latest release
+ * (HF_WEB_BASE/<repository>/releases/latest/download/<release_file>, written by the release workflow), which github.com
+ * serves outside the API's hourly limit per address: behind an address many share (a carrier's or a provider's NAT)
+ * that limit is spent by others. Read with the same rules. When the file gives no release either, the API's code and
+ * *http stay. HF_E_NONE (no release published) asks for no file. *api_rc (may be NULL) gets the API's own code. */
+int hf_find_release(const HfTransport *tr, const char *api_base, const char *repository, const char *user_agent,
+                    const char *release_file, const char *const *wanted, int nwanted, HfRelease *out, char *notes,
+                    size_t notes_cap, int *http, int *api_rc);
 
 /* ---- a download ---- */
 

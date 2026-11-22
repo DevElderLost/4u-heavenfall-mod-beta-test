@@ -207,6 +207,12 @@ JUKEBOX_STATE_SIZE = 848 + 8 + 8 + 2 * 6 + 4 * 8 + 40
 # cheats.md): after the item wheel, so that it moves no other product block
 ACTION_CANCEL = "cheat_action_cancel"
 ACTION_CANCEL_DATA_SIZE = 8
+# Heavenfall Beta's sidecars (save/beta_sidecar.py): the four sites' stubs and
+# the C with the extras core; its state (struct state in beta_sidecar.c: the slots, the request, the log) and its two
+# card images are in the extension's variables. After the jukebox too.
+BETA_SIDECAR = "beta_sidecar"
+BETA_SIDECAR_STATE_SIZE = 0x1FC + 64 * 16
+BETA_SIDECAR_CARD_SIZE = 2 * 0x5000 + 16      # the two card images, and the read's sentinel (beta_sidecar.c read_file)
 # The new map's fog cycle (maps/misty_peaks/fog_cycle.py), with the map
 FOG_CYCLE_DATA_SIZE = 236
 # The debug fog control (maps/misty_peaks/fog_debug.py): only a diagnostics file places it, so it goes last of all and
@@ -257,6 +263,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.equipment.new_gear.felyne_data import FEATURE as FELYNE
     from core.equipment.new_gear.felyne_data import block_specs as felyne_blocks
     from core.equipment.new_gear.felyne_data import MARK_DEFINES as FELYNE_MARK_DEFINES
+    from core.equipment.new_gear.felyne_data import MARK_TABLE_BYTES as FELYNE_MARK_TABLE_BYTES
     from core.gameplay.quests.quest_lists import HALL_LIST_LENGTH, NEW_QUEST_ROOM, SAVE_LIST_LENGTH
     from core.gameplay.wyporium import trades as wyporium_trades
     from core.gameplay.tail_fall.tail_fall import ANIMATION_SIZE as TAIL_FALL_ANIMATION_SIZE
@@ -266,7 +273,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, TRIO_DIAG, SYNC_DIAG, SOUND_LATCH)
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, BETA_SIDECAR, TRIO_DIAG,
+                   SYNC_DIAG, SOUND_LATCH)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -308,10 +316,6 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): two entries, one for the
     # SDK's pad step and one for the Game Menu's per-frame logic
     BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext"),
-    # Heavenfall's own save files (save/game_redirect.py): the logic in
-    # C, the two hooks' entries in assembly
-    BlockSpec("save_redirect", "save_redirect", "save/game_redirect.c", region="ext"),
-    BlockSpec("save_redirect_entry", "save_redirect", "save/game_redirect.s", region="ext"),
     # START skips a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.py): one entry, for the
     # camera manager's call of a camera sequence's frame
     BlockSpec("death_camera_skip", "skip_death_camera", "gameplay/death_camera_skip/death_camera_skip.c", region="ext"),
@@ -389,6 +393,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (8 bytes)
     BlockSpec("monster_phases", "monster_phases", "gameplay/monster_phases/monster_phases.s", region="ext"),
     BlockSpec("monster_phase_options", "monster_phases", size=8, region="ext"),
+    # The monster stat table copied with the weak monsters' records past the game's 141 (monsters/stat_table.py): every
+    # index a stat byte names, 32 bytes each
+    BlockSpec("stat_table", "stat_records", size=32 * 256, region="ext"),
     # The quest list's key quest marks (interface/key_quests/executable/key_quests.py):
     # the row refresh's hook, the key quests' ids (u16 and an end mark) and the name hashes of the rows' star nulls (8
     # u32)
@@ -610,9 +617,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (felyne_data.block_specs)
     *(BlockSpec(name, FELYNE, size=size, region="ext") for name, size in felyne_blocks()),
     # The save's marks of the Felyne ids past the window (equipment/new_gear/felyne_marks.py; docs/equipment/
-    # equipment_data.md, "What the save keeps"): the function that gives an id its bit and the four places' stubs
+    # equipment_data.md, "What the save keeps"): the function that gives an id its bit, its table (the ids marked in
+    # the hunters' equipment arrays) and the four places' stubs
     BlockSpec("felyne_marks_code", FELYNE, "equipment/new_gear/felyne_marks.c", region="ext",
               defines=FELYNE_MARK_DEFINES),
+    BlockSpec("felyne_marks_table", FELYNE, size=FELYNE_MARK_TABLE_BYTES, region="ext"),
     BlockSpec("felyne_marks_stubs", FELYNE, "equipment/new_gear/felyne_marks.s", region="ext"),
     # A Felyne wearing a new piece is written to the save file wearing a Derring piece, and the real one is put back at
     # load (gameplay/felyne_save/felyne_save.py): both
@@ -711,6 +720,11 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
               defines=(f"JUKEBOX_DATA_SIZE={JUKEBOX_DATA_SIZE}", f"JUKEBOX_STATE_SIZE={JUKEBOX_STATE_SIZE}")
               + JUKEBOX_MENU_DEFINES),
     BlockSpec("jukebox_data", JUKEBOX, size=JUKEBOX_DATA_SIZE, region="ext"),
+    # Heavenfall Beta's sidecars: the stubs of the four sites, and the C linked with the extras core (save/c/extras.c)
+    # and what an older Heavenfall left (save/c/heav.c)
+    BlockSpec("beta_sidecar_stubs", BETA_SIDECAR, "save/beta_sidecar.s", region="ext"),
+    BlockSpec("beta_sidecar_code", BETA_SIDECAR, "save/beta_sidecar.c", region="ext", thumb=True, align=8,
+              units=("save/c/extras.c", "save/c/heav.c")),
     # The debug fog control's code and data (a diagnostics file's only)
     BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
     BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
@@ -770,7 +784,6 @@ VARIABLES = (
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
     VariableSpec("fast_gathering_state", "fast_gathering", 4),  # fast_gathering.s: the mPlayerSpeed it last wrote
     VariableSpec("select_kick_state", "select_kick", 4),     # select_kick.c: Select held (1), seen by the menu (2)
-    VariableSpec("save_redirect_state", "save_redirect", 4),  # game_redirect.c: bit n: file kind n is read from MH4U's
     # death_camera_skip.c, intro_skip.c -> select_kick.c: frames left in which START belongs to the death camera or to
     # the touch screen's Skip
     VariableSpec("death_camera_skip_state", "skip_death_camera", 4),
@@ -885,9 +898,6 @@ VARIABLES = (
                  region="ext_vars"),
     VariableSpec("hf_records_slots", "new monster id (core/monsters/porting/hf_records.py)", 0xC00, align=0x10,
                  region="ext_vars"),
-    # The log of Heavenfall's own save files: every call of the file task's two operations (core/save/game_redirect.c
-    # struct save_log: 16 + 160 notes of 16 bytes); patch_game_redirect calls Layout.reserve
-    VariableSpec("save_redirect_log", "save_redirect", 0xA10, align=0x10, region="ext_vars"),
     # Damage Numbers' events, numbers and monsters (damage_numbers.c struct dmg_state); patch_damage_numbers reserves it
     VariableSpec("damage_numbers_state", DAMAGE_NUMBERS, DAMAGE_NUMBERS_STATE_SIZE, align=0x10, region="ext_vars"),
     # The modern camera's kept C-stick, each camera input's turn and the aim's (modern_camera.c struct
@@ -930,6 +940,10 @@ VARIABLES = (
     # the variable holding the shells' manager sShell, which MH4U lacks (MH Generations keeps it at 0xDA95F0;
     # proof/shell_mgr.c, sdk/enemy_4u.h shell_launch_01_from)
     VariableSpec("proof_shell_mgr", "mhgen_port (core/monsters/porting/effect_player)", 4),
+    # Heavenfall Beta's sidecars: the slots, the request and the log (beta_sidecar.c struct state), and the two card
+    # images the card's split and join read into; patch_beta_sidecar reserves them
+    VariableSpec("beta_sidecar_state", BETA_SIDECAR, BETA_SIDECAR_STATE_SIZE, align=0x10, region="ext_vars"),
+    VariableSpec("beta_sidecar_card", BETA_SIDECAR, BETA_SIDECAR_CARD_SIZE, align=0x10, region="ext_vars"),
     # The debug fog control's steps and live text (a diagnostics file's only), after every other variable
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
     # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others
@@ -1032,13 +1046,6 @@ GAME_SYMBOLS = {
     "viewport_close": 0xC00EC8,      # FUN_00c00ec8(*0x105729C)
     "save_copy_out": 0xC2789C,       # FUN_00c2789c(save, buffer, 0x12600): save data -> the file's buffer
     "file_checksum": 0x2ABCAC,       # FUN_002abcac(files, buffer, size, write): the save file's checksum
-    # Heavenfall's own save files (save/game_redirect.py)
-    "file_manager": 0x104DEB0,       # the variable holding the file thread's manager (+0x20 the extdata id)
-    "file_exists": 0xC19CE8,         # FUN_00c19ce8(manager, name, archive, &found): the file exists (0 = no error)
-    "file_extdata_set": 0xC195FC,    # FUN_00c195fc(manager, id): the extdata the archive 1 operations mount
-    "save_task_resume": 0x2ACAA4,    # FUN_002acaa0 after its first instruction (the archive 0 file operations)
-    "extdata_task_resume": 0x2ABA08,  # FUN_002aba04 after its first instruction (the archive 1 file operations)
-    "slot_exists_resume": 0x2AF394,   # FUN_002af390 after its first instruction (whether a kind's file exists)
     # The forge-style screens: the forge's
     # materials box and money box, its yes / no window, the hammer scene, payment and the GUI's panes by hash; all in
     # the runs of the base games and the update (eur_base, usa_base, usa_update)
@@ -1843,6 +1850,8 @@ GAME_SYMBOLS |= {
     "frame_update": 0x644320,           # FUN_00644320(app): the engine's timing update, once per frame (frame limiter)
     "gx_main": 0x10572CC,               # the variable holding MtGX's draw object
     "gui_projection": 0xB70FC0,         # FUN_00b70fc0(matrix): the GUI's 2D projection from s0, s1 (aspect_stub.s)
+    # FUN_00ba106c(icon, place): a minimap icon's place, its group's plus its pane's (aspect_stub.s aspect_icon)
+    "minimap_icon_place": 0xBA106C,
     # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
     "hunter_gear_stat": 0x2F8F34,
 }
@@ -2170,6 +2179,21 @@ GAME_SYMBOLS |= {
                                         # cylinders (sStage+0x34C + 4 x area) of an active kind (sStage+0x14)
 }
 
+# Lagiacrus' MH4U engine calls (phase G2e; the comment holds the MH XX address; each is
+# a row of lagiacrus/em046/pairs.py or names_d3.py, read in both games)
+GAME_SYMBOLS |= {
+    # 0x8AEEC4: (this, rate) mPos += mRate and mRateG times the unit's delta, mRate += mRateG times it, then falls into
+    # the landing test (0x922B68: mPos.y clamped to the ground em+0x624; XX em+0x58C)
+    "enemy_move_accel_land": 0x922AE8,
+    # 0x8B8730: (this, n, absolute) the angle from his yaw to homing point n, folded when absolute
+    "enemy_homing_point_yaw_diff": 0x930830,
+    "enemy_stay_times_load": 0x932F54,  # 0x8BBFC4: (this) the area's stay times from the species' data
+    "enemy_area_move_timer": 0x93EF30,  # 0x8C6D48: (this) the area move's timer em+0x1FC: 720, 2700 or 3600 frames
+    # 0x8CBEBC: (this, action) uEnemy's slot 94 (XX 279): may he take the action a network message asks for (the same
+    # jump table of 0x6A actions)
+    "enemy_slot237": 0x9431F4,
+}
+
 # The C-stick turns the camera analogically (gameplay/modern_camera/modern_camera.c)
 GAME_SYMBOLS |= {
     "camera_turn_by_input": 0xBFD028,   # FUN_00bfd028(camera, input, flags): sMhCamera::turnByInput, the turn by
@@ -2418,4 +2442,24 @@ GAME_SYMBOLS |= {
     "keyboard_text": 0x2AFC2C,          # FUN_002afc2c(manager): the typed text (manager + 0x2FC8)
     "keyboard_copy": 0x2B5F48,          # FUN_002b5f48(manager, out, text, width, width): at most `width` units
     "keyboard_close": 0x2B5DF8,         # FUN_002b5df8(manager): closes an open keyboard
+}
+
+# Heavenfall Beta's sidecars (save/beta_sidecar.c, beta_sidecar.s): the file
+# manager's requests made at once, and the two copies the join sites replace. file_manager and save_control are named
+# again here (the same addresses) so that this feature needs no other's entries.
+GAME_SYMBOLS |= {
+    "file_manager": 0x104DEB0,          # the variable holding the file thread's manager
+    "save_control": 0xFCF7EC,           # the variable holding the save object
+    "file_task": 0xF31FC4,              # the variable holding the file task (FUN_005dd674's DAT_005dd7b0)
+    "file_request_entry": 0xC19E14,     # FUN_00c19e14(entry, name, buffer, size, flags): a request's file
+    "file_read_sync": 0xC1A424,         # FUN_00c1a424(manager, entries, count, archive)
+    "file_write_sync": 0xC1A48C,        # FUN_00c1a48c(manager, entries, count, archive, check_free, commit)
+    "file_delete_sync": 0xC17ED0,       # FUN_00c17ed0(manager, entries, count, archive, commit)
+    "file_exists_sync": 0xC19CE8,       # FUN_00c19ce8(manager, name, archive, &found): 0 when asked
+    "file_thread_wait": 0xC17FB8,       # FUN_00c17fb8(thread): until the file thread runs no handler
+    "file_extdata_set": 0xC195FC,       # FUN_00c195fc(manager, id): manager + 0x20 = id when it mounts
+    "save_copy_in": 0xC27830,           # FUN_00c27830(save, buffer + 8, 0x12600): the file's data -> the save data
+    "card_sets_in": 0xC1AC68,           # FUN_00c1ac68(save, card + 0x75C78, 0x2C00): the card's sets -> the save
+    "save_sum_cipher": 0x2ABCAC,        # FUN_002abcac(task, file, size, 1): the sum at + 4, then the XOR stream
+    "save_blowfish": 0x2AB9B0,          # FUN_002ab9b0(task, file, size): Blowfish on (FUN_002abe04's last step)
 }

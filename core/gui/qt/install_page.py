@@ -1009,4 +1009,9 @@ class InstallPage(Page):
         elif self._action == "export":
             self.progress.show_message(lambda lang: T_DONE_EXPORT.format(lang, folder=self._dest))
         else:
-            self.progress.show_message(T_DONE_SD if self._request.console else T_DONE_EMU)
+            done = T_DONE_SD if self._request.console else T_DONE_EMU
+            notices = getattr(payload, "notices", ())      # what the install itself has to tell (the saves' backup...)
+            if notices:
+                self.progress.show_message(lambda lang: "\n".join([done(lang), *notices]))
+            else:
+                self.progress.show_message(done)

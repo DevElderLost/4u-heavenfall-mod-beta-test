@@ -15,7 +15,7 @@
   "quality_of_life": true,
   "jukebox": true,
   "jukebox_xx": true,
-  "skip_intro": true,
+  "skip_intro": false,
   "cheat_3d_mode": "dither_off",
   "cheat_no_bloom_dof": true,
   "cheat_fps": "off",

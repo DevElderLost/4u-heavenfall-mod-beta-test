@@ -37,6 +37,19 @@ MESSAGES: dict[str, tuple[str, str]] = {
                 "elegirlo."),
     "rebuilding": ("{folder}: updating the mod ({old} to {new}). This can take a minute...",
                    "{folder}: actualizando el mod ({old} a {new}). Puede tardar un minuto..."),
+    "saves_not_saved": ("{folder}: your saves could not be backed up first ({reason}); the update goes on.",
+                        "{folder}: no se pudo hacer antes una copia de tus partidas ({reason}); la actualización "
+                        "sigue."),
+    "hunters_not_moved": ("{folder}: your earlier Heavenfall hunters could not be moved to the new save ({reason}); "
+                          "the update goes on.",
+                          "{folder}: no se pudieron pasar tus cazadores anteriores de Heavenfall a la partida nueva "
+                          "({reason}); la actualización sigue."),
+    "hunters_waiting": ("{folder}: your earlier Heavenfall hunters were not moved to the new save because "
+                        "{emulators} is "
+                        "running; they move at the next update, install or visit of the Saves page.",
+                        "{folder}: tus cazadores anteriores de Heavenfall no se pasaron a la partida nueva porque "
+                        "{emulators} está abierto; se pasan en la próxima actualización, instalación o visita a "
+                        "Partidas."),
     "progress": ("  {percent} %", "  {percent} %"),
     "rebuilt": ("{folder}: updated.", "{folder}: actualizado."),
     "failed": ("{folder}: the mod could not be updated ({reason}); it was left as it is.",
@@ -137,16 +150,40 @@ def _every_tenth(show: Callable[[int], None]) -> Callable[[int, int], None]:
     return progress
 
 
+def _move_earlier_hunters(mod_folder: Path, backups=None) -> list[str]:
+    """The edition with a save of its own: the hunters the earlier system kept beside MH4U's files (`hfuserN`) move
+    into Heavenfall's own extdata (core/save/bring.py, `migrate_legacy`), as an install does (gui/qt/jobs.py). Not while
+    an emulator runs (the running game keeps saving into the old files): the emulators running are returned and nothing
+    moves; it happens at the next install, update or visit of the Saves page."""
+    from core.save.backup import BackupStore, default_root
+    from core.save.bring import migrate_legacy
+    from core.save.store import installed_store, running_emulators
+    found = installed_store(mod_folder)
+    if found is None:
+        return []
+    running = running_emulators()
+    if running:
+        return running
+    migrate_legacy(found, backups if backups is not None else BackupStore(default_root()))
+    return []
+
+
 def update_installed(targets: Iterable | None = None, preferences=None, search: Callable | None = None,
                      build_dir: Path | None = None, lang: str | None = None, say: Callable[[str], None] = print,
-                     version: str = __version__) -> Report:
+                     version: str = __version__, snapshot: Callable[[Path], object] | None = None) -> Report:
     """Rebuild every emulator mod folder that holds our marker with a version other than `version`; see the module.
     The arguments are the tests': `targets` (default the emulators found), `preferences` (default the program's saved
-    ones), `search` (default install/find_games.find), `build_dir` (default the program's build folder)."""
+    ones), `search` (default install/find_games.find), `build_dir` (default the program's build folder), `snapshot`
+    (default: a backup of the emulator's saves, taken before each rebuild; a failure of it is only told)."""
     from core.install.build import InputsError, build, discard_mod_files
     from core.game.executable.romfs import RomFS
     from core.install.deploy import ForeignContent, State, UnsafeTarget, inspect_target, install, read_marker
     from core.install.hd_textures import adapt_pack, clear_generated
+    if snapshot is None:
+        try:
+            from core.save.backup import snapshot_installed_saves as snapshot
+        except ImportError:     # an edition that ships no core/save: no backup of the saves to take
+            snapshot = None
     if preferences is None:
         from core.gui.preferences import Preferences
         preferences = Preferences.load()
@@ -184,6 +221,18 @@ def update_installed(targets: Iterable | None = None, preferences=None, search: 
                 report.left.append(folder)
                 continue
             tell("rebuilding", folder=folder, old=marker.get("version") or "?", new=version)
+            try:
+                if snapshot is not None:
+                    snapshot(folder)
+            except Exception as error:      # noqa: BLE001 - a backup of the saves never stops an update
+                tell("saves_not_saved", folder=folder, reason=error)
+            if current.own_save:
+                try:
+                    running = _move_earlier_hunters(folder)
+                    if running:
+                        tell("hunters_waiting", folder=folder, emulators=", ".join(running))
+                except Exception as error:  # noqa: BLE001 - moving the earlier hunters never stops an update
+                    tell("hunters_not_moved", folder=folder, reason=error)
             try:
                 result = build(rom, settings, build_dir=build_dir, kind="install", xx_rom=xx,
                                progress=_every_tenth(lambda percent: tell("progress", percent=percent)))

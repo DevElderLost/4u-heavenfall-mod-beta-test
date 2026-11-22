@@ -174,6 +174,14 @@ class MistyOnlyMode(str, Enum):
     QUESTS = "quests"            # his Misty Peaks quests (Silverwind: off while Nargacuga is off)
 
 
+class LagiacrusMode(str, Enum):
+    """Where Lagiacrus (from MH XX) is met (core/monsters/lagiacrus/lagiacrus_quests.py)."""
+    OFF = "off"
+    QUESTS = "quests"            # three Gathering Hall quests of his own on the Primal Forest: 3★, 6★ and G★1
+    RANDOMIZED = "randomized"    # tier 3 among the randomized monsters, without his quests
+    EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
+
+
 @dataclass(frozen=True)
 class PortedOption:
     """The option of one ported monster: an entry of PORTED_OPTIONS, the one place that names the
@@ -302,6 +310,17 @@ PORTED_OPTIONS: tuple[PortedOption, ...] = (
         cli_help="add Silverwind Nargacuga from MH XX (switches the additional monsters on): a quest of his own on "
                  "Misty Peaks (G rank 3 stars); off while --nargacuga is off (needs --rom and --xx-rom, "
                  "MH XX's decrypted .3ds)",
+        game="xx"),
+    # Lagiacrus has no installer or GUI option either: fixed on once phase G2 puts him in spec.BUILT
+    # (a run that asks for
+    # him is refused until then). His quests' save bits come after Misty Peaks' (ported_quests.AFTER_MAPS_QUESTS).
+    PortedOption(
+        "lagiacrus", "Lagiacrus", LagiacrusMode, LagiacrusMode.OFF, pool=LagiacrusMode.RANDOMIZED,
+        quests=LagiacrusMode.QUESTS, extended=LagiacrusMode.EXTENDED,
+        cli_help="add Lagiacrus from MH XX (switches the additional monsters on): three quests of his own on "
+                 "the Primal Forest (low rank 3 stars, high rank 6 stars and G rank 1 star), only among the "
+                 "randomized monsters, or `extended`: his quests, randomized like any quest, and among the "
+                 "randomized monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
         game="xx"),
 )
 
@@ -652,6 +671,9 @@ class Settings:
     # Nargacuga and his Deviant, only on Misty Peaks (no option in the GUI: fixed on once built; not built yet)
     nargacuga: MistyOnlyMode = MistyOnlyMode.OFF
     silverwind: MistyOnlyMode = MistyOnlyMode.OFF
+    # Lagiacrus, from the player's MH XX ROM: three quests of his own on the Primal Forest, one per rank (no option in
+    # the GUI: fixed on once he is built)
+    lagiacrus: LagiacrusMode = LagiacrusMode.OFF
 
     # Debug
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster
@@ -829,6 +851,16 @@ class Settings:
     def builds_astalos(self) -> bool:
         """builds("astalos")."""
         return self.builds("astalos")
+
+    @property
+    def lagiacrus_mode(self) -> LagiacrusMode:
+        """mode_of("lagiacrus")."""
+        return self.mode_of("lagiacrus")
+
+    @property
+    def builds_lagiacrus(self) -> bool:
+        """builds("lagiacrus")."""
+        return self.builds("lagiacrus")
 
     @property
     def builds_ported(self) -> bool:

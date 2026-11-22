@@ -75,6 +75,12 @@ class ConsoleRelease:
             raise KeyError(region)
         return getattr(self, key)
 
+    @property
+    def release_file(self) -> str:
+        """The release's own copy of its releases/latest answer, which the app reads when the GitHub API gives none
+        (tools/release/console_release_file.py writes it; the app's hf_edition_release_file names it the same)."""
+        return self.app_cia.removesuffix(".cia") + "-release.json"
+
     def patches(self) -> tuple[str, ...]:
         """Every patch set's name: plain, with MH XX, and each again with the cheats."""
         return tuple(self.patch(region, xx, cheats) for cheats in (False, True) for xx in (False, True)
@@ -117,6 +123,7 @@ class Edition:
     legacy_build_markers: tuple[str, ...] = ()      # so do build folders (install/build.py)
     xx_optional: bool = False   # MH XX is never required; the Install page offers its file (state.offers_xx)
     new_maps: bool = False      # the product builds the maps ported from XX whenever XX's file is given
+    own_save: bool = False      # the game plays on Heavenfall's own save; the program brings hunters in
     console_title: ConsoleTitle | None = None       # required with the "console" platform
     console_release: ConsoleRelease | None = None   # the release files the 3DS app downloads (launcher)
 

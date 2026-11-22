@@ -13,6 +13,9 @@ nothing looks stretched:
 - FUN_00b972d8, which places a HUD panel: its store of the place on the top screen (PANEL_SITE) goes through the stub,
   which moves the minimap's panel (every map layout and icon) to its corner of the picture. The touch screen's place is
   another store, which stays. The rest of the HUD moves in its files (interface/hud/scale.py, `edge`);
+- FUN_00b9db98, which tells FUN_00b954ec whether a monster's minimap icon lies on the map (off it, the icon goes under
+  the map): its call of FUN_00ba106c (ICON_SITE), the icon's place, goes through the stub, which takes the minimap's
+  move back from that place, so the test against the map's square in the game's frame holds on the moved map;
 - FUN_00b94854, which shows the target marker (ui211_target) each frame: the priority it gives the group (MARKER_SITE)
   goes above the item bar's, which the wide picture moves out to the corner the marker can lie at;
 - FUN_00ae65f8, which gives the GPU a group's place as it draws it: its load of the group's second translate
@@ -45,6 +48,8 @@ RECT_SITE, RECT_WORD = 0xC0430C, 0xE58D2004     # FUN_00c042ec: str r2, [sp, #4]
 PANEL_SITE, PANEL_WORD = 0xB97478, 0xE1C602F8   # FUN_00b972d8: strd r0, r1, [r6, #0x28]
 GROUP_SITE, GROUP_WORD = 0xAE6678, 0xED941A0D   # FUN_00ae65f8: vldr s2, [r4, #0x34]
 GROUP_Y_SITE, GROUP_Y_WORD = 0xAE6694, 0xED941A0E   # FUN_00ae65f8: vldr s2, [r4, #0x38]
+ICON_SITE = 0xB9DBCC                            # FUN_00b9db98: bl FUN_00ba106c, a minimap icon's place
+ICON_PLACE = 0xBA106C                           # FUN_00ba106c(icon, place)
 MARKER_SITE, MARKER_WORD = 0xB9E694, 0xE3A02013     # FUN_00b94854: mov r2, #0x13, the marker's priority in
                                                     # FUN_00ae63c8(group, 1, priority)
 
@@ -83,7 +88,8 @@ def supports_aspect_ratio(code: bytes, menu: bool = True) -> bool:
     word = lambda at: struct.unpack_from("<I", code, at - BASE_ADDRESS)[0]  # noqa: E731
     return word(VIEW_SITE) == VIEW_WORD and word(RECT_SITE) == RECT_WORD and word(PANEL_SITE) == PANEL_WORD and \
         word(GROUP_SITE) == GROUP_WORD and word(GROUP_Y_SITE) == GROUP_Y_WORD and word(MARKER_SITE) == MARKER_WORD and \
-        all(bl_target(code, at) == GUI_PROJECTION for at in GUI_CALLS) and (supports_mod_settings(code) or not menu)
+        all(bl_target(code, at) == GUI_PROJECTION for at in GUI_CALLS) and \
+        bl_target(code, ICON_SITE) == ICON_PLACE and (supports_mod_settings(code) or not menu)
 
 
 def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None, anchors: bytes | None = None,
@@ -108,6 +114,7 @@ def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None, anc
     layout.hook(out, PANEL_SITE, layout.symbol(STUB, "aspect_panel"))
     layout.hook(out, GROUP_SITE, layout.symbol(STUB, "aspect_group"))
     layout.hook(out, GROUP_Y_SITE, layout.symbol(STUB, "aspect_group_height"))
+    layout.hook(out, ICON_SITE, layout.symbol(STUB, "aspect_icon"))
     out[MARKER_SITE - BASE_ADDRESS:MARKER_SITE - BASE_ADDRESS + 4] = struct.pack("<I", MARKER_WORD & ~0xFF |
                                                                                     marker_priority())
     return bytes(out)

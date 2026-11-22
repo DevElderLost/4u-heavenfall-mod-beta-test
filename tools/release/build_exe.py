@@ -82,6 +82,7 @@ RESOURCES = ASSET_FOLDERS + (
     "monsters/valstrax/recordings_em086.json",
     "monsters/astalos/recordings_em081.json",
     "monsters/nargacuga/recordings_em037_00.json",
+    "monsters/lagiacrus/recordings_em046_00.json",
     # the Deviants' own recordings (their statics.c are their bases')
     "monsters/boltreaver/recordings_em081_04.json",
     "monsters/hellblade/recordings_em080_04.json",
@@ -96,6 +97,7 @@ RESOURCES = ASSET_FOLDERS + (
     "monsters/valstrax/em086/static.c",
     "monsters/astalos/em081/static.c",
     "monsters/nargacuga/em037/static.c",
+    "monsters/lagiacrus/em046/static.c",
     "native/lib",                   # the native kernels' library
 )
 # Files outside the package, to the bundle's top (where the modules that use them look: the checkout's top).

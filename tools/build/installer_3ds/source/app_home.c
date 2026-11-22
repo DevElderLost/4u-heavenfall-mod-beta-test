@@ -240,7 +240,7 @@ static void more_view(int selected, int language_changed) {
     }
     put(v->detail, sizeof v->detail, app_edition()->name);
     ui_button(v, T(HT_BTN_INFO), ID_INFO, 0, 1);
-    ui_button(v, T(HT_BTN_SAVE), ID_SAVE, 0, 1);
+    ui_button(v, T(app_edition()->own_save ? HT_BTN_BRING : HT_BTN_SAVES), ID_SAVE, 0, 1);
     ui_button(v, T(HT_BTN_REINSTALL), ID_REINSTALL, 0, app.status.title_installed);
     /* the switch says the installed title's state; it works once a title is installed (off until the player asks) */
     ui_button(v, T(app.status.installed_cheats ? HT_BTN_CHEATS_ON : HT_BTN_CHEATS_OFF), ID_CHEATS, 0,
@@ -271,7 +271,10 @@ static int more_run(void) {
         at = selected_now();   /* the page an action opens moves the selection: it comes back here */
         switch (id) {
         case ID_INFO: info_run(); break;
-        case ID_SAVE: saves_copy_flow(0); break;
+        case ID_SAVE:   /* Heavenfall Beta: the page with Bring, Take my save to MH4U and Restore */
+            if (app_edition()->own_save) saves_copy_flow(0);
+            else saves_mh4u_page();
+            break;
         case ID_REINSTALL:   /* back to the home page after it, which says the state it left */
             if (!ui_confirm(T(HT_REINSTALL_ASK))) break;
             LOG("more: reinstall");

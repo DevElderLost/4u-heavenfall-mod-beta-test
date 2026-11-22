@@ -247,6 +247,11 @@ int wizard_run(void);
  * declined clears installed.json's save_pending. */
 enum { SAVE_COPIED = 0, SAVE_DECLINED, SAVE_FAILED, SAVE_NO_ORIGINAL, SAVE_NOT_RUN };
 int saves_copy_flow(int quiet);
+/* The full mod's earlier hunters (the earlier save system's `hfuserN` in MH4U's extdata) moved by themselves into
+ * Heavenfall's extdata and told to the player (bring.c, hf_bring_legacy); saves_copy_flow runs it too. Called after an
+ * install or an update; `quiet`: nothing said while Heavenfall's extdata is not there yet. Not for Heavenfall Beta.
+ * 1 when a hunter moved. */
+int saves_legacy_move(int quiet);
 /* The save of the edition's installed title copied to the card's backups (before an install removes the title). 0 when
  * done or when the title has no save yet; nonzero when the copy failed. */
 int saves_backup_installed(u64 title_id, char stamp[18]);
@@ -258,6 +263,9 @@ int saves_raw_restore(u64 title_id, const char *stamp);
 /* installed.json's save_restore (the backup of a save an install took away) into the title's save, once that opens
  * (the game's first run made it). `quiet`: no message while it does not open yet. SAVE_* as saves_copy_flow. */
 int saves_restore_flow(int quiet);
+/* Heavenfall Beta's More > MH4U saves (app_saves.c, "More > MH4U saves"): a page with Bring (saves_copy_flow), Take my save
+ * to MH4U and Restore MH4U's save. Only the edition whose game plays on the title's save (own_save 0). */
+void saves_mh4u_page(void);
 
 /* app_start.c */
 int original_game(u64 *id, FS_MediaType *media);   /* the original MH4U on the cartridge or the SD card */

@@ -37,6 +37,7 @@ class InstallOutcome:
     seed: str
     code: str                 # the checksum code "XXXX-XXXX" ("" when nothing was randomized)
     result: object            # pipeline.RunResult (notices, settings_path...)
+    notices: tuple[str, ...] = ()   # what the install itself has to tell (the saves' backup failed...)
 
 
 def mods_dir(target: str, title: str, emulators: Callable[[], list] | None = None) -> Path | None:
@@ -142,10 +143,51 @@ def discard_build(request: InstallRequest, build_dir: Path) -> None:
         discard_mod_files(build_dir)
 
 
+def save_snapshot(request: InstallRequest, snapshot: Callable[..., object] | None = None) -> tuple[str, ...]:
+    """Before anything is built or copied: a backup of the saves of the emulator the mod goes into (not the 3DS: its
+    saves are encrypted and the launcher's). A failure never stops the install; it comes back as a notice."""
+    if request.console:
+        return ()
+    try:
+        if snapshot is None:
+            from core.save.backup import snapshot_installed_saves as snapshot
+        snapshot(request.target)
+    except Exception as error:      # noqa: BLE001 - a backup of the saves never stops an install
+        return (f"Your saves could not be backed up first ({error}); the install went on.",)
+    return ()
+
+
+def migrate_saves(request: InstallRequest, migrate: Callable[..., object] | None = None) -> tuple[str, ...]:
+    """The main edition's install, after the saves' backup: hunters the earlier system kept in MH4U's extdata
+    (`hfuserN`) move into Heavenfall's own extdata (core/save/bring.py, `migrate_legacy`). Not on the 3DS, not in an
+    edition that plays on MH4U's own save. Not while an emulator runs (the running game keeps saving into the old
+    files): a notice says it happens at the next install, update or visit of the Saves page. A failure never stops the
+    install; it comes back as a notice."""
+    from core.app.edition import edition
+    if request.console or not edition().own_save:
+        return ()
+    try:
+        from core.save.backup import BackupStore, default_root
+        from core.save.store import installed_store, running_emulators
+        found = installed_store(request.target)
+        if found is not None:
+            running = running_emulators()
+            if running:
+                return (f"Your earlier Heavenfall hunters were not moved to the new save because {', '.join(running)} "
+                        "is running; they move at the next install, update or visit of the Saves page with it closed.",)
+            if migrate is None:
+                from core.save.bring import migrate_legacy as migrate
+            migrate(found, BackupStore(default_root()))
+    except Exception as error:      # noqa: BLE001 - moving the old hunters never stops an install
+        return (f"Your earlier Heavenfall hunters could not be moved to the new save ({error}); the install went on.",)
+    return ()
+
+
 def run_install(request: InstallRequest, report) -> InstallOutcome:
     """Build the mod and install it (worker thread). `report` is a worker Reporter: the pipeline's stages and
     progress, then the stage "install" with the copy's progress, then "done"."""
     from core.install.build import build
+    notices = save_snapshot(request) + migrate_saves(request)
     result = build(request.rom, request.settings, console=request.console, kind=request.kind,
                    progress=report.progress, stage=report.stage, xx_rom=request.xx_rom)
     code = result.checksum.code if result.checksum else ""
@@ -154,7 +196,7 @@ def run_install(request: InstallRequest, report) -> InstallOutcome:
     copy_mod(request, result.output_dir, result.seed, code, settings.to_dict(), report.progress, result.mod_title)
     discard_build(request, result.output_dir)
     report.stage("done")
-    return InstallOutcome(install_folder(request), result.seed, code, result)
+    return InstallOutcome(install_folder(request), result.seed, code, result, notices)
 
 
 def run_uninstall(request: InstallRequest, report) -> Path:

@@ -12,7 +12,7 @@
     .fpu vfp
     .arm
     .global _start
-    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel, aspect_group, aspect_group_height
+    .global aspect_view, aspect_gui, aspect_sub_view, aspect_panel, aspect_group, aspect_group_height, aspect_icon
 
     .equ SAVED, 88              @ the bytes saved below
 
@@ -58,6 +58,20 @@ aspect_panel:
     mov     r2, r6
     mov     r3, r7
     bl      aspect_panel_place
+    vpop    {d0-d7}
+    pop     {r0-r3, r12, pc}
+
+@ FUN_00b9db98: bl FUN_00ba106c(r0 = a monster's minimap icon, r1 = the place it fills), whose r0 says whether it filled
+@ it. The call is made as the game made it; then aspect_minimap_icon takes the minimap's move back from the place, which
+@ the game tests against the map's square in its own frame. FUN_00b9db98 keeps s7-s9 across the call: d0-d7 come back.
+aspect_icon:
+    push    {r0-r3, r12, lr}
+    vpush   {d0-d7}
+    bl      minimap_icon_place
+    str     r0, [sp, #64]               @ the answer, into the saved r0
+    cmp     r0, #0
+    ldrne   r0, [sp, #68]               @ the place (the saved r1)
+    blne    aspect_minimap_icon
     vpop    {d0-d7}
     pop     {r0-r3, r12, pc}
 

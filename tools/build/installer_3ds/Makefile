@@ -58,9 +58,11 @@ APP_TITLE	:=	Heavenfall Launcher PROBE
 PROBEFLAGS	:=	-DHF_PROBE
 endif
 BUILD		:=	build$(if $(filter 1,$(PROBE)),_probe)
-SOURCES		:=	source ../../../core/install/title/c ../../../core/install/launcher/c
+# core/save/c: the save extras' core (extras.c), which Bring joins Heavenfall Beta's sidecars with (bring_join.c
+# builds without it where a tree does not carry the folder).
+SOURCES		:=	source ../../../core/install/title/c ../../../core/install/launcher/c ../../../core/save/c
 DATA		:=	data
-INCLUDES	:=	include source ../../../core/install/title/c ../../../core/install/launcher/c
+INCLUDES	:=	include source ../../../core/install/title/c ../../../core/install/launcher/c ../../../core/save/c
 GRAPHICS	:=	gfx
 ROMFS		:=	romfs
 # The logo's texture (gfx/logo.t3s over gfx/logo.png) is made by tex3ds into the romfs, which the app reads at run time.

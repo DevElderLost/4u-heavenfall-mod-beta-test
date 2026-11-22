@@ -228,7 +228,7 @@ when the event was skipped. The fight's music is on other queues and plays as th
 ## Skipping the prologue
 
 The character creation (FUN_00b7961c) ends with a call to FUN_00c25b50, the new profile, at 0xB79B2C. The option
-`skip_intro` (on by default, in the quality-of-life module) turns that call into one to block `new_game_skip`
+`skip_intro` (off by default, in the quality-of-life module) turns that call into one to block `new_game_skip`
 (`gameplay/new_game_skip/new_game_skip.s`, patch in `new_game_skip.py`), which makes the same call and then leaves the
 new save as the game leaves it after the prologue on the sand ship: 1500z, the starting armor in the box and worn, the
 prologue's quest cleared and the prologue's story flags, with the arrival seen (flag 0x5BA). Its data, block
@@ -306,6 +306,23 @@ the game's own gear and join messages; an unmodded game drops it unread. The oth
 those looks, and their colours, in the hall and in quests; a game that lacks any of a player's looks shows that
 player's real gear.
 
+## The save
+
+MH4U's `userN` and `cardN` stay clean. Four hooks in the executable (`core/save/beta_sidecar.c`, `.s`, `.ld`,
+`beta_sidecar.py`; the set-apart rules in `core/save/c/extras.c`) split a file when the game writes it and join it
+when the game reads it: what MH4U does not know (ids of the new items, Mod Settings, Layered Gear's state, the card's
+Jukebox block and more) goes into a sidecar image of the slot in MH4U's extdata, written first; the file is written
+only after. The sidecar is read and written with an inline request to the game's own file manager, so it needs the
+extension (the exheader) and the save archive's mount, which is why this edition never uses the own-extdata patch of
+the full mod. If the sidecar cannot be written the file is written whole with a mark, and the next join sorts it out.
+A file from the earlier Beta (no sidecar) is taken as it is; the first save keeps it unchanged in `hfoldN`. What an
+older Heavenfall left in a file (gear past MH4U's counts, their marks, Heavenfall's quests in the log and the quest
+bits, the new monsters' hunt records; `core/save/c/heav.c`) goes into one more sidecar of the slot, `hfheavN`, and the
+file keeps MH4U's own values in its place (the type's first piece, a Derring piece for Felynes), so every index stays
+valid. A slot whose file MH4U would not know byte for byte is split and written back clean when the title reads it,
+once per launch. Every install copies the saves first (`core/save/backup.py`); a build from a bare executable has no
+hooks.
+
 ## The cheats
 
 Six well-known cheat codes, built into the executable so they work without the emulator's cheat list, chosen on the START
@@ -337,6 +354,7 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
 | `core/gameplay/select_kick/`, `core/gameplay/hold_a/`, `core/gameplay/death_camera_skip/`, `core/gameplay/intro_skip/`, `core/gameplay/modern_camera/` | Select and Start; holding A; skipping the death camera; skipping a monster's intro; the modern camera |
+| `core/save/` | The save's sidecars (`beta_sidecar.*`, `c/extras.*`) and the saves' backup before an install |
 | `core/interface/mod_settings/` | The START menu's page, its options and their values |
 | `core/equipment/layered/`, `core/equipment/mhgen/`, `core/gameplay/wyporium/` | Layered Gear, the models of MH XX's looks, the Wyporium's trades and exchange |
 | `core/music/` | The Jukebox: its build, patches and C, and the game's audio formats it reads |

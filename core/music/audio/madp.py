@@ -132,6 +132,25 @@ def decode_madp(madp: Madp) -> list[list[int]]:
     return [decode_channel(d, ch.coefs, madp.samples, start=ch.start)[0] for d, ch in zip(madp.data, madp.channels)]
 
 
+def loop_seam(madp: Madp, samples: int) -> list[list[int]]:
+    """What the game plays around the jump of a looped track, decoded from the file alone: the `samples` before
+    loop_end (from the last seek point before them) and as many from loop_start (from the loop context)."""
+    start, end = madp.loop_start, madp.loop_end
+    first = max(0, end - samples)
+    point = max((p for p in madp.seek if p.sample <= first), key=lambda p: p.sample, default=None)
+    rows = []
+    for c, (frames, channel) in enumerate(zip(madp.data, madp.channels)):
+        at, state = (point.sample, point.states[c]) if point else (0, channel.start)
+        offset = at // FRAME_SAMPLES * FRAME_BYTES
+        tail, _ = decode_channel(frames[offset:offset + frame_count(end - at) * FRAME_BYTES], channel.coefs, end - at,
+                                 start=state)
+        offset = start // FRAME_SAMPLES * FRAME_BYTES
+        head, _ = decode_channel(frames[offset:offset + frame_count(samples) * FRAME_BYTES], channel.coefs, samples,
+                                 start=channel.loop)
+        rows.append(tail[first - at:] + head)
+    return rows
+
+
 def trim_start(madp: Madp, samples: int) -> Madp:
     """`madp` without its first `samples`, a whole number of interleave blocks (so every seek point stays on one): the
     frames after the cut are kept as they are, each channel starts from the decoder's state there, and the loop and the

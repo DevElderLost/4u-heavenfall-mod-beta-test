@@ -42,7 +42,7 @@
 - A new character starts on arriving in Val Habar, without the prologue on the sand ship with Dah'ren Mohran.
 - The character gets what the prologue gave: 1500z and the starting armor, worn.
 - The Caravaneer's first talk, the Guild registration and the caravan tutorial stay as in the original game.
-- Only characters created with the mod installed change; existing saves do not. You can turn it off on the **Options** page (Other / QoL tab).
+- It starts off: turn it on on the **Options** page (Other / QoL tab). Only characters created with the mod installed change; existing saves do not.
 
 **Holding A**
 
@@ -154,6 +154,14 @@
 - The song and the playlists are saved with the game. "This session" turns the jukebox off when the game closes;
   "Always" keeps it on.
 - It is on by default, and so are XX's songs. Turn them off in the **Options** page, under Other / QoL.
+
+**Your save**
+
+- The game keeps using MH4U's own save files, and they stay clean: nothing in them is unknown to MH4U. What only Heavenfall Beta has (Layered Gear, Mod Settings, the new items in your Item Box, the Jukebox) is kept in extra files beside them, written and read by the game itself.
+- You can play MH4U in between; the extras are put back when you return. If an extra file cannot be written, the save is written whole instead and nothing is lost.
+- A save made with the earlier Beta (everything inside MH4U's files) is split the first time you save; the original is kept as a copy beside it.
+- The program copies your saves before every install or update (the "save_backups" folder of the program's own folder in your home).
+- It needs the game's own files to build the mod (it is not made from a bare executable); without them the game keeps MH4U's plain save.
 
 **Layered Gear and the Wyporium**
 

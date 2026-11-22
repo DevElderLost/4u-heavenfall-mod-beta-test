@@ -479,7 +479,8 @@
   "132": {"en": "Hellblade Glavenus", "fr": "Glavenus Lame-chaos", "es": "Glavenus Inferno", "de": "Zornklingen-Glavenus", "it": "Ignis Glavenus", "verified": true},
   "133": {"en": "Soulseer Mizutsune", "fr": "Mizutsune Perce-âme", "es": "Tengen Mizutsune", "de": "Karmaseher-Mizutsune", "it": "Arcanum Mizutsune", "verified": true},
   "134": {"en": "Nargacuga", "fr": "Nargacuga", "es": "Nargacuga", "de": "Nargacuga", "it": "Nargacuga", "verified": true},
-  "135": {"en": "Silverwind Nargacuga", "fr": "Nargacuga Vent-acier", "es": "Nargacuga Argénteo", "de": "Silberwind-Nargacuga", "it": "Ventus Nargacuga", "verified": true}
+  "135": {"en": "Silverwind Nargacuga", "fr": "Nargacuga Vent-acier", "es": "Nargacuga Argénteo", "de": "Silberwind-Nargacuga", "it": "Ventus Nargacuga", "verified": true},
+  "136": {"en": "Lagiacrus", "fr": "Lagiacrus", "es": "Lagiacrus", "de": "Lagiacrus", "it": "Lagiacrus", "verified": true}
  },
  "ecology": {
   "124": {
@@ -558,6 +559,13 @@
    "es": "El blanquecino brillo sobre la hoja.\r\nDestellos de una cola que surca la\r\ntierra, desgarra la roca y parte el\r\ncielo. El Nargacuga Argénteo\r\ninvoca un afilado vendaval.\r\nSu víctima se da cuenta cuando\r\nsu cabeza cae de sus hombros.",
    "de": "Mit weißen Streifen wie der Glanz\r\neiner Klinge. Blitze eines Schwanzes,\r\ndie die Erde spalten, Stein entzweien\r\nund den Himmel teilen. Der \"Silberwind\"\r\nruft einen schneidenden Sturm herbei.\r\nWer unachtsam ist, verliert da schnell\r\nseinen Kopf, buchstäblich.",
    "it": "Mostro striato di bianco che libera\r\nlampi che attraversano la terra e\r\nsquarciano il cielo. Il \"Ventus\" evoca\r\nuna tempesta così tagliente che\r\nle sue vittime non si rendono conto\r\nquando la loro testa cade al suolo."
+  },
+  "136": {
+   "en": "Leviathans that exist at the top\r\nof the aquatic food chain. Feared by\r\nsailors as the \"Lords of the Seas,\"\r\nLagiacrus store enough electricity\r\nin their spinal organs to make the\r\noceans surge. Occasionally they can\r\nbe found resting on land as well.",
+   "fr": "Ce léviathan, que les marins\r\nsurnomment \"roi des mers\", trône\r\nau sommet de la chaîne alimentaire\r\naquatique. Le Lagiacrus stocke\r\nassez d'électricité pour soulever\r\nl'océan. Il se repose aussi parfois\r\nsur la terre ferme.",
+   "es": "Leviatanes que están en la cima\r\nde la cadena alimenticia acuática.\r\nTemidos por los marineros, y\r\nconocidos como \"Señores de los\r\nmares\", los Lagiacrus almacenan\r\nsuficiente electricidad como para\r\nsobrecargar los océanos. A veces\r\nlos verás descansando en tierra.",
+   "de": "Ein Leviathan, der das Ende der\r\naquatischen Nahrungskette bildet\r\nund von Matrosen als \"Herr der\r\nWeltmeere\" gefürchtet wird.\r\nEr speichert genug Elektrizität\r\nin seinen spinalen Organen, um\r\ndie Ozeane aufbrausen zu lassen.\r\nManchmal ruht er auch an Land.",
+   "it": "Leviathan che trionfa in cima alla\r\ncatena alimentare acquatica. Noto\r\nai marinai come \"Signore dei mari\",\r\nil Lagiacrus ha così tanta elettricità\r\nnegli organi vertebrali da smuovere\r\ngli oceani. Talvolta si riposa a terra."
   }
  }
 }

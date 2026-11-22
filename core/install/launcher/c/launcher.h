@@ -34,6 +34,13 @@ void hf_tmd_version_text(uint16_t tmd, char *out, size_t cap);
  * update, a system title or the launcher (0x69690). Every AM removal, ticket, import and save write asks it first,
  * whatever an edition file says. */
 int hf_title_ours(uint64_t id);
+/* 1 when the app may write into the SD extdata `id`: Heavenfall's own (an application's unique id of
+ * hf_title_ours's block, 0x69691 to 0x6969F). Never MH4U's (0x1261, 0x1263), whatever a caller asks. */
+int hf_extdata_ours(uint64_t id);
+/* 1 when `id` is exactly the original MH4U of the region (`usa` 0: EUR 0004000000126100, 1: USA 0004000000126300), the
+ * only save archive besides Heavenfall's own that More's "Take my save to MH4U" and its restore may write: never the
+ * other region's, nor its update (0004000E) or add-on (0004008C) ids. Asked only by those two flows. */
+int hf_title_original(uint64_t id, int usa);
 
 #define HF_LAUNCHER_TITLE 0x0004000006969000ull    /* the launcher's own title (launcher.rsf's UniqueId 0x69690) */
 
@@ -225,6 +232,17 @@ typedef enum {
     /* More's Cheats (launcher.md, "Cheats on a console"): the switch's two labels, its questions with the warning, a
      * release without the cheats sets */
     HT_BTN_CHEATS_OFF, HT_BTN_CHEATS_ON, HT_CHEATS_ASK_ON, HT_CHEATS_ASK_OFF, HT_CHEATS_NONE, HT_CHEATS_NO_SET_NOTE,
+    /* Bring: the edition whose game plays on Heavenfall's own extdata (app_saves.c bring_flow; bring.h) */
+    HT_BTN_BRING, HT_BRING_STATE, HT_BRING_SLOT, HT_BRING_EMPTY, HT_BRING_DAMAGED, HT_BRING_COMMON, HT_BRING_OFFER,
+    HT_BRING_NO_WORLD, HT_BRING_NO_HUNTER, HT_BRING_TAKEN, HT_BRING_WORKING, HT_BRING_DONE, HT_BRING_LEFT_OVER,
+    HT_BRING_USE_PC, HT_BRING_CORRUPT, HT_BRING_FAILED, HT_BRING_FAILED_KEPT, HT_BRING_COMMON_ASK, HT_BRING_COMMON_DONE,
+    HT_BRING_NOTHING, HT_BRING_NOT_DONE, HT_GUIDE_BRING_COPY, HT_LEGACY_MOVED, HT_LEGACY_WAIT,
+    HT_BRING_CUT_BACK, HT_BRING_CUT_KEPT,
+    /* Heavenfall Beta's More > MH4U saves: Beta's save taken to MH4U's and put back (app_saves.c, to_mh4u_*) */
+    HT_BTN_SAVES, HT_SAVES_STATE, HT_BTN_TO_MH4U, HT_BTN_UNDO_TO_MH4U, HT_TO_MH4U_STATE, HT_TO_MH4U_SHARED,
+    HT_TO_MH4U_OTHER_REGION, HT_TO_MH4U_NO_ARCHIVE, HT_TO_MH4U_NOT_CLEAN, HT_TO_MH4U_ASK, HT_TO_MH4U_SHARED_ASK,
+    HT_TO_MH4U_BACK, HT_TO_MH4U_WORKING, HT_TO_MH4U_DONE, HT_TO_MH4U_FAILED, HT_TO_MH4U_FAILED_KEPT,
+    HT_TO_MH4U_BAD_FILE, HT_UNDO_NONE, HT_UNDO_ASK, HT_UNDO_DONE,
     HT_COUNT
 } HfText;
 

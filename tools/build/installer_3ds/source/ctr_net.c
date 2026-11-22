@@ -3,13 +3,17 @@
 #include <curl/curl.h>
 #include <errno.h>
 #include <malloc.h>
+#include <mbedtls/ssl.h>
+#include <mbedtls/x509.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
+#include "app.h"
 #include "ctr_title.h"
 #include "launcher.h"
 
@@ -54,6 +58,13 @@ int ctr_net_init(void) {
         goto done;
     }
     net_users = 1;
+    {   /* the clock the certificates are read against (forgive_dates): a wrong one shows in the log */
+        time_t now = time(NULL);
+        struct tm *t = gmtime(&now);
+        if (t)
+            LOG("network: the console's clock reads %04d-%02d-%02d %02d:%02d", t->tm_year + 1900, t->tm_mon + 1,
+                t->tm_mday, t->tm_hour, t->tm_min);
+    }
 done:
     LightLock_Unlock(&net_lock);
     return out;
@@ -80,7 +91,40 @@ typedef struct {
     int status;
     int64_t length, range_start;
     int head_sent, stopped;
+    uint32_t dates;   /* the certificates' date flags forgive_dates let through */
 } Call;
+
+/* A certificate's dates against the console's clock: a clock never set, or set back or ahead (a game's events), makes
+ * every certificate "not yet valid" or "expired" and every request fail as if there were no internet. The chain to a
+ * root of the CA file and the host's name are still required (mbedTLS's other flags stay), and every download is
+ * checked against the release's SHA-256. What it forgives is kept for the log. */
+static int forgive_dates(void *ctx, mbedtls_x509_crt *crt, int depth, uint32_t *flags) {
+    Call *c = (Call *)ctx;
+    uint32_t dates = *flags & (uint32_t)(MBEDTLS_X509_BADCERT_EXPIRED | MBEDTLS_X509_BADCERT_FUTURE);
+    (void)crt;
+    (void)depth;
+    c->dates |= dates;
+    *flags &= ~dates;
+    return 0;
+}
+
+/* curl hands mbedTLS's configuration over before each handshake (CURLOPT_SSL_CTX_FUNCTION; curl sets no verify
+ * callback of its own). */
+static CURLcode on_ssl_config(CURL *curl, void *ssl_config, void *userptr) {
+    (void)curl;
+    mbedtls_ssl_conf_verify((mbedtls_ssl_config *)ssl_config, forgive_dates, userptr);
+    return CURLE_OK;
+}
+
+/* The host of an https URL, for the log (the URLs after a redirect carry signed queries: never logged). */
+static void url_host(const char *url, char *out, size_t cap) {
+    const char *p = strncmp(url, "https://", 8) ? url : url + 8;
+    size_t n = strcspn(p, "/?#");
+    if (n >= cap)
+        n = cap - 1;
+    memcpy(out, p, n);
+    out[n] = 0;
+}
 
 static int is_redirect(int status) {
     return status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
@@ -145,8 +189,8 @@ static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody bod
     volatile int *abort_flag = (volatile int *)ctx;
     CURL *curl;
     struct curl_slist *headers = NULL;
-    char range[64];
-    CURLcode rc;
+    char range[64], error[CURL_ERROR_SIZE], host[96];
+    CURLcode rc, tls;
     if (abort_flag && *abort_flag)
         return HF_NET_FAIL;   /* asked to stop: every try left ends at once */
     curl = curl_easy_init();
@@ -180,6 +224,10 @@ static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody bod
     curl_easy_setopt(curl, CURLOPT_CAINFO, CA_FILE);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
+    tls = curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, on_ssl_config);
+    curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, &c);
+    error[0] = 0;
+    curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, (long)CONNECT_SECONDS);
     curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
     curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, (long)STALL_SECONDS);
@@ -198,6 +246,14 @@ static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody bod
     rc = curl_easy_perform(curl);
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+    url_host(req->url, host, sizeof host);
+    if (tls != CURLE_OK)
+        LOG("network: %s: curl takes no TLS set-up callback (%d): the console's clock must be right", host, (int)tls);
+    if (c.dates)
+        LOG("network: %s: certificate dates off by the console's clock (flags 0x%lx), taken", host,
+            (unsigned long)c.dates);
+    if (rc != CURLE_OK && !c.stopped && !(abort_flag && *abort_flag))
+        LOG("network: %s: curl %d, %s (http %d)", host, (int)rc, error[0] ? error : curl_easy_strerror(rc), c.status);
     if (c.stopped)
         return HF_NET_ABORT;
     return rc == CURLE_OK ? HF_NET_OK : HF_NET_FAIL;

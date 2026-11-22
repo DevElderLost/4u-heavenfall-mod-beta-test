@@ -106,16 +106,20 @@ static void show_failure(int rc, int had_title) { advise(hf_fail_kind(rc, (uint3
 
 int release_latest(const HfTransport *tr, const HfEdition *e, HfRelease *rel, char *notes, size_t notes_cap) {
     const char *wanted[HF_W_COUNT];
-    int http = 0, rc;
+    char file[HF_NAME_MAX];
+    int http = 0, api_rc = 0, rc;
     u64 t = osGetTime();
     hf_edition_wanted(e, wanted);
+    if (hf_edition_release_file(e, file, sizeof file)) file[0] = 0;
     memset(rel, 0, sizeof *rel);
     if (notes && notes_cap) notes[0] = 0;
-    rc = hf_latest_release(tr, HF_API_BASE, e->repository, e->name, wanted, HF_W_COUNT, rel, notes, notes_cap, &http);
-    LOG("release: %s -> %d (http %d), tag '%s', assets %d%d%d%d%d%d, notes %lu bytes", e->repository, rc, http,
-        rc == HF_OK ? rel->tag : "", rel->assets[0].found, rel->assets[1].found, rel->assets[2].found,
-        rel->assets[3].found, rel->assets[4].found, rel->assets[5].found,
-        (unsigned long)(rc == HF_OK && notes ? strlen(notes) : 0));
+    /* the API first; when it gives no release (its limit spent behind a shared address, no answer), the release's file */
+    rc = hf_find_release(tr, HF_API_BASE, e->repository, e->name, file, wanted, HF_W_COUNT, rel, notes, notes_cap, &http,
+                         &api_rc);
+    LOG("release: %s -> %d (http %d; the API %d%s), tag '%s', assets %d%d%d%d%d%d, notes %lu bytes", e->repository, rc,
+        http, api_rc, api_rc != rc ? ", then the release's file" : "", rc == HF_OK ? rel->tag : "",
+        rel->assets[0].found, rel->assets[1].found, rel->assets[2].found, rel->assets[3].found, rel->assets[4].found,
+        rel->assets[5].found, (unsigned long)(rc == HF_OK && notes ? strlen(notes) : 0));
     hf_log_phase(&app.log, osGetTime(), "latest release", t, 0);
     return rc;
 }
@@ -471,6 +475,7 @@ static int done_page(int first) {
     UiEvent ev;
     HfView *v;
     int id, waits = app.status.save_restore[0] && saves_restore_flow(1) == SAVE_NOT_RUN;
+    saves_legacy_move(0);   /* the full mod's earlier hunters move into Heavenfall's own save, or are told to wait */
     hf_text_fill(T(HT_DONE_READY), app_edition()->name, text, sizeof text);
     v = ui_begin();
     ui_reset(v, HF_SCREEN_MENU);

@@ -56,7 +56,7 @@
   "Barroth": {"em": [44], "not_asked": ["Fertile Mud"]},
   "Uragaan": {"em": [45]},
   "Crystalbeard Uragaan": {"em": [45], "variant": 4, "base": "Uragaan", "not_asked": ["Treasure Nugget", "Large Treasure Nugget"], "ranks": ["G"]},
-  "Lagiacrus": {"em": [46]},
+  "Lagiacrus": {"em": [46], "ported": "lagiacrus"},
   "Royal Ludroth": {"em": [47]},
   "Agnaktor": {"em": [49], "ranks": ["low", "high"]},
   "Duramboros": {"em": [55], "ranks": ["high", "G"]},
@@ -107,7 +107,6 @@
   {"slot": 24, "mhgen": 1063, "name": "Crystalbeard Scale+", "monster": "Crystalbeard Uragaan", "rank": "G", "found": ["cut", 33], "obtain": {"trade": 1605, "give": "Coma Sac"}},
   {"slot": 25, "mhgen": 888, "name": "Lagiacrus Plate", "monster": "Lagiacrus", "rank": "low", "found": ["capture", 6], "obtain": {"trade": 290, "give": "Sleep Sac"}},
   {"mh4u": 735, "mhgen": 889, "name": "Lagiacrus Sapphire", "monster": "Lagiacrus", "rank": "high", "found": ["capture", 4], "obtain": {"trade": 563, "give": "Gravios Medulla"}},
-  {"mh4u": 1779, "mhgen": 890, "name": "Lagiacrus Mantle", "monster": "Lagiacrus", "rank": "G", "found": ["capture", 4], "obtain": {"trade": 1279, "give": "Rathalos Mantle"}},
   {"mh4u": 697, "mhgen": 845, "name": "R.Ludroth Claw", "monster": "Royal Ludroth", "rank": "low", "found": ["carve", 20], "obtain": {"trade": 340, "give": "Velocidrome Claw"}},
   {"slot": 26, "mhgen": 840, "name": "Spongy Hide+", "retired": true},
   {"slot": 27, "mhgen": 899, "name": "Agnaktor Hide+", "retired": true},
@@ -190,7 +189,8 @@
   {"mh4u": 710, "mhgen": 1133, "name": "Nargacuga Marrow", "monster": "Nargacuga", "rank": "low", "found": ["cut", 12], "obtain": {"trade": 532, "give": "Zinogre Plate"}},
   {"slot": 15, "mhgen": 1140, "name": "Silverwind Shard", "monster": "Silverwind Nargacuga", "rank": "G", "found": ["carve", 20], "obtain": {"trade": 1508, "give": "S.Zinogre Cortex"}},
   {"slot": 66, "mhgen": 1139, "name": "Silverwind Scale+", "monster": "Silverwind Nargacuga", "rank": "G", "found": ["carve", 30], "obtain": {"trade": 1507, "give": "S.Zin Dragonlocks"}},
-  {"mh4u": 1776, "mhgen": 1135, "name": "Nargacuga Mantle", "monster": "Nargacuga", "rank": "G", "found": ["capture", 4], "obtain": {"trade": 1506, "give": "Zinogre Skymerald"}}
+  {"mh4u": 1776, "mhgen": 1135, "name": "Nargacuga Mantle", "monster": "Nargacuga", "rank": "G", "found": ["capture", 4], "obtain": {"trade": 1506, "give": "Zinogre Skymerald"}},
+  {"mh4u": 1779, "mhgen": 890, "name": "Lagiacrus Mantle", "monster": "Lagiacrus", "rank": "G", "found": ["capture", 4], "obtain": {"trade": 1279, "give": "Rathalos Mantle"}}
  ],
  "asks": {
   "Plesioth": {"high": [[821, 28], [817, 48]], "G": [[817, 6]]},

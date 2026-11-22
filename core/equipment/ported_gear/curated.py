@@ -36,7 +36,7 @@ MAX_SCRAP_PERCENT = 30
 # ever append (with a block in blocks.BLOCKS).
 ORDER = ("mizutsune", "alatreon", "great_maccao", "glavenus", "valstrax", "astalos",
          "boltreaver", "hellblade", "soulseer",     # the Deviants
-         "nargacuga", "silverwind")
+         "nargacuga", "silverwind", "lagiacrus")
 
 
 class CuratedError(ValueError):

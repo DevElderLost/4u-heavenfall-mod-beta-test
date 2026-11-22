@@ -58,6 +58,7 @@ from core.game.executable.memory_split import patch_memory_split, resource_to_ro
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
 from core.game.executable.rebase import feature_gaps
+from core.save.beta_sidecar import patch_beta_sidecar, supports_beta_sidecar
 from core.interface.single_screen.executable.single_screen import patch_single_screen, supports_single_screen
 from core.game.executable.versions import VersionMap
 from core.gameplay.meownster_scrap.meownster_scrap import patch_meownster_scrap
@@ -357,6 +358,14 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if settings.jukebox and not with_jukebox:
         notices.append(left_out("jukebox", "the villages keep their own music",
                                 NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
+    # the save: MH4U's own files stay clean and what the mod adds lives in sidecar files beside them
+    # (save/beta_sidecar.py). No option: every run has it; its blocks are in the extension, which needs the game's
+    # exheader. Without it the game keeps MH4U's plain save (no mod content in it either: Layered Gear and the
+    # Jukebox need the extension too)
+    with_sidecar = player.exheader is not None and supports_beta_sidecar(code)
+    if not with_sidecar:
+        notices.append(left_out("the save's extra files", "the game keeps MH4U's plain save",
+                                NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
     # MH XX's looks, and the rare materials of its monsters that MH4U lacks: only with its game and Layered Gear
     prepared = cached_pack(Path(xx_rom), Path(game)) if layered and xx_rom is not None else None
     materials = load_materials() if prepared else None
@@ -412,7 +421,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                              if (output_dir / "romfs" / path).is_file() else game_files.read(path)) \
         if appearance_peek else None
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange or intro
-            or jukebox_plan is not None or added or title_build or probe is not None):
+            or jukebox_plan is not None or with_sidecar or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
         with session.recording(notes):
@@ -462,6 +471,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_stage_lists(patched)
             if jukebox_plan is not None:    # the Jukebox's engine, the card's hooks and the house Felyne's menu
                 patched = jukebox.patch_executable(patched, jukebox_plan)
+            if with_sidecar:    # after the layered store's and the Jukebox's card hooks: it splits what they wrote
+                patched = patch_beta_sidecar(patched)
             if damage:     # after the target face: its loader and freer hooks go on to the face's
                 patched = patch_damage_numbers(patched)
             if horn:        # the quest's hooks it shares with Damage Numbers: whichever comes first places them

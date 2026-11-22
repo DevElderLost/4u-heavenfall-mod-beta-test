@@ -1,7 +1,7 @@
 {
  "description": "The jukebox menu's texts (core/music/jukebox/texts.py): the messages added to the house Felyne's message file Room_s, by language, in the order of texts.py TEXT_KEYS; a '{}' is a number or a name the game fills in (a string slot). 'widths' are the panes' sizes and fonts read from the game's layouts: 'line' the menu's line (ui414_m_07, 125 x 14 at font 11), 'row' a row's title (ui443_m_title, 112 x 12 at font 11), 'title' the ribbon's title (ui443_m_arena, 147 x 14 at font 14), 'number' a row's number (ui443_m_jsuji, 16 to 18 x 14 at font 11), 'help' a line of the help window (core_common's ui006, ui006_m_10, 220 px at font 12, which FUN_00298560 kind 1 writes; the game's own help texts there have at most two lines). Texts are measured with a Helvetica estimate (core/equipment/new_gear/new_texts.py name_width), which puts the game's own widest help line at 203 px. 'rows' and 'help' name the texts each width checks; 'cut' ends a name of the game's texts cut to fit a row.",
  "texts": {
-  "line": {"eng": "Jukebox", "fre": "Juke-box", "ger": "Jukebox", "ita": "Jukebox", "spa": "Gramola"},
+  "line": {"eng": "Jukebox", "fre": "Juke-box", "ger": "Jukebox", "ita": "Jukebox", "spa": "Caja de música"},
   "line_help": {
    "eng": "Choose the music that plays\nin the towns.",
    "fre": "Choisissez la musique jouée\ndans les villes.",

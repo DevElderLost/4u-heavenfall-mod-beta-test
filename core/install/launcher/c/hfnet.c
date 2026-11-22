@@ -45,25 +45,21 @@ static int mem_body(void *ctx, const void *data, size_t n) {
     return 0;
 }
 
-int hf_latest_release(const HfTransport *tr, const char *api_base, const char *repository, const char *user_agent,
-                      const char *const *wanted, int nwanted, HfRelease *out, char *notes, size_t notes_cap,
-                      int *http) {
-    char url[300];
+/* One releases/latest answer from `url` (the API's, or the release's own file), with the API's rules. */
+static int fetch_release(const HfTransport *tr, const char *url, const char *accept, const char *repository,
+                         const char *user_agent, const char *const *wanted, int nwanted, HfRelease *out, char *notes,
+                         size_t notes_cap, int *http) {
     HfRequest req;
     Mem m;
-    int attempt, rc = HF_E_NETWORK, dummy;
-    if (!http)
-        http = &dummy;
+    int attempt, rc = HF_E_NETWORK;
     *http = 0;
-    if (snprintf(url, sizeof url, "%s/repos/%s/releases/latest", api_base, repository) >= (int)sizeof url)
-        return HF_E_ARG;
     m.buf = malloc(HF_API_MAX);
     if (!m.buf)
         return HF_E_ARG;
     memset(&req, 0, sizeof req);
     req.url = url;
     req.user_agent = user_agent;
-    req.accept = "application/vnd.github+json";
+    req.accept = accept;
     for (attempt = 0; attempt < HF_TRIES; attempt++) {
         int net;
         m.len = 0;
@@ -102,6 +98,47 @@ int hf_latest_release(const HfTransport *tr, const char *api_base, const char *r
     }
     free(m.buf);
     return rc;
+}
+
+int hf_latest_release(const HfTransport *tr, const char *api_base, const char *repository, const char *user_agent,
+                      const char *const *wanted, int nwanted, HfRelease *out, char *notes, size_t notes_cap,
+                      int *http) {
+    char url[300];
+    int dummy;
+    if (!http)
+        http = &dummy;
+    *http = 0;
+    if (snprintf(url, sizeof url, "%s/repos/%s/releases/latest", api_base, repository) >= (int)sizeof url)
+        return HF_E_ARG;
+    return fetch_release(tr, url, "application/vnd.github+json", repository, user_agent, wanted, nwanted, out, notes,
+                         notes_cap, http);
+}
+
+int hf_find_release(const HfTransport *tr, const char *api_base, const char *repository, const char *user_agent,
+                    const char *release_file, const char *const *wanted, int nwanted, HfRelease *out, char *notes,
+                    size_t notes_cap, int *http, int *api_rc) {
+    char url[400];
+    int rc, file_rc, file_http = 0, dummy;
+    if (!http)
+        http = &dummy;
+    if (!api_rc)
+        api_rc = &dummy;
+    rc = hf_latest_release(tr, api_base, repository, user_agent, wanted, nwanted, out, notes, notes_cap, http);
+    *api_rc = rc;
+    if (rc == HF_OK || rc == HF_E_NONE || rc == HF_E_ARG || !release_file || !*release_file)
+        return rc;
+    if (snprintf(url, sizeof url, "%s/%s/releases/latest/download/%s", HF_WEB_BASE, repository, release_file) >=
+        (int)sizeof url)
+        return rc;
+    file_rc = fetch_release(tr, url, NULL, repository, user_agent, wanted, nwanted, out, notes, notes_cap, &file_http);
+    if (file_rc != HF_OK) {
+        memset(out, 0, sizeof *out);   /* the API's code stays, with nothing half read */
+        if (notes && notes_cap)
+            notes[0] = 0;
+        return rc;
+    }
+    *http = file_http;
+    return HF_OK;
 }
 
 /* ---- a download ---- */

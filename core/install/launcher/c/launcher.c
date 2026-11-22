@@ -140,6 +140,10 @@ int hf_title_ours(uint64_t id) {
     return (low & 0xFFu) == 0 && unique > 0x69690u && unique <= 0x6969Fu;
 }
 
+int hf_extdata_ours(uint64_t id) { return id > 0x69690u && id <= 0x6969Fu; }
+
+int hf_title_original(uint64_t id, int usa) { return id == (usa ? 0x0004000000126300ull : 0x0004000000126100ull); }
+
 static uint64_t align64(uint64_t n) { return (n + 63) / 64 * 64; }
 
 static uint32_t le32(const uint8_t *p) {
@@ -475,7 +479,7 @@ static const char *const TEXT[HT_COUNT][2] = {
     [HT_BTN_SETUP] = {"Set up", "Configurar"},
     [HT_BTN_MORE] = {"More", "Más"},
     [HT_BTN_INFO] = {"Information", "Información"},
-    [HT_BTN_SAVE] = {"Copy my MH4U save", "Copiar mi partida de MH4U"},
+    [HT_BTN_SAVE] = {"Bring my MH4U save", "Traer mi partida de MH4U"},
     [HT_BTN_LANGUAGE] = {"Español", "English"},
     [HT_BTN_BACK] = {"Back", "Volver"},
     [HT_BTN_PLAY_NOW] = {"Play now", "Jugar ahora"},
@@ -561,8 +565,8 @@ static const char *const TEXT[HT_COUNT][2] = {
     [HT_GUIDE_SAVE_TITLE] = {"Bring your MH4U save", "Trae tu partida de MH4U"},
     [HT_GUIDE_SAVE_RUN] = {"1. Start {} once so it makes its save, then come back here.",
                            "1. Abre {} una vez para que cree su partida y vuelve aquí."},
-    [HT_GUIDE_SAVE_COPY] = {"2. Press Copy my MH4U save. Both saves are backed up on the SD card first.",
-                            "2. Pulsa Copiar mi partida de MH4U. Antes se guarda una copia de las dos en la SD."},
+    [HT_GUIDE_SAVE_COPY] = {"2. Press Bring my MH4U save. Both saves are backed up on the SD card first.",
+                            "2. Pulsa Traer mi partida de MH4U. Antes se guarda una copia de las dos en la SD."},
     [HT_GUIDE_DONE_TITLE] = {"All set", "Todo listo"},
     [HT_GUIDE_DONE_STEP] = {"{} is installed: start it here with Play now, or from the HOME Menu.",
                             "{} está instalado: ábrelo aquí con Jugar ahora o desde el menú HOME."},
@@ -647,6 +651,127 @@ static const char *const TEXT[HT_COUNT][2] = {
                         "Esta versión no tiene trucos para tu región: no se ha cambiado nada."},
     [HT_CHEATS_NO_SET_NOTE] = {"This version has no cheats for your region: installing without them.",
                                "Esta versión no tiene trucos para tu región: se instala sin ellos."},
+    /* Bring (the PC program's Saves page words) */
+    [HT_BTN_BRING] = {"Bring from MH4U", "Traer de MH4U"},
+    [HT_BRING_STATE] = {"Choose a slot: MH4U's hunter comes into Heavenfall. MH4U's save is never changed.",
+                        "Elige una ranura: el cazador de MH4U pasa a Heavenfall. La partida de MH4U nunca cambia."},
+    [HT_BRING_SLOT] = {"Slot", "Ranura"},
+    [HT_BRING_EMPTY] = {"empty", "vacía"},
+    [HT_BRING_DAMAGED] = {"damaged", "dañada"},
+    [HT_BRING_COMMON] = {"Event quests, shared data", "Misiones de evento y datos"},
+    [HT_BRING_OFFER] = {"Bring a hunter from your MH4U save into Heavenfall now? MH4U's save is never changed.",
+                        "¿Traer ahora un cazador de tu partida de MH4U a Heavenfall? La partida de MH4U nunca cambia."},
+    [HT_BRING_NO_WORLD] = {"Start Heavenfall once first: it makes its own save. Then open the launcher again.",
+                           "Abre Heavenfall una vez primero: así crea su propia partida. Después vuelve a abrir el "
+                           "launcher."},
+    [HT_BRING_NO_HUNTER] = {"MH4U has no hunter in that slot.", "MH4U no tiene ningún cazador en esa ranura."},
+    [HT_BRING_TAKEN] = {"Heavenfall's slot already has a hunter. Bringing replaces it with MH4U's; Heavenfall's is "
+                        "backed up to the SD card first. Go on?",
+                        "Esa ranura de Heavenfall ya tiene un cazador. Traer lo cambia por el de MH4U; antes se guarda "
+                        "una copia del de Heavenfall en la SD. ¿Seguir?"},
+    [HT_BRING_WORKING] = {"Bringing your hunter... Do not turn the console off.",
+                          "Trayendo tu cazador... No apagues la consola."},
+    [HT_BRING_DONE] = {"The hunter is now in Heavenfall. What it replaced is backed up on the SD card.",
+                       "El cazador ya está en Heavenfall. Lo que sustituyó está copiado en la SD."},
+    [HT_BRING_LEFT_OVER] = {"Some Heavenfall items found no room in the box: they stay in your Heavenfall Beta save.",
+                            "Algunos objetos de Heavenfall no cabían en la caja: siguen en tu partida de Heavenfall "
+                            "Beta."},
+    [HT_BRING_USE_PC] = {"This hunter has Heavenfall Beta data this launcher cannot join: bring it with the PC "
+                         "program. Nothing was changed.",
+                         "Este cazador tiene datos de Heavenfall Beta que este launcher no puede unir: tráelo con el "
+                         "programa del PC. No se ha cambiado nada."},
+    [HT_BRING_CORRUPT] = {"MH4U's save of that slot is damaged, so nothing was changed.",
+                          "La partida de MH4U de esa ranura está dañada, así que no se ha cambiado nada."},
+    [HT_BRING_FAILED] = {"The Bring failed. Heavenfall's files are back as they were, and a copy is on the SD card.",
+                         "No se pudo traer. Los archivos de Heavenfall están como antes y hay una copia en la SD."},
+    [HT_BRING_FAILED_KEPT] = {"The Bring failed and Heavenfall's files could not all be put back. They are safe on the "
+                              "SD card, in the folder shown below.",
+                              "No se pudo traer y no todos los archivos de Heavenfall volvieron a su sitio. Están a "
+                              "salvo en la SD, en la carpeta de abajo."},
+    [HT_BRING_COMMON_ASK] = {"Bring MH4U's event quests and shared data into Heavenfall? They replace Heavenfall's, "
+                             "which are backed up first. Hunters are not touched.",
+                             "¿Traer las misiones de evento y los datos compartidos de MH4U a Heavenfall? Sustituyen a "
+                             "los de Heavenfall, que antes se copian. Los cazadores no cambian."},
+    [HT_BRING_COMMON_DONE] = {"Event quests and shared data brought. What they replaced is backed up on the SD card.",
+                              "Misiones de evento y datos compartidos traídos. Lo que sustituyeron está copiado en la "
+                              "SD."},
+    [HT_BRING_NOTHING] = {"MH4U has no event quests or shared data to bring yet.",
+                          "MH4U todavía no tiene misiones de evento ni datos compartidos que traer."},
+    [HT_BRING_NOT_DONE] = {"The hunter could not be brought, so nothing was changed.",
+                           "No se ha podido traer el cazador, así que no se ha cambiado nada."},
+    [HT_GUIDE_BRING_COPY] = {"2. Press Bring from MH4U and choose a slot. Heavenfall's files are backed up on the SD "
+                             "card first.",
+                             "2. Pulsa Traer de MH4U y elige una ranura. Antes se copian los archivos de Heavenfall en "
+                             "la SD."},
+    [HT_LEGACY_MOVED] = {"Your earlier Heavenfall hunter is now in Heavenfall's own save. The old files stay on the SD "
+                         "card.",
+                         "Tu cazador anterior de Heavenfall ya está en la partida propia de Heavenfall. Los archivos "
+                         "antiguos siguen en la SD."},
+    [HT_LEGACY_WAIT] = {"Your earlier Heavenfall hunters will move to Heavenfall's own save: start Heavenfall once, "
+                        "then open the launcher again.",
+                        "Tus cazadores anteriores de Heavenfall pasarán a la partida propia de Heavenfall: inicia "
+                        "Heavenfall una vez y vuelve a abrir el lanzador."},
+    [HT_BRING_CUT_BACK] = {"A Bring was cut short last time. The Heavenfall files it had changed were put back from the "
+                           "SD card's copy.",
+                           "Un Traer se interrumpió la última vez. Los archivos de Heavenfall que había cambiado se "
+                           "han devuelto desde la copia de la SD."},
+    [HT_BRING_CUT_KEPT] = {"A Bring was cut short last time. Files the game saved since were left as they are; the "
+                           "rest were put back from the SD card's copy.",
+                           "Un Traer se interrumpió la última vez. Lo que el juego guardó después se ha dejado como "
+                           "está; el resto se ha devuelto desde la copia de la SD."},
+    /* Heavenfall Beta's More > MH4U saves (the title's save to MH4U's and back) */
+    [HT_BTN_SAVES] = {"MH4U saves", "Partidas de MH4U"},
+    [HT_SAVES_STATE] = {"Move saves between Heavenfall Beta and MH4U. Both saves are backed up on the SD card first.",
+                        "Mueve partidas entre Heavenfall Beta y MH4U. Antes se copian las dos en la SD."},
+    [HT_BTN_TO_MH4U] = {"Take my save to MH4U", "Llevar mi partida a MH4U"},
+    [HT_BTN_UNDO_TO_MH4U] = {"Restore MH4U's save", "Recuperar la partida de MH4U"},
+    [HT_TO_MH4U_STATE] = {"Choose a slot: Heavenfall Beta's hunter goes into MH4U's save. Play time on each side is "
+                          "shown.",
+                          "Elige una ranura: el cazador de Heavenfall Beta pasa a la partida de MH4U. Se ve el "
+                          "tiempo jugado de cada lado."},
+    [HT_TO_MH4U_SHARED] = {"Shared data", "Datos compartidos"},
+    [HT_TO_MH4U_OTHER_REGION] = {"The MH4U found is of the other region, so its save cannot take this one. Nothing "
+                                 "was changed.",
+                                 "El MH4U encontrado es de la otra región, así que su partida no puede recibir esta. "
+                                 "No se ha cambiado nada."},
+    [HT_TO_MH4U_NO_ARCHIVE] = {"MH4U has no save yet: start MH4U once so it makes it, then come back.",
+                               "MH4U todavía no tiene partida: ábrelo una vez para que la cree y vuelve aquí."},
+    [HT_TO_MH4U_NOT_CLEAN] = {"Load and save this hunter once in Heavenfall Beta first, so its save is plain MH4U's. "
+                              "Nothing was changed.",
+                              "Carga y guarda este cazador una vez en Heavenfall Beta antes, para que su partida sea "
+                              "la normal de MH4U. No se ha cambiado nada."},
+    [HT_TO_MH4U_ASK] = {"Replace MH4U's save of this slot with Heavenfall Beta's? Both saves are backed up on the SD "
+                        "card first.",
+                        "¿Cambiar la partida de MH4U de esta ranura por la de Heavenfall Beta? Antes se copian las "
+                        "dos en la SD."},
+    [HT_TO_MH4U_SHARED_ASK] = {"Replace MH4U's shared data with Heavenfall Beta's? Both saves are backed up on the SD "
+                               "card first.",
+                               "¿Cambiar los datos compartidos de MH4U por los de Heavenfall Beta? Antes se copian "
+                               "las dos en la SD."},
+    [HT_TO_MH4U_BACK] = {"MH4U's hunter here has more play time than Heavenfall Beta's: you would go back in time. "
+                         "Go on?",
+                         "El cazador de MH4U tiene más tiempo jugado que el de Heavenfall Beta: volverías atrás en "
+                         "el tiempo. ¿Seguir?"},
+    [HT_TO_MH4U_WORKING] = {"Moving your save to MH4U... Do not turn the console off.",
+                            "Llevando tu partida a MH4U... No apagues la consola."},
+    [HT_TO_MH4U_DONE] = {"MH4U now has this save. Both saves are backed up on the SD card.",
+                         "MH4U ya tiene esta partida. Las dos están copiadas en la SD."},
+    [HT_TO_MH4U_FAILED] = {"It failed. MH4U's save is back as it was, and the backups are on the SD card.",
+                           "No se pudo. La partida de MH4U está como antes y las copias están en la SD."},
+    [HT_TO_MH4U_FAILED_KEPT] = {"It failed and MH4U's save could not be fully put back. The backups are on the SD "
+                                "card, in the folder shown below.",
+                                "No se pudo y la partida de MH4U no volvió entera a su sitio. Las copias están en "
+                                "la SD, en la carpeta de abajo."},
+    [HT_TO_MH4U_BAD_FILE] = {"A save file is not the size MH4U's files have, so nothing was changed.",
+                             "Un archivo de partida no tiene el tamaño de los de MH4U, así que no se ha cambiado "
+                             "nada."},
+    [HT_UNDO_NONE] = {"There is no save taken to MH4U to put back, or its backup is gone.",
+                      "No hay ninguna partida llevada a MH4U que recuperar, o su copia ya no está."},
+    [HT_UNDO_ASK] = {"Put MH4U's save back as it was before Heavenfall Beta's went in? What MH4U holds now is backed "
+                     "up first.",
+                     "¿Dejar la partida de MH4U como estaba antes de llevarle la de Heavenfall Beta? Antes se copia "
+                     "lo que tiene ahora."},
+    [HT_UNDO_DONE] = {"MH4U's save is back as it was.", "La partida de MH4U está como estaba."},
 };
 
 const char *hf_text(HfLang lang, HfText id) {
