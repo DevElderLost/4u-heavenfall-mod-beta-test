@@ -66,7 +66,21 @@
    "fre": "Gauche/Droite ou A : changer\nB : retour",
    "ger": "Links/Rechts oder A: ändern\nB: zurück",
    "ita": "Sinistra/Destra o A: cambia\nB: indietro",
-   "spa": "Izquierda/Derecha o A: cambiar\nB: volver"}
+   "spa": "Izquierda/Derecha o A: cambiar\nB: volver"},
+  "single": {"eng": "One song", "fre": "Un morceau", "ger": "Ein Lied", "ita": "Un brano", "spa": "Una canción"},
+  "playlists": {"eng": "Playlists", "fre": "Playlists", "ger": "Playlists", "ita": "Playlist", "spa": "Listas"},
+  "help_entry": {
+   "eng": "A: open  B: back\nMarked: what is playing.",
+   "fre": "A : ouvrir  B : retour\nMarqué : ce qui est joué.",
+   "ger": "A: öffnen  B: zurück\nMarkiert: was gerade läuft.",
+   "ita": "A: apri  B: indietro\nSegnato: ciò che è in corso.",
+   "spa": "A: abrir  B: volver\nMarcada: lo que suena."},
+  "help_single": {
+   "eng": "A: play or stop  Y: listen\nB: back  Marked: the one playing",
+   "fre": "A : jouer/arrêter  Y : écouter\nB : retour  Marqué : celui joué",
+   "ger": "A: abspielen/anhalten  Y: anhören\nB: zurück  Markiert: das laufende",
+   "ita": "A: riproduci/ferma  Y: ascolta\nB: indietro  Segnato: quello in corso",
+   "spa": "A: poner/quitar  Y: escuchar\nB: volver  Marcada: la que suena"}
  },
  "widths": {
   "line": {"px": 125, "font": 11},
@@ -76,8 +90,8 @@
   "help": {"px": 220, "font": 12, "lines": 2}
  },
  "rows": ["line", "playlist", "options", "play", "stop", "add", "edit", "rename", "in_order", "shuffle", "clear",
-          "halls_off", "halls_on", "keep_session", "keep_always", "loops", "fade"],
+          "halls_off", "halls_on", "keep_session", "keep_always", "loops", "fade", "single", "playlists"],
  "help": ["line_help", "help_main", "help_playlist", "clear_prompt", "help_categories", "help_songs", "help_edit",
-          "help_moving", "help_options"],
+          "help_moving", "help_options", "help_entry", "help_single"],
  "cut": "..."
 }

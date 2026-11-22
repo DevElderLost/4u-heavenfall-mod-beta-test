@@ -22,7 +22,7 @@ Heavenfall Beta moves the menus of the bottom screen to the top screen, locks on
 | **Steam Deck** (Azahar) | [The web installer or the Linux script](docs/install/steam_deck.md) |
 | **A real 3DS or New 3DS** (custom firmware) | [The Heavenfall Launcher app](docs/install/3ds.md) |
 
-On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
+On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks and the Jukebox XX's songs. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
 
 > **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
 
@@ -37,7 +37,8 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.
 - A **World-style sharpness gauge** that shrinks as each colour wears down.
 - **Item marks**: a yellow star (white if you prefer) on upgraded items such as Mega Potions (two on level 3 ammo), and rare materials that glow on the quest rewards screen.
-- A **Jukebox** at your Housekeeper: playlists of the game's music, played in the towns instead of their own.
+- A **Jukebox** at your Housekeeper: one song or playlists of the game's music, played in the towns instead of their
+  own; with Monster Hunter XX's game, XX's monster, area, town and hall themes too.
 - **A smaller HUD**, from 90% to 60%.
 - **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Every item box puts on the looks you own, and your Guild Card shows them. Mod Settings can hide it for a character.
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.

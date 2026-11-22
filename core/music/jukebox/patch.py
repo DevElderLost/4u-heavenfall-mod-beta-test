@@ -30,9 +30,10 @@ PLAYLISTS, SONGS, NAME_CHARS = 8, 40, 10
 PLACES = 16                     # each list of replaced requests (jukebox.h JUKEBOX_PLACES)
 MESSAGES = 64                   # the menu's message numbers (JUKEBOX_MESSAGES)
 TRACK_ROOM = 512                # track ids the request table holds (JUKEBOX_TRACK_ROOM)
-CATEGORIES = 8                  # the menu's categories (JUKEBOX_CATEGORIES)
+CATEGORIES = 12                 # the menu's categories (JUKEBOX_CATEGORIES)
 MENU_TRACKS = 256               # the menu's track list (JUKEBOX_MENU_TRACKS)
 NO_REQUEST = 0xFFFF
+NO_SONG = 0xFFFF                # jukebox.h JUKEBOX_NO_SONG
 # Requests a playlist never replaces: Dundorma's arena area's theme and its room's while object 0x73 is there
 NEVER_REPLACED = (0x36, 0x39)
 
@@ -97,7 +98,8 @@ class MenuLists(Protocol):
 
 
 def _menu_part(menu: MenuLists | None, requests: Mapping[int, int]) -> bytes:
-    """The menu's part of jukebox_data (from counter_x on); the page counter's place stays 0 (menu_patch.py sets it)."""
+    """The menu's part of jukebox_data (from counter_x on); the page counter's place and its way back on a wider
+    picture stay 0 (menu_patch.py sets them)."""
     tracks = list(menu.tracks) if menu else []
     categories = list(menu.categories) if menu else []
     if len(tracks) > MENU_TRACKS:
@@ -117,7 +119,8 @@ def _menu_part(menu: MenuLists | None, requests: Mapping[int, int]) -> bytes:
         rows.append(struct.pack("<4H", first, count, _request(name, "a category's name"), 0))
     rows += [bytes(8)] * (CATEGORIES - len(categories))
     return (struct.pack("<2h2H", 0, 0, names, len(categories)) + b"".join(rows)
-            + struct.pack(f"<{MENU_TRACKS}H", *tracks, *[NO_REQUEST] * (MENU_TRACKS - len(tracks))))
+            + struct.pack(f"<{MENU_TRACKS}H", *tracks, *[NO_REQUEST] * (MENU_TRACKS - len(tracks)))
+            + struct.pack("<2h", 0, 0))
 
 
 def data_block(catalogue: Catalogue, requests: Mapping[int, int], messages: Sequence[int] = (),
@@ -157,7 +160,7 @@ def data_block(catalogue: Catalogue, requests: Mapping[int, int], messages: Sequ
     data = b"".join(struct.pack(f"<{PLACES}H", *places, *[NO_REQUEST] * (PLACES - len(places)))
                     for places in (villages, halls))
     data += bytes([playlists, songs, name_chars, *loops, *fade, 0])
-    data += bytes([*options, 0, 0, 0])
+    data += bytes([*options, 0]) + struct.pack("<H", NO_SONG)      # no one song chosen
     data += struct.pack("<4H", first, last, tracks, 0)
     numbers = [_request(message, "messages") for message in messages]
     data += struct.pack(f"<{MESSAGES}H", *numbers, *[0] * (MESSAGES - len(numbers)))

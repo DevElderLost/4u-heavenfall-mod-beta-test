@@ -96,11 +96,15 @@ void jukebox_load(const u8 *card)
     S->owned = 1;
     jukebox_reset();
     const u8 *block = card + CARD_BLOCK;
-    if (get(block, 4) == JUKEBOX_MAGIC && get(block + 4, 2) == JUKEBOX_VERSION
+    u32 version = get(block + 4, 2);
+    if (get(block, 4) == JUKEBOX_MAGIC && (version == JUKEBOX_VERSION || version == JUKEBOX_VERSION_1)
             && get(block + 6, 2) == block_sum(block)) {
         volatile u8 *copy = (u8 *)&S->save;     /* volatile: no memcpy call (no library is linked) */
         for (u32 i = 0; i < sizeof S->save; i++)
             copy[i] = block[i];
+        if (version == JUKEBOX_VERSION_1)       /* its spare bytes, zero, are where the one song now is */
+            S->save.options.song = JUKEBOX_NO_SONG;
+        S->save.version = JUKEBOX_VERSION;
     }
     jukebox_loaded();
 }

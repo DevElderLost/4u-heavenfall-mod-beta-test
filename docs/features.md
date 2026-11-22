@@ -139,16 +139,21 @@
 
 **Jukebox**
 
-- Your Housekeeper has a new line, Jukebox, beside the Gallery. In it you make up to 8 playlists of up to 40 songs, named
-  with the game's own keyboard.
+- Your Housekeeper has a new line, Jukebox, beside the Gallery. It opens on One song, Playlists and Options.
+- One song: pick a category and a song; it plays in the towns instead of their own music, looping without end. A on
+  the song playing stops it.
+- Playlists: up to 8 playlists of up to 40 songs, named with the game's own keyboard. The active playlist plays in the
+  towns instead of their own music, in order or shuffled.
 - The songs are the game's themes: towns and halls, areas, monsters and more. A button plays the highlighted song
-  while you edit a playlist.
-- The active playlist plays in the towns instead of their own music, in order or shuffled. A separate option does
-  the same in the Gathering Hall and Dundorma's Elder Hall.
-- After each song's looped part has played a chosen number of times (1 to 9, 2 by default) it fades out (0 to 10 seconds,
-  2 by default) and the next song follows.
-- Playlists are saved with the game. "This session" turns the jukebox off when the game closes; "Always" keeps it on.
-- It is on by default. Turn it off in the **Options** page, under Other / QoL.
+  while you choose.
+- With Monster Hunter XX's game given to the installer, the Jukebox also has XX's monster, area, town and hall themes,
+  in categories of their own; XX's copies of themes the game already has are not repeated.
+- A separate option plays the song or the playlist in the Gathering Hall and Dundorma's Elder Hall too.
+- In a playlist, after each song's looped part has played a chosen number of times (1 to 9, 2 by default) it fades out
+  (0 to 10 seconds, 2 by default) and the next song follows.
+- The song and the playlists are saved with the game. "This session" turns the jukebox off when the game closes;
+  "Always" keeps it on.
+- It is on by default, and so are XX's songs. Turn them off in the **Options** page, under Other / QoL.
 
 **Layered Gear and the Wyporium**
 

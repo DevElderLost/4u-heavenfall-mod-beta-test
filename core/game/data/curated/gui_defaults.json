@@ -14,6 +14,7 @@
   "rare_exchange": true,
   "quality_of_life": true,
   "jukebox": true,
+  "jukebox_xx": true,
   "skip_intro": true,
   "cheat_3d_mode": "dither_off",
   "cheat_no_bloom_dof": true,

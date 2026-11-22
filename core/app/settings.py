@@ -402,7 +402,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "hold_a", "camera_speed",
                    "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
-                   "mhw_fatalis_music", "alatreon_music", "jukebox", "radial_menu",
+                   "mhw_fatalis_music", "alatreon_music", "jukebox", "jukebox_xx", "radial_menu",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
@@ -598,6 +598,9 @@ class Settings:
     # The Housekeeper's line "Jukebox": playlists of the game's music played in the towns instead of their themes
     # (core/music/jukebox/). The GUI starts with it on (curated/gui_defaults.json)
     jukebox: bool = False
+    # With the Jukebox and MH XX's game: MH XX's monster, area, town and hall themes in its lists too
+    # (core/music/jukebox/xx_tracks.py); a run without MH XX leaves them out. The GUI starts with it on
+    jukebox_xx: bool = False
 
     # Cheats (emulator only; executable patches written from the players' cheat codes for 1.1: core/app/
     # cheats.py). The neutral values leave the game as it is; the GUI's defaults are in

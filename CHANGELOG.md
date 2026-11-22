@@ -14,7 +14,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Your Guild Card shows your Layered Gear, and modded players' cards keep and show theirs.
 
 ### QoL
-- Your Housekeeper has a Jukebox: playlists of the game's music can play in the towns instead of theirs.
+- Your Housekeeper has a Jukebox: one song or a playlist of the game's music plays in the towns.
+- With Monster Hunter XX's game, the Jukebox can also have its monster, area, town and hall themes.
 - A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
 - The top-screen menus and the smaller HUD take less of the game's time each frame: smoother at 60 FPS (emulator only).
 - New characters skip the sand ship's prologue and start on arriving in Val Habar.

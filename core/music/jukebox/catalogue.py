@@ -19,7 +19,9 @@ from core.game.data.paths import CURATED_DIR
 
 CATALOGUE_FILE = CURATED_DIR / "jukebox.json"
 LANGUAGES = ("eng", "fre", "ger", "ita", "spa")
-SOURCES = ("retail", "mhw", "ported", "extra", "xx")
+SOURCES = ("retail", "mhw", "ported", "extra", "xx", "xx_all")
+XX_SOURCES = ("xx", "xx_all")           # read from the player's MH XX, both only with the option jukebox_xx: xx its
+                                        # four village themes, xx_all its other songs (xx_tracks.py)
 SHIPPED_SOURCES = ("mhw", "extra")      # tracks whose .mca the mod ships; their path is relative to the checkout's top
 CHECKOUT = Path(__file__).resolve().parents[3]
 MONSTER_NAMES_FILE = CURATED_DIR / "monster_names.json"
@@ -45,6 +47,7 @@ class Track:
     retired: bool = False
     provisional: bool = False
     level: str | None = None        # xx tracks: the key of their level in extra_ost_volumes.json
+    same_as: int | None = None      # xx_all tracks: the track that sounds the same; left out when the build has it
 
 
 @dataclass(frozen=True)
@@ -64,6 +67,7 @@ class Catalogue:
     replaced: Mapping[str, list]
     categories: tuple[Category, ...]
     tracks: tuple[Track, ...]
+    xx: Mapping = None              # MH XX's songs: their queues, their level's key, how a same recording is found
 
     def track(self, track_id: int) -> Track:
         for track in self.tracks:
@@ -137,11 +141,17 @@ def parse(data: Mapping) -> Catalogue:
         _check_name(record["name"], what)
         if record["source"] == "xx" and not record.get("level"):
             raise CatalogueError(f"{what}: an xx track names its level's key")
+        if record.get("same_as") is not None and record["source"] != "xx_all":
+            raise CatalogueError(f"{what}: same_as is for an xx_all track")
         tracks.append(Track(record["id"], record["path"], record["category"], record["source"], record["name"],
                             record.get("needs"), bool(record.get("retired")), bool(record.get("provisional")),
-                            record.get("level")))
+                            record.get("level"), record.get("same_as")))
+    ids = [t.id for t in tracks]
+    for track in tracks:
+        if track.same_as is not None and (track.same_as not in seen or ids.index(track.same_as) >= ids.index(track.id)):
+            raise CatalogueError(f"track {track.id}: same_as names a track listed before it")
     return Catalogue(limits, defaults, loops, fade, data["exclusion"], tuple(data["excluded"]), data["replaced"],
-                     categories, tuple(tracks))
+                     categories, tuple(tracks), data.get("xx", {}))
 
 
 def load(path: Path = CATALOGUE_FILE) -> Catalogue:
@@ -150,10 +160,19 @@ def load(path: Path = CATALOGUE_FILE) -> Catalogue:
 
 
 def available(catalogue: Catalogue, sources: Collection[str], ports: Collection[str] = ()) -> list[Track]:
-    """The tracks a build has, in the file's order: not retired, from one of `sources` (retail, mhw, ported) and, when
-    the track needs a port, with that port (its key) among `ports`."""
-    return [t for t in catalogue.tracks
-            if not t.retired and t.source in sources and (t.needs is None or t.needs in ports)]
+    """The tracks a build has, in the file's order: not retired, from one of `sources` (retail, mhw, ported, extra,
+    xx, xx_all) and, when the track needs a port, with that port (its key) among `ports`; an xx_all track only when
+    the track it sounds as (same_as) is not among them."""
+    found: list[Track] = []
+    kept: set[int] = set()
+    for t in catalogue.tracks:
+        if t.retired or t.source not in sources or (t.needs is not None and t.needs not in ports):
+            continue
+        if t.same_as is not None and t.same_as in kept:
+            continue
+        found.append(t)
+        kept.add(t.id)
+    return found
 
 
 def shipped_bytes(track: Track, root: Path = CHECKOUT) -> bytes:

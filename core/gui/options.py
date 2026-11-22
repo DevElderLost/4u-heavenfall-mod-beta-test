@@ -714,13 +714,23 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
         ), T("La música viene con el randomizer.", "The music comes with the randomizer.")),
         Group(T("Gramola", "Jukebox"), (
             Option("jukebox", T("Gramola", "Jukebox"),
-                   T("El Ayudante tiene una línea nueva, «Gramola»: haz listas con la música del juego "
-                     "(temas de los pueblos, las zonas y los monstruos) y elige una para que suene en los pueblos en "
-                     "lugar de su música, en orden o al azar. Su menú también puede ponerla en las salas de reunión.",
-                     "The Housekeeper gets a new line, \"Jukebox\": make playlists of the game's music (town, "
-                     "area and monster themes) and pick one to play in the towns instead of their own music, in "
-                     "order or shuffled. Its menu can play it in the Gathering Halls too.")),
-        ), T("Las listas se guardan con la partida.", "Playlists are saved with your game.")),
+                   T("El Ayudante tiene una línea nueva, «Gramola»: elige una canción de la música del juego "
+                     "(temas de los pueblos, las zonas y los monstruos), que suena sin parar, o haz listas, en "
+                     "orden o al azar, para que suenen en los pueblos en lugar de su música. Su menú también puede "
+                     "ponerlas en las salas de reunión.",
+                     "The Housekeeper gets a new line, \"Jukebox\": pick one song of the game's music (town, area "
+                     "and monster themes), which plays without end, or make playlists, in order or shuffled, to play "
+                     "in the towns instead of their own music. Its menu can play them in the Gathering Halls too.")),
+            Option("jukebox_xx", T("Canciones de MH XX", "MH XX's songs"),
+                   T("Con la ROM de MH XX, la gramola también tiene sus temas de monstruos, zonas, pueblos y "
+                     "salas, en categorías propias (los que suenan igual que los de MH4U no se repiten). Sin la ROM "
+                     "de XX no cambia nada.",
+                     "With MH XX's ROM, the Jukebox also has its monster, area, town and hall themes, in "
+                     "categories of their own (those that sound as MH4U's are not repeated). Without XX's ROM "
+                     "nothing changes."),
+                   requires="jukebox"),
+        ), T("La canción y las listas se guardan con la partida.", "The song and the playlists are saved with your "
+                                                                    "game.")),
     )),
     Section(T("Aspecto", "Looks"), (
         Group(T("Equipo superpuesto", "Layered gear"), (

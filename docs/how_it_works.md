@@ -262,15 +262,19 @@ the tree's two entries (a class in Forge Weapons, a weapon in Upgrade): on List 
 
 ## The Jukebox
 
-The Jukebox (`music/jukebox/`) puts playlists of the game's music in the towns. `jukebox_build` (`build.py`) gives
+The Jukebox (`music/jukebox/`) puts one song or playlists of the game's music in the towns. `jukebox_build` (`build.py`) gives
 the files and `patch_executable` the three patches, both called by the run. For every song the lobby's music queue
 (`core_lobby.arc`, in each language) gets a request that copies Val Habar's theme, so the game's fades and room levels
 treat it as a town theme; the songs' stream entries and levels come from `generated/jukebox_streams.json`, so the run
-reads little of the game. The Housekeeper's menu texts go into the copies of `Room_s`.
+reads little of the game. The Housekeeper's menu texts go into the copies of `Room_s`. With MH XX's game and the
+option `jukebox_xx`, XX's themes (`xx_all` in `curated/jukebox.json`) are read from it, rewritten in MH4U's layout and
+shipped, at their own requests' levels in XX's queues (`xx_tracks.py`); one that sounds as a song the build has is left
+out.
 
 The code is one block (`jukebox.c`, with `jukebox_save.c` for the card file and `jukebox_menu.c` for the menu). It
-replaces the town theme selector's answer with the playlist's request, counts the passes of a song's loop to fade
-it out and move on, keeps the playlists in a block of the card file, and adds the Jukebox line and its screens to the
+replaces the town theme selector's answer with the one song's or the playlist's request, counts the passes of a
+playlist's song's loop to fade it out and move on (the one song loops), keeps the song and the playlists in a block of
+the card file, and adds the Jukebox line and its screens to the
 house Felyne's menu with the game's own lists and windows (no new texture, so HD texture packs need nothing).
 
 ## Layered Gear and the Wyporium

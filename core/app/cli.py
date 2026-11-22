@@ -49,6 +49,8 @@ def main(argv=None) -> int:
     parser.add_argument("--jukebox", action=argparse.BooleanOptionalAction,
                         help="the Housekeeper's Jukebox: playlists of the game's music played in the towns "
                              "(with the quality-of-life module)")
+    parser.add_argument("--jukebox-xx", action=argparse.BooleanOptionalAction,
+                        help="with the Jukebox and --xx-rom: MH XX's monster, area, town and hall themes in it too")
     parser.add_argument("--skip-intro", action=argparse.BooleanOptionalAction,
                         help="a new character starts on arriving in Val Habar, without the prologue on the sand "
                              "ship (with the quality-of-life module)")

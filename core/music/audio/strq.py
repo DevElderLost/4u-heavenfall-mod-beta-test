@@ -249,6 +249,31 @@ def add_streams(read: Callable[[str], bytes], queue: str, tracks: list[dict], li
     return queue_files(read, queue, build_strq(stq)), made
 
 
+XX_REQUEST_SIZE = 0x68     # MH XX's requests: MH4U's 25 words, one more
+
+
+def parse_stqr(data: bytes) -> dict:
+    """MH XX's queue (`.stqr`, magic STQR): its streams ({path, samples, rate, loop_end}) and its requests ({id,
+    priority, db: the level of word LEVEL_WORD, stream: the stream's index or None}), as XX's words 0, 9 and 23 are
+    MH4U's and byte 0x18 its priority."""
+    if data[:4] != b"STQR":
+        raise ValueError("not an STQR file")
+    _, stream_count, request_count, stream_offset, request_offset = struct.unpack_from("<5I", data, 4)
+    streams = []
+    for i in range(stream_count):
+        path_offset, _, samples, _, rate, _, loop_end = struct.unpack_from("<7I", data, stream_offset + STREAM_SIZE * i)
+        streams.append({"path": data[path_offset:data.index(b"\0", path_offset)].decode("ascii"), "samples": samples,
+                        "rate": rate, "loop_end": loop_end})
+    requests = []
+    for i in range(request_count):
+        at = request_offset + XX_REQUEST_SIZE * i
+        words = struct.unpack_from("<25I", data, at)
+        requests.append({"id": words[0], "priority": data[at + 0x18],
+                         "db": struct.unpack("<f", struct.pack("<I", words[LEVEL_WORD]))[0],
+                         "stream": None if words[23] == NO_STREAM else words[23]})
+    return {"streams": streams, "requests": requests}
+
+
 def volume(request: dict) -> float:
     """A request's volume offset in dB (word LEVEL_WORD; retail battle themes −5.0 to 0.0)."""
     return struct.unpack("<f", struct.pack("<I", request["words"][LEVEL_WORD]))[0]

@@ -49,10 +49,13 @@ class AppState(QObject):
     @property
     def offers_xx(self) -> bool:
         """MH XX is optional in this edition (`Edition.xx_optional`) and the player's options use what it adds (Layered
-        Gear's looks): the Install page offers its file, and a run reads it when one is given."""
+        Gear's looks, the Jukebox's songs of MH XX): the Install page offers its file, and a run reads it when one is
+        given."""
         from core.app.edition import edition
         from core.app.presets import install_settings
-        return edition().new_maps or (edition().xx_optional and install_settings(self.personal).layered_equipment)
+        chosen = install_settings(self.personal)
+        return edition().new_maps or (edition().xx_optional and (
+            chosen.layered_equipment or (chosen.jukebox and getattr(chosen, "jukebox_xx", False))))
 
     def xx_rom_for(self, settings) -> str:
         """The MH XX file a run reads: the chosen one when the settings need it (`needs_xx`) or the edition offers it

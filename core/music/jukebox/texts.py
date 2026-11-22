@@ -26,11 +26,12 @@ MENU_FILE = CURATED_DIR / "jukebox_menu.json"
 TEXT_KEYS = ("line", "line_help", "slot", "playlist", "options", "help_main",
              "play", "stop", "add", "edit", "rename", "in_order", "shuffle", "clear", "help_playlist",
              "clear_prompt", "help_categories", "help_songs", "help_edit", "help_moving",
-             "halls_off", "halls_on", "keep_session", "keep_always", "loops", "fade", "help_options")
+             "halls_off", "halls_on", "keep_session", "keep_always", "loops", "fade", "help_options",
+             "single", "playlists", "help_entry", "help_single")
 ROOM_ARCS = ("core_lobby.arc", "core_arena.arc", "core_result.arc")
 ROOM_STEM = "Room_s"
 ROOM_MESSAGES = 153     # the game's own messages in Room_s
-CATEGORIES = 8          # jukebox.h JUKEBOX_CATEGORIES
+CATEGORIES = 12         # jukebox.h JUKEBOX_CATEGORIES
 MENU_TRACKS = 256       # jukebox.h JUKEBOX_MENU_TRACKS
 SLOT = "{}"
 

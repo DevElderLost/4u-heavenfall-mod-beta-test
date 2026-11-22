@@ -19,6 +19,8 @@
  *
  * The playlist plays in order or shuffled (a round with each song once; a round never starts with the song the last
  * one ended on); songs the build or the loaded queue lacks are skipped; with none playable the place keeps its theme.
+ * The one song (options.active JUKEBOX_SINGLE, options.song) plays in the same places and loops for ever: no pass is
+ * counted and nothing fades; when it has no loop it starts again at its end, as a new song for the resume list.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, ARM; jukebox.ld).
  */
@@ -193,11 +195,32 @@ static void new_song(void)
     S->generation++;
 }
 
+static int single(void)
+{
+    return S->save.options.active == JUKEBOX_SINGLE;
+}
+
+/* the one song in the loaded queue (`handle`), or 0 */
+static int settle_single(u32 handle)
+{
+    int track = S->save.options.song, request = track_request(track);
+    if (!in_queue(handle, request))
+        return 0;
+    if (S->current != request) {
+        S->current = (u16)request;
+        S->current_track = (u16)track;
+        new_song();
+    }
+    return request;
+}
+
 /* the active playlist's song in the loaded queue (`handle`): the one playing, or the next playable one from the
    round's position (a new round when this one ends); 0 when no song of the playlist is playable */
 static int settle(u32 handle)
 {
     int active = S->save.options.active;
+    if (active == JUKEBOX_SINGLE)
+        return settle_single(handle);
     struct jukebox_playlist *p = playlist(active - 1);
     if (!p || !handle)
         return 0;
@@ -231,9 +254,15 @@ static int settle(u32 handle)
     return 0;
 }
 
-/* the playlist moves on: the next song of the round, or a new round */
+/* the playlist moves on: the next song of the round, or a new round; the one song starts again as a new song */
 static void move_on(void)
 {
+    if (single()) {
+        S->current = 0;
+        S->current_track = JUKEBOX_NO_SONG;
+        new_song();
+        return;
+    }
     struct jukebox_playlist *p = playlist(S->round_list - 1);
     S->last_track = S->current_track;
     S->position++;
@@ -246,6 +275,8 @@ static void move_on(void)
 
 static int playable_songs(u32 handle)
 {
+    if (single())
+        return 1;                       /* it loops for ever */
     struct jukebox_playlist *p = playlist(S->save.options.active - 1);
     int n = 0;
     for (int i = 0; p && i < songs_in(p) && n < 2; i++)
@@ -468,6 +499,19 @@ void jukebox_play(int list)
     new_song();
 }
 
+int jukebox_play_single(int track)
+{
+    if (!track_request(track))
+        return 0;
+    S->save.options.song = (u16)track;
+    S->save.options.active = JUKEBOX_SINGLE;
+    S->round_list = 0;
+    S->current = 0;
+    S->current_track = JUKEBOX_NO_SONG;
+    new_song();
+    return 1;
+}
+
 void jukebox_stop(void)
 {
     S->save.options.active = 0;
@@ -479,7 +523,18 @@ void jukebox_stop(void)
 
 int jukebox_playing(void)
 {
-    return playlist(S->save.options.active - 1) ? S->save.options.active - 1 : -1;
+    return !single() && playlist(S->save.options.active - 1) ? S->save.options.active - 1 : -1;
+}
+
+int jukebox_single(void)
+{
+    return single() ? jukebox_song() : -1;
+}
+
+int jukebox_song(void)
+{
+    int track = S->save.options.song;
+    return track_request(track) ? track : -1;
 }
 
 int jukebox_option(int option)
@@ -526,7 +581,7 @@ void jukebox_listen_stop(void)
 void jukebox_changed(void)
 {
     int active = S->save.options.active;
-    struct jukebox_playlist *p = playlist(active - 1);
+    struct jukebox_playlist *p = single() ? 0 : playlist(active - 1);
     if (!p) {
         S->round_list = 0;
         S->current = 0;
@@ -558,6 +613,7 @@ void jukebox_reset(void)
     S->save.options.halls = D->defaults.halls;
     S->save.options.loops = D->defaults.loops;
     S->save.options.fade = D->defaults.fade;
+    S->save.options.song = JUKEBOX_NO_SONG;
     S->listen = 0;
     jukebox_changed();
 }

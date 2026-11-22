@@ -13,10 +13,13 @@
  * Song Select do from their own states: ten rows a page in two columns, the ribbon as the title, each row's number pane
  * and mark, the page counter, the help line. The screens:
  *
- *   main        the playlists (name, songs, the mark on the one playing) and Options
+ *   entry       One song, Playlists, Options; the mark on the one of the first two that plays
+ *   one song    the categories that hold a track of the build, then a category's tracks: A plays the track in the
+ *               towns for ever (A on the one playing stops it), Y listens to it; the mark is on the one playing
+ *   playlists   the playlists (name, songs, the mark on the one playing)
  *   playlist    Play / Stop, Add songs, Edit songs, Rename (the name keyboard), Order, Clear (a yes / no window)
- *   categories  the categories that hold a track of the build, then a category's tracks: A adds or removes the track,
- *               Y listens to it; the number is its place in the playlist, the mark says it is there
+ *   categories  Add songs: the categories, then a category's tracks: A adds or removes the track, Y listens to it;
+ *               the number is its place in the playlist, the mark says it is there
  *   edit        the playlist's tracks the build has, in order: A carries the track along with the cursor (A or B puts
  *               it down), X removes it, Y listens to it; the mark is on the track carried, or else on the one playing
  *   options     Hall music too, Keep, Loops, Fade-out in the left column: left and right (or A) change the value
@@ -67,6 +70,8 @@ int keyboard_poll(u32 manager);                         /* FUN_002b58e8: 0 open,
 const u16 *keyboard_text(u32 manager);                  /* FUN_002afc2c */
 void keyboard_copy(u32 manager, u16 *out, const u16 *text, int width, int limit);      /* FUN_002b5f48 */
 void keyboard_close(u32 manager);                       /* FUN_002b5df8 */
+
+extern float aspect_way;    /* .bss, cheats/aspect_ratio.c: 200 (w - w0) past the installed ratio; 0 without it */
 
 /* the house Felyne's facility */
 #define FACILITY 0x1287C                /* the lobby object: the facility's state */
@@ -150,7 +155,8 @@ void keyboard_close(u32 manager);                       /* FUN_002b5df8 */
 #define KEYBOARD_NAME 1                 /* FUN_002b5788's type and flag as the equipment sets open it */
 #define KEYBOARD_FLAG 1
 
-/* the playlist screen's rows */
+/* the entry's and the playlist screen's rows */
+enum { ROW_SINGLE, ROW_PLAYLISTS, ROW_OPTIONS, ENTRY_ROWS };
 enum { ROW_PLAY, ROW_ADD, ROW_EDIT, ROW_RENAME, ROW_ORDER, ROW_CLEAR, PLAYLIST_ROWS };
 #define OPTIONS 4                       /* JUKEBOX_OPTION_*, one each at rows 0, 2, 4, 6 */
 #define OPTION_ROWS (2 * OPTIONS - 1)
@@ -294,10 +300,25 @@ static int row_track(int index)
     return at < 0 ? JUKEBOX_NO_SONG : p->songs[at];
 }
 
+/* the category listing `track` and the track's row there, or -1 */
+static int category_of(int track, int *row)
+{
+    for (int c = 0; track != JUKEBOX_NO_SONG && c < categories(); c++)
+        for (int i = 0; i < D->category[c].count; i++)
+            if (D->menu_tracks[D->category[c].first + i] == track) {
+                *row = i;
+                return c;
+            }
+    *row = 0;
+    return -1;
+}
+
 static int rows_of(int screen)
 {
-    if (screen == JUKEBOX_SCREEN_MAIN)
-        return playlists() + 1;
+    if (screen == JUKEBOX_SCREEN_ENTRY)
+        return ENTRY_ROWS;
+    if (screen == JUKEBOX_SCREEN_PLAYLISTS)
+        return playlists();
     if (screen == JUKEBOX_SCREEN_PLAYLIST)
         return PLAYLIST_ROWS;
     if (screen == JUKEBOX_SCREEN_CATEGORIES)
@@ -460,11 +481,11 @@ static int row_content(int index, int r, struct row *row)
     row->mark = 0;
     if (index >= U->count)
         return 0;
-    if (U->screen == JUKEBOX_SCREEN_MAIN) {
-        if (index == playlists()) {
-            row->message = D->messages[JM_OPTIONS];
-            return 1;
-        }
+    if (U->screen == JUKEBOX_SCREEN_ENTRY) {
+        static const u8 entry_rows[ENTRY_ROWS] = {JM_SINGLE, JM_PLAYLISTS, JM_OPTIONS};
+        row->message = D->messages[entry_rows[index]];
+        row->mark = index == ROW_SINGLE ? jukebox_single() >= 0 : index == ROW_PLAYLISTS && jukebox_playing() >= 0;
+    } else if (U->screen == JUKEBOX_SCREEN_PLAYLISTS) {
         playlist_name(index, buffer, row);
         row->number = songs_of(jukebox_playlist(index));
         row->mark = jukebox_playing() == index;
@@ -478,6 +499,10 @@ static int row_content(int index, int r, struct row *row)
     } else if (U->screen == JUKEBOX_SCREEN_CATEGORIES) {
         row->message = D->category[index].name;
         row->number = D->category[index].count;
+    } else if (U->screen == JUKEBOX_SCREEN_SONGS && U->single) {
+        int track = row_track(index);
+        row->message = track_name(track);
+        row->mark = jukebox_single() == track;
     } else if (U->screen == JUKEBOX_SCREEN_OPTIONS) {
         if (r & 1)
             return 0;
@@ -520,12 +545,14 @@ static void draw_title(u8 *obj)
 {
     struct row row;
     row.text = 0;
-    if (U->screen == JUKEBOX_SCREEN_MAIN)
+    if (U->screen == JUKEBOX_SCREEN_ENTRY)
         row.message = D->messages[JM_LINE];
+    else if (U->screen == JUKEBOX_SCREEN_PLAYLISTS)
+        row.message = D->messages[JM_PLAYLISTS];
     else if (U->screen == JUKEBOX_SCREEN_PLAYLIST)
         playlist_name(U->list, U->title, &row);
     else if (U->screen == JUKEBOX_SCREEN_CATEGORIES)
-        row.message = D->messages[JM_ADD];
+        row.message = D->messages[U->single ? JM_SINGLE : JM_ADD];
     else if (U->screen == JUKEBOX_SCREEN_SONGS)
         row.message = D->category[U->category].name;
     else if (U->screen == JUKEBOX_SCREEN_EDIT)
@@ -575,6 +602,8 @@ static void go_screen(u8 *obj, int screen, int index)
 {
     if (screen != JUKEBOX_SCREEN_SONGS && screen != JUKEBOX_SCREEN_EDIT)
         listen_stop();
+    if (screen != JUKEBOX_SCREEN_CATEGORIES && screen != JUKEBOX_SCREEN_SONGS)
+        U->single = 0;
     U->screen = (u8)screen;
     U->moving = 0;
     U->count = (u16)rows_of(screen);
@@ -611,7 +640,8 @@ static void open_menu(u8 *obj)
     U->listening = JUKEBOX_NO_SONG;
     U->category = 0;
     U->list = 0;
-    go_screen(obj, JUKEBOX_SCREEN_MAIN, jukebox_playing() >= 0 ? jukebox_playing() : 0);
+    U->single = 0;
+    go_screen(obj, JUKEBOX_SCREEN_ENTRY, jukebox_playing() >= 0 ? ROW_PLAYLISTS : ROW_SINGLE);
 }
 
 static void close_menu(u8 *obj)
@@ -636,13 +666,17 @@ static void close_menu(u8 *obj)
 static void back(u8 *obj)
 {
     sound(SOUND_CANCEL);
-    if (U->screen == JUKEBOX_SCREEN_MAIN) {
+    if (U->screen == JUKEBOX_SCREEN_ENTRY) {
         u8 *f = obj + FACILITY;
         close_menu(obj);
         f[F_STATE] = STATE_MENU;
         f[F_SUB] = 0;
+    } else if (U->screen == JUKEBOX_SCREEN_PLAYLISTS) {
+        go_screen(obj, JUKEBOX_SCREEN_ENTRY, ROW_PLAYLISTS);
     } else if (U->screen == JUKEBOX_SCREEN_PLAYLIST) {
-        go_screen(obj, JUKEBOX_SCREEN_MAIN, U->list);
+        go_screen(obj, JUKEBOX_SCREEN_PLAYLISTS, U->list);
+    } else if (U->screen == JUKEBOX_SCREEN_CATEGORIES && U->single) {
+        go_screen(obj, JUKEBOX_SCREEN_ENTRY, ROW_SINGLE);
     } else if (U->screen == JUKEBOX_SCREEN_CATEGORIES) {
         go_screen(obj, JUKEBOX_SCREEN_PLAYLIST, ROW_ADD);
     } else if (U->screen == JUKEBOX_SCREEN_SONGS) {
@@ -653,7 +687,7 @@ static void back(u8 *obj)
     } else if (U->screen == JUKEBOX_SCREEN_EDIT) {
         go_screen(obj, JUKEBOX_SCREEN_PLAYLIST, ROW_EDIT);
     } else {
-        go_screen(obj, JUKEBOX_SCREEN_MAIN, playlists());
+        go_screen(obj, JUKEBOX_SCREEN_ENTRY, ROW_OPTIONS);
     }
 }
 
@@ -851,23 +885,59 @@ static void playlist_action(u8 *obj, int index)
         draw_rows(obj);
 }
 
+/* the entry's rows: One song opens its categories on the song chosen, Playlists on the playlist playing */
+static void entry_action(u8 *obj, int index)
+{
+    int row;
+    if (index == ROW_SINGLE && !categories()) {
+        sound(SOUND_ERROR);
+        return;
+    }
+    sound(SOUND_DECIDE);
+    if (index == ROW_SINGLE) {
+        int category = category_of(jukebox_song(), &row);
+        U->single = 1;
+        go_screen(obj, JUKEBOX_SCREEN_CATEGORIES, category >= 0 ? category : 0);
+    } else if (index == ROW_PLAYLISTS) {
+        go_screen(obj, JUKEBOX_SCREEN_PLAYLISTS, jukebox_playing() >= 0 ? jukebox_playing() : 0);
+    } else {
+        go_screen(obj, JUKEBOX_SCREEN_OPTIONS, 0);
+    }
+}
+
+/* One song's songs: A plays the track in the towns, or stops it when it is the one playing */
+static void single_action(u8 *obj, int index)
+{
+    int track = row_track(index);
+    if (jukebox_single() == track) {
+        jukebox_stop();
+        sound(SOUND_CANCEL);
+    } else if (jukebox_play_single(track)) {
+        sound(SOUND_DECIDE);
+    } else {
+        sound(SOUND_ERROR);
+        return;
+    }
+    draw_rows(obj);
+}
+
 static void choose(u8 *obj)
 {
-    int index = U->page * PAGE + U->row;
-    if (U->screen == JUKEBOX_SCREEN_MAIN) {
+    int index = U->page * PAGE + U->row, row;
+    if (U->screen == JUKEBOX_SCREEN_ENTRY) {
+        entry_action(obj, index);
+    } else if (U->screen == JUKEBOX_SCREEN_PLAYLISTS) {
         sound(SOUND_DECIDE);
-        if (index == playlists()) {
-            go_screen(obj, JUKEBOX_SCREEN_OPTIONS, 0);
-        } else {
-            U->list = (u8)index;
-            go_screen(obj, JUKEBOX_SCREEN_PLAYLIST, ROW_PLAY);
-        }
+        U->list = (u8)index;
+        go_screen(obj, JUKEBOX_SCREEN_PLAYLIST, ROW_PLAY);
     } else if (U->screen == JUKEBOX_SCREEN_PLAYLIST) {
         playlist_action(obj, index);
     } else if (U->screen == JUKEBOX_SCREEN_CATEGORIES) {
         sound(SOUND_DECIDE);
         U->category = (u8)index;
-        go_screen(obj, JUKEBOX_SCREEN_SONGS, 0);
+        go_screen(obj, JUKEBOX_SCREEN_SONGS, U->single && category_of(jukebox_song(), &row) == index ? row : 0);
+    } else if (U->screen == JUKEBOX_SCREEN_SONGS && U->single) {
+        single_action(obj, index);
     } else if (U->screen == JUKEBOX_SCREEN_SONGS) {
         int track = row_track(index), at = jukebox_find_song(U->list, track);
         if (at >= 0) {
@@ -949,14 +1019,16 @@ static void option_keys(u8 *obj, u32 dirs)
 
 static u32 help(void)
 {
-    if (U->screen == JUKEBOX_SCREEN_MAIN)
+    if (U->screen == JUKEBOX_SCREEN_ENTRY)
+        return JM_HELP_ENTRY;
+    if (U->screen == JUKEBOX_SCREEN_PLAYLISTS)
         return JM_HELP_MAIN;
     if (U->screen == JUKEBOX_SCREEN_PLAYLIST)
         return JM_HELP_PLAYLIST;
     if (U->screen == JUKEBOX_SCREEN_CATEGORIES)
         return JM_HELP_CATEGORIES;
     if (U->screen == JUKEBOX_SCREEN_SONGS)
-        return JM_HELP_SONGS;
+        return U->single ? JM_HELP_SINGLE : JM_HELP_SONGS;
     if (U->screen == JUKEBOX_SCREEN_EDIT)
         return U->moving ? JM_HELP_MOVING : JM_HELP_EDIT;
     return JM_HELP_OPTIONS;
@@ -981,6 +1053,14 @@ static void keys(u8 *obj)
         remove_song(obj);
     else if (facility_pressed(obj, BUTTON_Y))
         listen();
+}
+
+/* The page counter's x: its place, plus the way back it takes on a wider picture, where its group keeps to another side
+   than the list's (jukebox.h counter_sides) */
+static int counter_x(void)
+{
+    float way = (float)D->counter_fitted + (float)D->counter_sides * aspect_way;
+    return D->counter_x + (int)(way < 0.0f ? way - 0.5f : way + 0.5f);
 }
 
 /* One frame of state 10 (`facility`: the lobby object). */
@@ -1008,5 +1088,5 @@ void jukebox_menu_frame(void *facility)
             keys(obj);
     }
     if (U->open)                        /* after the keys, while the list stays (the facility's frame, 0x9AC7F8) */
-        page_counter(D->counter_x, D->counter_y, U->page, U->pages, 0, 0);
+        page_counter(counter_x(), D->counter_y, U->page, U->pages, 0, 0);
 }

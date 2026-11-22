@@ -196,8 +196,8 @@ BOLTREAVER_PULL = "boltreaver_pull"
 JUKEBOX = "jukebox"
 # The jukebox's menu (music/jukebox/menu_patch.py): its unit of hook stubs, the
 # menu's part at the end of the data block (the page counter's place, the track names' first message, the categories,
-# the track list) and its variable (jukebox.h struct jukebox_menu)
-JUKEBOX_MENU_DATA_SIZE = 2 * 2 + 2 + 2 + 8 * 8 + 2 * 256
+# the track list, the counter's way back on a wider picture) and its variable (jukebox.h struct jukebox_menu)
+JUKEBOX_MENU_DATA_SIZE = 2 * 2 + 2 + 2 + 8 * 12 + 2 * 256 + 2 * 2
 JUKEBOX_MENU_SIZE = 12 + 4 + 4 + 2 * 12 * 10 + 2 * 4 * 10 + 2 * 12 * 2
 JUKEBOX_MENU_UNITS = ("music/jukebox/jukebox_menu_stub.s",)
 JUKEBOX_MENU_DEFINES = (f"JUKEBOX_MENU_SIZE={JUKEBOX_MENU_SIZE}",)

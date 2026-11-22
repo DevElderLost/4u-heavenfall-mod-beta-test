@@ -17,22 +17,26 @@ typedef signed char s8;
 
 /* ---- The saved block, version 1: 848 bytes at the card file's +0x78878 ---- */
 #define JUKEBOX_MAGIC 0x584F424AU       /* "JBOX" */
-#define JUKEBOX_VERSION 1
+#define JUKEBOX_VERSION 2
+#define JUKEBOX_VERSION_1 1             /* the layout before the one song (its options' spare bytes zero): loaded */
 #define JUKEBOX_PLAYLISTS 8
 #define JUKEBOX_SONGS 40
 #define JUKEBOX_NAME_CHARS 10
 #define JUKEBOX_NO_SONG 0xFFFF          /* a track id that names no song */
+#define JUKEBOX_SINGLE (JUKEBOX_PLAYLISTS + 1)  /* options.active: the one song plays */
 
 enum { JUKEBOX_IN_ORDER = 0, JUKEBOX_SHUFFLE = 1 };            /* a playlist's order */
 enum { JUKEBOX_THIS_SESSION = 0, JUKEBOX_ALWAYS = 1 };         /* options.keep */
 
 struct jukebox_options {
-    u8 active;                          /* the playlist playing + 1; 0: none */
-    u8 keep;                            /* JUKEBOX_THIS_SESSION: a load starts with no playlist; JUKEBOX_ALWAYS */
+    u8 active;                          /* the playlist playing + 1, JUKEBOX_SINGLE: the one song; 0: none */
+    u8 keep;                            /* JUKEBOX_THIS_SESSION: a load starts with nothing playing; JUKEBOX_ALWAYS */
     u8 halls;                           /* 1: the halls' music is replaced too */
-    u8 loops;                           /* passes of a song's loop before its fade-out */
+    u8 loops;                           /* passes of a playlist's song's loop before its fade-out */
     u8 fade;                            /* the fade-out, seconds */
-    u8 spare[3];
+    u8 spare;
+    u16 song;                           /* the one song chosen (a track id), kept while another mode plays;
+                                           JUKEBOX_NO_SONG: none */
 };
 
 struct jukebox_playlist {
@@ -51,9 +55,9 @@ struct jukebox_save {
     struct jukebox_playlist playlists[JUKEBOX_PLAYLISTS];
 };
 
-_Static_assert(sizeof(struct jukebox_options) == 8, "Layout, version 1: options");
-_Static_assert(sizeof(struct jukebox_playlist) == 104, "Layout, version 1: a playlist");
-_Static_assert(sizeof(struct jukebox_save) == 848, "Layout, version 1");
+_Static_assert(sizeof(struct jukebox_options) == 8, "Layout, version 2: options");
+_Static_assert(sizeof(struct jukebox_playlist) == 104, "Layout, version 2: a playlist");
+_Static_assert(sizeof(struct jukebox_save) == 848, "Layout, version 2");
 
 /* ---- The data block jukebox_data (music/jukebox/patch.py data_block) ---- */
 #define JUKEBOX_PLACES 16               /* room of each list of replaced requests */
@@ -69,7 +73,7 @@ struct jukebox_limits {
 };
 
 /* the menu's lists (jukebox_menu.c) */
-#define JUKEBOX_CATEGORIES 8            /* room of the menu's categories */
+#define JUKEBOX_CATEGORIES 12           /* room of the menu's categories */
 #define JUKEBOX_MENU_TRACKS 256         /* room of the menu's track list */
 
 struct jukebox_category {
@@ -95,6 +99,10 @@ struct jukebox_data {
     u16 categories;                     /* the entries of category[] */
     struct jukebox_category category[JUKEBOX_CATEGORIES];
     u16 menu_tracks[JUKEBOX_MENU_TRACKS];       /* the build's tracks by category, in the catalogue's order */
+    /* the way back the counter takes on a wider picture to stay on the list's plank (single-screen mode): sides times
+    aspect_way, plus fitted pixels */
+    s16 counter_sides;                  /* the list's side minus the counter group's; 0: the counter is on the touch screen */
+    s16 counter_fitted;                 /* that way at the installed ratio: counter_sides * 200 (w0 - 1) */
 };
 
 _Static_assert(sizeof(struct jukebox_data) == JUKEBOX_DATA_SIZE, "blocks.py JUKEBOX_DATA_SIZE, patch.py data_block");
@@ -148,8 +156,12 @@ void jukebox_rename(int list, const u16 *name, int length);     /* the first JUK
 
 /* Playing: the pick and the tick do the rest by themselves. */
 void jukebox_play(int list);            /* the playlist plays from a new round (and stops the one playing) */
-void jukebox_stop(void);                /* no playlist: the places' own music */
+int jukebox_play_single(int track);     /* the one song plays for ever (and stops the playlist playing); 0: the build
+                                           lacks the track (nothing changes) */
+void jukebox_stop(void);                /* no playlist and no one song: the places' own music */
 int jukebox_playing(void);              /* the playlist playing (0-7), or -1 */
+int jukebox_single(void);               /* the one song playing (its track id), or -1 */
+int jukebox_song(void);                 /* the one song chosen, playing or not (its track id), or -1 */
 int jukebox_option(int option);         /* JUKEBOX_OPTION_*: its value */
 void jukebox_set_option(int option, int value);         /* clamped to its range */
 int jukebox_track_request(int track);   /* the build's request of a track id, or 0 when the build lacks it */
@@ -159,9 +171,10 @@ void jukebox_listen_stop(void);
 /* The block as a whole. */
 void jukebox_changed(void);             /* the copy changed (an edit, a load): the round is drawn again, the song
                                            playing kept when the playlist still has it */
-void jukebox_reset(void);               /* the defaults: no playlist, eight empty playlists, the data's options */
+void jukebox_reset(void);               /* the defaults: nothing playing, no one song, eight empty playlists, the
+                                           data's options */
 void jukebox_owner(const u8 *hunter_id);        /* a copy of another hunter (or of none) is reset first */
-void jukebox_loaded(void);              /* after a load: with JUKEBOX_THIS_SESSION, no playlist plays */
+void jukebox_loaded(void);              /* after a load: with JUKEBOX_THIS_SESSION, nothing plays */
 
 /* The hooks' entries (jukebox.s, patch.py) */
 int jukebox_pick(u8 *manager, int request);     /* FUN_00304990's exit: the request it returns */
@@ -184,6 +197,7 @@ enum {
     JM_PLAY, JM_STOP, JM_ADD, JM_EDIT, JM_RENAME, JM_IN_ORDER, JM_SHUFFLE, JM_CLEAR, JM_HELP_PLAYLIST,
     JM_CLEAR_PROMPT, JM_HELP_CATEGORIES, JM_HELP_SONGS, JM_HELP_EDIT, JM_HELP_MOVING,
     JM_HALLS_OFF, JM_HALLS_ON, JM_KEEP_SESSION, JM_KEEP_ALWAYS, JM_LOOPS, JM_FADE, JM_HELP_OPTIONS,
+    JM_SINGLE, JM_PLAYLISTS, JM_HELP_ENTRY, JM_HELP_SINGLE,
     JM_COUNT
 };
 
@@ -191,12 +205,13 @@ _Static_assert(JM_COUNT <= JUKEBOX_MESSAGES, "jukebox_data.messages holds the me
 
 /* The menu's screens */
 enum {
-    JUKEBOX_SCREEN_MAIN,                /* the playlists and Options */
+    JUKEBOX_SCREEN_PLAYLISTS,           /* the playlists */
     JUKEBOX_SCREEN_PLAYLIST,            /* Play / Stop, Add songs, Edit songs, Rename, Order, Clear */
-    JUKEBOX_SCREEN_CATEGORIES,          /* Add songs: the categories */
+    JUKEBOX_SCREEN_CATEGORIES,          /* Add songs, or One song: the categories */
     JUKEBOX_SCREEN_SONGS,               /* a category's songs */
     JUKEBOX_SCREEN_EDIT,                /* the playlist's songs in order */
-    JUKEBOX_SCREEN_OPTIONS
+    JUKEBOX_SCREEN_OPTIONS,
+    JUKEBOX_SCREEN_ENTRY                /* the first: One song, Playlists, Options */
 };
 
 #define JUKEBOX_PAGE_ROWS 10            /* ui443's rows */
@@ -214,7 +229,8 @@ struct jukebox_menu {
     u8 moving;                          /* Edit songs: 1 while the song under the cursor is carried */
     u8 asking;                          /* 1: Clear's yes / no window is open */
     u8 typing;                          /* 1: the keyboard is open */
-    u8 spare[2];
+    u8 single;                          /* 1: the categories and songs screens are One song's, not Add songs' */
+    u8 spare;
     u16 count;                          /* the screen's rows */
     u16 listening;                      /* the track listened to; JUKEBOX_NO_SONG: none */
     u32 answer;                         /* the yes / no window's answer */

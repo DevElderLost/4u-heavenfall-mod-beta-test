@@ -11,7 +11,8 @@ block `jukebox`). Five changes to the game's code, each a `bl` that returns to t
   jukebox_pick_menu_stub, which enters state 10 for our line;
 * FUN_00aa8298's state switch: `cmp r0, #0xa` calls jukebox_state_stub, which runs state 10.
 
-It also sets the page counter's place in jukebox_data (the game's, or single-screen mode's). Update's executable only,
+It also sets the page counter's place in jukebox_data (the game's, or single-screen mode's) and the way back it takes
+on a wider picture (single-screen mode). Update's executable only,
 on one patch.patch_jukebox has patched; the version maps carry it to the base games.
 """
 
@@ -42,6 +43,7 @@ CMP_R0_0XA = 0xE350000A
 # The page counter's place (FUN_00288fac's x and y) as the game's lists of ui443 pass it
 COUNTER = (256, 10)
 COUNTER_AT = JUKEBOX_DATA_SIZE - JUKEBOX_MENU_DATA_SIZE    # jukebox_data's counter_x
+COUNTER_WAY_AT = JUKEBOX_DATA_SIZE - 2 * 2                 # jukebox_data's counter_sides, counter_fitted
 
 
 def _word(code: bytes, at: int) -> int:
@@ -57,11 +59,12 @@ def supports_jukebox_menu(code: bytes) -> bool:
             and _word(code, STATE_SWITCH) == CMP_R0_0XA)
 
 
-def patch_jukebox_menu(code: bytes, layout: Layout | None = None,
-                       counter: tuple[int, int] | None = None) -> bytes:
-    """`code`, which patch.patch_jukebox has patched, with the jukebox's menu: its five hooks, its variable and the
-    page counter's place `counter` (default COUNTER, the game's). Refuses an executable without the jukebox's engine,
-    one where a site is not the game's instruction, or one patched already."""
+def patch_jukebox_menu(code: bytes, layout: Layout | None = None, counter: tuple[int, int] | None = None,
+                       counter_way: tuple[int, int] = (0, 0)) -> bytes:
+    """`code`, which patch.patch_jukebox has patched, with the jukebox's menu: its five hooks, its variable, the page
+    counter's place `counter` (default COUNTER, the game's) and its way back on a wider picture `counter_way` (sides,
+    fitted pixels: build.counter_way). Refuses an executable without the jukebox's engine, one where a site is not the
+    game's instruction, or one patched already."""
     layout = layout or load_layout()
     if supports_jukebox(code) or bl_target(code, COMMAND_PICK) != layout.symbol(CODE, "jukebox_command_pick"):
         raise CodeSpaceError("the jukebox's menu needs an executable patch_jukebox has patched")
@@ -72,6 +75,7 @@ def patch_jukebox_menu(code: bytes, layout: Layout | None = None,
     out = bytearray(code)
     layout.reserve(out, MENU)
     struct.pack_into("<2h", out, layout.address(DATA) + COUNTER_AT - BASE_ADDRESS, x, y)
+    struct.pack_into("<2h", out, layout.address(DATA) + COUNTER_WAY_AT - BASE_ADDRESS, *counter_way)
     layout.hook(out, LINES_CALL, layout.symbol(CODE, "jukebox_lines"), calls=HOUSEKEEPER_LINES)
     layout.hook(out, MENU_DRAWN, layout.symbol(CODE, "jukebox_menu_line_stub"),
                 original=struct.pack("<I", MOV_R1_0XB))
@@ -82,5 +86,5 @@ def patch_jukebox_menu(code: bytes, layout: Layout | None = None,
     return bytes(out)
 
 
-__all__ = ["COUNTER", "COUNTER_AT", "LINES_CALL", "LINE_HELP", "LINE_PICK", "MENU", "MENU_DRAWN", "STATE_SWITCH",
-           "patch_jukebox_menu", "supports_jukebox_menu"]
+__all__ = ["COUNTER", "COUNTER_AT", "COUNTER_WAY_AT", "LINES_CALL", "LINE_HELP", "LINE_PICK", "MENU", "MENU_DRAWN",
+           "STATE_SWITCH", "patch_jukebox_menu", "supports_jukebox_menu"]
