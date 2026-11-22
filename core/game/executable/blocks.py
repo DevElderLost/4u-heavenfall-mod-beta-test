@@ -221,6 +221,20 @@ FOG_DEBUG_STATE_SIZE = 296
 TRIO_DIAG = "trio_diagnostics"
 TRIO_DIAG_LOG_SIZE = 0x3A0 + 64 * 96 + 2048 * 32 + 256 * 128
 TRIO_DIAG_DATA_SIZE = 32
+# The online sync log (diagnostics/sync_diag.py): one ring of 8192 rows of 20 words after a 0x200-byte header (640 KB: a
+# 15-minute quest with the watched monsters of a room fits), its hook stubs and the data of what it watches. A probe's
+# only, packed after the trio diagnostics.
+SYNC_DIAG = "sync_diagnostics"
+SYNC_DIAG_LOG_SIZE = 0x200 + 8192 * 20 * 4
+SYNC_DIAG_DATA_SIZE = 24
+# The sound latch of the Felynes' rocket (diagnostics/sound_latch.py): a ring of the last 512 sound requests and three
+# latches of the requests and voices around a rocket hit, its hook stubs and the windows' lengths. A probe's only,
+# packed after the online sync log. SOUND_LATCH_LOG_SIZE is struct latch_log (sound_latch.c): the 0x480-byte header,
+# 512 requests of 96 bytes, three latches (a 0x60-byte head, 8 hits of 56 bytes, two snapshots of 24 voices of 64
+# bytes, 256 requests of 96).
+SOUND_LATCH = "sound_latch"
+SOUND_LATCH_LOG_SIZE = 0x480 + 512 * 96 + 3 * (0x60 + 8 * 56 + 2 * 24 * 64 + 256 * 96)
+SOUND_LATCH_DATA_SIZE = 20
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -252,7 +266,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, TRIO_DIAG)
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, TRIO_DIAG, SYNC_DIAG, SOUND_LATCH)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -498,6 +512,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # hooks; bubble_icon_table: B's table copied with the bubbles' entry, 28 entries of 8 bytes)
     BlockSpec("bubble_icon", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_icon.s", region="ext"),
     BlockSpec("bubble_icon_table", BUBBLEBLIGHT, size=28 * 8, region="ext"),
+    # ... and the other hunters' bubbles online: the local hunter's state into free bits of its status word, which the
+    # game sends; the others' word into the look and the icon
+    BlockSpec("bubble_online", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_online.c", region="ext"),
+    # ... and the effect class's destructor freeing only its own slot of the effect manager, so that no look leaves
+    # the manager's array while it lives
+    BlockSpec("effect_slot", BUBBLEBLIGHT, "gameplay/bubbleblight/effect_slot.c", region="ext"),
     # The ported MH Generations monsters (core/monsters/).
     # What they share (feature SHARED, in whenever one of them is on): MH Generations' effect player and its glue
     # (monsters/porting/mhgen_port.c), the ported monsters' records, the
@@ -709,6 +729,16 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("trio_diag_code", TRIO_DIAG, "diagnostics/trio_diag.c", region="ext",
               defines=(f"TRIO_LOG_SIZE={TRIO_DIAG_LOG_SIZE}",)),
     BlockSpec("trio_diag_data", TRIO_DIAG, size=TRIO_DIAG_DATA_SIZE, region="ext"),
+    # The online sync log's block, after the trio diagnostics (a diagnostics file's only)
+    BlockSpec("sync_diag_stub", SYNC_DIAG, "diagnostics/sync_diag_stub.s", region="ext"),
+    BlockSpec("sync_diag_code", SYNC_DIAG, "diagnostics/sync_diag.c", region="ext",
+              defines=(f"SYNC_LOG_SIZE={SYNC_DIAG_LOG_SIZE}",)),
+    BlockSpec("sync_diag_data", SYNC_DIAG, size=SYNC_DIAG_DATA_SIZE, region="ext"),
+    # The sound latch of the Felynes' rocket, after the online sync log (a diagnostics file's only)
+    BlockSpec("sound_latch_stub", SOUND_LATCH, "diagnostics/sound_latch_stub.s", region="ext"),
+    BlockSpec("sound_latch_code", SOUND_LATCH, "diagnostics/sound_latch.c", region="ext",
+              defines=(f"LATCH_LOG_SIZE={SOUND_LATCH_LOG_SIZE}",)),
+    BlockSpec("sound_latch_data", SOUND_LATCH, size=SOUND_LATCH_DATA_SIZE, region="ext"),
 )
 
 
@@ -904,6 +934,10 @@ VARIABLES = (
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
     # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others
     VariableSpec("trio_diag_log", TRIO_DIAG, TRIO_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
+    # The online sync log's ring (diagnostics/sync_diag.c struct sync_log), after the trio's
+    VariableSpec("sync_diag_log", SYNC_DIAG, SYNC_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
+    # The sound latch's ring and latches (diagnostics/sound_latch.c struct latch_log), after the sync log's
+    VariableSpec("sound_latch_log", SOUND_LATCH, SOUND_LATCH_LOG_SIZE, align=0x10, region="ext_vars"),
 )
 
 # Game functions the sources call by name (addresses in the update's executable).
@@ -947,6 +981,11 @@ GAME_SYMBOLS = {
     "heal": 0xB24580,             # FUN_00b24580(hunter, health, 0): heals, with the food skills' scaling
     "status_icon_resume": 0xB8A5D0,  # FUN_00b8a524: after the cell hook of bubble_icon.s (0xB8A5CC, a strb)
     "hunter_masks": 0xB31630,     # FUN_00b31630(hunter) -> the mask pw + 0x800 (the party list's type 2 entries)
+    # Bubbleblight online (gameplay/bubbleblight/bubble_online.c)
+    "blight_edges": 0xB3B124,     # FUN_00b3b124(hunter): FUN_00b6c56c's step before the status word's end effects
+    # FUN_00c07424(manager, index): the effect manager's word +0x1F8 + 4 * index zeroed, its count byte +0x1F4 lowered
+    # (the effect class's destructor's call; gameplay/bubbleblight/effect_slot.c)
+    "effect_slot_clear": 0xC07424,
     # Bubbleblight's look and sound (gameplay/bubbleblight/bubble_fx.s): the path FUN_00b3f560 takes for the
     # waterblight's effect
     "effect_request_init": 0xC0CA90,  # FUN_00c0ca90(request): the 0x68-byte effect request with its defaults
@@ -2005,6 +2044,12 @@ GAME_SYMBOLS |= {
     # His leader's pack in MH4U (porting/sdk/pack.h)
     "enemy_is_live": 0x9124F0,              # (uEnemy): non-zero for a live monster, FUN_0068239c's test of sEnemy's 32
     "enemy_mgr_records": 0x10B04F0,         # sEnemy's 0x80 records of 0x80 bytes: the quest's monsters, waiting or not
+    # Maccao online, MH4U's kind-5 path (core/monsters/maccao/ems046/online.c; maccao_port.md "Phase ON: online sync")
+    "enemy_factory_4u": 0x690228,           # (factory, id, info, tag) -> the monster: FUN_0068dab8's call, info[2] kind
+    "enemy_mgr_record_step": 0x68A268,      # (sEnemy, record): a record's frame (FUN_0068545c's driver hand-over first)
+    "enemy_mgr_count_called": 0x68239C,     # (sEnemy, set id, area, flags, large): the alive a call counts (kind 3)
+    "enemy_revive_wait": 0x91E218,          # (uEnemy): the wait in 12/0xFF after a death; its end em+0x798A by kind
+    "enemy_mgr_record_end": 0x684574,       # (sEnemy, record, from a message): kind 3 back to waiting, kind 5 active
     "enemy_hit_linked": 0xB6FCA8,           # (hit, victim): 1 when the victim is the attacker's linked monster
                                             # (em+0x78E8), the victims' loop's test before a monster is hit ("Phase P2")
 }
@@ -2288,7 +2333,25 @@ GAME_SYMBOLS |= {
     "hunter_state_d": 0xD05284,         # FUN_00d05284(hunter): the state test of hits of kind 0xC, 0xD and 0x1E
 }
 
-GAME_SYMBOLS["color_fog_build"] = 0xC29308    # FUN_00c29308: a uColorFog's slot 10, which builds the fog table
+# The online sync log (diagnostics/sync_diag.py): the game's reliable sender and setAction, which its stubs leave by a
+# branch after logging, and the second instruction of the synced monster's frame 0x912504 (its first is the hook's)
+GAME_SYMBOLS |= {
+    "net_send_reliable": 0x688274,      # FUN_00688274(net, sender, 5, event, message, size): the last two on the stack
+    "enemy_set_action_main": 0x90EFAC,  # FUN_0090efac(monster, st, no, mode, player): setAction
+    "enemy_drive_resume": 0x912508,     # FUN_00912504's second instruction (`mov r6, r0`, after its `push`)
+}
+
+# The sound latch of the Felynes' rocket (diagnostics/sound_latch.py): the functions its stubs call in the game's place
+# and the rocket's class
+GAME_SYMBOLS |= {
+    "voice_start": 0xBD0750,            # FUN_00bd0750(driver, handle, context): a wave of a request onto a voice, 1
+    "voice_update": 0xBD4D18,           # FUN_00bd4d18(voice): its gains, distance and mix each driver tick
+    "hit_sound": 0xBE815C,              # FUN_00be815c(sound, monster, hit, position): the sound of a hit on a monster
+    "union_object_update": 0xB0762C,    # FUN_00b0762c(object): the Felynes' union attacks' objects' common move
+    "rocket_vtable": 0xE62B60,          # uOtomoSkill_rocket's vtable: the Felynes' rocket (constructor FUN_003d1ce0)
+}
+
+GAME_SYMBOLS["color_fog_build"] = 0xC29308   # FUN_00c29308: a uColorFog's slot 10, which builds the fog table
 
 # Boltreaver Astalos' pulling ball on the hunter (gameplay/boltreaver_pull/boltreaver_pull.c; docs/monsters/
 # boltreaver_port.md, "The pull"): the hunter's game move and turn, the list of monsters, and where the hit goes on

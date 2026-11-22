@@ -38,6 +38,9 @@ KEYS = {
     "emulator_dir": "Azahar/Citra user folder (default %APPDATA%/Azahar)",
     "work_dir": "derived inputs and scratch (default work/ in the main checkout)",
     "jukebox_inbox": "folder where the developer drops the jukebox's extra .mca songs",
+    "portable_emulator": "folder of a portable Citra build (citra-qt.exe, citra-room.exe, DLLs) the online probes copy "
+                         "(research/probes/online_rig.py)",
+    "probe_save": "MH4U's save data folder (the title's `data` folder) each emulator of an online probe starts from",
     "beta_repo": "Heavenfall Beta's repository (tools/release/export_edition.py; default ../4u-heavenfall-mod-beta "
                  "beside the main checkout)",
 }

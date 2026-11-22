@@ -89,7 +89,9 @@ EXT_START = 0x111E000
 #   (6 pages)
 # + the item marks: their stubs, their C and its data (2 pages)
 # + Layered Gear's item box line and its screens there (1 page)
-EXT_SIZE = 0x22F000
+# + the rocket's sound latch, a probe's only, packed after the sync log (2 pages with Layered Gear's item box line
+#   before it)
+EXT_SIZE = 0x231000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
@@ -97,8 +99,10 @@ PAGE = 0x1000                   # the extension grows by whole pages (the exhead
 # records, em data slots and save records; a third for Damage Numbers'
 # state. 26 more for the diagnostics ring (105 KB, only a diagnostics
 # file reaches it: the product's variables are packed first and the file ends at the last page a build uses). One more
-# for the jukebox's saved block, its engine and its menu.
-EXT_VARS_SIZE = 30 * PAGE
+# for the jukebox's saved block, its engine and its menu. 162 more for the online
+# sync log's ring (640 KB; a diagnostics file's only). 32 more for the rocket's
+# sound latch (132 KB; a diagnostics file's only).
+EXT_VARS_SIZE = 224 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000

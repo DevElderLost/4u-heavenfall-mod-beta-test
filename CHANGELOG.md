@@ -62,7 +62,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The frame rate can be set from 30 to 60 FPS in fives (emulator only).
 
 ### Mod Settings
-- Mod Settings sorts its options into Interface, Camera, QoL, Display and Other, most important first.
+- Mod Settings sorts its options into Interface, Camera, QoL, Display, Effects and Other, most important first.
 - Mod Settings' lists show up to ten rows a page, each page in a frame its size; Left and Right turn pages.
 - Mod Settings has room for many more options; every character's choices return to their defaults once.
 - Field of View, Online Room Fix and True Weapon Attack work on a real 3DS too.

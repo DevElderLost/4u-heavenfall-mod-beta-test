@@ -112,7 +112,7 @@
 **Honing glow**
 
 - A weapon Honed at the Smithy (Attack, Defense or Life) keeps its bonus but no longer glows.
-- In the game: START, third page, Mod Settings, Display, Honing Glow: Yes brings the glow back (No by default). The
+- In the game: START, third page, Mod Settings, Effects, Honing Glow: Yes brings the glow back (No by default). The
   change shows the next time the weapon is loaded: a quest, the village or a weapon change.
 
 **Weapon tree**
