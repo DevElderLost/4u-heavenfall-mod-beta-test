@@ -12,7 +12,10 @@ val coreAssets: File = layout.buildDirectory.dir("generated/heavenfall/assets").
 // `core` (the mod's code and data) as one zip inside the APK, with the same skips as the web page's bundle
 // (tools/release/build_web.py: BUNDLE_SKIPS_*). The app unpacks it on first start (HeavenfallBridge.unpackCode):
 // the code reads its data files by path, so it needs real files rather than Chaquopy's in-APK modules.
+// The files outside core/ that the code reads sit at the zip's top, like at the checkout's top
+// (core/music/audio/volumes.py reads extra_ost_volumes.json there; build_web.py: BUNDLE_ROOT_FILES).
 val zipCore = tasks.register<Zip>("zipHeavenfallCore") {
+    from(File(repoRoot, "extra_ost_volumes.json"))
     from(File(repoRoot, "core")) {
         into("core")
         exclude(
