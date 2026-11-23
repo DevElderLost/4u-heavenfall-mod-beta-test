@@ -23,7 +23,7 @@
 #include "settitle.h"
 #include "updplan.h"
 
-#define SUPPORTED_SET_FORMAT ((unsigned)PS_FORMAT_SECOND)   /* the newest set format the applier reads */
+#define SUPPORTED_SET_FORMAT ((unsigned)PS_FORMAT_SHARED)   /* the newest set format the applier reads */
 
 static int net_ok;
 
@@ -373,11 +373,58 @@ static int set_ready(const HfTransport *tr, const HfRelease *mod_rel, int region
     return set_fetch(tr, mod_rel, region, plan->use_xx);
 }
 
+/* The release's shared file the set on the card reads (format 3), into
+ * `path` ("" when the set reads none). It stays on the card beside the sets after an install: ctr_net_fetch hashes the
+ * copy an earlier update left and keeps it when it is the release's (nothing is downloaded), else fetches it anew, so
+ * it is downloaded once and again only when the hash a set names changes. HF_E_FORMAT, nothing written, when the release
+ * does not carry the file the set names (another hash or size). The probe takes its test release's copy. */
+static int shared_ready(const HfTransport *tr, const HfRelease *mod_rel, char *path, size_t cap) {
+    const HfAsset *a = &mod_rel->assets[HF_W_SHARED];
+    uint8_t head[PS_HEADER2_SIZE];
+    uint64_t size = 0;
+    struct stat st;
+    FILE *f;
+    size_t n;
+    int rc, k;
+    u64 t;
+    path[0] = 0;
+    if (!(f = fopen(set_file.path, "rb"))) return TITLE_E_IO;
+    n = fread(head, 1, sizeof head, f);
+    fclose(f);
+    if (n < 8 || memcmp(head, "HFPS", 4)) return HF_E_FORMAT;
+    if (head_format(head) < PS_FORMAT_SHARED) return 0;          /* an older set reads no shared file */
+    if (n != sizeof head) return HF_E_FORMAT;
+    for (k = 7; k >= 0; k--) size = size << 8 | head[0xD0 + k];
+    if (!size) return 0;
+    if (!a->found || a->size != size || memcmp(a->sha256, head + 0xB0, 32)) {
+        LOG("shared file: the set names one of %lu bytes; the release's %s is %s", (unsigned long)size, a->name,
+            a->found ? "another" : "missing");
+        return HF_E_FORMAT;
+    }
+    if (app.probe) {
+        snprintf(path, cap, "%s/%s", probe_dir, a->name);
+        rc = stat(path, &st) || (uint64_t)st.st_size != size ? TITLE_E_IO : 0;
+        LOG("shared file: the test release's %s: %d", path, rc);
+        if (rc) path[0] = 0;
+        return rc;
+    }
+    t = osGetTime();
+    ui_phase(HT_PHASE_SET_DOWNLOAD);
+    rc = fetch(tr, a, path, cap);
+    LOG("shared file: %s (%lu bytes), kept or downloaded: %d", a->name, (unsigned long)size, rc);
+    hf_log_phase(&app.log, osGetTime(), "the shared file", t, size);
+    if (rc) path[0] = 0;
+    return rc;
+}
+
 /* One title of the plan from the set: the game data (HF_STEP_GAME) or the mod (HF_STEP_MOD). */
 static int title_set_step(const HfTransport *tr, const HfRelease *mod_rel, int region, const HfPlanIn *in, HfPlan *plan,
                           HfTitleKind kind) {
+    char shared[400] = "";
     int rc = set_ready(tr, mod_rel, region, in, plan);
     if (rc) return rc;
+    /* the mod's title copies the shared file's files; the game data reads none of the set's */
+    if (kind == HF_TITLE_MOD && (rc = shared_ready(tr, mod_rel, shared, sizeof shared))) return rc;
     LOG("%s: the %s set %s (MH XX: %s; cheats %d)", kind == HF_TITLE_GAME ? "game data" : "mod",
         plan->use_xx ? "XX" : "plain", set_file.path, XX_WHY[plan->xx_why], run_cheats);
     if (plan->xx_why == HF_XX_OTHER_VERSION) ui_notice(HT_XX_OTHER_NOTE);
@@ -385,7 +432,8 @@ static int title_set_step(const HfTransport *tr, const HfRelease *mod_rel, int r
     else if (plan->xx_why == HF_XX_NO_ROOM) ui_notice(HT_XX_NO_ROOM_NOTE);
     else if (kind == HF_TITLE_MOD && want_cheats && !run_cheats && cheats_request < 0)
         ui_notice(HT_CHEATS_NO_SET_NOTE);   /* an update of a title with cheats (its record's) from a release without them */
-    rc = install_set(set_file.path, mod_rel->tag, plan->use_xx, plan->xx_why == HF_XX_NO_ROOM, run_cheats, kind);
+    rc = install_set(set_file.path, mod_rel->tag, plan->use_xx, plan->xx_why == HF_XX_NO_ROOM, run_cheats, kind,
+                     shared[0] ? shared : NULL);
     /* kept after other failures, so the next try resumes it; an XX set that did not fit is not tried again; the game
      * data's set is the mod's too */
     if (((rc == 0 && kind == HF_TITLE_MOD) || (rc == TITLE_E_MEM && plan->use_xx)) && !app.probe) {
@@ -575,6 +623,19 @@ int resume_found(void) {
 
 /* What the plan downloads and installs, for the bar and the expected time: the app's file and the set (not in a
  * probe), and the title (the dump's size until the set gives the exact one). */
+/* The release's shared file's bytes to download: none when the card keeps a copy of its size (an earlier update's). */
+static uint64_t shared_missing(const HfRelease *mod_rel) {
+    const HfAsset *a = &mod_rel->assets[HF_W_SHARED];
+    char folder[200], path[300];
+    struct stat st;
+    if (!a->found) return 0;
+    if (!ctr_net_folder(app_edition(), folder, sizeof folder) &&
+        snprintf(path, sizeof path, "%s/%s", folder, a->name) < (int)sizeof path && !stat(path, &st) &&
+        (uint64_t)st.st_size == a->size)
+        return 0;
+    return a->size;
+}
+
 static void plan_bytes(const HfPlan *plan, const HfRelease *real, const HfRelease *mod_rel, int region,
                        uint64_t bytes[HF_STAGES], uint64_t *game_bytes) {
     int i, set = 0;
@@ -585,13 +646,16 @@ static void plan_bytes(const HfPlan *plan, const HfRelease *real, const HfReleas
             bytes[HF_STAGE_DOWNLOAD] += real->assets[app_asset()].size;
             continue;
         }
-        if (!set++ && !app.probe)
-            bytes[HF_STAGE_DOWNLOAD] += mod_rel->assets[hf_w_patch(region, plan->use_xx, run_cheats)].size;
+        if (!set++ && !app.probe)   /* the set, and the shared file it may copy from (kept on the card afterwards) */
+            bytes[HF_STAGE_DOWNLOAD] += mod_rel->assets[hf_w_patch(region, plan->use_xx, run_cheats)].size +
+                                        shared_missing(mod_rel);
         if (plan->steps[i] == HF_STEP_GAME) {
             *game_bytes = app.status.dump_bytes ? app.status.dump_bytes : 1;   /* the dump's RomFS, near enough */
-        } else {   /* the mod title: its own files only, a guess from the set until the set is open */
+        } else {   /* the mod title: its own files only, a guess from the set until the set is open; the shared
+                      file's files go in as they are */
             bytes[HF_STAGE_INSTALL] =
-                mod_rel->assets[hf_w_patch(region, plan->use_xx, run_cheats)].size * HF_TUNE_MOD_TITLE_PER_SET;
+                mod_rel->assets[hf_w_patch(region, plan->use_xx, run_cheats)].size * HF_TUNE_MOD_TITLE_PER_SET +
+                (mod_rel->assets[HF_W_SHARED].found ? mod_rel->assets[HF_W_SHARED].size : 0);
             if (!bytes[HF_STAGE_INSTALL]) bytes[HF_STAGE_INSTALL] = 1;
         }
     }

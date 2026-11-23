@@ -92,17 +92,22 @@ typedef struct {
     int64_t length, range_start;
     int head_sent, stopped;
     uint32_t dates;   /* the certificates' date flags forgive_dates let through */
+    uint32_t seen;    /* the date flags the certificates showed, let through or not */
+    int forgive;      /* 1: date flags are let through (a wrong clock, or the retry after a refused date) */
 } Call;
 
 /* A certificate's dates against the console's clock: a clock never set, or set back or ahead (a game's events), makes
  * every certificate "not yet valid" or "expired" and every request fail as if there were no internet. The chain to a
  * root of the CA file and the host's name are still required (mbedTLS's other flags stay), and every download is
- * checked against the release's SHA-256. What it forgives is kept for the log. */
+ * checked against the release's SHA-256. It forgives only when `forgive` is set (curl_get: the clock is implausible, or
+ * a first try failed on a date flag). What it forgives is kept for the log. */
 static int forgive_dates(void *ctx, mbedtls_x509_crt *crt, int depth, uint32_t *flags) {
     Call *c = (Call *)ctx;
     uint32_t dates = *flags & (uint32_t)(MBEDTLS_X509_BADCERT_EXPIRED | MBEDTLS_X509_BADCERT_FUTURE);
     (void)crt;
     (void)depth;
+    c->seen |= dates;
+    if (!c->forgive) return 0;   /* a right clock: a certificate out of date is refused (the retry may forgive it) */
     c->dates |= dates;
     *flags &= ~dates;
     return 0;
@@ -184,7 +189,8 @@ static int on_xfer(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off
     return *(volatile int *)clientp ? 1 : 0;
 }
 
-static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody body, void *cb_ctx) {
+static int curl_attempt(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody body, void *cb_ctx, int forgive,
+                        uint32_t *seen, int *cut_before_body) {
     Call c;
     volatile int *abort_flag = (volatile int *)ctx;
     CURL *curl;
@@ -197,6 +203,7 @@ static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody bod
     if (!curl)
         return HF_NET_FAIL;
     memset(&c, 0, sizeof c);
+    c.forgive = forgive;
     c.curl = curl;
     c.head = head;
     c.body = body;
@@ -254,9 +261,37 @@ static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody bod
             (unsigned long)c.dates);
     if (rc != CURLE_OK && !c.stopped && !(abort_flag && *abort_flag))
         LOG("network: %s: curl %d, %s (http %d)", host, (int)rc, error[0] ? error : curl_easy_strerror(rc), c.status);
+    *seen = c.seen;
+    *cut_before_body = rc != CURLE_OK && !c.head_sent;
     if (c.stopped)
         return HF_NET_ABORT;
     return rc == CURLE_OK ? HF_NET_OK : HF_NET_FAIL;
+}
+
+/* The year this launcher was built (from the compiler's __DATE__, "Mmm dd yyyy"): a console clock before it is wrong. */
+#define BUILD_YEAR ((__DATE__[7] - '0') * 1000 + (__DATE__[8] - '0') * 100 + (__DATE__[9] - '0') * 10 + (__DATE__[10] - '0'))
+
+/* 1 when the console's clock can be right (not before the year of this build). A clock never set, or set back, is not. */
+static int clock_plausible(void) {
+    time_t now = time(NULL);
+    struct tm *t = gmtime(&now);
+    return t && t->tm_year + 1900 >= BUILD_YEAR;
+}
+
+/* One request. Certificate dates count while the clock can be right (an expired or not-yet-valid certificate is refused,
+ * so an old stolen key does not serve a download); they are let through when the
+ * clock is implausible, and once more after a first try that the dates alone cut before any answer (a clock set ahead
+ * is wrong too). The log says when it forgave them. */
+static int curl_get(void *ctx, const HfRequest *req, HfOnHead head, HfOnBody body, void *cb_ctx) {
+    uint32_t seen = 0;
+    int cut = 0, forgive = !clock_plausible();
+    int rc = curl_attempt(ctx, req, head, body, cb_ctx, forgive, &seen, &cut);
+    if (rc == HF_NET_FAIL && !forgive && cut && seen) {
+        LOG("network: a certificate's dates were refused (flags 0x%lx): trying once with the dates let through",
+            (unsigned long)seen);
+        rc = curl_attempt(ctx, req, head, body, cb_ctx, 1, &seen, &cut);
+    }
+    return rc;
 }
 
 #define SLEEP_SLICE_MS 50u

@@ -396,9 +396,10 @@ static const char *const TEXT[HT_COUNT][2] = {
     [HT_NO_RELEASE] = {"No version has been published yet.", "Todavía no se ha publicado ninguna versión."},
     [HT_APP_UPDATED] = {"The launcher was updated: open it again.", "El launcher se ha actualizado: vuelve a abrirlo."},
     [HT_NO_ROOM] = {"Not enough free space on the SD card.", "No hay espacio suficiente en la SD."},
-    [HT_SAVE_OFFER] = {"Copy your MH4U save to this title? It replaces this title's save. Both are backed up first.",
-                       "¿Copiar tu partida de MH4U a este título? Sustituye la de este título. Antes se hace una copia "
-                       "de seguridad de las dos."},
+    [HT_SAVE_OFFER] = {"Bring your MH4U save? It REPLACES all three hunters of this title and its shared data with "
+                       "MH4U's. Both saves are backed up first on the SD card, in:",
+                       "¿Traer tu partida de MH4U? SUSTITUYE los tres cazadores de este título y sus datos "
+                       "compartidos por los de MH4U. Antes se copian las dos en la SD, en:"},
     [HT_SAVE_NEED_RUN] = {"Start the title once so it makes its save, then copy it.",
                           "Abre el título una vez para que cree su partida y después cópiala."},
     [HT_SAVE_DONE] = {"Save copied. The backups are on the SD card.",
@@ -721,8 +722,10 @@ static const char *const TEXT[HT_COUNT][2] = {
                            "está; el resto se ha devuelto desde la copia de la SD."},
     /* Heavenfall Beta's More > MH4U saves (the title's save to MH4U's and back) */
     [HT_BTN_SAVES] = {"MH4U saves", "Partidas de MH4U"},
-    [HT_SAVES_STATE] = {"Move saves between Heavenfall Beta and MH4U. Both saves are backed up on the SD card first.",
-                        "Mueve partidas entre Heavenfall Beta y MH4U. Antes se copian las dos en la SD."},
+    [HT_SAVES_STATE] = {"Bring replaces all three of this title's hunters and its shared data with MH4U's. Take moves "
+                        "one slot. Both saves are backed up on the SD card first.",
+                        "Traer sustituye los tres cazadores de este título y sus datos compartidos por los de MH4U. "
+                        "Llevar mueve una ranura. Antes se copian las dos en la SD."},
     [HT_BTN_TO_MH4U] = {"Take my save to MH4U", "Llevar mi partida a MH4U"},
     [HT_BTN_UNDO_TO_MH4U] = {"Restore MH4U's save", "Recuperar la partida de MH4U"},
     [HT_TO_MH4U_STATE] = {"Choose a slot: Heavenfall Beta's hunter goes into MH4U's save. Play time on each side is "
@@ -772,6 +775,16 @@ static const char *const TEXT[HT_COUNT][2] = {
                      "¿Dejar la partida de MH4U como estaba antes de llevarle la de Heavenfall Beta? Antes se copia "
                      "lo que tiene ahora."},
     [HT_UNDO_DONE] = {"MH4U's save is back as it was.", "La partida de MH4U está como estaba."},
+    [HT_MEDIUM_ASK] = {"MH4U is on the cartridge and on the SD card (digital). Use the cartridge's save? A: the "
+                       "cartridge's. B: the digital game's.",
+                       "MH4U está en el cartucho y en la SD (digital). ¿Usar la partida del cartucho? A: la del "
+                       "cartucho. B: la del juego digital."},
+    [HT_MH4U_ON_CARTRIDGE] = {"MH4U's save used: the cartridge's", "Partida de MH4U usada: la del cartucho"},
+    [HT_MH4U_ON_DIGITAL] = {"MH4U's save used: the digital game's", "Partida de MH4U usada: la del juego digital"},
+    [HT_TO_MH4U_DIFFER] = {"(!) Different hunters in one slot: both games share that slot's card file, so each "
+                           "overwrites the other's item sets, equipment sets and Guild Card book.",
+                           "(!) Cazadores distintos en una ranura: los dos juegos comparten su archivo de tarjeta y "
+                           "cada uno sobrescribe los sets de objetos y equipo y el libro de Tarjetas del otro."},
 };
 
 const char *hf_text(HfLang lang, HfText id) {

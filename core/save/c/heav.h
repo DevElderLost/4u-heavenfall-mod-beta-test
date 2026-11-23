@@ -1,8 +1,8 @@
 /* What an older Heavenfall left in MH4U's own plain userN / cardN: gear and Felyne gear past MH4U's counts, their
 marks, the cleared bits and log entries of
  * Heavenfall's quests, the new monster ids' records. The game (Heavenfall Beta) sets them apart into the slot's
- * sidecar hfheavN and cleans the file; main Heavenfall's Bring (the PC program, the 3DS launcher) puts them back. The
- * twin of core/save/heav.py, which emits heav_tables.h.
+ * sidecar hfheavN and cleans the file; hf_heav_join below puts them back. The twin of core/save/heav.py, which emits
+ * heav_tables.h.
  *
  * Freestanding as extras.c: no libc, no globals, no data of its own, byte-wise access, no divide; the stack holds
  * about 3 KB (a CRC table, an entry's data, the book cards' CRCs). A file is a whole plain userN (HF_EXTRAS_USER_SIZE)

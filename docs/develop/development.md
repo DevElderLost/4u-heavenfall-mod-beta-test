@@ -56,11 +56,21 @@ git push origin v0.2.0
 ```
 
 The workflow in `.github/workflows/release.yml` lints the code, builds `HeavenfallBeta-windows.zip` on Windows and the 3DS
-launcher, and, once both builds succeed, attaches their files to the release of that tag (creating the release when there
-is none). The builds run with a read-only token that is not kept on disk; only the small job `attach`, which runs no
+launcher, and, once both builds succeed, attaches their files to the release of that tag. The release is made as a draft
+and published, as the latest, only once every file is attached, so the program and the launcher never meet a release
+with files missing; a release already published is not attached to again (make it a draft first). The builds run with a read-only token that is not kept on disk; only the small job `attach`, which runs no
 package or build tool, can write the release. Running the workflow by hand (Actions >
 Release > Run workflow) only builds, and keeps the zip as an artifact of the run. Keep the version in
 `pyproject.toml` and `core/__init__.py` equal to the tag.
+
+The 3DS launcher installs the mod from the patch sets in `console/` (one per region, with and without MH XX, each with
+and without the cheats). Each set's header names its version, edition, region, whether it was made with MH XX and with
+the cheats, and a source stamp: the SHA-256 digest of the `core/` files it was made from. The workflow refuses a tag
+whose sets do not all match their names, the version and this checkout's `core/` files
+(`tools/release/console_sets.py`), so the sets must be made again after any change under `core/`. The same script
+makes `HeavenfallBeta-3ds-shared.hfpack` from the checkout's files: the files every set has the same bytes of, which
+each set copies instead of carrying them. The launcher downloads it once and keeps it on the SD card until its bytes
+change; the workflow attaches it with the sets.
 
 ## The updater
 

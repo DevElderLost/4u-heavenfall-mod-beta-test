@@ -49,8 +49,8 @@
     "description": "Whether Auto-Combine is on in a new character: 1 on, 0 off. Stored in the save beside the position and the trigger; Configuration's Auto-Combine changes it. With it on, the pick of an item the hunter has none of combines it once from what he carries, with the game's own chance, rules and sounds (radial_craft.c), and the wheel marks the slots it can combine; nothing of it is tuned here."
   },
   "default_enabled": {
-    "value": 1,
-    "description": "Whether the wheel is on in a new character: 1 on, 0 off. Stored in the save beside the slots; with it off the wheel does nothing and L and the C-stick behave as in the game without the wheel."
+    "value": 0,
+    "description": "Whether the wheel is on in a new character: 1 on, 0 off. It ships off: the player turns it on in Mod Settings, Radial Menu. Stored in the save beside the slots; with it off the wheel does nothing and L and the C-stick behave as in the game without the wheel."
   },
   "draw_centre": {
     "value": [200, 135],

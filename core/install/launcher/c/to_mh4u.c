@@ -18,6 +18,8 @@
 #define DATA_AT 8u
 #define NAME_SIZE 0x18u
 #define PLAY_AT (DATA_AT + 0x38u)
+#define IDENTITY_AT 0x12794u   /* the hunter's 8 identity bytes in the plain file */
+#define IDENTITY_SIZE 8u
 
 static const HfToFile FILES[HF_TO_MH4U_FILES] = {
     {HF_FILE_USER1_NAME, HF_FILE_USER1_SIZE},
@@ -95,6 +97,7 @@ int hf_to_side(const HfBlowfish *bf, const uint8_t *raw, uint32_t size, HfToSide
             out->play_time = (uint32_t)plain[PLAY_AT] | (uint32_t)plain[PLAY_AT + 1] << 8 |
                              (uint32_t)plain[PLAY_AT + 2] << 16 | (uint32_t)plain[PLAY_AT + 3] << 24;
         }
+        memcpy(out->identity, plain + IDENTITY_AT, IDENTITY_SIZE);
         out->clean = hf_to_clean(plain, size);
     }
     free(plain);
@@ -107,6 +110,11 @@ void hf_to_time_text(uint32_t seconds, char *out, size_t cap) {
 
 int hf_to_going_back(const HfToSide *beta, const HfToSide *mh4u) {
     return mh4u->readable && mh4u->hunter && mh4u->play_time > (beta->hunter ? beta->play_time : 0);
+}
+
+int hf_to_different(const HfToSide *beta, const HfToSide *mh4u) {
+    if (!beta->readable || !beta->hunter || !mh4u->readable || !mh4u->hunter) return 0;
+    return strcmp(beta->name, mh4u->name) != 0 || memcmp(beta->identity, mh4u->identity, sizeof beta->identity) != 0;
 }
 
 uint32_t hf_to_record_text(const HfToRecord *r, char *out, size_t cap) {

@@ -7,6 +7,9 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Weapon tree
 - Beside your money, the tree shows the price of the weapon under the cursor, grey when you are short.
 
+### Item wheel
+- The item wheel starts off in a new character; turn it on in Mod Settings, Radial Menu.
+
 ### Layered Gear
 - Layered Gear gains Nargacuga's and Silverwind Nargacuga's looks from Monster Hunter XX.
 - Monster Hunter XX's Felyne costumes, like Happy's, show their own head; transforming weapons show their drawn form.
@@ -14,13 +17,15 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Your Guild Card shows your Layered Gear, and modded players' cards keep and show theirs.
 
 ### QoL
-- Your save is MH4U's own, clean; Heavenfall Beta's extras live in files beside it, so nothing is lost either way.
+- Your save is MH4U's own, clean; Heavenfall Beta's extras live in files beside it on the SD card.
 - Without the mod, MH4U keeps every hunter you saved in Heavenfall Beta; install it again and the extras return.
 - A save MH4U would not fully understand is cleaned as soon as the title screen reads it.
 - On a 3DS, the launcher's More menu can take your hunter's save to MH4U and put MH4U's save back (3DS only).
 - It shows both saves' hunters and play time first, and warns when you would go back in time.
 - Both saves are backed up on the SD card before anything changes.
-- The program backs up your saves before it installs or updates the mod.
+- It marks a slot holding a different hunter in each game, since they would overwrite each other's sets.
+- When MH4U is on both the cartridge and the SD card, the launcher asks which one to use.
+- Bringing your MH4U save says plainly it replaces all three hunters, and names the backup folder.- The program backs up your saves before it installs or updates the mod.
 - Your Housekeeper has a Jukebox: one song or a playlist of the game's music plays in the towns.
 - With Monster Hunter XX's game, the Jukebox can also have its monster, area, town and hall themes.
 - A playlist can play in order or shuffled, in the halls too, changing song after a few loops.

@@ -506,7 +506,7 @@ static int newest_of(const u8 *a, const u8 *b, int in_a, int in_b)
 }
 
 int hf_extras_pick_known(const u8 *a, u32 a_size, const u8 *b, u32 b_size, u32 kind, u32 tag, u32 tail, u32 has_any,
-                         u32 mark, const u8 *identity, u32 slot)
+                         u32 played, u32 mark, const u8 *identity, u32 slot)
 {
     int va = hf_extras_image_kind(a, a_size) == (int)kind, vb = hf_extras_image_kind(b, b_size) == (int)kind;
     int oa = va && hf_extras_owned_by(a, identity, slot), ob = vb && hf_extras_owned_by(b, identity, slot);
@@ -541,6 +541,14 @@ int hf_extras_pick_known(const u8 *a, u32 a_size, const u8 *b, u32 b_size, u32 k
     }
     if (hf_extras_whole_kind(mark) != 0)
         return newest_of(a, b, va, vb);
+    /* a file with content: never one of this hunter's images of a later play time (the file is an earlier save put
+     * back: what that image holds came from it, and the file holds it still) */
+    if (has_any && (oa || ob)) {
+        va = va && rd32(a + HF_EXTRAS_PLAY_TIME_IN) <= played;
+        vb = vb && rd32(b + HF_EXTRAS_PLAY_TIME_IN) <= played;
+        if (!va && !vb)
+            return HF_EXTRAS_NONE;
+    }
     /* not one whose parent is this very file (its own file never landed) */
     la = va && !(hf_extras_parent_tag(a) != 0 && hf_extras_parent_tag(a) == tag);
     lb = vb && !(hf_extras_parent_tag(b) != 0 && hf_extras_parent_tag(b) == tag);
@@ -558,10 +566,10 @@ int hf_extras_pick_file(const u8 *a, u32 a_size, const u8 *b, u32 b_size, u32 ki
     if (plain == 0)
         return HF_EXTRAS_E_ARG;
     if (kind != HF_EXTRAS_USER)
-        return hf_extras_pick_known(a, a_size, b, b_size, kind, hf_extras_card_tag(plain), 0, 0, 0, identity, slot);
+        return hf_extras_pick_known(a, a_size, b, b_size, kind, hf_extras_card_tag(plain), 0, 0, 0, 0, identity, slot);
     return hf_extras_pick_known(a, a_size, b, b_size, kind, hf_extras_user_tag(plain), hf_extras_tail_crc(plain),
-                                has(HF_EXTRAS_USER, plain, HF_EXTRAS_USER_SIZE) == 1, hf_extras_whole_mark(plain),
-                                identity, slot);
+                                has(HF_EXTRAS_USER, plain, HF_EXTRAS_USER_SIZE) == 1,
+                                rd32(plain + HF_EXTRAS_PLAY_TIME_AT), hf_extras_whole_mark(plain), identity, slot);
 }
 
 static u32 count_items(u32 kind, const u8 *plain)

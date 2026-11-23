@@ -33,7 +33,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Damage numbers** over monsters, in three styles (off unless you switch them on).
 - **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, **new characters can skip the prologue** on the sand ship (off unless you switch it on), and a
   **Hunting Horn's songs** under the minimap.
-- An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick).
+- An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick). It starts off: turn it on in Mod Settings, **Radial Menu**.
 - A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.
 - A **World-style sharpness gauge** that shrinks as each colour wears down.
 - **Item marks**: a yellow star (white if you prefer) on upgraded items such as Mega Potions (two on level 3 ammo), and rare materials that glow on the quest rewards screen.
@@ -44,7 +44,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.
 - **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
 
-**Your save stays MH4U's.** The game still reads and writes MH4U's own save files, and they never hold anything MH4U does not know; what only Heavenfall Beta has (Layered Gear, your settings, the Jukebox) is kept in files of its own beside them. There is nothing to do: you can play MH4U in between, and saves made with the earlier Beta carry on, with the original kept as a backup. [Playing MH4U without the mod](docs/back_to_mh4u.md) takes a few clicks, on a 3DS too.
+**Your save stays MH4U's.** The game still reads and writes MH4U's own save files, and once it has saved with room on the SD card they hold nothing MH4U does not know; what only Heavenfall Beta has (Layered Gear, your settings, the Jukebox) is kept in files of its own beside them. There is nothing to do: you can play MH4U in between, and saves made with the earlier Beta carry on, with the original kept as a backup. [Playing MH4U without the mod](docs/back_to_mh4u.md) takes a few clicks, on a 3DS too.
 
 Almost everything is changed during play: START menu, third page, **Mod Settings**. The installer only asks for Single Screen Mode, Layered Gear, the HUD size, the aspect ratio, the Jukebox and the cheats.
 

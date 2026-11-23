@@ -9,7 +9,7 @@
 #define HF_EDITION_COUNT 1
 
 static const HfEdition HF_EDITIONS[HF_EDITION_COUNT] = {
-    {"heavenfall_beta", "Heavenfall Beta", "popzol/4u-heavenfall-mod-beta", "0004000006969300", "0004000006969400", "HeavenfallBeta-3ds.cia", "HeavenfallBeta-3ds.3dsx", "HeavenfallBeta-3ds-EUR.hfpatch", "HeavenfallBeta-3ds-USA.hfpatch", "HeavenfallBeta-3ds-EUR-XX.hfpatch", "HeavenfallBeta-3ds-USA-XX.hfpatch", "HeavenfallBeta-3ds-EUR-cheats.hfpatch", "HeavenfallBeta-3ds-USA-cheats.hfpatch", "HeavenfallBeta-3ds-EUR-XX-cheats.hfpatch", "HeavenfallBeta-3ds-USA-XX-cheats.hfpatch", 0},
+    {"heavenfall_beta", "Heavenfall Beta", "popzol/4u-heavenfall-mod-beta", "0004000006969300", "0004000006969400", "HeavenfallBeta-3ds.cia", "HeavenfallBeta-3ds.3dsx", "HeavenfallBeta-3ds-EUR.hfpatch", "HeavenfallBeta-3ds-USA.hfpatch", "HeavenfallBeta-3ds-EUR-XX.hfpatch", "HeavenfallBeta-3ds-USA-XX.hfpatch", "HeavenfallBeta-3ds-EUR-cheats.hfpatch", "HeavenfallBeta-3ds-USA-cheats.hfpatch", "HeavenfallBeta-3ds-EUR-XX-cheats.hfpatch", "HeavenfallBeta-3ds-USA-XX-cheats.hfpatch", "HeavenfallBeta-3ds-shared.hfpack", 0},
 };
 
 #endif

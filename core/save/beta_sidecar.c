@@ -35,8 +35,8 @@
  *
  * What an older Heavenfall left in MH4U's files (gear past MH4U's counts, their marks, Heavenfall's quests, the new
  * monsters' records: core/save/c/heav.c) is set apart into hfheavN at each of the four sites (heav_strip: after the
- * joins, before the splits) and cleaned out of the file, so neither the game's memory nor MH4U's file holds it; only
- * the main edition's Bring puts it back. A slot the title read with anything MH4U lacks is written back clean at once,
+ * joins, before the splits) and cleaned out of the file, so neither the game's memory nor MH4U's file holds it; it
+ * stays in hfheavN, which this code never joins back (heav.c's hf_heav_join does, for a Bring). A slot the title read with anything MH4U lacks is written back clean at once,
  * once per launch (sweep).
  *
  * Every step is noted in beta_sidecar_state's ring (beta_sidecar.py, read_state), readable from a save state.
@@ -457,8 +457,16 @@ static u32 read_file(const char *name, u8 *buffer, u32 size, s32 *io)
     return exists(ARCHIVE_EXTDATA, name, &found) == 0 && !found ? MISSING : UNREADABLE;
 }
 
+/* A sidecar written once, never deleted: for a file that holds what is in no other file (read whole, so of the right
+ * size, where the retry below helps nothing): 0 or the error (B53) */
+static s32 write_once(const char *name, u8 *image, u32 size)
+{
+    return request(OP_WRITE, ARCHIVE_EXTDATA, name, image, size);
+}
+
 /* A sidecar written; when that fails, the file deleted and written again (an extdata file keeps the size it was made
- * with: a file of another size refuses every write): 0 or the error */
+ * with: a file of another size refuses every write): 0 or the error. Only over a file whose loss loses nothing (one
+ * that read as no image, or whose image is in another file); a file that holds what is in no other: write_once */
 static s32 write_sidecar(const char *name, u8 *image, u32 size, u32 *bits)
 {
     s32 result = request(OP_WRITE, ARCHIVE_EXTDATA, name, image, size);
@@ -479,7 +487,7 @@ static int heav_strip(u32 site, u32 slot, u8 *file, u32 size, u8 *side)
 {
     u32 bits = 0;
     s32 io = 0;
-    int code;
+    int code, held;
     if (hf_heav_has(file, size) <= 0)
         return 1;
     if (read_file(name_of(NAME_HEAV, slot, 0), side, HF_HEAV_SIZE, &io) == UNREADABLE) {
@@ -487,9 +495,11 @@ static int heav_strip(u32 site, u32 slot, u8 *file, u32 size, u8 *side)
         return 0;
     }
     io = 0;
+    held = hf_heav_blocks(side, HF_HEAV_SIZE) > 0;          /* blocks read: a file of the right size, kept (B53) */
     code = hf_heav_append(file, size, side, HF_HEAV_SIZE, slot + 1);   /* a missing file reads as zeros: a new one */
     if (code == (int)HF_HEAV_APPENDED)
-        io = write_sidecar(name_of(NAME_HEAV, slot, 0), side, HF_HEAV_SIZE, &bits);
+        io = held ? write_once(name_of(NAME_HEAV, slot, 0), side, HF_HEAV_SIZE)
+                  : write_sidecar(name_of(NAME_HEAV, slot, 0), side, HF_HEAV_SIZE, &bits);
     if ((code != (int)HF_HEAV_APPENDED && code != (int)HF_HEAV_ALREADY) || io != 0) {
         note(site, slot, OLDER_KEPT, bits, code, io, 0);
         return 0;
@@ -704,14 +714,15 @@ static u32 disk_check(struct slot *s, u32 slot, u8 *buf)
 }
 
 /* The image the title's join would have picked (hf_extras_pick_file) by what it knew of the file it read: its tag,
- * plain tail, content and mark. Only this hunter's: 0, 1, or -1 (none) */
-static int title_pick(const struct slot *s, const struct pair *p, const u8 *identity, u32 slot)
+ * plain tail, content and mark; for its play time, the session's (`played`, the file being saved: never earlier, so an
+ * image later than it is later than the title's file too). Only this hunter's: 0, 1, or -1 (none) */
+static int title_pick(const struct slot *s, const struct pair *p, const u8 *identity, u32 slot, u32 played)
 {
     const u8 *a = own(p, 0, identity, slot) ? p->image[0] : 0, *b = own(p, 1, identity, slot) ? p->image[1] : 0;
     int g;
     if (s->flags & USER_TAG)
         g = hf_extras_pick_known(a, p->size, b, p->size, p->kind, s->user_tag, s->disk_tail,
-                                 (s->flags & TITLE_CONTENT) != 0, s->title_mark, identity, slot + 1);
+                                 (s->flags & TITLE_CONTENT) != 0, played, s->title_mark, identity, slot + 1);
     else
         g = hf_extras_pick(a, p->size, b, p->size, p->kind, 0, identity, slot + 1);     /* no title: the newest */
     return g == 0 || g == 1 ? g : -1;
@@ -732,11 +743,11 @@ static int disk_image(const struct slot *s, const struct pair *p, const u8 *iden
 /* The image of this hunter the title could not join (LATE), which each split of the session joins into the file
  * first: its index in the pair, or -1 (none). The first time, the one the title's join would have picked; later the
  * one of that generation (no split of the session writes over it: it is always the one picked) */
-static int late_image(struct slot *s, const struct pair *p, const u8 *identity, u32 slot)
+static int late_image(struct slot *s, const struct pair *p, const u8 *identity, u32 slot, u32 played)
 {
     int g;
     if (!(s->flags & LATE)) {
-        g = title_pick(s, p, identity, slot);
+        g = title_pick(s, p, identity, slot, played);
         if (g < 0)
             return -1;
         s->user_late = hf_extras_generation(p->image[g]);
@@ -790,7 +801,7 @@ static ARM u32 split_user(u8 *task, u8 *buf, u32 size)
         /* not joined at the title (the extdata or a sidecar unreadable then): this hunter's image there is joined
          * into the file here, which then goes clean, the new image holding it and the session's content; the
          * session's memory never had it, so every split of the session joins that same image */
-        late = late_image(s, &user, identity, slot);
+        late = late_image(s, &user, identity, slot, rd32(buf + HF_EXTRAS_PLAY_TIME_AT));
         if (late < 0 && (s->flags & LATE)) {
             note(SITE_SPLIT_USER, slot, NOT_KNOWN, user_whole(s, buf, has, -1), has, 0, s->user_newest);
             return NOT_KNOWN;                               /* that image gone from disk (not by the game) */
@@ -979,7 +990,7 @@ ARM void beta_split_card(u8 *task, u8 *buf, u32 size)
     struct slot *s;
     struct pair card;
     s32 io = 0, core;
-    int has, target, carry;
+    int has, target, carry, other_barred, other_held;
     u8 *identity, *image, *undo;
 
     state_ready();
@@ -1033,6 +1044,10 @@ ARM void beta_split_card(u8 *task, u8 *buf, u32 size)
         note(SITE_SPLIT_CARD, slot, KEPT_FAILED, bits, has, 0, s->card_newest);
         return;
     }
+    /* the other file's questions, asked now: card_parts below writes over its buffer (the undo copy), which then holds
+     * no image (B53). With a carry the other file is the carry's (target = 1 - carry): this hunter's, never barred */
+    other_barred = foreign(&card, !target, identity, slot) && plan != (PLAN | KEPT_OK);
+    other_held = valid(&card, !target);
     generation = s->card_newest + 1;
     if (carry >= 0)
         copy(image, card.image[carry], CARD_IMAGE);         /* carried in place: its buffer then holds the undo copy */
@@ -1050,8 +1065,10 @@ ARM void beta_split_card(u8 *task, u8 *buf, u32 size)
          * set's pair it holds is skipped, a book block goes only to its card, the tail only into a zero one) */
         target = !target;
         bits ^= BIT_B;
-        if (foreign(&card, target, identity, slot) && plan != (PLAN | KEPT_OK))
+        if (other_barred)
             io = -1;                                        /* another hunter's, not known to be in kept */
+        else if (other_held)                                /* an image there (the carry's): never deleted (B53) */
+            io = write_once(name_of(NAME_CARD_EXTRAS, slot, (u32)target), image, CARD_IMAGE);
         else
             io = write_sidecar(name_of(NAME_CARD_EXTRAS, slot, (u32)target), image, CARD_IMAGE, &bits);
         if (io != 0) {

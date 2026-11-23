@@ -313,8 +313,8 @@ MH4U's `userN` and `cardN` stay clean. Four hooks in the executable (`core/save/
 when the game reads it: what MH4U does not know (ids of the new items, Mod Settings, Layered Gear's state, the card's
 Jukebox block and more) goes into a sidecar image of the slot in MH4U's extdata, written first; the file is written
 only after. The sidecar is read and written with an inline request to the game's own file manager, so it needs the
-extension (the exheader) and the save archive's mount, which is why this edition never uses the own-extdata patch of
-the full mod. If the sidecar cannot be written the file is written whole with a mark, and the next join sorts it out.
+extension (the exheader) and the save archive's mount: this edition always plays on MH4U's own save archive and
+extdata. If the sidecar cannot be written the file is written whole with a mark, and the next join sorts it out.
 A file from the earlier Beta (no sidecar) is taken as it is; the first save keeps it unchanged in `hfoldN`. What an
 older Heavenfall left in a file (gear past MH4U's counts, their marks, Heavenfall's quests in the log and the quest
 bits, the new monsters' hunt records; `core/save/c/heav.c`) goes into one more sidecar of the slot, `hfheavN`, and the

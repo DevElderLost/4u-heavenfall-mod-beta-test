@@ -81,6 +81,14 @@ class ConsoleRelease:
         (tools/release/console_release_file.py writes it; the app's hf_edition_release_file names it the same)."""
         return self.app_cia.removesuffix(".cia") + "-release.json"
 
+    @property
+    def shared_file(self) -> str:
+        """The release's shared file, the files every patch set copies the same bytes from (the release workflow makes
+        it: tools/release/console_sets.py; the app's table names it asset_shared). Spelled here as
+        core/install/title/shared_file.py's shared_name spells it (the updater, which reads this file, carries no
+        module of the title's)."""
+        return self.app_cia.removesuffix(".cia") + "-shared.hfpack"
+
     def patches(self) -> tuple[str, ...]:
         """Every patch set's name: plain, with MH XX, and each again with the cheats."""
         return tuple(self.patch(region, xx, cheats) for cheats in (False, True) for xx in (False, True)

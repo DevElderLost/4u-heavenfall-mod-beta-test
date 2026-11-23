@@ -33,6 +33,30 @@ static Result open_save(FS_Archive *ar, FS_MediaType media, u64 id) {
 
 static Result open_sd(FS_Archive *ar) { return FSUSER_OpenArchive(ar, ARCHIVE_SDMC, fsMakePath(PATH_EMPTY, "")); }
 
+/* The MH4U whose save the copy flows use: its id and medium. With the game on the cartridge and on the SD card (digital)
+ * the player is asked which, once per run (`chosen`, kept while that medium still holds the game); never the cartridge
+ * silently. 1 when a game is found. */
+static int pick_original(int region, u64 *id, FS_MediaType *media) {
+    static int chosen = -1;   /* the medium of the player's answer, -1 not asked yet */
+    FS_MediaType found[2];
+    int n = original_games_for(region, id, found), i, hit;
+    if (n <= 0) return 0;
+    if (n == 1) {
+        *media = found[0];
+        return 1;
+    }
+    for (i = 0, hit = 0; i < n && chosen >= 0; i++)
+        if ((int)found[i] == chosen) hit = 1;
+    if (!hit) chosen = (int)(ui_confirm(T(HT_MEDIUM_ASK)) ? found[0] : found[1]);   /* found[0] the cartridge, found[1] the SD card */
+    *media = (FS_MediaType)chosen;
+    LOG("original game: %s chosen", *media == MEDIATYPE_GAME_CARD ? "the cartridge" : "the digital game");
+    return 1;
+}
+
+static const char *media_text(FS_MediaType media) {
+    return T(media == MEDIATYPE_GAME_CARD ? HT_MH4U_ON_CARTRIDGE : HT_MH4U_ON_DIGITAL);
+}
+
 static int is_dir(const FS_DirectoryEntry *e) { return (e->attributes & FS_ATTRIBUTE_DIRECTORY) != 0; }
 
 /* utf16_to_utf8 answers the whole name's length, which may pass what it wrote: the end is clamped to the buffer. */
@@ -185,22 +209,50 @@ static int raw_save_path(u64 title_id, char *out, size_t cap) {
     return 0;
 }
 
-/* A whole file of the card into a new buffer (at most RAW_SAVE_MAX); NULL when missing, bigger or unread. */
-static uint8_t *sd_read_whole(FS_Archive sd, const char *path, u32 *size) {
+/* What a read of a file found: it was read (FILE_READ), it is not there (FILE_ABSENT: FS says "not found" for the
+ * path) or it is there but could not be read whole (FILE_BAD: an error of another kind, empty, bigger than
+ * RAW_SAVE_MAX, a short read). */
+enum { FILE_READ, FILE_ABSENT, FILE_BAD };
+
+/* 1 for the results FS gives for a path with nothing at it (description 100 or 120 of the file system's module). */
+static int fs_not_found(Result rc) {
+    unsigned d = (unsigned)rc & 0x3FFu, m = ((unsigned)rc >> 10) & 0xFFu;
+    return m == 17u && (d == 100u || d == 120u);
+}
+
+/* A whole file of the card into a new buffer (at most RAW_SAVE_MAX); NULL when it was not read, `state` saying why
+ * (FILE_ABSENT only when FS answered "not found": every other failure is FILE_BAD, which no flow takes as absent). */
+static uint8_t *sd_read_state(FS_Archive sd, const char *path, u32 *size, int *state) {
     Handle f = 0;
     u64 n = 0;
     u32 got = 0;
     uint8_t *buf = NULL;
+    Result rc;
     *size = 0;
-    if (R_FAILED(FSUSER_OpenFile(&f, sd, fsMakePath(PATH_ASCII, path), FS_OPEN_READ, 0))) return NULL;
+    *state = FILE_BAD;
+    rc = FSUSER_OpenFile(&f, sd, fsMakePath(PATH_ASCII, path), FS_OPEN_READ, 0);
+    if (R_FAILED(rc)) {
+        if (fs_not_found(rc)) *state = FILE_ABSENT;
+        else LOG("read %s: 0x%08lX, not taken as absent", path, (unsigned long)rc);
+        return NULL;
+    }
     if (R_SUCCEEDED(FSFILE_GetSize(f, &n)) && n && n <= RAW_SAVE_MAX && (buf = (uint8_t *)malloc((size_t)n)) &&
         (R_FAILED(FSFILE_Read(f, &got, 0, buf, (u32)n)) || got != n)) {
         free(buf);
         buf = NULL;
     }
     FSFILE_Close(f);
-    if (buf) *size = (u32)n;
+    if (buf) {
+        *size = (u32)n;
+        *state = FILE_READ;
+    }
     return buf;
+}
+
+/* As sd_read_state, for a caller that only needs the bytes or nothing. */
+static uint8_t *sd_read_whole(FS_Archive sd, const char *path, u32 *size) {
+    int state;
+    return sd_read_state(sd, path, size, &state);
 }
 
 /* `size` bytes as the whole file at `path` of the card (made with its folders when missing). 0 on success. */
@@ -387,14 +439,14 @@ static int title_copy_flow(int quiet) {
     FS_MediaType orig_media;
     FS_Archive src, dst, sd;
     char stamp[18];
-    int region, bad, backed_up;
+    int region, bad, backed_up, offered;
     Result rc;
     /* the save goes into the installed edition's title; the original of that region is looked for first */
     if ((region = installed_region()) < 0) {
         if (!quiet) ui_message(T(HT_NOT_INSTALLED));
         return SAVE_NOT_RUN;
     }
-    if (!original_game_for(region, 1, &orig_id, &orig_media)) {
+    if (!pick_original(region, &orig_id, &orig_media)) {
         if (!quiet) ui_message(T(HT_SAVE_NONE));
         return SAVE_NO_ORIGINAL;
     }
@@ -414,7 +466,13 @@ static int title_copy_flow(int quiet) {
         if (!quiet) ui_message(T(HT_SAVE_NEED_RUN));
         return SAVE_NOT_RUN;
     }
-    if (!ui_confirm(T(HT_SAVE_OFFER))) {
+    {   /* all three hunters and the shared data are replaced: said plainly, with the backup's place and the MH4U used */
+        char dir[PATH_MAX_LEN], q[2 * HF_VIEW_LINE];
+        if (hf_path_dir(app_edition()->slug, dir, sizeof dir) || strlen(dir) < 6) snprintf(dir, sizeof dir, "sdmc:3ds/heavenfall");
+        snprintf(q, sizeof q, "%s %s/saves. %s.", T(HT_SAVE_OFFER), dir + 5, media_text(orig_media));
+        offered = ui_confirm(q);
+    }
+    if (!offered) {
         FSUSER_CloseArchive(src);
         FSUSER_CloseArchive(dst);
         LOG("save copy: declined");
@@ -717,7 +775,7 @@ static int bring_open(Bring *b, int region) {
         return 0;
     b->open[HF_BRING_HEAVENFALL] = 1;
     bring_list(b, HF_BRING_HEAVENFALL);
-    if (original_game_for(region, 1, &orig_id, &orig_media) &&
+    if (pick_original(region, &orig_id, &orig_media) &&
         R_SUCCEEDED(open_save(&b->ar[HF_BRING_MH4U_SAVE], orig_media, orig_id))) {
         b->open[HF_BRING_MH4U_SAVE] = 1;
         bring_list(b, HF_BRING_MH4U_SAVE);
@@ -1025,12 +1083,12 @@ int saves_copy_flow(int quiet) {
 
 /* ---- More > MH4U saves ----
  * Heavenfall Beta's game keeps plain MH4U files in its title's save archive. "Take my save to MH4U" writes a slot's
- * `userN` (or `system`) of it into the original game's save archive (the cartridge first, else the digital one, of the
- * edition's region): exactly those four names with the sizes MH4U's files have, never a wipe, never a file it does not
+ * `userN` (or `system`) of it into the original game's save archive (of the edition's region; the player picks the
+ * cartridge or the digital one when both are there, `pick_original`): exactly those four names with the sizes MH4U's files have, never a wipe, never a file it does not
  * know. Both saves are backed up on the card first (saves/<stamp>/heavenfall and /original); a record on the card
  * (`to_mh4u`: the backup set and the files written) lets "Restore MH4U's save" put the files back. The write is
  * committed and read back before the player is told it is done; a failure puts MH4U's files back from what was read
- * before. Rules and the clean check are to_mh4u.c's (portable, tested on the PC). Never run on a console: a probe. */
+ * before. Rules and the clean check are to_mh4u.c's (portable, tested on the PC). */
 
 #define TO_RECORD "to_mh4u"   /* in the launcher's folder on the card: the last move's record */
 enum { TO_SHARED = HF_TO_MH4U_SLOTS + 1, TO_BACK };   /* the page's buttons past the slots' 1-3 */
@@ -1040,6 +1098,7 @@ typedef struct {
     int have_beta, have_mh4u, have_sd;
     int region;
     u64 beta_id, mh4u_id;
+    FS_MediaType media;   /* the medium of the MH4U used: shown on the page */
     char last[18];       /* the backup set this page made last: the next is another (never over it) */
 } ToWorld;
 
@@ -1066,7 +1125,7 @@ static int to_open(ToWorld *w, int need_beta) {
         ui_message_ex(T(HT_SAVE_BACKUP_FAILED), HF_TONE_BAD, "");
         return 0;
     }
-    if (!original_game_for(w->region, 1, &w->mh4u_id, &media)) {
+    if (!pick_original(w->region, &w->mh4u_id, &media)) {
         ui_message(T(HT_SAVE_NONE));
         return 0;
     }
@@ -1079,6 +1138,7 @@ static int to_open(ToWorld *w, int need_beta) {
         ui_message(T(HT_TO_MH4U_NO_ARCHIVE));
         return 0;
     }
+    w->media = media;
     w->have_mh4u = 1;
     if (need_beta) {
         if (R_FAILED(open_save(&w->beta, MEDIATYPE_SD, w->beta_id))) {
@@ -1127,8 +1187,9 @@ typedef struct {
 /* One path's state of `ar` against `want` (NULL: must be absent): 1 when it is. */
 static int to_is(FS_Archive ar, const char *path, const uint8_t *want, u32 size) {
     u32 got = 0;
-    uint8_t *now = sd_read_whole(ar, path, &got);
-    int same = want ? now && got == size && !memcmp(now, want, size) : now == NULL;
+    int state;
+    uint8_t *now = sd_read_state(ar, path, &got, &state);
+    int same = want ? now && got == size && !memcmp(now, want, size) : state == FILE_ABSENT;   /* an unreadable file is not "absent" */
     free(now);
     return same;
 }
@@ -1220,13 +1281,17 @@ static int to_take(ToWorld *w, int index) {
     u32 mine_size = 0, theirs_size = 0;
     ToChange change;
     HfToRecord record;
-    int bad, rolled_back = 0, result = 0;
+    uint8_t *old_rec = NULL;   /* the record of the last good move, written back when this one is rolled back */
+    u32 old_rec_size = 0;
+    int bad, rolled_back = 0, result = 0, mine_state = FILE_BAD, theirs_state = FILE_BAD, old_state;
     if (!f) return 0;
     snprintf(path, sizeof path, "/%s", f->name);
-    mine = sd_read_whole(w->beta, path, &mine_size);
-    theirs = sd_read_whole(w->mh4u, path, &theirs_size);
-    if (!mine || mine_size != f->size || (theirs && theirs_size != f->size)) {   /* unknown sizes: nothing is touched */
-        LOG("to mh4u: %s is %lu bytes here and %lu there", f->name, (unsigned long)mine_size, (unsigned long)theirs_size);
+    mine = sd_read_state(w->beta, path, &mine_size, &mine_state);
+    theirs = sd_read_state(w->mh4u, path, &theirs_size, &theirs_state);
+    /* unknown sizes, or a file that is there but cannot be read (only "not found" is absent): nothing is touched */
+    if (!mine || mine_size != f->size || (theirs ? theirs_size != f->size : theirs_state != FILE_ABSENT)) {
+        LOG("to mh4u: %s is %lu bytes here and %lu there (read %d / %d)", f->name, (unsigned long)mine_size,
+            (unsigned long)theirs_size, mine_state, theirs_state);
         ui_message_ex(T(HT_TO_MH4U_BAD_FILE), HF_TONE_BAD, "");
         goto done;
     }
@@ -1241,8 +1306,11 @@ static int to_take(ToWorld *w, int index) {
     record.count = 1;
     record.index[0] = index;
     record.existed[0] = theirs != NULL;
+    if (!to_record_path(rec_path, sizeof rec_path)) old_rec = sd_read_state(w->sd, rec_path, &old_rec_size, &old_state);
     if (to_record_path(rec_path, sizeof rec_path) || !hf_to_record_text(&record, rec, sizeof rec) ||
         sd_write_whole(w->sd, rec_path, (const uint8_t *)rec, (u32)strlen(rec))) {   /* the restore's way in */
+        if (old_rec) sd_write_whole(w->sd, rec_path, old_rec, old_rec_size);   /* the last good move stays restorable */
+        (void)old_state;
         ui_message_ex(T(HT_SAVE_BACKUP_FAILED), HF_TONE_BAD, "");
         goto done;
     }
@@ -1254,7 +1322,10 @@ static int to_take(ToWorld *w, int index) {
     bad = to_apply(w, &change, 1, &rolled_back);
     LOG("to mh4u: %s %s", f->name, bad ? "failed" : "done");
     if (bad) {
-        if (rolled_back) FSUSER_DeleteFile(w->sd, fsMakePath(PATH_ASCII, rec_path));   /* nothing was changed */
+        if (rolled_back) {   /* nothing was changed: the record is the last good move's again (none: no record) */
+            if (old_rec) sd_write_whole(w->sd, rec_path, old_rec, old_rec_size);
+            else FSUSER_DeleteFile(w->sd, fsMakePath(PATH_ASCII, rec_path));
+        }
         to_failed(w, rolled_back, stamp);
     } else {
         ui_message_ex(T(HT_TO_MH4U_DONE), HF_TONE_GOOD, "");
@@ -1263,6 +1334,7 @@ static int to_take(ToWorld *w, int index) {
 done:
     free(mine);
     free(theirs);
+    free(old_rec);
     return result;
 }
 
@@ -1276,19 +1348,24 @@ static void to_side_text(const HfToSide *s, char *out, size_t cap) {
     }
 }
 
-static void to_view(const HfToSide beta[HF_TO_MH4U_SLOTS], const HfToSide mh4u[HF_TO_MH4U_SLOTS], int selected) {
+static void to_view(const HfToSide beta[HF_TO_MH4U_SLOTS], const HfToSide mh4u[HF_TO_MH4U_SLOTS], int selected,
+                    FS_MediaType media) {
     HfView *v = ui_begin();
-    int s;
+    int s, differ = 0;
     ui_reset(v, HF_SCREEN_MENU);
     snprintf(v->heading, sizeof v->heading, "%s", T(HT_BTN_TO_MH4U));
-    snprintf(v->state, sizeof v->state, "%s", T(HT_TO_MH4U_STATE));
+    snprintf(v->state, sizeof v->state, "%s %s.", T(HT_TO_MH4U_STATE), media_text(media));
     v->tone = HF_TONE_MUTED;
     for (s = 0; s < HF_TO_MH4U_SLOTS && v->row_count < HF_VIEW_ROWS; s++) {
         char b[56], m[56];
+        int d = hf_to_different(&beta[s], &mh4u[s]);   /* two hunters sharing the slot's card file in MH4U's data */
+        differ |= d;
         to_side_text(&beta[s], b, sizeof b);
         to_side_text(&mh4u[s], m, sizeof m);
-        snprintf(v->rows[v->row_count++], HF_VIEW_LINE, "%s %d\tBeta: %s   MH4U: %s", T(HT_BRING_SLOT), s + 1, b, m);
+        snprintf(v->rows[v->row_count++], HF_VIEW_LINE, "%s %d%s\tBeta: %s   MH4U: %s", T(HT_BRING_SLOT), s + 1,
+                 d ? " (!)" : "", b, m);
     }
+    if (differ) snprintf(v->detail, sizeof v->detail, "%s", T(HT_TO_MH4U_DIFFER));
     for (s = 0; s < HF_TO_MH4U_SLOTS; s++) {
         char label[HF_VIEW_LABEL];
         snprintf(label, sizeof label, "%s %d", T(HT_BRING_SLOT), s + 1);
@@ -1329,7 +1406,7 @@ static int to_mh4u_flow(void) {
             if (hf_to_side(bf, raw, size, &mh4u[s])) memset(&mh4u[s], 0, sizeof mh4u[s]);
             free(raw);
         }
-        to_view(beta, mh4u, selected);
+        to_view(beta, mh4u, selected, w.media);
         id = -1;
         while (id == -1 && app_loop(&ev)) id = ui_choose(&ev);
         if (id == -1 || id == UI_BACK || id == TO_BACK) break;   /* (the console closing too) */
@@ -1374,10 +1451,18 @@ static int to_undo_flow(void) {
         const HfToFile *f = hf_to_file(rec.index[i]);
         char path[PATH_MAX_LEN], mine[24];
         u32 got = 0;
+        int pre_state;
         snprintf(mine, sizeof mine, "/%s", f->name);
         snprintf(path, sizeof path, "%s/%s", dir + 5, f->name);
         change[n].index = rec.index[i];
-        change[n].pre = sd_read_whole(w.mh4u, mine, &change[n].pre_size);
+        change[n].pre = sd_read_state(w.mh4u, mine, &change[n].pre_size, &pre_state);
+        if (!change[n].pre && pre_state != FILE_ABSENT) {   /* there but unreadable: not taken as absent */
+            LOG("to mh4u restore: %s cannot be read: nothing is touched", f->name);
+            ui_message_ex(T(HT_TO_MH4U_BAD_FILE), HF_TONE_BAD, "");
+            result = SAVE_FAILED;
+            n++;
+            goto done;
+        }
         if (rec.existed[i]) {
             change[n].put = sd_read_whole(w.sd, path, &got);
             if (!change[n].put || got != f->size) {

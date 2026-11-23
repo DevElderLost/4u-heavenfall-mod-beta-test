@@ -21,13 +21,14 @@ typedef struct {
     const char *asset_patch_usa_cheats;      /* Cheats) */
     const char *asset_patch_eur_xx_cheats;
     const char *asset_patch_usa_xx_cheats;
+    const char *asset_shared;         /* the release's shared file, which the sets of format 3 copy files from */
     int own_save;            /* the game plays on Heavenfall's own extdata: the save copy is a Bring (app_saves.c) */
 } HfEdition;
 
 /* The assets hf_latest_release is asked for, in this order (HfRelease.assets[] has the same order). */
 enum {
     HF_W_CIA, HF_W_3DSX, HF_W_PATCH_EUR, HF_W_PATCH_USA, HF_W_PATCH_EUR_XX, HF_W_PATCH_USA_XX, HF_W_PATCH_EUR_CHEATS,
-    HF_W_PATCH_USA_CHEATS, HF_W_PATCH_EUR_XX_CHEATS, HF_W_PATCH_USA_XX_CHEATS, HF_W_COUNT
+    HF_W_PATCH_USA_CHEATS, HF_W_PATCH_EUR_XX_CHEATS, HF_W_PATCH_USA_XX_CHEATS, HF_W_SHARED, HF_W_COUNT
 };
 
 static inline void hf_edition_wanted(const HfEdition *e, const char *out[HF_W_COUNT]) {
@@ -41,6 +42,7 @@ static inline void hf_edition_wanted(const HfEdition *e, const char *out[HF_W_CO
     out[HF_W_PATCH_USA_CHEATS] = e->asset_patch_usa_cheats;
     out[HF_W_PATCH_EUR_XX_CHEATS] = e->asset_patch_eur_xx_cheats;
     out[HF_W_PATCH_USA_XX_CHEATS] = e->asset_patch_usa_xx_cheats;
+    out[HF_W_SHARED] = e->asset_shared;
 }
 
 /* The release's own copy of its releases/latest answer (hf_find_release), named after the app's CIA:

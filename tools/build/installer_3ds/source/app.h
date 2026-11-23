@@ -175,9 +175,11 @@ long read_small(const char *path, char *buf, size_t cap);
 
 /* app_install.c: from a downloaded patch set to the installed title; `xx`: the set is the one with MH XX, `no_room`: the
  * plain set taken because this version's XX set did not fit the memory, `cheats`: the set is a cheats one (all three
- * recorded in installed.json). After the edition's first install the record says the save copy waits (save_pending).
+ * recorded in installed.json); `shared_path`: the release's shared file on the card, checked against the set's hash
+ * (NULL: the set reads none). After the edition's first install the record says the save copy waits (save_pending).
  * A TITLE_* / HF_* code (0 done). */
-int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind);
+int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind,
+                const char *shared_path);
 /* The XX set at `set_path` against the player's XX dump, before anything is installed: its
  * RomFS superblock hash when it equals the set's, else the set's second-game files one by one (srcfiles.h). *match is
  * 1 when the dump can be used; with files rather than the hash, install_set takes it for the set's (install_xx_by_files).
@@ -270,6 +272,9 @@ void saves_mh4u_page(void);
 /* app_start.c */
 int original_game(u64 *id, FS_MediaType *media);   /* the original MH4U on the cartridge or the SD card */
 int original_game_for(int region, int region_first, u64 *id, FS_MediaType *media);   /* app_start.c */
+/* Every medium holding the original MH4U of the save copy (the edition's region first), cartridge before SD: how many
+ * (0, 1 or 2), `id` and `media[]` filled. */
+int original_games_for(int region, u64 *id, FS_MediaType media[2]);   /* app_start.c */
 int start_edition(void);        /* 0 and the app should exit; else a message was shown */
 int start_original(void);
 

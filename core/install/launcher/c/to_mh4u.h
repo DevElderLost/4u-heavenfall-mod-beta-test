@@ -31,7 +31,12 @@ typedef struct {
     int clean;                   /* hf_to_clean: nothing of Heavenfall Beta's is in it */
     char name[40];               /* UTF-8 */
     uint32_t play_time;          /* seconds */
+    uint8_t identity[8];         /* the hunter's identity bytes (set only with `readable`) */
 } HfToSide;
+
+/* 1 when both sides hold a readable hunter and they are not the same one (another name or other identity bytes):
+ * the two games share the slot's card file in MH4U's data, so each overwrites the other's at its next save. */
+int hf_to_different(const HfToSide *beta, const HfToSide *mh4u);
 
 /* `raw` (the encrypted file, left as it is) read into `out`. 0, or -1 for no memory. */
 int hf_to_side(const HfBlowfish *bf, const uint8_t *raw, uint32_t size, HfToSide *out);

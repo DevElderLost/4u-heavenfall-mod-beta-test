@@ -25,7 +25,7 @@ typedef struct {
     HfCheck check;
     char latest[HF_TAG_MAX];
     char *notes;              /* plain lines (HF_VIEW_NOTES bytes), NULL for none */
-    uint64_t set_bytes;       /* the region's plain set's size */
+    uint64_t set_bytes;       /* the region's plain set's size, with the release's shared file it copies from */
     int xx_set;               /* the release has the region's XX set */
     int app_newer;            /* ... and this form's launcher, newer than this one */
     XxCheck xx_check;
@@ -63,7 +63,8 @@ static void check_main(void *arg) {
     } else if (rc == HF_OK) {
         const HfAsset *set = &rel->assets[hf_w_patch(j->region, 0, j->cheats)];
         snprintf(j->latest, sizeof j->latest, "%s", rel->tag);
-        j->set_bytes = set->found ? set->size : 0;
+        j->set_bytes = set->found ? set->size + (rel->assets[HF_W_SHARED].found ? rel->assets[HF_W_SHARED].size : 0)
+                                  : 0;
         if (raw && raw[0] && (j->notes = (char *)malloc(HF_VIEW_NOTES))) hf_notes_plain(raw, j->notes, HF_VIEW_NOTES);
         memset(&in, 0, sizeof in);
         release_xx_check(&tr, j->edition, rel, j->region, j->cheats, j->xx, j->xx_hash, &in, &j->xx_check);

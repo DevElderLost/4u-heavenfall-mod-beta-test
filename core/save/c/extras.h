@@ -36,16 +36,19 @@ int hf_extras_owned_by(const uint8_t *image, const uint8_t *identity, uint32_t s
 int hf_extras_pick(const uint8_t *a, uint32_t a_size, const uint8_t *b, uint32_t b_size, uint32_t kind, uint32_t tag,
                    const uint8_t *identity, uint32_t slot);
 /* The same with what the images' parents tell (extras.py pick_known), for a file known by its tag, its plain tail's
- * CRC (hf_extras_tail_crc; 0 not known), whether it holds anything to set apart and its whole mark (a card file: 0, 0,
- * 0): among the images with the file's tag, the one whose parent tail is the file's (its own file), else not one whose
- * parent tail is another, unless none remains; for a user file marked "keep flagged" or "lacks", the image of the
- * generation the mark names; for an unmarked user file, never an image whose parent tag is the file's own (that
- * image's file never landed: the file still holds what it took), and none at all if that leaves none and the file
- * holds anything to set apart (a join would double it); then, when another remains, not one whose parent tail is the
- * file's tail (another game wrote over that image's parent); the newest of what is left. 0, 1 or HF_EXTRAS_NONE. */
+ * CRC (hf_extras_tail_crc; 0 not known), whether it holds anything to set apart, its play time (user file + 0x40) and
+ * its whole mark (a card file: 0, 0, 0, 0): among the images with the file's tag, the one whose parent tail is the
+ * file's (its own file), else not one whose parent tail is another, unless none remains; for a user file marked "keep
+ * flagged" or "lacks", the image of the generation the mark names; for an unmarked user file that holds anything to
+ * set apart, never one of this hunter's images of a later play time (the file is an earlier save put back: that image
+ * came from it), none at all if that leaves none; for an unmarked user file, never an image whose parent tag is the
+ * file's own (that image's file never landed: the file still holds what it took), and none at all if that leaves none
+ * and the file holds anything to set apart (a join would double it); then, when another remains, not one whose
+ * parent tail is the file's tail (another game wrote over that image's parent); the newest of what is left. 0, 1 or
+ * HF_EXTRAS_NONE. */
 int hf_extras_pick_known(const uint8_t *a, uint32_t a_size, const uint8_t *b, uint32_t b_size, uint32_t kind,
-                         uint32_t tag, uint32_t tail, uint32_t has_any, uint32_t mark, const uint8_t *identity,
-                         uint32_t slot);
+                         uint32_t tag, uint32_t tail, uint32_t has_any, uint32_t played, uint32_t mark,
+                         const uint8_t *identity, uint32_t slot);
 /* hf_extras_pick_known by the file itself (`plain`: the whole plain file of `kind`). 0, 1, HF_EXTRAS_NONE or
  * HF_EXTRAS_E_ARG. */
 int hf_extras_pick_file(const uint8_t *a, uint32_t a_size, const uint8_t *b, uint32_t b_size, uint32_t kind,

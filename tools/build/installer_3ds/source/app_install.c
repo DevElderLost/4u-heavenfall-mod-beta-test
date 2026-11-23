@@ -354,10 +354,11 @@ static int xx_adopt(const FileApi *api, void *set_h, uint64_t set_size, Dump *xx
     return TITLE_OK;
 }
 
-int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind) {
+int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind,
+                const char *shared_path) {
     FileApi api;
-    void *set_h = NULL, *dump_h = NULL, *xx_h = NULL;
-    uint64_t set_size = 0, dump_size = 0, xx_size = 0, title_id = 0;
+    void *set_h = NULL, *dump_h = NULL, *xx_h = NULL, *shared_h = NULL;
+    uint64_t set_size = 0, dump_size = 0, xx_size = 0, title_id = 0, shared_size = 0;
     uint8_t *smdh = (uint8_t *)malloc(HF_SMDH_SIZE), *certs = (uint8_t *)malloc(PACK_CERTS_SIZE);
     uint16_t tmd = 0;
     Dump dump, xx_dump;
@@ -411,6 +412,14 @@ int install_set(const char *set_path, const char *version, int xx, int no_room, 
         goto done;
     }
     if (xx_ok && install_xx_by_files && (rc = xx_adopt(&api, set_h, set_size, &xx_dump))) goto done;
+    if (shared_path) {   /* the release's shared file, kept on the card: bound by the set's open */
+        if (api.open(api.ctx, shared_path, &shared_h, &shared_size)) {
+            LOG("install: the release's shared file %s cannot be read", shared_path);
+            rc = TITLE_E_IO;
+            goto done;
+        }
+        LOG("install: the release's shared file %s, %lu KB", shared_path, (unsigned long)(shared_size >> 10));
+    }
     LOG("install: dump %lu MB (%s), set %lu KB", (unsigned long)(dump_size >> 20), region_name(region),
         (unsigned long)(set_size >> 10));
     if ((rc = title_files(&api, &dump, smdh, certs))) goto done;
@@ -425,6 +434,8 @@ int install_set(const char *set_path, const char *version, int xx, int no_room, 
     job.in.keep_budget = KEEP_BUDGET;
     job.in.progress = ui_progress;
     job.in.xx = xx_ok ? &xx_dump : NULL;
+    job.in.shared = shared_h;
+    job.in.shared_size = shared_size;
     job.read = api.read;
     job.read_ctx = api.ctx;
     job.set_handle = set_h;
@@ -530,6 +541,7 @@ done:
     if (set_h) api.close(api.ctx, set_h);
     if (dump_h) api.close(api.ctx, dump_h);
     if (xx_h) api.close(api.ctx, xx_h);
+    if (shared_h) api.close(api.ctx, shared_h);
     free(smdh);
     free(certs);
     hf_log_phase(&app.log, osGetTime(), game ? "install of the game data, all" : "install, all", t_all, 0);

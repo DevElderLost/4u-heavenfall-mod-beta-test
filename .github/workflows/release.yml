@@ -1,4 +1,4 @@
-# Builds Heavenfall Beta for Windows (HeavenfallBeta-windows.zip) and the 3DS launcher (HeavenfallBeta-3ds.cia and .3dsx, with the console patch sets) and attaches them to the GitHub release of the tag.
+# Builds Heavenfall Beta for Windows (HeavenfallBeta-windows.zip) and the 3DS launcher (HeavenfallBeta-3ds.cia and .3dsx, with the console patch sets and their shared file) and attaches them to the GitHub release of the tag.
 # Push a tag to release (docs/develop/development.md, "Publishing a release"):  git tag v0.2.0 && git push origin v0.2.0
 # Run by hand (Actions > Release > Run workflow) to only build: the zip is then an artifact of the run.
 # The builds run with a read-only token that is not kept on disk; only the job `attach`, which runs no package or build
@@ -63,7 +63,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: A tag must be the program's version, and every patch set the tag
+      - name: A tag must be the program's version, and every patch set the tag's, the edition's and what its name says
         shell: bash
         run: |
           version=$(sed -n 's/^__version__ = "\(.*\)".*/\1/p' core/__init__.py)
@@ -72,9 +72,37 @@ jobs:
           fi
           sets=$(ls console/*.hfpatch 2>/dev/null || true)
           [ -n "$sets" ] || { echo "no patch set in console/"; exit 1; }
+          # the set's header (core/install/title/patchset.py, format 3): u32 format at 4, u32 region at 8, the edition
+          # at 64 and the version at 80 (16 bytes each), MH XX's title at 128 (8 bytes, 0: none), the shared file's
+          # SHA-256 at 176, the source stamp at 216 (32 bytes each), u32 flags at 248 (1: the cheats)
+          u32() { od -An -tu4 -j "$2" -N4 "$1" | tr -d ' \n'; }
+          hex() { od -An -tx1 -v -j "$2" -N "$3" "$1" | tr -d ' \n'; }
+          stamp=""; shared=""
           for set in $sets; do
             made=$(dd if="$set" bs=1 skip=80 count=16 2>/dev/null | tr -d '\0')
             [ "$made" = "$version" ] || { echo "$set is version $made, the tag's is $version"; exit 1; }
+            edition=$(dd if="$set" bs=1 skip=64 count=16 2>/dev/null | tr -d '\0')
+            [ "$edition" = "HeavenfallBeta" ] || { echo "$set is of the edition $edition, not HeavenfallBeta"; exit 1; }
+            [ "$(u32 "$set" 4)" = 3 ] || { echo "$set is format $(u32 "$set" 4), not a release's set (format 3)"; exit 1; }
+            case "$(basename "$set")" in
+              *-EUR.hfpatch|*-EUR-*) region=0 ;;
+              *-USA.hfpatch|*-USA-*) region=1 ;;
+              *) echo "$set names no region"; exit 1 ;;
+            esac
+            [ "$(u32 "$set" 8)" = "$region" ] || { echo "$set holds the set of the other region"; exit 1; }
+            case "$(basename "$set")" in *-XX.hfpatch|*-XX-*) xx=yes ;; *) xx=no ;; esac
+            [ "$(hex "$set" 128 8)" = 0000000000000000 ] && has=no || has=yes
+            [ "$has" = "$xx" ] || { echo "$set: its name and its header differ on MH XX"; exit 1; }
+            case "$(basename "$set")" in *-cheats.hfpatch) cheats=1 ;; *) cheats=0 ;; esac
+            [ $(( $(u32 "$set" 248) & 1 )) = "$cheats" ] || { echo "$set: its name and its header differ on the cheats"; exit 1; }
+            this=$(hex "$set" 216 32)
+            [ -z "$stamp" ] || [ "$this" = "$stamp" ] || { echo "$set was made from other code than the other sets"; exit 1; }
+            stamp=$this
+            this=$(hex "$set" 176 32)
+            if [ "$this" != "$(printf '0%.0s' $(seq 64))" ]; then
+              [ -z "$shared" ] || [ "$this" = "$shared" ] || { echo "$set reads another shared file than the other sets"; exit 1; }
+              shared=$this
+            fi
           done
           for name in HeavenfallBeta-3ds-EUR HeavenfallBeta-3ds-USA HeavenfallBeta-3ds-EUR-XX HeavenfallBeta-3ds-USA-XX \
                     HeavenfallBeta-3ds-EUR-cheats HeavenfallBeta-3ds-USA-cheats HeavenfallBeta-3ds-EUR-XX-cheats \
@@ -131,7 +159,7 @@ jobs:
           tar xzf bannertool.tar.gz --strip-components=1 -C "$HOME/bin" bannertool-1.2.3-linux/bannertool
           chmod +x "$HOME/bin/makerom" "$HOME/bin/bannertool"
 
-      - name: Pack the launcher's CIA (.cia and .3dsx, with the patch sets)
+      - name: Pack the launcher's CIA (.cia and .3dsx, with the patch sets and their shared file)
         shell: bash
         run: |
           export PATH="$HOME/bin:$PATH"
@@ -141,6 +169,10 @@ jobs:
           cp tools/build/installer_3ds/heavenfall_launcher.cia dist/HeavenfallBeta-3ds.cia
           cp tools/build/installer_3ds/heavenfall_launcher.3dsx dist/HeavenfallBeta-3ds.3dsx
           cp console/*.hfpatch dist/
+          # the shared file every set copies files from, made from this checkout's files; every set checked against it
+          # and against this checkout's core/ files (its source stamp)
+          python3 tools/release/console_sets.py --sets console --version "$version" \
+            --shared-out dist/HeavenfallBeta-3ds-shared.hfpack
           # the release's own copy of its API answer: the launcher reads it when the API refuses (its hourly limit per address)
           python3 tools/release/console_release_file.py --repo "$GITHUB_REPOSITORY" --tag "v$version" \
             --changelog CHANGELOG.md --out dist/HeavenfallBeta-3ds-release.json dist/*
@@ -174,12 +206,24 @@ jobs:
           path: dist
 
       - name: Attach HeavenfallBeta-windows.zip, the launcher and the patch sets to the release
+        # The release is made as a draft and published only once every file is attached: until then releases/latest is
+        # the previous release, whole, for the program and the 3DS launcher.
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 \
-            || { python3 tools/release/changelog_section.py CHANGELOG.md "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md" \
-                 && gh release create "$GITHUB_REF_NAME" --verify-tag --title "Heavenfall Single-Screen Mod $GITHUB_REF_NAME" \
-                      --notes-file "$RUNNER_TEMP/notes.md"; }
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            draft=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft)
+            [ "$draft" = "true" ] || { echo "$GITHUB_REF_NAME is already published: to attach again, turn it back into a draft first"; exit 1; }
+          else
+            python3 tools/release/changelog_section.py CHANGELOG.md "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+            gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "Heavenfall Single-Screen Mod $GITHUB_REF_NAME" \
+              --notes-file "$RUNNER_TEMP/notes.md"
+          fi
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          for file in dist/*; do
+            name=$(basename "$file")
+            gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' | grep -qxF "$name" \
+              || { echo "$name is not attached: the release stays a draft"; exit 1; }
+          done
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest
