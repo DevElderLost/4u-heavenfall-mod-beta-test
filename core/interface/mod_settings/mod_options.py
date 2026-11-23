@@ -38,6 +38,7 @@ carry it to the base games.
 
 import json
 import struct
+from collections.abc import Collection
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,8 @@ OPTION_IDS = {
 FEATURE_ROWS = {"layered_looks": "layered_equipment",  # Layered Gear's switch (equipment/layered/layered_switch.c)
                 # the town minimap's start (interface/single_screen/executable/single_screen_minimap_hall.c)
                 "town_map": "single_screen"}
+CHEATS_ALLOWED = "cheats_allowed"   # the gate's variable (mod_options.c struct cheats_allowed)
+GATE_SIZE = 12                  # struct cheats_gate: two words of gated options, the retry's frames, a pad
 MAX_OPTIONS = 52                # the room (mod_options.c MOD_OPTIONS; mod_options_state.values): zone bytes 10-35
 MAX_VALUES = 15                 # a list of values (two pages): a value's place + 1 fits half a byte
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
@@ -218,12 +221,35 @@ def default_value(option: dict, settings: Any) -> int:
     return 0
 
 
-def options_data(settings: Any, available: set[str] | frozenset[str] | list[str], path: Path = SETTINGS_FILE) -> bytes:
+def cheats_retry(path: Path = SETTINGS_FILE) -> int:
+    """The frames between two reads of the cheats' flag that got no answer (curated `cheats_gate`, `retry_frames`)."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8")).get("cheats_gate")
+    frames = raw.get("value", {}).get("retry_frames") if isinstance(raw, dict) else None
+    if not isinstance(frames, int) or isinstance(frames, bool) or not 1 <= frames <= 0xFFFF:
+        raise ModOptionsError("mod_settings.json: cheats_gate must be {\"value\": {\"retry_frames\": 1 to 65535}}")
+    return frames
+
+
+def gate_data(gated: Collection[str] = (), path: Path = SETTINGS_FILE) -> bytes:
+    """struct cheats_gate (mod_options.c), the tail of `mod_options_data`: a bit per option of `gated`, the options that
+    are 0 while the launcher's flag has not allowed the cheats, and the frames between two reads of the flag (curated
+    `cheats_gate`); all zeros without one (every mod but a 3DS title's: the flag is never read)."""
+    if not gated:
+        return bytes(GATE_SIZE)
+    mask = 0
+    for key in gated:
+        mask |= 1 << OPTION_IDS[key]
+    return struct.pack("<2I2H", mask & 0xFFFFFFFF, mask >> 32, cheats_retry(path), 0)
+
+
+def options_data(settings: Any, available: set[str] | frozenset[str] | list[str], path: Path = SETTINGS_FILE,
+                 gated: Collection[str] = ()) -> bytes:
     """The block `mod_options_data` (struct mod_options_data in mod_options.c): the save zone's place, magic and
     version, the value list's texts, per option (MAX_OPTIONS of them, in the order of OPTION_IDS) its count of values
     (0: the mod does not have it), the default place, its first value in the pool and its half byte of the zone
     (option_half), then the pool: each value's name and what it writes (PAYLOAD_WORDS words), the options' values one
-    after another from the second; the first is none (no name, zeros), which an option the mod lacks points at."""
+    after another from the second; the first is none (no name, zeros), which an option the mod lacks points at; last
+    the Cheats group's gate (gate_data of `gated`, options of `available`)."""
     from core.interface.mod_settings.mod_settings import load_zone
 
     zone, known = load_zone(path), message_indices()
@@ -243,6 +269,9 @@ def options_data(settings: Any, available: set[str] | frozenset[str] | list[str]
     names += [0] * (VALUE_POOL - len(names))
     payload += [0] * (PAYLOAD_WORDS * VALUE_POOL - len(payload))
     data += struct.pack(f"<{VALUE_POOL}H", *names) + struct.pack(f"<{PAYLOAD_WORDS * VALUE_POOL}I", *payload)
+    if set(gated) - set(available):
+        raise ModOptionsError(f"gated options the mod does not have: {sorted(set(gated) - set(available))}")
+    data += gate_data(gated, path)
     if len(data) != MOD_OPTIONS_DATA_SIZE:
         raise ModOptionsError(f"mod_options_data holds {MOD_OPTIONS_DATA_SIZE} bytes, the options make {len(data)}")
     return data
@@ -332,13 +361,16 @@ def supports_mod_options(code: bytes) -> bool:
     return bl_target(code, FRAME_CALL) == FRAME_UPDATE and supports_mod_settings(code)
 
 
-def available_options(code: bytes, settings: Any, console: bool = False) -> list[str]:
+def available_options(code: bytes, settings: Any, console: bool = False, cheats_gate: bool = False) -> list[str]:
     """The options the player's game can change during play, in the order of OPTION_IDS: the edition's
     (gui_presets.json, `in_game`) and the page's own (page_only_options), the ones a 3DS can use when `console`, those
-    of a feature the run has (FEATURE_ROWS) and those whose hooks the executable has."""
+    of a feature the run has (FEATURE_ROWS) and those whose hooks the executable has. The Cheats group's only with the
+    settings' `cheats_enabled`, or with `cheats_gate` (a 3DS title: the group always there, behind the launcher's flag,
+    patch_mod_options)."""
     from core.app.presets import in_game_fields
     from core.app.settings import EMULATOR_ONLY
-    cheats = cheat_options() if getattr(settings, "cheats_enabled", False) else []   # the Cheats group: only with them
+    with_cheats = cheats_gate or getattr(settings, "cheats_enabled", False)
+    cheats = cheat_options() if with_cheats else []     # the Cheats group: only with them
     wanted = [key for key in (*in_game_fields(), *page_only_options(), *cheats)
               if not (console and key in EMULATOR_ONLY)
               and (key not in FEATURE_ROWS or getattr(settings, FEATURE_ROWS[key]))]
@@ -346,22 +378,29 @@ def available_options(code: bytes, settings: Any, console: bool = False) -> list
 
 
 def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: Layout | None = None,
-                      aspect: bool = False, wheel: bool = False) -> bytes:
+                      aspect: bool = False, wheel: bool = False, cheats_gate: bool = False) -> bytes:
     """`code` (the update's executable) with the START menu's page for `available` options, each frame's read of them,
     and the hooks of those that need one. The Settings field of an option is its installed default. `aspect`: the
     aspect ratio's switch is on, so its row is in the page; `wheel`: the mod has the item wheel, so its Radial Menu
     row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data). With the box's option a
     run also gives every town area Change Appearance's layout (box_appearance.py: the lobby's ARC and, after the
     single-screen mode's patches, the stage lists).
-    Refuses an executable where a site is not the game's word."""
+    `cheats_gate` (a 3DS title): the Cheats group's rows of `available` and
+    their hooks are there, but the page leaves the group out and their options are 0 until the launcher's flag file
+    allows them, which the game reads once a launch through Heavenfall Beta's sidecars (save/beta_sidecar.c
+    beta_cheats_flag: the run must also patch_beta_sidecar). Without it a mod is exactly as before: the group shows
+    and acts when `available` has its rows. Refuses an executable where a site is not the game's word."""
     from core.interface.mod_settings.mod_settings import load_settings, patch_mod_settings
     if not supports_mod_options(code):
         raise CodeSpaceError("the options' sites are not the update's words: already patched or another game")
     layout = layout or load_layout()
-    table = load_settings(available=available, aspect=aspect, wheel=wheel)
+    gated = [key for key in available if key in cheat_options()] if cheats_gate else []
+    table = load_settings(available=available, aspect=aspect, wheel=wheel, gated=gated)
     out = bytearray(patch_mod_settings(code, layout, table, bool(getattr(settings, "single_screen", False))))
     layout.place(out, STUB)
-    layout.place(out, DATA, options_data(settings, available))
+    layout.place(out, DATA, options_data(settings, available, gated=gated))
+    if gated:
+        layout.reserve(out, CHEATS_ALLOWED)
     layout.place(out, RAW_TABLE, raw_table())
     layout.hook(out, FRAME_CALL, STUB, calls=FRAME_UPDATE)
     word = lambda value: value.to_bytes(4, "little")  # noqa: E731
@@ -419,6 +458,6 @@ def patch_cheats_options(code: bytes, available: list[str], layout: Layout) -> b
     return out
 
 
-__all__ = ["OPTION_IDS", "available_options", "cheat_options", "default_value", "load_options", "option_half",
-           "options_data", "page_only_options", "patch_cheats_options", "patch_mod_options", "raw_table",
-           "supports_mod_options", "supports_option"]
+__all__ = ["OPTION_IDS", "available_options", "cheat_options", "cheats_retry", "default_value", "gate_data",
+           "load_options", "option_half", "options_data", "page_only_options", "patch_cheats_options",
+           "patch_mod_options", "raw_table", "supports_mod_options", "supports_option"]

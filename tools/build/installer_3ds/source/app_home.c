@@ -1,8 +1,8 @@
 /* The home screen: the edition, one state line in its colour (hf_home), what to
  * do next, the installed and the latest versions, the first lines of the release's notes, and the buttons: the big one
  * (Install, Update to X, Set up or Play), Play, the original MH4U and More. More's menu has Information (the old
- * status table), the save copy, Reinstall (the installed title again from the latest version), Cheats (the title again
- * with or without them), online play, the language and Exit. The start's check (app_check.c) runs meanwhile and
+ * status table), the save copy, Reinstall (the installed title again from the latest version), Cheats (the game's
+ * on or off), online play, the language and Exit. The start's check (app_check.c) runs meanwhile and
  * fills the page in when it answers. START exits; L and R change the edition when there are several; SELECT the
  * language. */
 #include <stdio.h>
@@ -242,8 +242,9 @@ static void more_view(int selected, int language_changed) {
     ui_button(v, T(HT_BTN_INFO), ID_INFO, 0, 1);
     ui_button(v, T(app_edition()->own_save ? HT_BTN_BRING : HT_BTN_SAVES), ID_SAVE, 0, 1);
     ui_button(v, T(HT_BTN_REINSTALL), ID_REINSTALL, 0, app.status.title_installed);
-    /* the switch says the installed title's state; it works once a title is installed (off until the player asks) */
-    ui_button(v, T(app.status.installed_cheats ? HT_BTN_CHEATS_ON : HT_BTN_CHEATS_OFF), ID_CHEATS, 0,
+    /* the switch says the game's cheats file (cheat_flag_refresh reads it when this page opens); it works once a title
+       is installed (off until the player asks) */
+    ui_button(v, T(app.status.cheat_flag == CHEAT_FLAG_ON ? HT_BTN_CHEATS_ON : HT_BTN_CHEATS_OFF), ID_CHEATS, 0,
               app.status.title_installed);
     ui_button(v, T(HT_BTN_ONLINE), ID_ONLINE, 0, 1);
     ui_button(v, T(HT_BTN_LANGUAGE), ID_LANGUAGE, 0, 1);
@@ -258,6 +259,7 @@ static void more_view(int selected, int language_changed) {
 static int more_run(void) {
     UiEvent ev;
     int id, at;
+    cheat_flag_refresh();
     more_view(0, 0);
     while (app_loop(&ev)) {
         check_poll();   /* the start's answer, kept for the home page */
@@ -279,11 +281,20 @@ static int more_run(void) {
             if (!ui_confirm(T(HT_REINSTALL_ASK))) break;
             LOG("more: reinstall");
             return update_run(0, 1);
-        case ID_CHEATS: {    /* on: the warning first (never play with others without telling them); either way the
-                                mod's title is installed again from the release's other sets */
-            int on = !app.status.installed_cheats;
+        case ID_CHEATS: {    /* the game's cheats file, on or off: on
+                                asks with the warning first (never play with others without telling them); nothing
+                                is installed again, the game reads the file when it starts */
+            int on;
+            cheat_flag_refresh();
+            if (app.status.cheat_flag == CHEAT_FLAG_NO_EXTDATA) {
+                ui_message(T(HT_CHEATS_NO_EXTDATA));
+                break;
+            }
+            on = app.status.cheat_flag != CHEAT_FLAG_ON;
             if (!ui_confirm(T(on ? HT_CHEATS_ASK_ON : HT_CHEATS_ASK_OFF))) break;
-            return update_cheats(on);
+            LOG("more: cheats %s", on ? "on" : "off");
+            ui_message(T(cheat_flag_set(on) ? (on ? HT_CHEATS_DONE_ON : HT_CHEATS_DONE_OFF) : HT_CHEATS_FAILED));
+            break;
         }
         case ID_ONLINE: online_run(); break;
         case ID_LANGUAGE:

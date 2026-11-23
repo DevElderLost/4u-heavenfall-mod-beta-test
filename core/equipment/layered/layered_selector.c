@@ -83,7 +83,8 @@ struct debug { u16 saves, loads, marked, preloads; };   /* the variable layered_
 _Static_assert(sizeof(struct debug) == 8, "layered_debug size (game/executable/blocks.py)");
 extern struct debug layered_debug;
 struct select {                  /* the variable layered_select: the title's hunter select screen (FUN_00bdfba0) */
-    u32 infos;                   /* its slot 0's player info (slot n's: + n * SELECT_INFO) */
+    u32 infos;                   /* its slot 0's player info (slot n's: + n * SELECT_INFO); once a slot is loaded (slots
+                                    0), that slot's, whose hunter is drawn on while the game loads; 0 none */
     const u8 *slots;             /* its slot 0's buffer (slot n's: + n * SLOT_SIZE); 0: no screen */
 };
 _Static_assert(sizeof(struct select) == 8, "layered_select size (game/executable/blocks.py)");
@@ -340,13 +341,22 @@ static int local_status(const u8 *st)
 }
 
 /* 1 if `st` is a hunter of the hunter select screen noted in layered_select (a title hunter made from that screen's
-   info of its slot); `*looks` then the looks its slot's file holds, read from the slot's buffer, or none. */
+   info of its slot); `*looks` then the looks its slot's file holds, read from the slot's buffer, or none. Once a slot
+   is loaded the screen is over, but its hunter is drawn on while the game loads: it wears what the load took from that
+   same file (layered_state), as the screen showed it. */
 static int select_hunter(const u8 *st, const struct layered_state **looks)
 {
     const struct select *s = &layered_select;
     u32 slot = st[0x33];
-    if (!s->slots || st[0x30] != SELECT_KIND || slot >= SELECT_SLOTS ||
-        *(const u32 *)(st + ST_INFO) != s->infos + slot * SELECT_INFO)
+    if (st[0x30] != SELECT_KIND)
+        return 0;
+    if (!s->slots) {
+        if (!s->infos || *(const u32 *)(st + ST_INFO) != s->infos)
+            return 0;
+        *looks = layered_state.enabled ? &layered_state : 0;
+        return 1;
+    }
+    if (slot >= SELECT_SLOTS || *(const u32 *)(st + ST_INFO) != s->infos + slot * SELECT_INFO)
         return 0;
     const u8 *saved = s->slots + slot * SLOT_SIZE + SAVE_AT;
     *looks = saved[1] == SAVE_MAGIC && saved[0] ? (const struct layered_state *)saved : 0;
@@ -408,13 +418,13 @@ static u32 bare_model(u32 equipment, const u8 *record, u32 gender, u32 fallback)
     return armor_model(equipment, bare, gender, fallback);
 }
 
-/* The armor getter's calls (layered_armor_lobby / _quest noted the hunter's status and the part). */
-ARM u32 layered_armor_model(u32 equipment, const u8 *record, u32 gender, u32 fallback)
+/* The model a part of the hunter of status `st` wears now: its look there (Nothing: the game's bare part), else the
+   real piece's. The getters and the colours (layered_part_dye) both go by it. */
+static u32 part_model(const u8 *st, u32 equipment, const u8 *record, u32 part, u32 gender, u32 fallback)
 {
     u32 model = armor_model(equipment, record, gender, fallback);
     struct layered_state other;
-    const struct layered_state *s = looks_of((const u8 *)layered_preview.status, &other);
-    u32 part = layered_preview.part;
+    const struct layered_state *s = looks_of(st, &other);
     if (s && part < 5 && s->armor[part][gender & 1] &&
         (checked(s, &other) || known_armor(part, gender & 1, s->armor[part][gender & 1]))) {
         model = s->armor[part][gender & 1];
@@ -424,10 +434,21 @@ ARM u32 layered_armor_model(u32 equipment, const u8 *record, u32 gender, u32 fal
     return model;
 }
 
+/* The armor getter's calls (layered_armor_lobby / _quest noted the hunter's status and the part). */
+ARM u32 layered_armor_model(u32 equipment, const u8 *record, u32 gender, u32 fallback)
+{
+    return part_model((const u8 *)layered_preview.status, equipment, record, layered_preview.part, gender, fallback);
+}
+
 /* ----- the looks' colours ----------------------------------- */
 
 #define ST_GENDER 0x34           /* status: the hunter's gender, the getters' (bit 0 female) */
+#define ST_FALLBACK 0x35         /* status: the armor getter's last argument (FUN_00b0ab90) */
 #define ST_SKIN 0x40             /* status: the skin colour, what the game gives a part of armor id 0 */
+#define ST_LOADED 0x1F8          /* status + part * 4: the part's model sent to the lobby loader (FUN_0065fca8 writes it
+                                    when it sends one, with the piece the colour reads at + 0x70; FUN_00b0ab90 compares) */
+#define LOBBY_HUNTERS 0x123C     /* lobby_hunter_loader + player index * 4: the hunters it dresses (4: the preview's) */
+#define LOBBY_INDICES 5
 #define MODEL_STATE 4            /* model + 4, bits 0-2: 1 or 2 once its materials can take a colour (FUN_00b0a978) */
 #define DYE_GROUP 3              /* the materials a dye colours (FUN_00b05ae4's group; 1 hair, 2 skin) */
 
@@ -459,14 +480,30 @@ static u32 own_colour(u32 part, u32 female, u32 model)
     return rgb[0] | rgb[1] << 8 | rgb[2] << 16 | 0xFF000000u;
 }
 
+/* 1 while the part of a hunter the lobby loader dresses still draws another model than the one it wears now (a look
+   tried on or taken off whose model the game has not sent to the loader yet). The game changes a part's colour only
+   when it sends the model (the piece at + 0x70 and ST_LOADED together), and colours nothing while one loads; so the
+   part keeps its colour until its old model is gone. A quest's hunters are no hunters of that loader. */
+static int model_pending(u32 hunter, const u8 *st, const u8 *ref, u32 part)
+{
+    u32 index = st[0x33];
+    if (index >= LOBBY_INDICES || *(const u32 *)(LOADER + LOBBY_HUNTERS + index * 4) != hunter)
+        return 0;
+    return *(const u32 *)(st + ST_LOADED + part * 4) !=
+           part_model(st, EQUIPMENT, ref, part, st[ST_GENDER] & 1, st[ST_FALLBACK]);
+}
+
 /* The game's part colour calls (FUN_00b0a978: `ref` the part's real piece, among the status's five, `model` its model).
    A part wearing a look takes the look's colour, never the real piece's dye: the colour chosen for it (dye), else its
-   own; Nothing is the hunter's bare body (its skin, as the game's armor id 0). Any other part, the game's call. */
+   own; Nothing is the hunter's bare body (its skin, as the game's armor id 0). Any other part, the game's call. A part
+   whose model is pending keeps the colour it has. */
 ARM void layered_part_dye(u32 hunter, const u8 *ref, u32 model)
 {
     const u8 *st = *(const u8 *const *)(hunter + HUNTER_STATUS);
     u32 at = (u32)ref - (u32)(st + ST_ARMOR), part = at < 5 * RECORD ? small_divide(at, RECORD) : 5;
     u32 female = st[ST_GENDER] & 1;
+    if (part < 5 && part * RECORD == at && model_pending(hunter, st, ref, part))
+        return;
     struct layered_state other;
     const struct layered_state *s = part < 5 && part * RECORD == at ? looks_of(st, &other) : 0;
     u32 look = s ? s->armor[part][female] : 0;
@@ -576,13 +613,24 @@ ARM void layered_save_load(u8 *data, const u8 *slot, u32 size)
     }
     layered_state.reserved = 0;
     layered_clear(data + SAVE_AT, sizeof layered_state);
-    layered_select.slots = 0;    /* the hunter select screen is over */
+    /* The hunter select screen is over; the loaded slot's hunter (FUN_005dd674 copies from the screen's buffer of that
+       slot) is drawn on while the game loads: its info stays (select_hunter). A load from elsewhere keeps none. */
+    struct select *s = &layered_select;
+    u32 loaded = 0;
+    for (u32 i = 0; s->slots && i < SELECT_SLOTS; i++)
+        if (slot == s->slots + i * SLOT_SIZE)
+            loaded = s->infos + i * SELECT_INFO;
+    s->infos = loaded;
+    s->slots = 0;
 }
 
 /* The hunter select screen sets a slot's hunter up (FUN_00bdfba0: r7 the slot's buffer, r9 the slot, passed by
-   layered_select_hunter): the game's call, then the screen is noted, so that its hunters wear their slots' looks. */
+   layered_select_hunter): the game's call, then the screen is noted, so that its hunters wear their slots' looks. A
+   screen not noted yet forgets the hunter of the last load first. */
 ARM void layered_select_note(u32 hunter, const u8 *info, const u8 *slot, u32 index)
 {
+    if (!layered_select.slots)
+        layered_select.infos = 0;
     hunter_setup(hunter, info);
     if (index < SELECT_SLOTS) {
         layered_select.infos = (u32)info - index * SELECT_INFO;

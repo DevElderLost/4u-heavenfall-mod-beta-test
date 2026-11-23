@@ -17,6 +17,10 @@ frame, and what the hooks of
  *     attack's table are read by the hooks from the variable.
  * The values the writes use are in the option's payload, two words per value.
  *
+ * A 3DS title's Cheats group is gated (struct cheats_gate): its options are 0 in the variable, whatever the character
+ * chose, until the launcher's flag file has allowed them (cheats_frame), and mod_settings.c leaves its row out of the
+ * page until then. Every reader of an option (mod_option_value, the variable's bytes, the payload) sees that 0.
+ *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, ARM, a unit of the block mod_settings_code, linked with
  * mod_settings.ld); the game's variables are named in blocks.py GAME_SYMBOLS.
  */
@@ -24,8 +28,9 @@ frame, and what the hooks of
 typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
+typedef int s32;
 
-#define MOD_OPTIONS 52          /* mod_options.py MAX_OPTIONS */
+#define MOD_OPTIONS 52         /* mod_options.py MAX_OPTIONS */
 #define MOD_POOL 256            /* mod_options.py VALUE_POOL: the values of all the options; the first is none */
 #define SAVE_DATA 0x5C          /* the save object's data starts here */
 #define ZONE_WORDS 12           /* the save zone's size in words (curated mod_settings.json) */
@@ -60,6 +65,15 @@ struct mod_option {             /* mod_options.py options_data */
     u8 half;                    /* its half byte of the save zone: byte half / 2, the high half when odd */
 };
 
+/* The Cheats group's gate (mod_options.py cheats_gate): a 3DS title has the
+ * group's rows and hooks, but they show and act only once the launcher's flag file allows them. All zeros in every
+ * other mod: no option is gated and the flag is never read. */
+struct cheats_gate {
+    u32 options[2];             /* bit n % 32 of word n / 32: option n is 0 while the cheats are not allowed */
+    u16 retry;                  /* the frames between two reads of the flag that got no answer */
+    u16 pad;
+};
+
 struct mod_options_data {
     u32 zone_at;                /* the save zone in the save data */
     u32 magic;                  /* what marks it written */
@@ -68,7 +82,21 @@ struct mod_options_data {
     struct mod_option options[MOD_OPTIONS];
     u16 names[MOD_POOL];        /* the pool: the message of each value's name */
     u32 payload[MOD_POOL][2];   /* and what each value writes or hands to a hook */
+    struct cheats_gate gate;
 };
+
+_Static_assert(sizeof(struct mod_options_data) == 16 + MOD_OPTIONS * 4 + MOD_POOL * 10 + 12,
+               "blocks.py MOD_OPTIONS_DATA_SIZE");
+
+struct cheats_allowed {         /* blocks.py: the variable cheats_allowed (a title with the gate reserves it) */
+    u8 allowed;                 /* 1: the flag file allows the cheats */
+    u8 answered;                /* 1: the answer is final; 0: the flag is read again once `wait` is 0 */
+    u16 wait;                   /* the frames until the next read */
+    s32 io;                     /* the last read's result (beta_sidecar.c beta_cheats_flag), for a save state's reader */
+    u32 reads;                  /* the reads so far */
+};
+
+_Static_assert(sizeof(struct cheats_allowed) == 12, "blocks.py CHEATS_ALLOWED_SIZE");
 
 struct mod_options_state {      /* mod_options_stub.s has the offsets */
     u8 values[MOD_OPTIONS];     /* 0: each option's value this frame */
@@ -108,6 +136,10 @@ _Static_assert(sizeof(struct mod_options_state) <= 104, "blocks.py: the variable
 
 extern const struct mod_options_data mod_options_data;
 extern struct mod_options_state mod_options_state;
+extern struct cheats_allowed cheats_allowed;
+int beta_cheats_flag(s32 *io);  /* save/beta_sidecar.c: 1 allowed, 0 not (final), -1 not now; only a title with the
+                                   gate has Heavenfall Beta's sidecars and calls it */
+int mod_settings_open(void);    /* mod_settings.c: 1 while the page's lists or screens are on the screen */
 extern const u32 mod_raw_table[16];
 extern const u32 class_multipliers[16];
 extern u32 save_control, gx_main, game_main, camera_control;
@@ -138,13 +170,32 @@ static int zone_ours(const u8 *zone)
            *(const u16 *)(zone + ZONE_VERSION) == mod_options_data.version;
 }
 
-/* The value of an option: the character's choice, else the default */
+/* A mod with the Cheats group's gate (a 3DS title's): some option is gated */
+static int cheats_gated(void)
+{
+    return (mod_options_data.gate.options[0] | mod_options_data.gate.options[1]) != 0;
+}
+
+/* The flag file has allowed the cheats this launch (always 0 in a mod without the gate, which never reads it) */
+int mod_cheats_allowed(void)
+{
+    return cheats_gated() && cheats_allowed.answered && cheats_allowed.allowed;
+}
+
+/* Option `id` is one of the gated cheats and they are not allowed: it is off, whatever the character chose */
+static int gated_off(int id)
+{
+    return (mod_options_data.gate.options[id >> 5] >> (id & 31) & 1) != 0 && !mod_cheats_allowed();
+}
+
+/* The value of an option: the character's choice, else the default; 0 for a gated cheat while not allowed (the choice
+ * stays in the zone) */
 static int value_of(int id)
 {
     const struct mod_option *option = &mod_options_data.options[id];
     const u8 *zone = save_zone();
 
-    if (option->count == 0)
+    if (option->count == 0 || gated_off(id))
         return 0;
     if (zone_ours(zone)) {
         int chosen = zone[option->half >> 1] >> ((option->half & 1) * 4) & 0xF;
@@ -200,7 +251,7 @@ void mod_option_choose(int id, int value)
         *(u16 *)(zone + ZONE_VERSION) = mod_options_data.version;
     }
     zone[option->half >> 1] = (zone[option->half >> 1] & ~(0xF << shift)) | (value + 1) << shift;
-    mod_options_state.values[id] = value;
+    mod_options_state.values[id] = gated_off(id) ? 0 : value;
 }
 
 /* A word of one of the game's objects: written while the option is on, the game's own put back when it goes off */
@@ -286,12 +337,40 @@ static u32 frame_rate_word(u32 rate_word, int active)
     return out.bits;
 }
 
+/* The flag file read for the gate until it gave a final answer (allowed, or not: a file missing or not allowing):
+ * one read, then none for `retry` frames when it got none (the extdata not mounted yet, the file thread busy, the file
+ * unreadable). Never while the page is open, so its rows never change under the player; a read never waits for the
+ * file thread (beta_cheats_flag). Nothing in a mod without the gate. */
+static void cheats_frame(void)
+{
+    struct cheats_allowed *gate = &cheats_allowed;
+    int answer;
+
+    if (!cheats_gated() || gate->answered)
+        return;
+    if (gate->wait != 0) {
+        gate->wait--;
+        return;
+    }
+    if (mod_settings_open())
+        return;
+    gate->reads++;
+    answer = beta_cheats_flag(&gate->io);
+    if (answer < 0) {
+        gate->wait = mod_options_data.gate.retry;
+        return;
+    }
+    gate->allowed = answer == 1;
+    gate->answered = 1;
+}
+
 /* FUN_00644320's caller, once per frame in every scene, before the engine's timing update */
 void mod_frame(void)
 {
     struct mod_options_state *state = &mod_options_state;
     int id;
 
+    cheats_frame();
     for (id = 0; id < MOD_OPTIONS; id++)
         state->values[id] = value_of(id);
     write_word(gx_main, DISPLAY_MODE, state->values[OPT_3D] != 0, payload_of(OPT_3D)[0], SLOT_3D, 0);

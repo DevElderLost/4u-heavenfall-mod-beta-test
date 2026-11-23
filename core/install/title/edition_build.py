@@ -7,7 +7,6 @@ run and its presets, loaded beside this checkout's own, which stay untouched. An
 edition is the code's own.
 """
 
-import dataclasses
 import importlib.util
 import shutil
 import sys
@@ -63,36 +62,15 @@ def _run_for(name: str):
     return module.run, settings, lambda: sys.modules.pop(module_name, None)
 
 
-CHEATS_FIELD = "cheats_enabled"   # the installer's switch that gives the game its cheats
-
-
-class CheatsUnavailable(ValueError):
-    """These settings have no cheats switch: a cheats set made with them would be the plain one."""
-
-
-def cheats_supported(settings_type: type) -> bool:
-    """Whether the settings class has the cheats switch (CHEATS_FIELD)."""
-    return CHEATS_FIELD in {field.name for field in dataclasses.fields(settings_type)}
-
-
-def cheats_settings(settings):
-    """`settings` with the cheats switch on, the rest as it is: the run of a console's cheats set. CheatsUnavailable
-    when the settings have no such switch."""
-    if not cheats_supported(type(settings)):
-        raise CheatsUnavailable(f"the settings have no {CHEATS_FIELD}")
-    return dataclasses.replace(settings, **{CHEATS_FIELD: True})
-
-
-def make_edition_mod(rom: Path, mod: Path, name: str, xx_rom: Path | None = None, cheats: bool = False) -> Edition:
+def make_edition_mod(rom: Path, mod: Path, name: str, xx_rom: Path | None = None) -> Edition:
     """Run edition `name`'s own run for a console over the decrypted base game `rom` into the folder `mod`; return the
     edition (its title's names and ids). `xx_rom`: MH XX's decrypted .3ds, for the mod with its Layered Gear (the run
-    then writes the provenance file, `mhxx_sources.txt`). `cheats`: the edition's settings with the cheats switch on
-    (cheats_settings), for the release's cheats sets."""
+    then writes the provenance file, `mhxx_sources.txt`). The run's `title_build` gives the title the Cheats group
+    behind its gate, whatever the settings' switch: always there, hidden and off until the app's More > Cheats writes
+    the `hfcheat` file."""
     current = edition_for(name)
     run, settings, undo = _run_for(name)
     try:
-        if cheats:
-            settings = cheats_settings(settings)
         run(Path(rom), Path(mod), settings, title_build=True, xx_rom=xx_rom)
     finally:
         undo()
@@ -102,7 +80,8 @@ def make_edition_mod(rom: Path, mod: Path, name: str, xx_rom: Path | None = None
 def build_edition_cia(rom: Path, out: Path, name: str, progress: Callable[[int, int], None] | None = None,
                       stage: Callable[[str], None] | None = None, work: Path | None = None) -> str:
     """Write edition `name`'s title for the decrypted base game `rom` to `out`; return the title id. The edition's
-    mod is made in a folder beside `out` (`work`) that is removed after; no MH XX, no single-screen mode."""
+    mod is made in a folder beside `out` (`work`) that is removed after; no MH XX, no single-screen mode; its Cheats
+    group behind the gate, as make_edition_mod's."""
     current = edition_for(name)
     run, settings, undo = _run_for(name)
     out = Path(out)

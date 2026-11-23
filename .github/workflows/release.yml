@@ -74,7 +74,7 @@ jobs:
           [ -n "$sets" ] || { echo "no patch set in console/"; exit 1; }
           # the set's header (core/install/title/patchset.py, format 3): u32 format at 4, u32 region at 8, the edition
           # at 64 and the version at 80 (16 bytes each), MH XX's title at 128 (8 bytes, 0: none), the shared file's
-          # SHA-256 at 176, the source stamp at 216 (32 bytes each), u32 flags at 248 (1: the cheats)
+          # SHA-256 at 176, the source stamp at 216 (32 bytes each), u32 flags at 248 (0: no set records a variant)
           u32() { od -An -tu4 -j "$2" -N4 "$1" | tr -d ' \n'; }
           hex() { od -An -tx1 -v -j "$2" -N "$3" "$1" | tr -d ' \n'; }
           stamp=""; shared=""
@@ -93,8 +93,7 @@ jobs:
             case "$(basename "$set")" in *-XX.hfpatch|*-XX-*) xx=yes ;; *) xx=no ;; esac
             [ "$(hex "$set" 128 8)" = 0000000000000000 ] && has=no || has=yes
             [ "$has" = "$xx" ] || { echo "$set: its name and its header differ on MH XX"; exit 1; }
-            case "$(basename "$set")" in *-cheats.hfpatch) cheats=1 ;; *) cheats=0 ;; esac
-            [ $(( $(u32 "$set" 248) & 1 )) = "$cheats" ] || { echo "$set: its name and its header differ on the cheats"; exit 1; }
+            [ "$(u32 "$set" 248)" = 0 ] || { echo "$set: its header has flags, a set of a release has none"; exit 1; }
             this=$(hex "$set" 216 32)
             [ -z "$stamp" ] || [ "$this" = "$stamp" ] || { echo "$set was made from other code than the other sets"; exit 1; }
             stamp=$this
@@ -104,10 +103,8 @@ jobs:
               shared=$this
             fi
           done
-          for name in HeavenfallBeta-3ds-EUR HeavenfallBeta-3ds-USA HeavenfallBeta-3ds-EUR-XX HeavenfallBeta-3ds-USA-XX \
-                    HeavenfallBeta-3ds-EUR-cheats HeavenfallBeta-3ds-USA-cheats HeavenfallBeta-3ds-EUR-XX-cheats \
-                    HeavenfallBeta-3ds-USA-XX-cheats; do
-            [ -f "console/$name.hfpatch" ] || { echo "console/$name.hfpatch is missing: all eight sets are needed"; exit 1; }
+          for name in HeavenfallBeta-3ds-EUR HeavenfallBeta-3ds-USA HeavenfallBeta-3ds-EUR-XX HeavenfallBeta-3ds-USA-XX; do
+            [ -f "console/$name.hfpatch" ] || { echo "console/$name.hfpatch is missing: all four sets are needed"; exit 1; }
           done
           echo "VERSION=$version" >> "$GITHUB_ENV"
 

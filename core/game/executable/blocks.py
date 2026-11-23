@@ -90,8 +90,8 @@ RADIAL_DATA_SIZE = 0x40
 # The wheel's picture (interface/radial_menu/radial_draw.c, a unit of the wheel's block; radial_draw.py draw_data fills
 # the block): the group's and panes' name hashes, its index and draw order, each slot's and its big name's
 # place, the places and scales of each position by size and text size, the digits' cells in the wheel's art, the
-# quantity's colours, the thresholds and tables; and Edit Slots' (the START menu's) panes and places by size
-RADIAL_DRAW_DATA_SIZE = 3092
+# quantity's colours, the tables; and Edit Slots' (the START menu's) panes and places by size
+RADIAL_DRAW_DATA_SIZE = 3088
 # The Radial Menu's screen in Mod Settings (interface/radial_menu/radial_editor.c; radial_editor.py editor_data fills
 # the texts' block)
 RADIAL_EDITOR_DATA_SIZE = 94
@@ -135,7 +135,8 @@ MOD_SETTINGS = "mod_settings"
 MOD_SETTINGS_DATA_SIZE = 948
 MOD_SETTINGS_PANE_HASHES = (820, 936)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
-MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8)   # mod_options.c: the header, 52 options, a pool of 256 values
+# mod_options.c: the header, 52 options, a pool of 256 values, the Cheats group's gate (struct cheats_gate)
+MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8) + 12
 MOD_RAW_TABLE_SIZE = 64
 # The town's stage lists with ui415 (interface/mod_settings/box_appearance.py): six lists' paths and bytes
 BOX_APPEARANCE_LISTS_SIZE = 160
@@ -213,6 +214,11 @@ ACTION_CANCEL_DATA_SIZE = 8
 BETA_SIDECAR = "beta_sidecar"
 BETA_SIDECAR_STATE_SIZE = 0x1FC + 64 * 16
 BETA_SIDECAR_CARD_SIZE = 2 * 0x5000 + 16      # the two card images, and the read's sentinel (beta_sidecar.c read_file)
+# The Cheats group's gate on a 3DS title (interface/mod_settings/mod_options.py): what the title has read of the
+# launcher's flag file (mod_options.c struct cheats_allowed). Its variable goes
+# after the debug ones with the sidecars' (tools/build/build_code_space.py pack_variables): adding it moved no other.
+CHEATS_GATE = "cheats_gate"
+CHEATS_ALLOWED_SIZE = 12
 # The new map's fog cycle (maps/misty_peaks/fog_cycle.py), with the map
 FOG_CYCLE_DATA_SIZE = 236
 # The debug fog control (maps/misty_peaks/fog_debug.py): only a diagnostics file places it, so it goes last of all and
@@ -843,12 +849,12 @@ VARIABLES = (
     # mask), which tools/inspect/citra_state.py reads from a save state. Both are written in the product: not debug
     # variables. All of the wheel's are in the extension's variables (the game's .bss is full); patch_radial_menu
     # reserves them.
-    VariableSpec("radial_state", RADIAL_MENU, 32, region="ext_vars"),
+    VariableSpec("radial_state", RADIAL_MENU, 36, region="ext_vars"),
     VariableSpec("radial_debug", RADIAL_MENU, 64, region="ext_vars"),
     # The wheel's picture (interface/radial_menu/radial_draw.c, struct draw_state): the group it painted and the
     # hunter and open flag the input update left for the quest's frame, what each slot, the chosen slot, the big name
     # and the position last showed, whether the group is shown, the frames a change was left undone for lack of room
-    # in the pane pool and the slots painted
+    # in the pane pool, the slots painted and the sector the wheel gave for the gold
     VariableSpec("radial_draw_state", RADIAL_MENU, 48, region="ext_vars"),
     # The wheel's picture in Edit Slots (radial_draw.c, struct menu_state): the same fields for ui020's group, then the
     # layout last shown, the frame's parts it hid, whether it cleared the group's cache flag and whether its root shows
@@ -860,9 +866,10 @@ VARIABLES = (
     # radial_wheel.c
     VariableSpec("radial_stick_hold", RADIAL_MENU, 4, region="ext_vars"),
     # The wheel's hold on ZR (radial_wheel.c, struct zr): the pad updates its claim lasts (set by the hunter's frame
-    # with L held and the trigger ZR), ZR held at the last raw read, ZR taken from the game until it is released, and a
-    # press the hunter's frame has not seen yet
-    VariableSpec("radial_zr", RADIAL_MENU, 4, region="ext_vars"),
+    # with L held and the trigger ZR), ZR held at the last raw read, ZR taken from the game until it is released, a
+    # press the wheel has not used or dropped yet, and the pad updates its hold with the console's L lasts (set by the
+    # hunter's frame with the trigger ZR)
+    VariableSpec("radial_zr", RADIAL_MENU, 8, region="ext_vars"),
     VariableSpec("face_dump", "target_face (FACE_DEBUG)", 0x20, align=0x10, debug=True),
     # +0 next entry, +4 call count, +0x10 last values (16 bytes), +0x20 ring of 88 entries of 32 bytes (100 until
     # the merge of xx and main, whose variables left bss_tail no room for more).
@@ -944,6 +951,9 @@ VARIABLES = (
     # images the card's split and join read into; patch_beta_sidecar reserves them
     VariableSpec("beta_sidecar_state", BETA_SIDECAR, BETA_SIDECAR_STATE_SIZE, align=0x10, region="ext_vars"),
     VariableSpec("beta_sidecar_card", BETA_SIDECAR, BETA_SIDECAR_CARD_SIZE, align=0x10, region="ext_vars"),
+    # The Cheats group's gate on a 3DS title: the flag file's answer, the frames to the next read, the last read's
+    # result and the reads (mod_options.c struct cheats_allowed); patch_mod_options reserves it with the gate
+    VariableSpec("cheats_allowed", CHEATS_GATE, CHEATS_ALLOWED_SIZE, region="ext_vars"),
     # The debug fog control's steps and live text (a diagnostics file's only), after every other variable
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
     # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others

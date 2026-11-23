@@ -23,16 +23,21 @@
  *     trigger says when it goes. Tilt: at once, once, and the wheel disarms. Flick: that sector is aimed and a clock of
  *     `flick_limit` starts; the item goes when the stick falls under `rearm` before the clock ends, and the push is
  *     cancelled if the clock ends first (nothing more until the stick is back at rest). Release: the same with no
- *     clock. L let go first cancels an aim. ZR: the stick only points; a press of ZR uses the slot in its direction
- *     from the magnitude at which the picture shows that slot in gold, once a press. The sector gives a slot
- *     (radial_data.sector_to_slot) and the slot an item (the save zone);
+ *     clock. An aimed push moved into another sector for `dwell` frames at `fire` aims that one, so the item used is
+ *     the one pointed at when the stick is let go (aim_again). The stick counts as let go after `release` frames under
+ *     `rearm` (one crossing the middle to the opposite slot is not); the flick's clock stops meanwhile. L let go with
+ *     the stick still out cancels an aim; with the stick already back, the item goes. ZR: the stick only
+ *     points; a press of ZR uses the slot in its direction from the magnitude at which the picture shows that slot in
+ *     gold, once a press. The sector gives a slot (radial_data.sector_to_slot) and the slot an item (the save zone);
+ *   - the gold: each frame the sector the trigger uses goes to the picture (radial_mark_chosen; wheel_frame says which);
  *   - ZR (the trigger ZR): with L held (the hunter's own buttons, the game's "L is usable now", or the item mode) the
- *     frame claims ZR for the next ZR_HOLD pad updates. The pad update's raw read is hooked too (radial_pad_stub.s):
- *     radial_pad sees a new press of ZR while the claim lasts, keeps it for the hunter's next frame and takes ZR's bit
+ *     frame claims ZR for the next ZR_HOLD pad updates, and with the trigger ZR it holds ZR for `zr_reads` pad updates
+ *     while the console's L is held in the raw words. The pad update's raw read is hooked too (radial_pad_stub.s):
+ *     radial_pad sees a new press of ZR while the claim or the hold lasts, keeps it for the wheel and takes ZR's bit
  *     out of the raw words, until ZR is released, before the game makes its buttons and the GUI's of them, so ZR is
  *     none of what the game's Circle Pad Pro Buttons option makes it (R, the D-pad's right or down, the target
- *     switch). A ZR held from before the claim stays the game's until it is released; the console's own R is never
- *     touched;
+ *     switch). A press before the wheel opens waits while L stays held and is used on its first open frame. A ZR held
+ *     from before the claim stays the game's until it is released; the console's own R is never touched;
  *   - using: the game's own route of the touch shortcuts: the gate of
  *     FUN_00b9dc6c plus the transition list's record (0x80, 0xF4) and the timer pw + 0x204, then pw + 0x592 = the
  *     pouch slot, command 0x4B (p + 0x3DC |= 0x800) and, on weapon type 1 (Sword and Shield), the second set's bit
@@ -102,12 +107,12 @@ struct radial_data {            /* the curated numbers (radial_menu.py wheel_dat
     u8 sizes;                   /* how many sizes there are (1 to MAX_SIZES) */
     u8 trigger;                 /* the default trigger: 0 Tilt, 1 Flick, 2 Release, 3 ZR */
     u8 autocraft;               /* the default of Auto-Combine */
-    u8 pad;
-    u32 flick_limit;            /* a float: a flick's window in the game's time; copied, never computed */
+    u8 release;                 /* frames under `rearm` before Flick and Release count the stick as let go */
+    u32 flick_limit;           /* a float: a flick's window in the game's time; copied, never computed */
     u8 text;                    /* the default text size: an index of the curated draw_text_sizes */
     u8 texts;                   /* how many text sizes there are (1 to MAX_TEXTS) */
     u8 zr_magnitude;            /* the stick's magnitude from which a press of ZR uses a slot (the picture's gold) */
-    u8 pad2;
+    u8 zr_reads;                /* pad updates the trigger ZR's hold with L held lasts after the hunter's last frame */
 };
 
 
@@ -125,6 +130,9 @@ struct state {                  /* radial_state */
     u8 aim;                     /* AIM_NONE, AIM_AIMED (a push waits for the stick's return) or AIM_SPENT (cancelled) */
     u8 aimed;                   /* the aimed sector */
     u32 aim_left;               /* a float: the flick's time left, counted down by FUN_00b0709c */
+    u8 fired;                   /* Tilt: the sector used while the stick has stayed out since, or NO_SECTOR */
+    u8 resting;                 /* frames an aimed stick has been under `rearm` (the release's margin) */
+    u8 pad[2];
 };
 
 struct debug {                  /* radial_debug, read from a save state (tools/inspect/citra_state.py) */
@@ -156,13 +164,15 @@ struct zr {                     /* radial_zr: the trigger ZR's hold on the butto
     u8 claim;                   /* the pad updates left in which a new press of ZR is the wheel's */
     u8 down;                    /* ZR was held at the last raw read */
     u8 taken;                   /* ZR is out of the raw words until it is released */
-    u8 press;                   /* a press taken that the hunter's frame has not seen yet */
+    u8 press;                   /* a press taken that the wheel has not used or dropped yet */
+    u8 on;                      /* the pad updates left in which a new press of ZR with the raw L held is the wheel's */
+    u8 pad[3];
 };
 
 _Static_assert(sizeof(struct radial_data) == 0x40,"blocks.py RADIAL_DATA_SIZE, radial_menu.py wheel_data");
-_Static_assert(sizeof(struct state) == 32, "blocks.py radial_state");
+_Static_assert(sizeof(struct state) == 36, "blocks.py radial_state");
 _Static_assert(sizeof(struct debug) == 64, "blocks.py radial_debug");
-_Static_assert(sizeof(struct zr) == 4, "blocks.py radial_zr");
+_Static_assert(sizeof(struct zr) == 8, "blocks.py radial_zr");
 
 extern const struct radial_data radial_data;
 extern struct state radial_state;
@@ -239,6 +249,7 @@ GAME u32 timer_step(u32 hunter, u32 *timer);                            /* FUN_0
 #define TRIGGER_FLICK 1
 #define TRIGGER_ZR 3
 #define RAW_ZR 0x800u                   /* ZR in the pad's raw words (FUN_005b8460) */
+#define RAW_L 0x100u                    /* the console's L in them ("Pad"); ZL made L by the game's option is not */
 #define RAW_HELD 0x60                   /* the raw words from pad + 0x2C: held, previous, pressed, released, changed, */
 #define RAW_PRESSED 0x68                /* pressed or repeating */
 #define RAW_RELEASED 0x6C
@@ -389,6 +400,8 @@ static void at_rest(void)
     radial_state.dwell = 0;
     radial_state.held = NO_SECTOR;
     radial_state.aim = AIM_NONE;
+    radial_state.fired = NO_SECTOR;
+    radial_state.resting = 0;
     radial_debug.open = 0;
 }
 
@@ -562,20 +575,24 @@ static void fire(u32 hunter, u32 p, u32 pw, u32 sector, const struct choices *ch
 }
 
 /* For the pad update's raw read (radial_pad_stub.s), an ARM block's call: `raw` is pad + 0x2C, its words from RAW_HELD.
- * A new press of ZR while the hunter's frame claims it is the wheel's: kept for that frame (press) and, with every frame
- * until ZR is released, taken out of the words the game makes its buttons and the GUI's of. A ZR already held when the
- * claim began stays the game's. The previous word is left: it holds the held word as this left it a frame ago */
+ * A new press of ZR while the hunter's frame claims it, or with the console's L held in this read while the trigger ZR
+ * is on (L's first read, before any hunter's frame has seen it; pad updates the hunter's frame skips), is the wheel's:
+ * kept for the wheel (press) and, with every frame until ZR is released, taken out of the words the game makes its
+ * buttons and the GUI's of. A ZR already held when the claim began stays the game's. The previous word is left: it
+ * holds the held word as this left it a frame ago */
 ARM void radial_pad(u32 raw)
 {
-    u32 claim = radial_zr.claim;
+    u32 claim = radial_zr.claim, on = radial_zr.on, held = W(raw, RAW_HELD);
     if (claim)
         radial_zr.claim = claim - 1;
-    if (!(W(raw, RAW_HELD) & RAW_ZR)) {
+    if (on)
+        radial_zr.on = on - 1;
+    if (!(held & RAW_ZR)) {
         radial_zr.down = 0;
         radial_zr.taken = 0;
         return;
     }
-    if (!radial_zr.down && claim) {
+    if (!radial_zr.down && (claim || (on && (held & RAW_L)))) {
         radial_zr.taken = 1;
         radial_zr.press = 1;
         radial_debug.zr_taken++;
@@ -590,39 +607,70 @@ ARM void radial_pad(u32 raw)
     W(raw, RAW_REPEAT) &= ~RAW_ZR;
 }
 
-/* The trigger ZR's side of the hunter's frame: the claim on ZR while L is held (the hunter's own buttons, which a menu
- * or a busy state clears, or the item mode), and the press the pad update took since the last frame, which is the
- * frame's only (one taken while the wheel is not open yet uses nothing) */
-static int zr_frame(u32 p, const struct choices *choices)
+/* The trigger ZR's side of the hunter's frame: the hold with the console's L (`on`, while the trigger is ZR), the claim
+ * on ZR while L is held (the hunter's own buttons, which a menu or a busy state clears, or the item mode: ZL made L by
+ * the game's option too), and the press the pad update took. The press waits while L is held (the game opens the wheel
+ * once L has been held a moment), for the wheel's first open frame; without L, or another trigger, it is dropped */
+static void zr_frame(u32 p, const struct choices *choices)
 {
-    int press = radial_zr.press;
-    radial_zr.press = 0;
-    if (choices && choices->enabled && choices->trigger == TRIGGER_ZR &&
-        ((W(p, P_BUTTONS) & BUTTON_L) || (W(p, P_ACTIONS) & ITEM_MODE)))
+    int zr = choices && choices->enabled && choices->trigger == TRIGGER_ZR;
+    int l_held = (W(p, P_BUTTONS) & BUTTON_L) || (W(p, P_ACTIONS) & ITEM_MODE);
+    if (zr)
+        radial_zr.on = radial_data.zr_reads;
+    if (zr && l_held)
         radial_zr.claim = ZR_HOLD;
-    return press;
+    else
+        radial_zr.press = 0;
 }
 
-__attribute__((noinline)) static void wheel_frame(u32 hunter, const struct choices *choices)
+/* Flick and Release with a sector aimed: the stick held `dwell` frames in another sector at `fire` or more aims that
+ * one instead, so the item used is the one pointed at when the stick is let go; the spring's way back (other sectors
+ * for fewer frames, or under `fire`) aims nothing. A flick's window keeps counting from its first aim. The sector the
+ * stick's release would use */
+static u32 aim_again(u32 sector, u32 magnitude)
+{
+    if (magnitude < radial_data.fire || sector == radial_state.aimed) {
+        radial_state.dwell = 0;
+        radial_state.held = NO_SECTOR;
+        return radial_state.aimed;
+    }
+    if (radial_state.held != sector) {
+        radial_state.held = sector;
+        radial_state.dwell = 0;
+    }
+    if (++radial_state.dwell >= radial_data.dwell) {
+        radial_state.dwell = 0;
+        radial_state.held = NO_SECTOR;
+        radial_state.aimed = sector;
+    }
+    return radial_state.aimed;
+}
+
+/* The hunter's frame of the wheel. Returns the sector the picture shows in gold, the one the trigger uses (NO_SECTOR
+ * none): ZR the stick's from `zr_magnitude`; Tilt the push about to fire (armed, at `fire` or more), then the sector it
+ * used while the stick stays out; Flick and Release the aimed sector, or the push about to aim. A push that uses
+ * nothing (under `fire`, a stick out since the wheel opened, a flick past its window) shows none */
+__attribute__((noinline)) static u32 wheel_frame(u32 hunter, const struct choices *choices)
 {
     u32 p = W(hunter, PLAYER_STATUS), pw = W(hunter, PLAYER_WORK);
     radial_debug.calls++;
-    if (!p || !pw)
-        return;
-    int zr_press = zr_frame(p, choices);
+    if (!p || !pw) {
+        radial_zr.press = 0;
+        return NO_SECTOR;
+    }
+    zr_frame(p, choices);
     check_pending(pw, choices);
     queue_frame(hunter, p, pw, choices);
     if (radial_stick_hold != 0) {       /* Edit Slots points with the C-stick: the camera stays, on or off */
         radial_stick_hold--;
         H(p, P_STICK) = 0;
     }
-    if (!(W(p, P_ACTIONS) & ITEM_MODE)) {
+    if (!(W(p, P_ACTIONS) & ITEM_MODE) || (choices && !choices->enabled)) {
+        /* L let go while a let-go stick rests out its margin: the stick came back first, the aimed item goes */
+        if (radial_state.aim == AIM_AIMED && radial_state.resting && !(choices && !choices->enabled))
+            fire(hunter, p, pw, radial_state.aimed, choices);
         at_rest();
-        return;
-    }
-    if (choices && !choices->enabled) {
-        at_rest();
-        return;
+        return NO_SECTOR;
     }
     if (!radial_state.was_open) {
         radial_state.was_open = 1;
@@ -630,6 +678,8 @@ __attribute__((noinline)) static void wheel_frame(u32 hunter, const struct choic
         radial_state.dwell = 0;
         radial_state.held = NO_SECTOR;
         radial_state.aim = AIM_NONE;
+        radial_state.fired = NO_SECTOR;
+        radial_state.resting = 0;
     }
     u32 pad = pad_control;
     u32 angle = pad ? H(pad, PAD_ANGLE) : 0, magnitude = pad ? H(pad, PAD_MAGNITUDE) : 0;
@@ -641,55 +691,75 @@ __attribute__((noinline)) static void wheel_frame(u32 hunter, const struct choic
     H(p, P_STICK) = 0;
     u32 trigger = choices ? choices->trigger : TRIGGER_TILT;
     if (trigger == TRIGGER_ZR) {        /* the stick only points: ZR uses the slot it points at */
+        int press = radial_zr.press, pointed = magnitude >= radial_data.zr_magnitude;
+        radial_zr.press = 0;
         radial_state.aim = AIM_NONE;
-        if (zr_press && magnitude >= radial_data.zr_magnitude)
+        if (press && pointed)
             fire(hunter, p, pw, sector, choices);
-        return;
+        return pointed ? sector : NO_SECTOR;
     }
     if (trigger == TRIGGER_TILT)
         radial_state.aim = AIM_NONE;
-    if (radial_state.aim == AIM_AIMED && trigger == TRIGGER_FLICK && timer_step(hunter, &radial_state.aim_left)) {
+    int out = magnitude >= radial_data.rearm;
+    if (out)
+        radial_state.resting = 0;
+    if (out && radial_state.aim == AIM_AIMED && trigger == TRIGGER_FLICK &&
+        timer_step(hunter, &radial_state.aim_left)) {   /* the clock counts the time the stick is out */
         radial_state.aim = AIM_SPENT;
         radial_debug.cancels++;
     }
-    if (magnitude < radial_data.rearm) {
+    if (!out) {
+        /* An aimed stick under `rearm` for fewer than `release` frames may be crossing the middle to the opposite slot:
+           not let go yet, the aim and its gold kept */
+        if (radial_state.aim == AIM_AIMED && ++radial_state.resting < radial_data.release) {
+            radial_state.dwell = 0;
+            radial_state.held = NO_SECTOR;
+            return radial_state.aimed;
+        }
+        radial_state.resting = 0;
         u32 aimed = radial_state.aim == AIM_AIMED ? radial_state.aimed : NO_SECTOR;
         radial_state.armed = 1;
         radial_state.dwell = 0;
         radial_state.held = NO_SECTOR;
         radial_state.aim = AIM_NONE;
+        radial_state.fired = NO_SECTOR;
         if (aimed != NO_SECTOR)
             fire(hunter, p, pw, aimed, choices);
-        return;
+        return NO_SECTOR;
     }
+    if (radial_state.aim == AIM_AIMED)
+        return aim_again(sector, magnitude);
     if (!radial_state.armed || magnitude < radial_data.fire) {
         radial_state.dwell = 0;
         radial_state.held = NO_SECTOR;
-        return;
+        return radial_state.fired;
     }
     if (radial_state.held != sector) {
         radial_state.held = sector;
         radial_state.dwell = 0;
     }
     if (++radial_state.dwell < radial_data.dwell)
-        return;
+        return sector;
     radial_state.armed = 0;
     radial_state.dwell = 0;
     radial_state.held = NO_SECTOR;
     if (trigger == TRIGGER_TILT) {
+        radial_state.fired = sector;
         fire(hunter, p, pw, sector, choices);
-        return;
+        return sector;
     }
     radial_state.aim = AIM_AIMED;
     radial_state.aimed = sector;
     radial_state.aim_left = radial_data.flick_limit;
     radial_debug.aims++;
+    return sector;
 }
 
 /* radial_draw.c: what the picture needs from the input update (the hunter, the wheel open); it draws from the quest's
    frame hook (radial_frame) */
 void radial_seen(u32 hunter, const struct choices *choices);
 void radial_mark_craftable(u32 mask);
+void radial_mark_chosen(u32 sector);
 
 /* The slots Auto-Combine would combine now (bit k: slot k), worked out only while the wheel is open and Auto-Combine
  * on; 0 otherwise */
@@ -705,9 +775,10 @@ __attribute__((used, section(".text.entry"))) ARM void radial_wheel(u32 hunter)
 {
     struct choices choices;
     const struct choices *read = choices_read(&choices) ? &choices : 0;
-    wheel_frame(hunter, read);
+    u32 chosen = wheel_frame(hunter, read);
     u32 mask = craft_mask(hunter, read);
     radial_debug.craft_mask = mask;
     radial_mark_craftable(mask);
+    radial_mark_chosen(chosen);
     radial_seen(hunter, read);
 }

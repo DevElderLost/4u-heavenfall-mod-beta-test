@@ -74,7 +74,8 @@ typedef struct {
     char save_restore[18];  /* the save backup (saves/<stamp>, hf_save_stamp_ok) the title's save must come back from:
                                written before an install removes the title (its save goes with it), cleared once the
                                save is back; "" none */
-    int cheats;         /* the title was built from a cheats set (More's Cheats; launcher.md, "Cheats on a console") */
+    int cheats;         /* read only: the title was built from a cheats set (0.2.1), for the migration to the cheats file
+                           (launcher.md, "Cheats on a console"); the next install writes 0 */
 } HfInstalled;
 
 /* Writes the JSON ({"version", "tmd", "region", "xx", "xx_no_room", "save_pending", "layout", "game", "game_complete",
@@ -93,11 +94,22 @@ int hf_installed_parse(const char *json, size_t len, HfInstalled *out);
  * without a record, only when no title of the edition is installed (a first install). */
 int hf_save_pending_after(int title_installed, const HfInstalled *prev);
 
-/* Whether an update installs the cheats sets: More's switch when it
- * asked (`request` 1 or 0; -1 not asked), else the edition's record (`rec`, NULL: none), whether its title is there or
- * not: a title built from a cheats set, or the set an install that stopped after removing the title was putting in
- * (its record stays, cut). Without a record, none. */
-int hf_want_cheats(int request, const HfInstalled *rec);
+/* The cheats' switch on a console: the game always carries the Cheats
+ * group, hidden and inert, and shows it only while a 16-byte file of an extdata says so. The name, as
+ * core/save/files.py spells it, and its bytes: "HFCH", the u32 version 1, the u32 allowed (0 or 1), a u32 0, little
+ * endian. A missing, short or otherwise unreadable file is off. */
+#define HF_CHEAT_FLAG_NAME "hfcheat"
+#define HF_CHEAT_FLAG_SIZE 16
+void hf_cheat_flag_encode(int on, uint8_t out[HF_CHEAT_FLAG_SIZE]);
+/* 1 when `buf` (`len` bytes read) is a valid file that allows the cheats, else 0. */
+int hf_cheat_flag_parse(const uint8_t *buf, size_t len);
+/* 1 when the app may write file `name` into the SD extdata `id`: any name of Heavenfall's own extdata (hf_extdata_ours),
+ * and in MH4U's (0x1261, 0x1263) only HF_CHEAT_FLAG_NAME. */
+int hf_extdata_file_ok(uint64_t id, const char *name);
+/* 1 when the migration of a 0.2.1 record writes the file on: the record says the title was built with the cheats
+ * (`rec`, NULL: no record) and the extdata holds no such file yet (`file_exists` 0). After that the file is the only
+ * truth. */
+int hf_cheat_flag_migrates(const HfInstalled *rec, int file_exists);
 
 /* A dump's RomFS superblock hash as the record writes it: 64 lowercase hex digits and the terminator. */
 void hf_hex(const uint8_t hash[32], char out[65]);
@@ -229,9 +241,10 @@ typedef enum {
     HT_HOME_APP_NEW, HT_HOME_APP_HINT, HT_APP_NOW,
     /* HOME refused while an update works */
     HT_HOME_LATER,
-    /* More's Cheats (launcher.md, "Cheats on a console"): the switch's two labels, its questions with the warning, a
-     * release without the cheats sets */
-    HT_BTN_CHEATS_OFF, HT_BTN_CHEATS_ON, HT_CHEATS_ASK_ON, HT_CHEATS_ASK_OFF, HT_CHEATS_NONE, HT_CHEATS_NO_SET_NOTE,
+    /* More's Cheats (launcher.md, "Cheats on a console"): the switch's two labels, its questions with the warning, the
+     * answers after it, the console without the game's extdata yet */
+    HT_BTN_CHEATS_OFF, HT_BTN_CHEATS_ON, HT_CHEATS_ASK_ON, HT_CHEATS_ASK_OFF, HT_CHEATS_DONE_ON, HT_CHEATS_DONE_OFF,
+    HT_CHEATS_NO_EXTDATA, HT_CHEATS_FAILED,
     /* Bring: the edition whose game plays on Heavenfall's own extdata (app_saves.c bring_flow; bring.h) */
     HT_BTN_BRING, HT_BRING_STATE, HT_BRING_SLOT, HT_BRING_EMPTY, HT_BRING_DAMAGED, HT_BRING_COMMON, HT_BRING_OFFER,
     HT_BRING_NO_WORLD, HT_BRING_NO_HUNTER, HT_BRING_TAKEN, HT_BRING_WORKING, HT_BRING_DONE, HT_BRING_LEFT_OVER,

@@ -182,12 +182,18 @@ def weapon_monster(items: Mapping[int, int], mapped: Mapping[int, str], common: 
     return top if not tied or top in tied else tied[0]
 
 
+def weapon_models(gen: GenLooks, plan) -> dict[tuple[str, int], int]:
+    """(pack class, XX model) -> the model of its weapon look: the pack's (`plan`), and the models of MH4U a weapon of
+    XX is identical to (GenLooks.weapon_models)."""
+    return {**{(model.slot, model.source): model.model for model in plan}, **getattr(gen, "weapon_models", {})}
+
+
 def weapon_monsters(gen: GenLooks, plan, weapon_items: Mapping[str, Mapping[int, int]], mapped: Mapping[int, str],
                     common: set[int], xx: Mapping, families: Mapping[int, str] | None = None,
                     roots: Mapping[str, str] | None = None) -> dict[str, tuple[str | None, int, str]]:
     """Every weapon look of `gen` -> (its monster or None, rank, its English name). `plan`: the pack's models
     (equipment_pack.PackModel), `weapon_items`: "<class>:<line>" -> item -> units over the line's recipes."""
-    packed = {(model.slot, model.source): model.model for model in plan}
+    packed = weapon_models(gen, plan)
     members: dict[tuple[str, int], list[int]] = defaultdict(list)
     for weapon in gen.catalog.weapons:
         model = packed.get((weapon.cls, weapon.model))
@@ -302,7 +308,7 @@ def recipe_looks(gen: GenLooks, plan, game, names: Mapping[int, str], skip: Mapp
                       if (found := _spent(recipe, names))), [])
         if spent:
             out["armor"][look.key] = {"rank": look.rank, "name": look.group, "materials": spent}
-    packed = {(model.slot, model.source): model.model for model in plan}
+    packed = weapon_models(gen, plan)
     members: dict[tuple[str, int], list] = defaultdict(list)
     for weapon in gen.catalog.weapons:
         model = packed.get((weapon.cls, weapon.model))
@@ -330,7 +336,7 @@ def look_items(gen: GenLooks, plan, series_items: Mapping[int, Mapping[int, int]
         for position in {p for halves in pack_set.look.pieces.values() for p in halves}:
             items.update(series_items.get(gen.catalog.series[position].index, {}))
         out["armor"][pack_set.look.key] = items
-    packed = {(model.slot, model.source): model.model for model in plan}
+    packed = weapon_models(gen, plan)
     members: dict[tuple[str, int], list[int]] = defaultdict(list)
     for weapon in gen.catalog.weapons:
         model = packed.get((weapon.cls, weapon.model))

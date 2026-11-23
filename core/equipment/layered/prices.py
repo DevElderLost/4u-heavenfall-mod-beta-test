@@ -37,7 +37,9 @@ from dataclasses import dataclass, field
 from functools import cache, cached_property
 from typing import TYPE_CHECKING
 
-from core.equipment.layered.looks import NAME_PARTS, build_armor_looks, build_weapon_looks, game_pieces, with_forge
+from core.equipment.layered.looks import (
+    NAME_PARTS, build_armor_looks, build_weapon_looks, game_pieces, relic_colours, with_forge,
+)
 from core.equipment.tables.layout import PALICO_TABLES
 from core.game.data.paths import CURATED_DIR, GENERATED_DIR
 from core.randomizer.equipment.catalog import Catalog, Piece, build_catalog
@@ -593,7 +595,7 @@ def generated_prices(tables, data, drops: dict, item_monsters: dict | None, item
                                 json.loads((CURATED_DIR / "item_sources.json").read_text(encoding="utf-8"))["items"])
     monsters = {m.name.lower(): m.monster_id for m in data.monsters.values() if m.is_large}
     rules = curated["rules"]
-    armor_looks, weapon_looks = build_armor_looks(armor), build_weapon_looks(weapons)
+    armor_looks, weapon_looks = build_armor_looks(armor), build_weapon_looks(weapons, colours=relic_colours())
     by_name = {name: (key, ported[key]) for name, key in curated["xx"]["ported"].items() if ported and key in ported}
     out = {
         "armor": armor_prices(catalog, armor_looks, families, rules, curated, monsters),

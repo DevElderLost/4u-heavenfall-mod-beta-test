@@ -321,9 +321,12 @@ def build_armor_looks(pieces: Iterable[ArmorPiece],
     return order_armor(looks)
 
 
+NO_PIECE = 1 << 16  # the first piece of a look no piece wears (extra_armor): after every piece of the tables
+
+
 def _first_index(look: ArmorLook) -> int:
     part = next(part for part in ("body", "head", "arms", "waist", "legs") if part in look.parts)
-    return look.pieces[part][0]
+    return look.pieces[part][0] if look.pieces[part] else NO_PIECE
 
 
 def order_armor(looks: list[ArmorLook]) -> list[ArmorLook]:
@@ -338,12 +341,13 @@ def order_armor(looks: list[ArmorLook]) -> list[ArmorLook]:
 
 # ----- weapons -----------------------------------------------------------------------------------------------
 
-def build_weapon_looks(pieces: Iterable[WeaponPiece],
-                       model_files: Mapping[str, set[int]] | None = None) -> dict[str, list[WeaponLook]]:
+def build_weapon_looks(pieces: Iterable[WeaponPiece], model_files: Mapping[str, set[int]] | None = None,
+                       colours: Mapping[str, Mapping[int, int]] | None = None) -> dict[str, list[WeaponLook]]:
     """Weapon class -> its looks (distinct model ids), families from the lowest rarity, in a family by the
     first weapon wearing each model. Weapons sharing a name (relic weapons: one name, several models, each
     without a recipe line) join the family of the first, follow it and are numbered from 2. `model_files`:
-    class -> model numbers with a file."""
+    class -> model numbers with a file. `colours`: class -> a model no weapon wears -> a model of the relic whose
+    colour it is (relic_colours): one more look of that relic, after its last, numbered next, with no piece."""
     firsts: dict[str, dict[int, WeaponPiece]] = defaultdict(dict)
     members: dict[tuple[str, int], list[int]] = defaultdict(list)
     for piece in pieces:
@@ -375,7 +379,28 @@ def build_weapon_looks(pieces: Iterable[WeaponPiece],
             result[key].append(WeaponLook(f"{key}-{p.model}", p.model, p.index, rank_of(p.rarity), p.family,
                                           seen[p.name] if seen[p.name] > 1 else 0,
                                           members=tuple(sorted(members[key, p.model]))))
+        names = {p.model: p.name for p in chosen}
+        for model, relic in sorted((colours or {}).get(key, {}).items()):
+            if model_files is not None and model not in model_files.get(key, ()):
+                continue
+            if relic not in names:
+                raise ValueError(f"relic_colours: {key} {model} names model {relic}, "
+                                 "which no weapon of the class wears")
+            name = names[relic]
+            last = max(i for i, look in enumerate(result[key]) if names.get(look.model) == name)
+            sibling = result[key][last]
+            seen[name] += 1
+            names[model] = name
+            result[key].insert(last + 1, WeaponLook(f"{key}-{model}", model, sibling.weapon, sibling.rank,
+                                                    sibling.group, seen[name]))
     return result
+
+
+def relic_colours() -> dict[str, dict[int, int]]:
+    """The curated `relic_colours` (layered_looks.json): weapon class -> a model of the RomFS no weapon wears -> a model
+    of the relic weapon whose mesh it is, with another texture."""
+    return {key: {int(model): relic for model, relic in models.items()}
+            for key, models in load_curated().get("relic_colours", {}).items()}
 
 
 # ----- from the game -----------------------------------------------------------------------------------------
@@ -411,7 +436,7 @@ def looks_to_json(armor: list[ArmorLook], weapons: dict[str, list[WeaponLook]]) 
                    **({"forge": list(look.forge)} if look.forge else {})} for look in armor],
         "weapons": {key: [{"model": look.model, "weapon": look.weapon, "rank": look.rank, "group": look.group,
                            **({"number": look.number} if look.number else {}),
-                           **({"forge": list(look.forge)} if look.forge else {})}
+                           **({"forge": list(look.forge)} if look.forge is not None else {})}
                           for look in looks] for key, looks in weapons.items()},
     }
 
@@ -451,10 +476,11 @@ def build_felyne_rows(tables) -> list[dict]:
 
 
 def generated_looks(tables, data, model_files: Mapping | None = None) -> dict:
-    """What game/data/generated/layered_looks.json holds for these (clean) tables."""
+    """What game/data/generated/layered_looks.json holds for these (clean) tables, with the curated relic colours."""
     armor, weapons = game_pieces(tables, data)
-    return {**looks_to_json(*with_forge(build_armor_looks(armor, (model_files or {}).get("armor")),
-                                        build_weapon_looks(weapons, (model_files or {}).get("weapons")), tables)),
+    weapon_looks = build_weapon_looks(weapons, (model_files or {}).get("weapons"), relic_colours())
+    return {**looks_to_json(*with_forge(build_armor_looks(armor, (model_files or {}).get("armor")), weapon_looks,
+                                        tables)),
             "felyne": build_felyne_rows(tables)}
 
 

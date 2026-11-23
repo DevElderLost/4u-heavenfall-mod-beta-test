@@ -754,7 +754,7 @@ def menu_wheel_files(rom: GameFiles, files: Mapping[str, bytes] | None = None,
 # ---- the data block
 
 DATA = struct.Struct(f"<5I{len(root_children())}I{SLOTS}I{len(BIG_TEXTS)}I{MAX_TEXTS * POSITIONS * MAX_SIZES * 3}f"
-                     f"{2 * SLOTS}f{MAX_TEXTS * 2 * SLOTS}f{MAX_TEXTS * 2 * SLOTS}f{MAX_TEXTS}f40f f2I 2II {SLOTS}B"
+                     f"{2 * SLOTS}f{MAX_TEXTS * 2 * SLOTS}f{MAX_TEXTS * 2 * SLOTS}f{MAX_TEXTS}f40f fI 2II {SLOTS}B"
                      f"{SLOTS}B {3 + len(MENU_BODY)}I{MAX_TEXTS * 3 * MENU_LAYOUTS * MAX_SIZES}f")
 
 
@@ -774,7 +774,7 @@ def draw_data(sector_to_slot: list[int], settings: Mapping | None = None, cells:
     centre, at the right and at the bottom left for each size (wheel_places; the last size repeated to MAX_SIZES);
     each slot's middle in the root; for each text size each slot's name null's place and the big name's place at each
     slot (floats); each text size's scale of the names' nulls; the digits' cells (u, v, w, h); the chosen slot's scale;
-    the pool's reserve, the stick's magnitude that chooses a slot; the quantity's colour words (carried, not carried)
+    the pool's reserve; the quantity's colour words (carried, not carried)
     and the share of its colour a picture keeps when not carried (of 256); the sector to slot table and each slot's
     big name text; then the START menu's: the hashes of ui020's frame group, its frame null, the frame's body sprites
     and the strips' null, and for each text size the root's x, y and scale (layout units) in Edit Slots' two layouts
@@ -802,7 +802,7 @@ def draw_data(sector_to_slot: list[int], settings: Mapping | None = None, cells:
     menu_at = [v for text in texts for sized in menu_places(settings, text)
                for x, y, scale in _repeat_last(sized, MAX_SIZES) for v in (*layout_point(x, y), scale)]
     data = DATA.pack(*hashes, *places, *slots, *name_at, *big_at, *texts, *digits, settings["marked_scale"],
-                     settings["reserve"], settings["mark_magnitude"], _rgba(colours["count"]),
+                     settings["reserve"], _rgba(colours["count"]),
                      _rgba(colours["count_none"]), round(settings["dark"] * 256), *sector_to_slot, *aligns, *menu,
                      *menu_at)
     if len(data) != RADIAL_DRAW_DATA_SIZE:

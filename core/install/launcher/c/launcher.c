@@ -129,9 +129,27 @@ int hf_save_pending_after(int title_installed, const HfInstalled *prev) {
     return prev ? prev->save_pending != 0 : !title_installed;
 }
 
-int hf_want_cheats(int request, const HfInstalled *rec) {
-    if (request >= 0) return request != 0;
-    return rec && rec->cheats;
+void hf_cheat_flag_encode(int on, uint8_t out[HF_CHEAT_FLAG_SIZE]) {
+    memset(out, 0, HF_CHEAT_FLAG_SIZE);
+    memcpy(out, "HFCH", 4);
+    out[4] = 1;                  /* the version, u32 little endian */
+    out[8] = on ? 1 : 0;         /* allowed */
+}
+
+int hf_cheat_flag_parse(const uint8_t *buf, size_t len) {
+    static const uint8_t zero4[4] = {0, 0, 0, 0};
+    if (!buf || len < HF_CHEAT_FLAG_SIZE || memcmp(buf, "HFCH", 4) != 0) return 0;
+    if (buf[4] != 1 || memcmp(buf + 5, zero4, 3) != 0) return 0;
+    return buf[8] == 1 && memcmp(buf + 9, zero4, 3) == 0 && memcmp(buf + 12, zero4, 4) == 0;
+}
+
+int hf_extdata_file_ok(uint64_t id, const char *name) {
+    if (hf_extdata_ours(id)) return name != NULL && name[0] != 0;
+    return (id == 0x1261u || id == 0x1263u) && name != NULL && strcmp(name, HF_CHEAT_FLAG_NAME) == 0;
+}
+
+int hf_cheat_flag_migrates(const HfInstalled *rec, int file_exists) {
+    return rec != NULL && rec->cheats && !file_exists;
 }
 
 int hf_title_ours(uint64_t id) {
@@ -396,10 +414,10 @@ static const char *const TEXT[HT_COUNT][2] = {
     [HT_NO_RELEASE] = {"No version has been published yet.", "Todavía no se ha publicado ninguna versión."},
     [HT_APP_UPDATED] = {"The launcher was updated: open it again.", "El launcher se ha actualizado: vuelve a abrirlo."},
     [HT_NO_ROOM] = {"Not enough free space on the SD card.", "No hay espacio suficiente en la SD."},
-    [HT_SAVE_OFFER] = {"Bring your MH4U save? It REPLACES all three hunters of this title and its shared data with "
-                       "MH4U's. Both saves are backed up first on the SD card, in:",
-                       "¿Traer tu partida de MH4U? SUSTITUYE los tres cazadores de este título y sus datos "
-                       "compartidos por los de MH4U. Antes se copian las dos en la SD, en:"},
+    [HT_SAVE_OFFER] = {"Bring your MH4U save? It REPLACES all three hunters of this title and its system files "
+                       "with MH4U's. Both saves are backed up first on the SD card, in:",
+                       "¿Traer tu partida de MH4U? SUSTITUYE los tres cazadores de este título y sus archivos "
+                       "de sistema por los de MH4U. Antes se copian las dos en la SD, en:"},
     [HT_SAVE_NEED_RUN] = {"Start the title once so it makes its save, then copy it.",
                           "Abre el título una vez para que cree su partida y después cópiala."},
     [HT_SAVE_DONE] = {"Save copied. The backups are on the SD card.",
@@ -641,17 +659,19 @@ static const char *const TEXT[HT_COUNT][2] = {
     [HT_BTN_CHEATS_OFF] = {"Cheats: off", "Trucos: no"},
     [HT_BTN_CHEATS_ON] = {"Cheats: on", "Trucos: sí"},
     [HT_CHEATS_ASK_ON] = {"Turn cheats on? The game gets a Cheats group in Mod Settings (START menu, third page). "
-                          "Never play with others, locally or online, without telling them you use cheats. The game "
-                          "is installed again; your save comes back after.",
+                          "Never play with others, locally or online, without telling them you use cheats.",
                           "¿Activar los trucos? El juego tendrá un grupo de trucos en Ajustes del mod (menú START, "
-                          "tercera página). Nunca juegues con otros, en local u online, sin decirles que usas trucos. "
-                          "El juego se instala otra vez; tu partida vuelve después."},
-    [HT_CHEATS_ASK_OFF] = {"Turn cheats off? The game is installed again without them; your save comes back after.",
-                           "¿Desactivar los trucos? El juego se instala otra vez sin ellos; tu partida vuelve después."},
-    [HT_CHEATS_NONE] = {"This version has no cheats for your region: nothing was changed.",
-                        "Esta versión no tiene trucos para tu región: no se ha cambiado nada."},
-    [HT_CHEATS_NO_SET_NOTE] = {"This version has no cheats for your region: installing without them.",
-                               "Esta versión no tiene trucos para tu región: se instala sin ellos."},
+                          "tercera página). Nunca juegues con otros, en local u online, sin decirles que usas trucos."},
+    [HT_CHEATS_ASK_OFF] = {"Turn cheats off? The Cheats group disappears from Mod Settings.",
+                           "¿Desactivar los trucos? El grupo de trucos desaparece de los Ajustes del mod."},
+    [HT_CHEATS_DONE_ON] = {"Cheats are on. They show up the next time the game starts.",
+                           "Trucos activados. Aparecerán la próxima vez que se inicie el juego."},
+    [HT_CHEATS_DONE_OFF] = {"Cheats are off. They go away the next time the game starts.",
+                            "Trucos desactivados. Desaparecerán la próxima vez que se inicie el juego."},
+    [HT_CHEATS_NO_EXTDATA] = {"Start the game once first, then come back to turn cheats on or off.",
+                              "Inicia el juego una vez y vuelve aquí para activar o desactivar los trucos."},
+    [HT_CHEATS_FAILED] = {"The cheats switch could not be written: nothing was changed.",
+                          "No se pudo escribir el interruptor de los trucos: no se ha cambiado nada."},
     /* Bring (the PC program's Saves page words) */
     [HT_BTN_BRING] = {"Bring from MH4U", "Traer de MH4U"},
     [HT_BRING_STATE] = {"Choose a slot: MH4U's hunter comes into Heavenfall. MH4U's save is never changed.",
@@ -722,9 +742,9 @@ static const char *const TEXT[HT_COUNT][2] = {
                            "está; el resto se ha devuelto desde la copia de la SD."},
     /* Heavenfall Beta's More > MH4U saves (the title's save to MH4U's and back) */
     [HT_BTN_SAVES] = {"MH4U saves", "Partidas de MH4U"},
-    [HT_SAVES_STATE] = {"Bring replaces all three of this title's hunters and its shared data with MH4U's. Take moves "
+    [HT_SAVES_STATE] = {"Bring replaces all three of this title's hunters and its system files with MH4U's. Take moves "
                         "one slot. Both saves are backed up on the SD card first.",
-                        "Traer sustituye los tres cazadores de este título y sus datos compartidos por los de MH4U. "
+                        "Traer sustituye los tres cazadores de este título y sus archivos de sistema por los de MH4U. "
                         "Llevar mueve una ranura. Antes se copian las dos en la SD."},
     [HT_BTN_TO_MH4U] = {"Take my save to MH4U", "Llevar mi partida a MH4U"},
     [HT_BTN_UNDO_TO_MH4U] = {"Restore MH4U's save", "Recuperar la partida de MH4U"},
@@ -732,7 +752,7 @@ static const char *const TEXT[HT_COUNT][2] = {
                           "shown.",
                           "Elige una ranura: el cazador de Heavenfall Beta pasa a la partida de MH4U. Se ve el "
                           "tiempo jugado de cada lado."},
-    [HT_TO_MH4U_SHARED] = {"Shared data", "Datos compartidos"},
+    [HT_TO_MH4U_SHARED] = {"System files", "Archivos de sistema"},
     [HT_TO_MH4U_OTHER_REGION] = {"The MH4U found is of the other region, so its save cannot take this one. Nothing "
                                  "was changed.",
                                  "El MH4U encontrado es de la otra región, así que su partida no puede recibir esta. "
@@ -747,9 +767,9 @@ static const char *const TEXT[HT_COUNT][2] = {
                         "card first.",
                         "¿Cambiar la partida de MH4U de esta ranura por la de Heavenfall Beta? Antes se copian las "
                         "dos en la SD."},
-    [HT_TO_MH4U_SHARED_ASK] = {"Replace MH4U's shared data with Heavenfall Beta's? Both saves are backed up on the SD "
+    [HT_TO_MH4U_SHARED_ASK] = {"Replace MH4U's system files with Heavenfall Beta's? Both saves are backed up on the SD "
                                "card first.",
-                               "¿Cambiar los datos compartidos de MH4U por los de Heavenfall Beta? Antes se copian "
+                               "¿Cambiar los archivos de sistema de MH4U por los de Heavenfall Beta? Antes se copian "
                                "las dos en la SD."},
     [HT_TO_MH4U_BACK] = {"MH4U's hunter here has more play time than Heavenfall Beta's: you would go back in time. "
                          "Go on?",

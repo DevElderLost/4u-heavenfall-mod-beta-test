@@ -224,6 +224,7 @@ _Static_assert(HF_HEAV_SIZE + SENTINEL <= sizeof beta_sidecar_card, "hfheavN is 
 #define SITE_JOIN_USER  3
 #define SITE_JOIN_CARD  4
 #define SITE_SWEEP      5
+#define SITE_CHEATS     6        /* the cheats' flag read (beta_cheats_flag) */
 
 #define DONE           1        /* split: the sidecar written and the file clean; join: put back */
 #define NOTHING        2        /* split: nothing to set apart and no sidecar: none written */
@@ -1299,4 +1300,57 @@ ARM void beta_join_card(void)
     s->flags |= CARD_KNOWN;
     note(SITE_JOIN_CARD, slot, what, bits, core, 0, generation);
     join_card_older(slot, buf, save);
+}
+
+/* ---- the cheats' flag (core/save/files.py CHEATS_FLAG) --------------- */
+
+#define CHEATS_FLAG_NAME    "hfcheat"       /* files.py CHEATS_FLAG, CHEATS_FLAG_SIZE, _MAGIC, _VERSION */
+#define CHEATS_FLAG_SIZE    16u
+#define CHEATS_FLAG_MAGIC   0x48434648u     /* "HFCH" */
+#define CHEATS_FLAG_VERSION 1u
+#define THREAD_HANDLER      0x78            /* the file thread: the handler it runs, 0 when idle */
+#define STATUS_BUSY         1
+
+/* The game has mounted MH4U's extdata for the session (the boot's extdata steps, FUN_002ad088, or the sidecars' first
+ * request, io_ready) and the file thread is idle, so a request now neither mounts anything nor waits */
+static int flag_ready(void)
+{
+    u8 *m = file_manager, *task = file_task, *thread;
+    if (m == 0 || task == 0 || (U32(task, T_FLAGS) & FLAG_NO_EXTDATA) || U32(m, M_EXTDATA) == 0xFFFFFFFFu)
+        return 0;
+    thread = *(u8 **)(m + M_THREAD);
+    return thread != 0 && U32(thread, THREAD_HANDLER) == 0 && m[M_STATUS] != STATUS_BUSY;
+}
+
+/* mod_options.c's question for a 3DS title's Cheats group (cheats_frame, once per few frames until it has an answer):
+ * whether the launcher's flag file allows the cheats. 1 yes; 0 no, final: the file missing, or not a flag that allows
+ * them (shorter than the flag, another magic or version, `allowed` other than 1, a last word other than 0); -1 not
+ * now: the extdata not mounted yet (or off for the session), the file thread busy, or the file unreadable. `io`: the
+ * read's result. The read is the sidecars' inline request (as read_file, SENTINEL bytes more than the flag); the
+ * buffer is filled first, so a file shorter than the flag keeps the fill in its last word and allows nothing. Bytes of
+ * a longer file past the flag are not looked at. */
+ARM int beta_cheats_flag(s32 *io)
+{
+    u32 words[(CHEATS_FLAG_SIZE + SENTINEL) / 4];
+    u8 *flag = (u8 *)words, found;
+    u32 i;
+    int allowed;
+
+    *io = 0;
+    if (!flag_ready())
+        return -1;
+    state_ready();
+    for (i = 0; i < CHEATS_FLAG_SIZE + SENTINEL; i++)
+        flag[i] = SENTINEL_BYTE;
+    *io = request(OP_READ, ARCHIVE_EXTDATA, CHEATS_FLAG_NAME, flag, CHEATS_FLAG_SIZE + SENTINEL);
+    if (*io != 0) {
+        if (exists(ARCHIVE_EXTDATA, CHEATS_FLAG_NAME, &found) != 0 || found)
+            return -1;                                      /* there but unreadable now: read again later */
+        note(SITE_CHEATS, NO_SLOT, NOTHING, 0, 0, *io, 0);
+        return 0;
+    }
+    allowed = rd32(flag) == CHEATS_FLAG_MAGIC && rd32(flag + 4) == CHEATS_FLAG_VERSION && rd32(flag + 8) == 1 &&
+              rd32(flag + 12) == 0;
+    note(SITE_CHEATS, NO_SLOT, allowed ? DONE : REFUSED, 0, 0, 0, 0);
+    return allowed;
 }

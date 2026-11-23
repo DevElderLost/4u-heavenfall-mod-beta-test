@@ -1,7 +1,8 @@
 """The single description of the save files: the 14 files of
 MH4U's save, the three containers that hold them (MH4U's save archive, MH4U's extdata, Heavenfall's own extdata), the
-names of the sidecar files the single-screen edition keeps in MH4U's extdata, and the legacy names read only to
-migrate. The program (both editions) and the 3DS launcher (`c_defines`, `c_header`) read nothing else.
+names of the sidecar files the single-screen edition keeps in MH4U's extdata, the cheats' flag beside them, and the
+legacy names read only to migrate. The program (both editions) and the 3DS launcher (`c_defines`, `c_header`) read
+nothing else.
 
 Format constants only: the sizes and kinds are the game's (`FUN_002ace98`, the names at 0xF31FC8); the tuning of
 backups is core/game/data/curated/save_backups.json. This module imports nothing heavy: the editions all ship it.
@@ -9,6 +10,7 @@ backups is core/game/data/curated/save_backups.json. This module imports nothing
 
 from __future__ import annotations
 
+import struct
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
@@ -115,6 +117,30 @@ def kept_extras(slot: int) -> str:
 def heav_extras(slot: int) -> str:
     """What an older Heavenfall left in the slot's files, set apart (core/save/heav.py)."""
     return f"hfheav{slot}"
+
+
+# The cheats' flag: a file of MH4U's extdata, beside the sidecars, that the
+# 3DS launcher writes (More > Cheats) and Heavenfall Beta's installed title reads once a launch (save/beta_sidecar.c
+# beta_cheats_flag). Little-endian: the magic, the version, `allowed` (1: the title shows and runs its Cheats group),
+# a zero word. A missing file, or one shorter than that, of another magic or version, `allowed` other than 1 or a last
+# word other than 0, allows nothing; bytes past the 16 are not looked at.
+CHEATS_FLAG = "hfcheat"
+CHEATS_FLAG_SIZE = 16
+CHEATS_FLAG_MAGIC = b"HFCH"
+CHEATS_FLAG_VERSION = 1
+
+
+def cheats_flag(allowed: bool) -> bytes:
+    """The flag file's bytes."""
+    return CHEATS_FLAG_MAGIC + struct.pack("<3I", CHEATS_FLAG_VERSION, int(allowed), 0)
+
+
+def cheats_allowed(data: bytes | None) -> bool:
+    """Whether a flag file's bytes (None: no file) allow the cheats, as the game reads them."""
+    if data is None or len(data) < CHEATS_FLAG_SIZE or data[:4] != CHEATS_FLAG_MAGIC:
+        return False
+    version, allowed, zero = struct.unpack_from("<3I", data, 4)
+    return version == CHEATS_FLAG_VERSION and allowed == 1 and zero == 0
 
 
 def legacy_user(slot: int) -> str:

@@ -5,7 +5,8 @@
  * the end: the same tree in ui020's big list frame group, its own state radial_menu_state, its own places, the pouch
  * the menu shows for the quantities, every slot's diamond kept as a target and the gold on the editor's slot).
  *
- * A unit of the wheel's block (radial_wheel.c), in two halves:
+ * A unit of the wheel's block (radial_wheel.c), in two halves (and the wheel's step's two marks before them,
+ * radial_mark_craftable and radial_mark_chosen):
  *   - radial_seen(hunter, choices), from the wheel's entry in the local hunter's input update, once a frame: it keeps
  *     the hunter and whether the wheel is open (the item mode's bit in the hunter's actions word, the wheel's on / off
  *     choice) for this frame;
@@ -20,11 +21,11 @@
  *   - its quantity at the picture's bottom right (FUN_005e588c, at most 99), in the curated count colour, or 0 in the
  *     curated grey for an item not carried;
  *   - its item name (FUN_005a86f8, the item selector's own call) in the slot's own text.
- * The slot in the stick's direction (the pad object's angle and magnitude, as radial_wheel.c reads them; from the
- * curated magnitude on) is the chosen one, when it holds an item: its diamond gives way to the gold one (larger) with
+ * The slot of the sector the wheel's step gave radial_mark_chosen this frame (the one its trigger uses: radial_wheel.c
+ * wheel_frame) is the chosen one, when it holds an item: its diamond gives way to the gold one (larger) with
  * the gold glow behind it, its picture is drawn larger, its sector's needle shows, and its name gives way to the
- * larger gold name (the big name's null moved to that slot's place, with the text of that slot's alignment). With the
- * stick at rest nothing is highlighted.
+ * larger gold name (the big name's null moved to that slot's place, with the text of that slot's alignment). With no
+ * sector given (the stick at rest, a push that uses nothing) nothing is highlighted.
  *
  * The group is found by its index in the GUI manager and its name hash, never kept beyond a frame's check: the next
  * quest loads a new one. Its cache flag is cleared, so the GUI walks its panes every frame and plain writes of the
@@ -121,7 +122,6 @@ struct draw_data {              /* radial_draw_data (radial_draw.py draw_data) *
     struct cell digits[10];
     u32 marked_scale;           /* float: the chosen slot's picture */
     u32 reserve;                /* free places the pane pool must have */
-    u32 look;                   /* the stick's magnitude from which a slot is chosen */
     u32 count_tint[2];          /* the quantity's colour word: carried, not carried */
     u32 dark;                   /* of 256: the share of red, green and blue a picture keeps when not carried */
     u8 sector_to_slot[8];
@@ -151,6 +151,7 @@ struct draw_state {             /* radial_draw_state and the start of radial_men
     u8 craft_drawn;             /* bit k: slot k's craft mark is shown */
     u16 refusals;               /* frames a change was left undone for lack of room in the pane pool */
     u16 paints;                 /* slots drawn */
+    u8 chosen;                  /* the sector the wheel gave for the gold (radial_mark_chosen), NO_SLOT none */
 };
 
 struct menu_state {             /* radial_menu_state, written here only */
@@ -161,14 +162,14 @@ struct menu_state {             /* radial_menu_state, written here only */
     u8 shown;                   /* the root null is shown */
 };
 
-_Static_assert(sizeof(struct draw_data) == 3092, "blocks.py RADIAL_DRAW_DATA_SIZE, radial_draw.py DATA");
+_Static_assert(sizeof(struct draw_data) == 3088, "blocks.py RADIAL_DRAW_DATA_SIZE, radial_draw.py DATA");
 _Static_assert(sizeof(struct draw_state) == 48, "blocks.py radial_draw_state");
 _Static_assert(sizeof(struct menu_state) == 52, "blocks.py radial_menu_state");
 
 extern const struct draw_data radial_draw_data;
 extern struct draw_state radial_draw_state;
 extern struct menu_state radial_menu_state;
-extern u32 gui_control, pad_control, item_control, game_control, health_binder;
+extern u32 gui_control, item_control, game_control, health_binder;
 extern char start_list_ui[];                                    /* the START menu's list binder */
 extern char start_menu[];                                       /* the START menu's object */
 
@@ -190,8 +191,6 @@ int radial_choices(struct choices *out);                        /* radial_wheel.
 #define PLAYER_STATUS 0xE30             /* hunter -> p, as in radial_wheel.c */
 #define P_ACTIONS 0x3CC
 #define ITEM_MODE 0x800u
-#define PAD_ANGLE 0x32E
-#define PAD_MAGNITUDE 0x33A
 #define GAME_MODE 0x2B                  /* sGameControl: 1 in a quest */
 #define QUEST_MODE 1
 #define LIST_FRAME_GROUP 0xD            /* start_list_ui's group of the big list's frame (mod_settings.c GROUP_FRAME) */
@@ -272,6 +271,13 @@ void radial_seen(u32 hunter, const struct choices *choices)
 void radial_mark_craftable(u32 mask)
 {
     radial_draw_state.craft = mask & ((1u << SLOTS) - 1);
+}
+
+/* The wheel's step says, before radial_seen each frame, the sector its trigger would use (radial_wheel.c wheel_frame),
+ * or none: that sector's slot is the gold one. */
+void radial_mark_chosen(u32 sector)
+{
+    radial_draw_state.chosen = sector < SLOTS ? sector : NO_SLOT;
 }
 
 /* ---- the group and its panes */
@@ -511,10 +517,9 @@ static void observe(struct want *want, u32 hunter, const struct choices *choices
     want->place = (choices->text < MAX_TEXTS ? choices->text : 0) * QUEST_PLACES +
                   (choices->position < POSITIONS ? choices->position : 0) * MAX_SIZES +
                   (choices->size < MAX_SIZES ? choices->size : 0);
-    u32 pad = pad_control;
-    u32 angle = pad ? H(pad, PAD_ANGLE) : 0, magnitude = pad ? H(pad, PAD_MAGNITUDE) : 0;
-    u32 slot = radial_draw_data.sector_to_slot[((angle + 0x1000) >> 13) & 7] & 7;
-    want->marked = magnitude >= radial_draw_data.look && want->item[slot] ? slot : NO_SLOT;
+    u32 sector = radial_draw_state.chosen;
+    u32 slot = sector < SLOTS ? radial_draw_data.sector_to_slot[sector] & 7 : NO_SLOT;
+    want->marked = slot != NO_SLOT && want->item[slot] ? slot : NO_SLOT;
 }
 
 static int slot_changed(const struct draw_state *state, const struct want *want, u32 slot)

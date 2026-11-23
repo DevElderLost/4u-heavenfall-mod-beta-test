@@ -108,16 +108,19 @@ def load_zone(path: Path = SETTINGS_FILE) -> dict:
 
 
 def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None = None, aspect: bool = True,
-                  wheel: bool = False) -> dict:
+                  wheel: bool = False, gated: Collection[str] = ()) -> dict:
     """The curated table with each text as its message index: {"line": {"name", "help"}, "pager": (x, y) (the big
-    list's), "entries": [row]}, where a row is {"name", "help", "title", "screen"} (and "option", the option's number,
-    on the screen of its values) when it opens a screen and {"name", "help", "entries": [row]} when it opens another
-    small list. `available`: the options the player's game can have (none: all); `aspect`: the aspect ratio's switch
-    is on; `wheel`: the mod has the item wheel (interface/radial_menu). A row of an option that is not available, the
-    aspect ratio's row without its switch, the wheel's row without the wheel, and a list left with no row, are left
-    out. Refuses a list with more rows than two pages of the small list, a screen the code does not
-    have, a place that is not two whole numbers, a text that is not one of its menu_texts, and more lists or rows than
-    the data block holds."""
+    list's), "entries": [row], "cheats_rows"}, where a row is {"name", "help", "title", "screen"} (and "option", the
+    option's number, on the screen of its values) when it opens a screen and {"name", "help", "entries": [row]} when it
+    opens another small list. `available`: the options the player's game can have (none: all); `aspect`: the aspect
+    ratio's switch is on; `wheel`: the mod has the item wheel (interface/radial_menu). A row of an option that is not
+    available, the aspect ratio's row without its switch, the wheel's row without the wheel, and a list left with no
+    row, are left out. `gated`: the options a 3DS title shows only once the launcher's flag allows the cheats
+    (mod_options.py patch_mod_options); "cheats_rows" is the number of the top list's last rows that hold nothing else
+    (the Cheats group), which the page leaves out until then (0 without `gated`). Refuses a list with more rows than
+    two pages of the small list, a screen the code does not have, a place that is not two whole numbers, a text that
+    is not one of its menu_texts, more lists or rows than the data block holds, and a gated option whose top row holds
+    other options or comes before one that does."""
     from core.interface.mod_settings.mod_options import OPTION_IDS, load_options
 
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -169,9 +172,33 @@ def load_settings(path: Path = SETTINGS_FILE, available: Collection[str] | None 
     if not isinstance(lift, int) or isinstance(lift, bool) or not 0 <= lift < 0x100:
         raise ModSettingsError("mod_settings.json: ten_row_raise must be a whole number of pixels, 0 to 255")
     settings = {"line": {"name": message(line["name"]), "help": message(line["help"])}, "pager": place("pager_place"),
-                "entries": entries, "raise": lift}
+                "entries": entries, "raise": lift,
+                "cheats_rows": _gated_rows(entries, {OPTION_IDS[key] for key in gated})}
     _flat_table(settings)
     return settings
+
+
+def _options_under(row: dict) -> set[int]:
+    """The numbers of the options a row opens, at any depth."""
+    if "entries" in row:
+        return set().union(*(_options_under(inner) for inner in row["entries"]))
+    return {row["option"]} if "option" in row else set()
+
+
+def _gated_rows(entries: list[dict], gated: set[int]) -> int:
+    """How many of the top list's last rows hold only `gated` options: the rows the page shows only while the cheats
+    are allowed. Refuses a gated option elsewhere (its row would show while its option is 0), and a top list left
+    with no row."""
+    held = [_options_under(row) for row in entries]
+    rows = 0
+    while rows < len(held) and held[len(held) - 1 - rows] and held[len(held) - 1 - rows] <= gated:
+        rows += 1
+    if set().union(*held[:len(held) - rows]) & gated:
+        raise ModSettingsError("mod_settings.json: a gated option's row must be in the top list's last rows, with no "
+                               "other option beside it")
+    if gated and rows == len(held):
+        raise ModSettingsError("mod_settings.json: the top list would have no row without the gated ones")
+    return rows
 
 
 def _flat_table(settings: dict) -> tuple[list[tuple], list[tuple]]:
@@ -212,7 +239,8 @@ def settings_data(settings: dict | None = None, single_screen: bool = False) -> 
     name, help, title, u8 list, screen, option, 0); then, 4-aligned, the name hashes of ten_rows.hashes() (u32 each:
     the named panes, then each size's frame of ours in the small and the big list, 0 for the game's) and how far up a
     small list goes by its first page's rows (u8 each: list_raises of the curated `ten_row_raise` in single-screen mode,
-    else 0) and a pad. What is unused stays zero."""
+    else 0), the top list's last rows shown only while the cheats are allowed (u8, "cheats_rows": 0 but in a 3DS
+    title) and a pad. What is unused stays zero."""
     from core.interface.mod_settings import ten_rows
 
     settings = settings or load_settings()
@@ -230,7 +258,7 @@ def settings_data(settings: dict | None = None, single_screen: bool = False) -> 
                                f"{MOD_SETTINGS_PANE_HASHES}")
     data += hashes
     raises = list_raises(settings["raise"]) if single_screen else (0,) * LIST_PAGE_ROWS
-    data += struct.pack(f"<{LIST_PAGE_ROWS}BH", *raises, 0)
+    data += struct.pack(f"<{LIST_PAGE_ROWS}B2B", *raises, settings.get("cheats_rows", 0), 0)
     if len(data) > MOD_SETTINGS_DATA_SIZE:
         raise ModSettingsError(f"mod_settings_data holds {MOD_SETTINGS_DATA_SIZE} bytes, the table makes {len(data)}")
     return data.ljust(MOD_SETTINGS_DATA_SIZE, b"\0")

@@ -70,8 +70,6 @@ def table_entry(values: dict, path: Path) -> dict | None:
         "cia": release["app_cia"], "dsx": release["app_3dsx"],
         "patch_eur": release["patch_eur"], "patch_usa": release["patch_usa"],
         "patch_eur_xx": release["patch_eur_xx"], "patch_usa_xx": release["patch_usa_xx"],
-        "patch_eur_cheats": release["patch_eur_cheats"], "patch_usa_cheats": release["patch_usa_cheats"],
-        "patch_eur_xx_cheats": release["patch_eur_xx_cheats"], "patch_usa_xx_cheats": release["patch_usa_xx_cheats"],
         "shared": shared_name(release["app_cia"]),
         "own_save": _own_save(values, path),
     }
@@ -106,8 +104,7 @@ def render(root: Path = ROOT) -> str:
            "static const HfEdition HF_EDITIONS[HF_EDITION_COUNT] = {"]
     for row in rows:
         fields = ("slug", "name", "repository", "title_eur", "title_usa", "cia", "dsx", "patch_eur", "patch_usa",
-                  "patch_eur_xx", "patch_usa_xx", "patch_eur_cheats", "patch_usa_cheats", "patch_eur_xx_cheats",
-                  "patch_usa_xx_cheats", "shared")
+                  "patch_eur_xx", "patch_usa_xx", "shared")
         out.append("    {" + ", ".join(_c_string(row[f]) for f in fields) + f", {row['own_save']}" + "},")
     out += ["};", "", "#endif", ""]
     return "\n".join(out)

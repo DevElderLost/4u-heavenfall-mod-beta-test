@@ -118,24 +118,26 @@ def load_settings(path: Path = SETTINGS_FILE) -> dict:
             "flick_window": _whole(raw, "flick_window", 1, 3600), "autocraft": _whole(raw, "default_autocraft", 0, 1),
             "editor_point": _whole(raw, "editor_point_magnitude", 1, 127),
             "text": _whole(raw, "default_text_size", 0, texts - 1), "texts": texts,
-            "zr_magnitude": draw["mark_magnitude"]}
+            "zr_magnitude": draw["mark_magnitude"], "zr_reads": _whole(raw, "zr_trigger_reads", 1, 255),
+            "release": _whole(raw, "release_frames", 1, 255)}
 
 
 def wheel_data(settings: dict | None = None) -> bytes:
     """The block `radial_data` (struct radial_data in radial_wheel.c): fire, rearm, dwell, the zone's offset and its
     magic (u32 each), the version, the default position, on / off and size (u8 each), the sector -> slot table (u8 x
     8), the default items (u16 x 8), the queue's limit (a float: FUN_00b0709c counts it down), the number of sizes, the
-    default trigger and Auto-Combine (u8 each, then a zero byte), the flick's window (a float, counted down the
-    same way), the default text size, the number of text sizes and the magnitude from which ZR uses a slot (u8 each,
-    then a zero byte)."""
+    default trigger, Auto-Combine and the frames a let-go stick rests before Flick and Release use the item (u8
+    each), the flick's window (a float, counted down the
+    same way), the default text size, the number of text sizes, the magnitude from which ZR uses a slot and the pad
+    updates the trigger ZR's hold with L held lasts (u8 each)."""
     settings = settings or load_settings()
     data = struct.pack("<4I4s4B", settings["fire"], settings["rearm"], settings["dwell"], settings["offset"],
                        settings["magic"], settings["version"], settings["position"], settings["enabled"],
                        settings["size"])
     data += bytes(settings["sector_to_slot"]) + struct.pack(f"<{SLOTS}H", *settings["items"])
-    data += struct.pack("<fBBBxfBBBx", settings["queue_frames"], settings["sizes"], settings["trigger"],
-                        settings["autocraft"], settings["flick_window"], settings["text"], settings["texts"],
-                        settings["zr_magnitude"])
+    data += struct.pack("<fBBBBfBBBB", settings["queue_frames"], settings["sizes"], settings["trigger"],
+                        settings["autocraft"], settings["release"], settings["flick_window"], settings["text"],
+                        settings["texts"], settings["zr_magnitude"], settings["zr_reads"])
     if len(data) != RADIAL_DATA_SIZE:
         raise RadialMenuError(f"radial_data holds {RADIAL_DATA_SIZE} bytes, the settings make {len(data)}")
     return data

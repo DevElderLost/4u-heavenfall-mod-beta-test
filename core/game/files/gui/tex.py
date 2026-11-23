@@ -5,7 +5,10 @@ Header (0x14 bytes):
     0x04  u32 version (low byte, 0xA5) and unknown bits
     0x08  u32 mip count (bits 0-5), width (bits 6-18), height (bits 19-31)
     0x0C  u32 texture count (bits 0-7), pixel format (bits 8-15), unknown
-    0x10  u32 unknown (0 in the GUI textures)
+    0x10  u32 per mip: its offset from the end of this table (mip 0's is 0). The GUI's textures have one mip, so their
+          pixels start at 0x14, which this module takes for granted; a texture with N mips (models, effects) has its
+          pixels at 0x10 + 4 N (its header up to 0x14 and the pixels from there read as one mip: docs/equipment/
+          layered_equipment.md, "Models no piece wears")
 
 Pixels follow, mip 0 first, as on the 3DS GPU: 8x8 tiles left to right, top to
 bottom, each tile's pixels in Morton (Z) order. The formats the GUI's textures use (every texture a layout of the

@@ -21,6 +21,7 @@ from core.randomizer.equipment.models import ExtraModels
 from core.equipment.mhgen import convert, equipment_pack as pack, looks, tables
 from core.equipment.mhgen.equipment_pack import PackModel
 from core.equipment.mhgen.gear_data import XX_FORMAT
+from core.equipment.layered.looks import load_looks
 from core.equipment.mhgen.looks import CLASS_KEYS, PART_KEYS, GenCatalog, GenLooks
 from core.equipment.mhgen.tables import ExecutableNeeds
 
@@ -53,8 +54,11 @@ class PreparedPack:
         return ExtraModels({key: tuple(models) for key, models in weapons.items()}, armor)
 
     def gen_looks(self) -> GenLooks:
-        """The pack's looks for layered equipment."""
-        return looks.gen_looks(self.catalog, self.plan, self.same)
+        """The pack's looks for layered equipment, with XX's weapons identical to a model of MH4U no look of MH4U
+        wears."""
+        mh4u = load_looks().weapons
+        return looks.gen_looks(self.catalog, self.plan, self.same,
+                               {key: {look.model for look in class_looks} for key, class_looks in mh4u.items()})
 
     def to_json(self) -> dict:
         needs = self.needs

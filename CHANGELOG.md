@@ -9,6 +9,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### Item wheel
 - The item wheel starts off in a new character; turn it on in Mod Settings, Radial Menu.
+- With the Flick or Release trigger, the wheel uses the item the stick points at when let go.
+- The wheel's gold shows the item it will use, and nothing on a push too light to use one.
 
 ### Layered Gear
 - Layered Gear gains Nargacuga's and Silverwind Nargacuga's looks from Monster Hunter XX.
@@ -25,7 +27,9 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - Both saves are backed up on the SD card before anything changes.
 - It marks a slot holding a different hunter in each game, since they would overwrite each other's sets.
 - When MH4U is on both the cartridge and the SD card, the launcher asks which one to use.
-- Bringing your MH4U save says plainly it replaces all three hunters, and names the backup folder.- The program backs up your saves before it installs or updates the mod.
+- Bringing your MH4U save says plainly it replaces all three hunters, and names the backup folder.
+- On a 3DS, the launcher's More menu turns the cheats on or off without reinstalling the game.
+- The program backs up your saves before it installs or updates the mod.
 - Your Housekeeper has a Jukebox: one song or a playlist of the game's music plays in the towns.
 - With Monster Hunter XX's game, the Jukebox can also have its monster, area, town and hall themes.
 - A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
@@ -46,6 +50,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The 3DS launcher no longer says there is no internet when the console's date is wrong.
 - The 3DS launcher still finds updates when GitHub limits requests from your network.
 - The town map's place name no longer shows over the fade to black and the loading screen.
+- While the game loads your hunter, its Layered Gear keeps its colors, not the real armor's.
+- Trying on Layered Gear no longer shows your worn look in the new color for a moment.
 - Holding A in the Wyporium's Claim Items no longer leaves old icons behind or hides the item's details.
 - In Claim Items, the item's icon stays inside its details panel at wide aspect ratios (emulator only).
 - At wide aspect ratios, monsters' marks stay on the moved minimap instead of hiding under it (emulator only).

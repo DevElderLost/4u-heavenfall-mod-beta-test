@@ -34,11 +34,19 @@
   },
   "default_trigger": {
     "value": 0,
-    "description": "How a direction is chosen in a new character: 0 Tilt (the item is used as the stick stays out for dwell_frames at fire_magnitude), 1 Flick (push into a direction and let the stick go within flick_window: that direction's item is used on the release; held longer, nothing is used), 2 Release (the same, with no time limit), 3 ZR (the stick only points; a press of ZR uses the slot it points at, from draw_mark_magnitude, and ZR does nothing else while L is held). It is stored in the save, where Configuration's Trigger changes it."
+    "description": "How a direction is chosen in a new character: 0 Tilt (the item is used as the stick stays out for dwell_frames at fire_magnitude), 1 Flick (push into a direction and let the stick go within flick_window: the item of the direction it points at when let go is used; held longer, nothing is used), 2 Release (the same, with no time limit), 3 ZR (the stick only points; a press of ZR uses the slot it points at, from draw_mark_magnitude, and ZR does nothing else while L is held). It is stored in the save, where Configuration's Trigger changes it."
   },
   "flick_window": {
     "value": 15,
     "description": "How long a Flick may last, in the game's own time: its timers count 60 per second at any frame rate (FUN_00b0709c takes away the frame's share), so 15 is a quarter of a second. It starts when the push has held a direction for dwell_frames at fire_magnitude and ends when the stick falls under rearm_magnitude; past it the push is cancelled until the stick is back at rest. A thumb's flick lasts about 0.1 to 0.2 s and a push held on purpose longer, so a quarter second keeps the first and drops the second. 1 to 3600."
+  },
+  "release_frames": {
+    "value": 2,
+    "description": "Flick and Release: consecutive frames the stick must stay under rearm_magnitude before it counts as let go and the aimed item is used, so a stick crossing the middle on its way to the opposite slot is not a release. Its flick clock stops while it rests; L let go during them still uses the item (the stick came back first). 1 uses it on the first frame. 1 to 255."
+  },
+  "zr_trigger_reads": {
+    "value": 8,
+    "description": "The trigger ZR: with the console's L held, a new press of ZR is the wheel's (taken from the game) for this many pad updates after the hunter's input update last ran with the trigger ZR, so a press in L's first frame, before the update has seen L, and one in a frame the game skipped the update in are the wheel's too; past it (the quest left) L + ZR is the game's again. The pad updates once a frame: 8 is a quarter of a second at 30 frames per second. 1 to 255."
   },
   "editor_point_magnitude": {
     "value": 50,
@@ -134,7 +142,7 @@
   },
   "draw_mark_magnitude": {
     "value": 30,
-    "description": "The C-stick's magnitude (0 to 127) from which the slot in the stick's direction is chosen (its gold diamond and glow, the needle, its name larger and gold); 30 is the game's dead zone, so any push chooses one. Under it nothing is highlighted. With the trigger ZR a press of ZR uses that slot from this magnitude too, so ZR uses the slot shown in gold (1 to 127)."
+    "description": "The trigger ZR: the C-stick's magnitude (0 to 127) from which the slot in the stick's direction is chosen (its gold diamond and glow, the needle, its name larger and gold) and a press of ZR uses it, so ZR uses the slot shown in gold; 30 is the game's dead zone, so any push chooses one. Under it nothing is highlighted. The other triggers show the gold on the slot they will use, from fire_magnitude (radial_wheel.c wheel_frame). 1 to 127."
   },
   "draw_dark_icon": {
     "value": 0.55,

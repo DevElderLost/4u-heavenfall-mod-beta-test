@@ -65,9 +65,11 @@ SLOT_SIZE = 0x40
 CARD_LEFT_AT = 0xD0
 assert LOG_AT + 16 * LOG_RING == BETA_SIDECAR_STATE_SIZE
 SENTINEL = 16                   # beta_sidecar.c read_file: the bytes past an image a read may fill
+NO_SLOT = 0xFF                  # beta_sidecar.c: a note of no slot (the cheats' flag)
 assert BETA_SIDECAR_CARD_SIZE == 2 * files.CARD_EXTRAS_SIZE + SENTINEL
 
-SITES = {1: "split user", 2: "split card", 3: "join user", 4: "join card", 5: "sweep"}
+# 6: the cheats' flag read (beta_cheats_flag): "done" it allows them, "nothing" no file, "refused" a file that does not
+SITES = {1: "split user", 2: "split card", 3: "join user", 4: "join card", 5: "sweep", 6: "cheats flag"}
 WHATS = {1: "done", 2: "nothing", 3: "no extdata", 4: "refused", 5: "no image", 6: "other hunter",
          7: "as it is", 8: "newer ignored", 9: "keep joined", 10: "flag failed", 11: "read failed", 12: "kept failed",
          13: "original failed", 14: "write failed", 15: "core failed", 16: "not known",
@@ -105,7 +107,9 @@ class Note:
 
     def text(self) -> str:
         bits = ", ".join(bit_names(self.bits, self.site))
-        return (f"{SITES.get(self.site, self.site)} {self.slot + 1}: {WHATS.get(self.what, self.what)}"
+        site = SITES.get(self.site, self.site)
+        where = site if self.slot == NO_SLOT else f"{site} {self.slot + 1}"
+        return (f"{where}: {WHATS.get(self.what, self.what)}"
                 f"{f' ({bits})' if bits else ''}  core {self.core}  io {self.io & 0xFFFFFFFF:#x}"
                 f"  generation {self.generation}")
 

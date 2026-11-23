@@ -521,7 +521,8 @@ static int title_copy_flow(int quiet) {
  *   io::copyFile opens an FSStream with the source's size; fsstream.cpp: FSUSER_OpenFile, failing that
  *   FSUSER_CreateFile with the size and FSUSER_OpenFile again, FSFILE_Write with flags 0, FSFILE_Flush,
  *   FSFILE_Close): an extdata file keeps the size it was made with, so it is deleted and made again with its size.
- *   UTF-16 paths, as Checkpoint's. Only an id hf_extdata_ours takes is ever written; MH4U's are only read;
+ *   UTF-16 paths, as Checkpoint's. Only an id hf_extdata_ours takes is ever written; MH4U's are only read, bar
+ *   the one cheats file (hf_extdata_file_ok; cheat_flag_* below);
  * * the backup on the card as the app's other files there (sd_write_whole). */
 
 #define BRING_LISTED 64   /* the files of an extdata: the game makes its with room for 0x40 */
@@ -1532,4 +1533,107 @@ void saves_mh4u_page(void) {
         else if (id == SV_TO) to_mh4u_flow();
         else if (id == SV_UNDO) to_undo_flow();
     }
+}
+
+/* ---- More's Cheats: the game's cheats file ----
+ * The game always carries the Cheats group, hidden and inert, and shows it while the 16-byte file `hfcheat` of its
+ * extdata (Heavenfall's own for an edition that plays on it, else MH4U's) says on. Only that one name is ever written
+ * into MH4U's extdata (hf_extdata_file_ok), created at 16 bytes when missing, written in place, never deleted. */
+
+/* Opens the installed title's extdata: 1 when it opened (the game has made it). */
+static int cheat_flag_archive(FS_Archive *ar, u32 *id) {
+    int region = installed_region();
+    if (region < 0) {
+        LOG("cheats file: no title installed");
+        return 0;
+    }
+    if (app_edition()->own_save) *id = region == REGION_USA ? HF_HEAVENFALL_EXTDATA_USA : HF_HEAVENFALL_EXTDATA_EUR;
+    else *id = region == REGION_USA ? HF_MH4U_EXTDATA_USA : HF_MH4U_EXTDATA_EUR;
+    return R_SUCCEEDED(open_extdata(ar, *id));
+}
+
+static FS_Path cheat_flag_path(u16 wide[HF_CHEAT_FLAG_SIZE]) {
+    size_t i;
+    wide[0] = '/';
+    for (i = 0; HF_CHEAT_FLAG_NAME[i]; i++) wide[i + 1] = (u8)HF_CHEAT_FLAG_NAME[i];
+    wide[i + 1] = 0;
+    return fsMakePath(PATH_UTF16, wide);
+}
+
+/* The file's state in an open extdata: CHEAT_FLAG_ON, OFF (a file that says off or is not valid) or MISSING. */
+static int cheat_flag_read(FS_Archive ar) {
+    Handle h;
+    u16 wide[HF_CHEAT_FLAG_SIZE];
+    uint8_t buf[HF_CHEAT_FLAG_SIZE];
+    u32 got = 0;
+    Result rc = FSUSER_OpenFile(&h, ar, cheat_flag_path(wide), FS_OPEN_READ, 0);
+    if (R_FAILED(rc)) {
+        LOG("cheats file: not there (0x%08lX)", (unsigned long)rc);
+        return CHEAT_FLAG_MISSING;
+    }
+    rc = FSFILE_Read(h, &got, 0, buf, sizeof buf);
+    FSFILE_Close(h);
+    if (R_FAILED(rc)) got = 0;
+    LOG("cheats file: read %lu bytes", (unsigned long)got);
+    return hf_cheat_flag_parse(buf, got) ? CHEAT_FLAG_ON : CHEAT_FLAG_OFF;
+}
+
+/* Writes the file in an open extdata of `id`; 1 when written. */
+static int cheat_flag_write(FS_Archive ar, u32 id, int on) {
+    Handle h;
+    u16 wide[HF_CHEAT_FLAG_SIZE];
+    uint8_t buf[HF_CHEAT_FLAG_SIZE];
+    u32 put = 0;
+    int bad;
+    Result rc;
+    if (!hf_extdata_file_ok(id, HF_CHEAT_FLAG_NAME)) {
+        LOG("cheats file: write refused (extdata %08lX)", (unsigned long)id);
+        return 0;
+    }
+    hf_cheat_flag_encode(on, buf);
+    rc = FSUSER_OpenFile(&h, ar, cheat_flag_path(wide), FS_OPEN_WRITE, 0);
+    if (R_FAILED(rc)) {
+        LOG("cheats file: not there, creating it (0x%08lX)", (unsigned long)rc);
+        if (R_FAILED(rc = FSUSER_CreateFile(ar, cheat_flag_path(wide), 0, HF_CHEAT_FLAG_SIZE)) ||
+            R_FAILED(rc = FSUSER_OpenFile(&h, ar, cheat_flag_path(wide), FS_OPEN_WRITE, 0))) {
+            LOG("cheats file: not made: 0x%08lX", (unsigned long)rc);
+            return 0;
+        }
+    }
+    bad = R_FAILED(FSFILE_Write(h, &put, 0, buf, sizeof buf, 0)) || put != sizeof buf || R_FAILED(FSFILE_Flush(h));
+    FSFILE_Close(h);
+    LOG("cheats file: %s written: %s", on ? "on" : "off", bad ? "failed" : "done");
+    return !bad;
+}
+
+void cheat_flag_refresh(void) {
+    FS_Archive ar;
+    u32 id = 0;
+    HfInstalled rec;
+    int have_rec;
+    app.status.cheat_flag = CHEAT_FLAG_NO_EXTDATA;
+    if (!app.status.title_installed || !cheat_flag_archive(&ar, &id)) return;
+    app.status.cheat_flag = cheat_flag_read(ar);
+    have_rec = read_installed_record(&rec);
+    if (hf_cheat_flag_migrates(have_rec ? &rec : NULL, app.status.cheat_flag != CHEAT_FLAG_MISSING)) {
+        LOG("cheats file: the 0.2.1 record had the cheats on: writing the file once");
+        if (cheat_flag_write(ar, id, 1)) app.status.cheat_flag = cheat_flag_read(ar);
+    }
+    FSUSER_CloseArchive(ar);
+    LOG("cheats file: state %d", app.status.cheat_flag);
+}
+
+int cheat_flag_set(int on) {
+    FS_Archive ar;
+    u32 id = 0;
+    int ok;
+    if (!cheat_flag_archive(&ar, &id)) {
+        app.status.cheat_flag = CHEAT_FLAG_NO_EXTDATA;
+        return 0;
+    }
+    ok = cheat_flag_write(ar, id, on) && (cheat_flag_read(ar) == CHEAT_FLAG_ON) == (on != 0);
+    app.status.cheat_flag = cheat_flag_read(ar);
+    FSUSER_CloseArchive(ar);
+    LOG("cheats file: asked %d, state %d: %s", on, app.status.cheat_flag, ok ? "ok" : "failed");
+    return ok;
 }

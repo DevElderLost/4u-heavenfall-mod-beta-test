@@ -30,7 +30,7 @@ The original files are never modified; every run starts from them.
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from core.equipment.layered import felyne_looks
@@ -262,9 +262,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     `settings.layered_by_rank`, all at once without it. `progress` and `console` are kept for the installer's sake:
     Heavenfall Beta counts nothing and makes no Luma3DS mod. `title_build`: the mod is for a real 3DS as an installed
     title (install/title/build_title.py): the emulator's form, with the settings a console can use
-    (Settings.for_console: no single-screen mode) and the START menu's rows a console allows; its executable reads the
-    game from the game data title and the mod's files from its own RomFS first (install/title/split_romfs.py), and its
-    exheader may open the game data title. `probe`: a developer probe's own patch, after the mod's (Probe). A module
+    (Settings.for_console: no single-screen mode) and the START menu's rows a console allows, the Cheats group always,
+    shown and on only once the launcher's flag file allows it (mod_options.py patch_mod_options); its executable reads
+    the game from the game data title and the mod's files from its own RomFS first (install/title/split_romfs.py), and
+    its exheader may open the game data title. `probe`: a developer probe's own patch, after the mod's (Probe). A module
     whose switch is off in `settings` has every field of it at the game's own value (presets.apply_modules) and no row
     in the START menu's page. Layered Gear's new items are defined in every run, its module on or off, so the
     executable is written even with every module off."""
@@ -295,7 +296,14 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     # every mod carries them, with the Settings values as the defaults of a character with no choice. The page needs the
     # executable's extension (the exheader)
     in_menu = player.exheader is not None and supports_mod_options(code)
-    menu_options = [key for key in available_options(code, settings, title_build) if key not in off] if in_menu else []
+    # the save's sidecars (below), whose code also reads the launcher's cheats flag
+    with_sidecar = player.exheader is not None and supports_beta_sidecar(code)
+    # A 3DS title has the Cheats group behind that flag (More > Cheats turns it on and off without a new title), never
+    # by the settings' switch, which is the emulator's
+    cheats_gate = title_build and with_sidecar
+    shown = replace(settings, cheats_enabled=False) if title_build else settings
+    menu_options = [key for key in available_options(code, shown, title_build, cheats_gate=cheats_gate)
+                    if key not in off] if in_menu else []
     if not in_menu:
         notices.append(left_out("Mod Settings", "the cheats, the lock-on with L and holding A are left out",
                                 NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
@@ -362,7 +370,6 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     # (save/beta_sidecar.py). No option: every run has it; its blocks are in the extension, which needs the game's
     # exheader. Without it the game keeps MH4U's plain save (no mod content in it either: Layered Gear and the
     # Jukebox need the extension too)
-    with_sidecar = player.exheader is not None and supports_beta_sidecar(code)
     if not with_sidecar:
         notices.append(left_out("the save's extra files", "the game keeps MH4U's plain save",
                                 NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
@@ -452,7 +459,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             if wheel:       # its blocks, its picture's entry and its screens, which the page's Radial Menu row opens
                 patched = patch_radial_menu(patched)
             if in_menu:
-                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on, wheel=wheel)
+                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on, wheel=wheel,
+                                            cheats_gate=cheats_gate)
             if appearance_peek:     # the hunter edit's calls of its View Mode, to the block patch_mod_options placed
                 patched = patch_appearance_peek(patched, peek_word)
             if tree:        # the START menu's row chooses the view: its gates stand before the tree's entries

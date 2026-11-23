@@ -5,7 +5,7 @@ own Python (standard library only):
 
 Makes the release's shared file (core/install/title/shared_file.py) from this checkout's songs into --shared-out and
 checks every patch set the edition file names in --sets: present, a release's set (format 3) whose whole-set hash
-holds, of this version and of the edition, of the region, MH XX and cheats its name says, made from this checkout's
+holds, of this version and of the edition, of the region and MH XX its name says, made from this checkout's
 `core/` files (its source stamp, recomputed from the files git lists) and reading this shared file or none. Each
 problem is printed; the exit code is 1 when there is any.
 """
@@ -31,9 +31,8 @@ EDITION_FILE = "core/game/data/curated/edition.json"
 MAGIC = b"HFPS"
 FORMAT_SHARED = 3                    # core/install/title/patchset.py
 HEADER = 0x100
-FLAG_CHEATS = 1
 REGIONS = {"eur": 0, "usa": 1}
-PATCH_KEY = re.compile(r"patch_(eur|usa)(_xx)?(_cheats)?")
+PATCH_KEY = re.compile(r"patch_(eur|usa)(_xx)?")
 
 
 def program_version(root: Path) -> str:
@@ -44,20 +43,20 @@ def program_version(root: Path) -> str:
     return found.group(1)
 
 
-def expected_sets(edition: dict) -> dict[str, tuple[int, bool, bool]]:
-    """{set name: (region, MH XX, cheats)} of every patch set the edition file names."""
+def expected_sets(edition: dict) -> dict[str, tuple[int, bool]]:
+    """{set name: (region, MH XX)} of every patch set the edition file names."""
     out = {}
     for key, name in edition["console_release"].items():
         match = PATCH_KEY.fullmatch(key)
         if match:
-            out[name] = (REGIONS[match.group(1)], bool(match.group(2)), bool(match.group(3)))
+            out[name] = (REGIONS[match.group(1)], bool(match.group(2)))
     return out
 
 
-def check_set(name: str, blob: bytes, want: tuple[int, bool, bool], app_name: str, version: str, stamp: bytes,
+def check_set(name: str, blob: bytes, want: tuple[int, bool], app_name: str, version: str, stamp: bytes,
               shared: bytes) -> list[str]:
     """What is wrong with the set `name` (its bytes `blob`): [] when nothing."""
-    region, xx, cheats = want
+    region, xx = want
     if len(blob) < HEADER or blob[:4] != MAGIC:
         return [f"{name} is not a patch set"]
     form, made_region = struct.unpack_from("<II", blob, 4)
@@ -77,8 +76,8 @@ def check_set(name: str, blob: bytes, want: tuple[int, bool, bool], app_name: st
         problems.append(f"{name} holds the set of the other region")
     if bool(title) != xx:
         problems.append(f"{name}: its name and its header differ on MH XX")
-    if bool(flags & FLAG_CHEATS) != cheats:
-        problems.append(f"{name}: its name and its header differ on the cheats")
+    if flags:   # every console title carries the Cheats group: no set records a cheats variant
+        problems.append(f"{name}: its header has flags {flags:#x}, a set of a release has none")
     if made_from != stamp:
         problems.append(f"{name} was made from other code than this tree's core/ (stamp {made_from.hex()[:16]}, the "
                         f"tree's {stamp.hex()[:16]})")
