@@ -5,7 +5,8 @@
  * the end: the same tree in ui020's big list frame group, its own state radial_menu_state, its own places, the pouch
  * the menu shows for the quantities, every slot's diamond kept as a target and the gold on the editor's slot).
  *
- * A unit of the wheel's block (radial_wheel.c), in two halves:
+ * A unit of the wheel's block (radial_wheel.c), in two halves (and the wheel's step's two marks before them,
+ * radial_mark_craftable and radial_mark_chosen):
  *   - radial_seen(hunter, choices), from the wheel's entry in the local hunter's input update, once a frame: it keeps
  *     the hunter and whether the wheel is open (the item mode's bit in the hunter's actions word, the wheel's on / off
  *     choice) for this frame;
@@ -20,11 +21,11 @@
  *   - its quantity at the picture's bottom right (FUN_005e588c, at most 99), in the curated count colour, or 0 in the
  *     curated grey for an item not carried;
  *   - its item name (FUN_005a86f8, the item selector's own call) in the slot's own text.
- * The slot in the stick's direction (the pad object's angle and magnitude, as radial_wheel.c reads them; from the
- * curated magnitude on) is the chosen one, when it holds an item: its diamond gives way to the gold one (larger) with
+ * The slot of the sector the wheel's step gave radial_mark_chosen this frame (the one its trigger uses: radial_wheel.c
+ * wheel_frame) is the chosen one, when it holds an item: its diamond gives way to the gold one (larger) with
  * the gold glow behind it, its picture is drawn larger, its sector's needle shows, and its name gives way to the
- * larger gold name (the big name's null moved to that slot's place, with the text of that slot's alignment). With the
- * stick at rest nothing is highlighted.
+ * larger gold name (the big name's null moved to that slot's place, with the text of that slot's alignment). With no
+ * sector given (the stick at rest, a push that uses nothing) nothing is highlighted.
  *
  * The group is found by its index in the GUI manager and its name hash, never kept beyond a frame's check: the next
  * quest loads a new one. Its cache flag is cleared, so the GUI walks its panes every frame and plain writes of the
@@ -48,8 +49,10 @@
  * at + 0x40.. (a word each: red, green, blue, alpha from the low byte), bit 0x80 of + 0x58 shown (the other bits are
  * its draw primitive and are never written). A text's holder null is the text pane's next sibling.
  *
- * The root null's place and scale come from the choices' position and size (radial_draw.py wheel_places: at the right
- * and at the bottom left the wheel keeps to the screen's edges at every size).
+ * The root null's place and scale come from the choices' position, size and text size (radial_draw.py wheel_places: at
+ * the right and at the bottom left the wheel keeps to the screen's edges at every size, and a size that would leave the
+ * screen is drawn at the largest that fits). The text size scales the 8 name nulls and the big name's null and moves
+ * them so each name keeps to its diamond (radial_draw.py name_box): written with the root's place.
  *
  * A slot's craft mark (a plus of the game's item sheet at the top right of its picture) shows when its bit of the mask
  * the wheel last gave radial_mark_craftable is set and the slot has an item; the mask is 0 until the wheel gives one.
@@ -74,8 +77,11 @@ typedef int s32;
 #define BIG_TEXTS 3             /* radial_draw.py BIG_TEXTS: left-aligned, right-aligned, centred */
 #define BODY_PANES 3            /* radial_draw.py MENU_BODY: the frame's two sides and its middle */
 #define MENU_LAYOUTS 2          /* radial_draw.py MENU_LAYOUTS: Edit Slots' centred and small wheels */
-#define MENU_PLACE (POSITIONS * MAX_SIZES)      /* a place from here is a menu layout's: + size centred,
-                                                   + MAX_SIZES + size small */
+#define QUEST_PLACES (4 * MAX_SIZES)            /* a text size's places in a quest: position * MAX_SIZES + size (the
+                                                   positions' room a power of two: the ARM11 has no divide) */
+#define MENU_PLACE (MAX_TEXTS * QUEST_PLACES)   /* a place from here is a menu layout's: text * MENU_PLACES + size
+                                                   centred, + MAX_SIZES + size small */
+#define MENU_PLACES (MENU_LAYOUTS * MAX_SIZES)
 
 enum { LAYOUT_HIDDEN, LAYOUT_CENTRED, LAYOUT_SMALL };          /* radial_menu_wheel's layouts (radial_choices.h) */
 
@@ -107,13 +113,15 @@ struct draw_data {              /* radial_draw_data (radial_draw.py draw_data) *
     u32 children[CHILDREN];     /* ... of the null's children, in order */
     u32 names[SLOTS];           /* ... of each name null's text */
     u32 big[BIG_TEXTS];         /* ... of the big name's texts */
-    u32 place[POSITIONS][MAX_SIZES][3]; /* the null's x, y and scale (floats) at each position, by size */
+    u32 place[MAX_TEXTS][POSITIONS][MAX_SIZES][3];      /* the null's x, y and scale (floats) by text size,
+                                                           position and size */
     u32 slot_at[SLOTS][2];      /* each slot's middle in the null (floats) */
-    u32 big_at[SLOTS][2];       /* the big name's null at each slot (floats) */
+    u32 name_at[MAX_TEXTS][SLOTS][2];   /* each slot's name null by text size (floats) */
+    u32 big_at[MAX_TEXTS][SLOTS][2];    /* the big name's null at each slot by text size (floats) */
+    u32 text_scale[MAX_TEXTS];  /* floats: the names' nulls' scale at each text size */
     struct cell digits[10];
     u32 marked_scale;           /* float: the chosen slot's picture */
     u32 reserve;                /* free places the pane pool must have */
-    u32 look;                   /* the stick's magnitude from which a slot is chosen */
     u32 count_tint[2];          /* the quantity's colour word: carried, not carried */
     u32 dark;                   /* of 256: the share of red, green and blue a picture keeps when not carried */
     u8 sector_to_slot[8];
@@ -122,8 +130,8 @@ struct draw_data {              /* radial_draw_data (radial_draw.py draw_data) *
     u32 menu_frame;             /* ... of its frame's null */
     u32 menu_body[BODY_PANES];  /* ... of the frame's sides and middle, the null's children */
     u32 menu_strips;            /* ... of the rows' strips' null, the group's child */
-    u32 menu_place[MENU_LAYOUTS][MAX_SIZES][3]; /* the root null's x, y and scale (floats): centred, small at the
-                                                   left, by size */
+    u32 menu_place[MAX_TEXTS][MENU_LAYOUTS][MAX_SIZES][3];      /* the root null's x, y and scale (floats) by text
+                                                                   size: centred, small at the left, by size */
 };
 
 struct draw_state {             /* radial_draw_state and the start of radial_menu_state, written here only */
@@ -134,7 +142,8 @@ struct draw_state {             /* radial_draw_state and the start of radial_men
     u16 big_item;               /* the item the big name holds */
     u8 grey;                    /* bit k: slot k's item is not carried (its picture darker, its 0 grey) */
     u8 marked;                  /* the chosen slot, or NO_SLOT */
-    u8 place;                   /* the position * MAX_SIZES + the size: where the null was put */
+    u8 place;                   /* where the null was put: the text size * QUEST_PLACES + the position * MAX_SIZES +
+                                   the size, or a menu layout's (MENU_PLACE) */
     u8 painted;                 /* the group's panes hold the fields above (0: paint everything) */
     u8 open;                    /* the input update saw the wheel open this frame */
     u8 big_text;                /* the big name's text shown, NO_SLOT none */
@@ -142,6 +151,7 @@ struct draw_state {             /* radial_draw_state and the start of radial_men
     u8 craft_drawn;             /* bit k: slot k's craft mark is shown */
     u16 refusals;               /* frames a change was left undone for lack of room in the pane pool */
     u16 paints;                 /* slots drawn */
+    u8 chosen;                  /* the sector the wheel gave for the gold (radial_mark_chosen), NO_SLOT none */
 };
 
 struct menu_state {             /* radial_menu_state, written here only */
@@ -152,14 +162,14 @@ struct menu_state {             /* radial_menu_state, written here only */
     u8 shown;                   /* the root null is shown */
 };
 
-_Static_assert(sizeof(struct draw_data) == 1188, "blocks.py RADIAL_DRAW_DATA_SIZE, radial_draw.py DATA");
+_Static_assert(sizeof(struct draw_data) == 3088, "blocks.py RADIAL_DRAW_DATA_SIZE, radial_draw.py DATA");
 _Static_assert(sizeof(struct draw_state) == 48, "blocks.py radial_draw_state");
 _Static_assert(sizeof(struct menu_state) == 52, "blocks.py radial_menu_state");
 
 extern const struct draw_data radial_draw_data;
 extern struct draw_state radial_draw_state;
 extern struct menu_state radial_menu_state;
-extern u32 gui_control, pad_control, item_control, game_control, health_binder;
+extern u32 gui_control, item_control, game_control, health_binder;
 extern char start_list_ui[];                                    /* the START menu's list binder */
 extern char start_menu[];                                       /* the START menu's object */
 
@@ -181,8 +191,6 @@ int radial_choices(struct choices *out);                        /* radial_wheel.
 #define PLAYER_STATUS 0xE30             /* hunter -> p, as in radial_wheel.c */
 #define P_ACTIONS 0x3CC
 #define ITEM_MODE 0x800u
-#define PAD_ANGLE 0x32E
-#define PAD_MAGNITUDE 0x33A
 #define GAME_MODE 0x2B                  /* sGameControl: 1 in a quest */
 #define QUEST_MODE 1
 #define LIST_FRAME_GROUP 0xD            /* start_list_ui's group of the big list's frame (mod_settings.c GROUP_FRAME) */
@@ -263,6 +271,13 @@ void radial_seen(u32 hunter, const struct choices *choices)
 void radial_mark_craftable(u32 mask)
 {
     radial_draw_state.craft = mask & ((1u << SLOTS) - 1);
+}
+
+/* The wheel's step says, before radial_seen each frame, the sector its trigger would use (radial_wheel.c wheel_frame),
+ * or none: that sector's slot is the gold one. */
+void radial_mark_chosen(u32 sector)
+{
+    radial_draw_state.chosen = sector < SLOTS ? sector : NO_SLOT;
 }
 
 /* ---- the group and its panes */
@@ -377,19 +392,36 @@ static void text_paint(u32 group, u32 text, u32 item, int on)
         redraw(group, holder);
 }
 
-/* The null's place and size: the centre, the right or the bottom left of the screen, at the chosen size; or one of
- * Edit Slots' layouts */
-static void paint_place(u32 root, u32 place)
+/* The text size of a place */
+static u32 place_text(u32 place)
 {
-    const struct draw_data *draw = &radial_draw_data;
-    u32 menu = place - MENU_PLACE;
-    const u32 *at = place >= MENU_PLACE ? draw->menu_place[(menu / MAX_SIZES) % MENU_LAYOUTS][menu % MAX_SIZES]
-                                        : draw->place[(place / MAX_SIZES) % POSITIONS][place % MAX_SIZES];
-    u32 data = W(root, PANE_DATA);
+    return (place >= MENU_PLACE ? (place - MENU_PLACE) / MENU_PLACES : place / QUEST_PLACES) % MAX_TEXTS;
+}
+
+static void null_place(u32 pane, const u32 *at, u32 scale)
+{
+    u32 data = W(pane, PANE_DATA);
     W(data, NULL_X) = at[0];
     W(data, NULL_Y) = at[1];
-    W(data, NULL_SCALE) = at[2];
-    W(data, NULL_SCALE + 4) = at[2];
+    W(data, NULL_SCALE) = scale;
+    W(data, NULL_SCALE + 4) = scale;
+}
+
+/* The null's place and size: the centre, the right or the bottom left of the screen, at the chosen size; or one of
+ * Edit Slots' layouts; and the names' nulls at the place's text size (the big name's moves to its slot in paint_mark) */
+static void paint_place(const struct panes *panes, u32 place)
+{
+    const struct draw_data *draw = &radial_draw_data;
+    u32 text = place_text(place), menu = (place - MENU_PLACE) % MENU_PLACES, quest = place % QUEST_PLACES;
+    const u32 *at = place >= MENU_PLACE ? draw->menu_place[text][menu / MAX_SIZES][menu % MAX_SIZES]
+                                        : draw->place[text][quest / MAX_SIZES < POSITIONS ? quest / MAX_SIZES : 0]
+                                                     [quest % MAX_SIZES];
+    null_place(panes->root, at, at[2]);
+    for (u32 slot = 0; slot < SLOTS; slot++)
+        null_place(panes->child[NAMES + slot], draw->name_at[text][slot], draw->text_scale[text]);
+    u32 big = W(panes->child[BIG], PANE_DATA);
+    W(big, NULL_SCALE) = draw->text_scale[text];
+    W(big, NULL_SCALE + 4) = draw->text_scale[text];
 }
 
 /* A colour word with its red, green and blue kept at `dark` of 256, its alpha as it was */
@@ -482,12 +514,12 @@ static void observe(struct want *want, u32 hunter, const struct choices *choices
     for (u32 slot = 0; slot < SLOTS; slot++)
         if (want->item[slot])
             want->craft |= radial_draw_state.craft & (1u << slot);
-    want->place = (choices->position < POSITIONS ? choices->position : 0) * MAX_SIZES +
+    want->place = (choices->text < MAX_TEXTS ? choices->text : 0) * QUEST_PLACES +
+                  (choices->position < POSITIONS ? choices->position : 0) * MAX_SIZES +
                   (choices->size < MAX_SIZES ? choices->size : 0);
-    u32 pad = pad_control;
-    u32 angle = pad ? H(pad, PAD_ANGLE) : 0, magnitude = pad ? H(pad, PAD_MAGNITUDE) : 0;
-    u32 slot = radial_draw_data.sector_to_slot[((angle + 0x1000) >> 13) & 7] & 7;
-    want->marked = magnitude >= radial_draw_data.look && want->item[slot] ? slot : NO_SLOT;
+    u32 sector = radial_draw_state.chosen;
+    u32 slot = sector < SLOTS ? radial_draw_data.sector_to_slot[sector] & 7 : NO_SLOT;
+    want->marked = slot != NO_SLOT && want->item[slot] ? slot : NO_SLOT;
 }
 
 static int slot_changed(const struct draw_state *state, const struct want *want, u32 slot)
@@ -552,8 +584,9 @@ static void paint_mark(u32 group, const struct panes *panes, struct draw_state *
     if (!named)
         return;
     u32 data_big = W(big, PANE_DATA), text = data->big_text[slot] < BIG_TEXTS ? data->big_text[slot] : 0;
-    W(data_big, NULL_X) = data->big_at[slot][0];
-    W(data_big, NULL_Y) = data->big_at[slot][1];
+    const u32 *big_at = data->big_at[place_text(want->place)][slot];
+    W(data_big, NULL_X) = big_at[0];
+    W(data_big, NULL_Y) = big_at[1];
     for (u32 t = 0; t < BIG_TEXTS; t++)
         if (t != text && (fresh || state->big_text == NO_SLOT || t == state->big_text))
             text_paint(group, panes->big[t], 0, 0);
@@ -565,15 +598,16 @@ static void paint_mark(u32 group, const struct panes *panes, struct draw_state *
 
 static void paint(u32 group, const struct panes *panes, struct draw_state *state, const struct want *want, int fresh)
 {
-    if (fresh || state->place != want->place)
-        paint_place(panes->root, want->place);
+    int moved = fresh || state->place != want->place;
+    if (moved)
+        paint_place(panes, want->place);
     for (u32 slot = 0; slot < SLOTS; slot++) {
         if (!fresh && !slot_changed(state, want, slot))
             continue;
         paint_slot(group, panes, state, want, slot, fresh);
         state->paints++;
     }
-    if (fresh || state->marked != want->marked ||
+    if (moved || state->marked != want->marked ||
         (want->marked != NO_SLOT && state->big_item != want->item[want->marked]))
         paint_mark(group, panes, state, want, fresh);
     for (u32 slot = 0; slot < SLOTS; slot++) {
@@ -682,7 +716,8 @@ static void observe_menu(struct want *want, const struct choices *choices, u32 l
             want_count(want, slot, slot == want->marked && preview_item && preview_item < ITEM_LIMIT
                                        ? (s32)(preview_count > MAX_COUNT ? MAX_COUNT : preview_count)
                                        : menu_count(want->item[slot]));
-    want->place = MENU_PLACE + (layout - LAYOUT_CENTRED) * MAX_SIZES + (choices->size < MAX_SIZES ? choices->size : 0);
+    want->place = MENU_PLACE + (choices->text < MAX_TEXTS ? choices->text : 0) * MENU_PLACES +
+                  (layout - LAYOUT_CENTRED) * MAX_SIZES + (choices->size < MAX_SIZES ? choices->size : 0);
 }
 
 static int pane_shown(u32 pane, int null)

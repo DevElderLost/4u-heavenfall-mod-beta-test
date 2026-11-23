@@ -107,6 +107,16 @@ def in_game_fields() -> list[str]:
     return list(load_presets()["in_game"])
 
 
+def intro_skip_stop() -> str:
+    """Where the intro skip (skip_intro) leaves a new character: "hall" (registered, the Gathering Hall's
+    introduction seen; the default) or "arrival" (the arrival in Val Habar, where the Caravaneer's first talk and the
+    registration play): gui_presets.json install.intro_skip_stop."""
+    stop = load_presets()["install"].get("intro_skip_stop", "hall")
+    if stop not in ("hall", "arrival"):
+        raise ValueError(f"gui_presets.json, install.intro_skip_stop: {stop}")
+    return stop
+
+
 def install_links() -> dict[str, list[str]]:
     """Installer options that write other fields with the same value (Option.links)."""
     return {k: list(v) for k, v in load_presets()["install"]["links"].items()}

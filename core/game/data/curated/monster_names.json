@@ -477,7 +477,10 @@
   "130": {"en": "Astalos", "fr": "Astalos", "es": "Astalos", "de": "Astalos", "it": "Astalos", "verified": true},
   "131": {"en": "Boltreaver Astalos", "fr": "Astalos Prince-orage", "es": "Fulmen Astalos", "de": "Blitzschlag-Astalos", "it": "Fulmen Astalos", "verified": true},
   "132": {"en": "Hellblade Glavenus", "fr": "Glavenus Lame-chaos", "es": "Glavenus Inferno", "de": "Zornklingen-Glavenus", "it": "Ignis Glavenus", "verified": true},
-  "133": {"en": "Soulseer Mizutsune", "fr": "Mizutsune Perce-âme", "es": "Tengen Mizutsune", "de": "Karmaseher-Mizutsune", "it": "Arcanum Mizutsune", "verified": true}
+  "133": {"en": "Soulseer Mizutsune", "fr": "Mizutsune Perce-âme", "es": "Tengen Mizutsune", "de": "Karmaseher-Mizutsune", "it": "Arcanum Mizutsune", "verified": true},
+  "134": {"en": "Nargacuga", "fr": "Nargacuga", "es": "Nargacuga", "de": "Nargacuga", "it": "Nargacuga", "verified": true},
+  "135": {"en": "Silverwind Nargacuga", "fr": "Nargacuga Vent-acier", "es": "Nargacuga Argénteo", "de": "Silberwind-Nargacuga", "it": "Ventus Nargacuga", "verified": true},
+  "136": {"en": "Lagiacrus", "fr": "Lagiacrus", "es": "Lagiacrus", "de": "Lagiacrus", "it": "Lagiacrus", "verified": true}
  },
  "ecology": {
   "124": {
@@ -542,6 +545,27 @@
    "es": "Este Mizutsune ha perdido la vista, pero ha\r\nsabido readaptarse y emplear sus burbujas\r\ncomo uno de sus sentidos. Dicen que tras sus\r\npárpados sellados hierve un rencor insaciable\r\ny que quienes caen presos de sus burbujas\r\ndescubren el verdadero terror que encierra\r\neste monstruo.",
    "de": "Ein Mizutsune, der im harten Überlebenskampf\r\nsein Augenlicht verloren hat und sich deshalb\r\nauf Blasen-Fähigkeiten spezialisiert hat.\r\nGerüchteweise brennt in seinen leeren Augen-\r\nhöhlen ein unstillbarer Groll. Wer von seinem\r\nSchaum umhüllt wird, versteht seinen Beinamen\r\n\"Karmaseher\"...",
    "it": "Mizutsune cieco e quasi estinto,\r\nche ha ritrovato le forze grazie\r\nall'uso di bolle. Leggenda vuole\r\nche negli occhi chiusi si celi la\r\nfiamma di un odio eterno che le\r\nvittime conoscono bene. Anche\r\ndetto \"Arcanum\"."
+  },
+  "134": {
+   "en": "Flying wyverns that have evolved to\r\nlive in thickly wooded areas. These\r\nsly beasts stalk their prey from\r\nthe shadows with ferocious speed\r\nand dogged tenacity. Their massive\r\ntails are as dexterous as they are\r\ndeadly, and powerful enough to slay\r\nsmaller monsters with one strike.",
+   "fr": "Wyverne volante qui s'est adaptée\r\nà la vie dans les forêts denses.\r\nIl traque ses proies tapi dans\r\nl'ombre avant d'attaquer avec\r\nférocité et pugnacité. Aussi agile\r\nque mortelle, son immense queue\r\nest assez puissante pour tuer de\r\npetits monstres d'un seul coup.",
+   "es": "Wyverns voladores que han\r\nevolucionado para vivir en frondosas\r\náreas boscosas. Estas bestias aladas\r\nacechan a su presa con tenacidad y a\r\ngran velocidad. Su enorme cola es\r\nletal y eliminará a monstruos más\r\npequeños de un solo coletazo.",
+   "de": "Ein Flugwyvern, der sich an das\r\nLeben in dicht bewaldeten Regionen\r\nangepasst hat. Er belauert seine\r\nBeute aus den Schatten und greift\r\nmit grausamer Geschwindigkeit und\r\nHartnäckigkeit an. Ein Schlag mit\r\nseinem beweglichen Schwanz kann\r\nfür kleinere Monster tödlich enden.",
+   "it": "Wyvern volanti evoluti per vivere in\r\nambienti boscosi. Braccano la preda\r\ndalle ombre, colpendo con grande\r\nvelocità e tenacia. La loro coda è\r\ntanto agile quanto letale e così\r\npotente da abbattere piccoli mostri\r\nin un solo colpo."
+  },
+  "135": {
+   "en": "White streaks like polish on a blade.\r\nFlashes from a tail that cleave the\r\nearth, sunder rock, and split the sky.\r\nThe \"Silverwind\" summons a gale\r\nthat slices. The careless fool is\r\nunaware, until his head falls\r\ncleanly from his shoulders.",
+   "fr": "Monstre strié de blanc, les éclairs\r\nqu'il libère traversent la terre et\r\ndéchirent le ciel. Le Vent-acier\r\npeut créer une tempête si tranchante\r\nque sa pauvre victime ne se rend\r\ncompte de rien jusqu'à ce que sa tête\r\ntombe de ses épaules.",
+   "es": "El blanquecino brillo sobre la hoja.\r\nDestellos de una cola que surca la\r\ntierra, desgarra la roca y parte el\r\ncielo. El Nargacuga Argénteo\r\ninvoca un afilado vendaval.\r\nSu víctima se da cuenta cuando\r\nsu cabeza cae de sus hombros.",
+   "de": "Mit weißen Streifen wie der Glanz\r\neiner Klinge. Blitze eines Schwanzes,\r\ndie die Erde spalten, Stein entzweien\r\nund den Himmel teilen. Der \"Silberwind\"\r\nruft einen schneidenden Sturm herbei.\r\nWer unachtsam ist, verliert da schnell\r\nseinen Kopf, buchstäblich.",
+   "it": "Mostro striato di bianco che libera\r\nlampi che attraversano la terra e\r\nsquarciano il cielo. Il \"Ventus\" evoca\r\nuna tempesta così tagliente che\r\nle sue vittime non si rendono conto\r\nquando la loro testa cade al suolo."
+  },
+  "136": {
+   "en": "Leviathans that exist at the top\r\nof the aquatic food chain. Feared by\r\nsailors as the \"Lords of the Seas,\"\r\nLagiacrus store enough electricity\r\nin their spinal organs to make the\r\noceans surge. Occasionally they can\r\nbe found resting on land as well.",
+   "fr": "Ce léviathan, que les marins\r\nsurnomment \"roi des mers\", trône\r\nau sommet de la chaîne alimentaire\r\naquatique. Le Lagiacrus stocke\r\nassez d'électricité pour soulever\r\nl'océan. Il se repose aussi parfois\r\nsur la terre ferme.",
+   "es": "Leviatanes que están en la cima\r\nde la cadena alimenticia acuática.\r\nTemidos por los marineros, y\r\nconocidos como \"Señores de los\r\nmares\", los Lagiacrus almacenan\r\nsuficiente electricidad como para\r\nsobrecargar los océanos. A veces\r\nlos verás descansando en tierra.",
+   "de": "Ein Leviathan, der das Ende der\r\naquatischen Nahrungskette bildet\r\nund von Matrosen als \"Herr der\r\nWeltmeere\" gefürchtet wird.\r\nEr speichert genug Elektrizität\r\nin seinen spinalen Organen, um\r\ndie Ozeane aufbrausen zu lassen.\r\nManchmal ruht er auch an Land.",
+   "it": "Leviathan che trionfa in cima alla\r\ncatena alimentare acquatica. Noto\r\nai marinai come \"Signore dei mari\",\r\nil Lagiacrus ha così tanta elettricità\r\nnegli organi vertebrali da smuovere\r\ngli oceani. Talvolta si riposa a terra."
   }
  }
 }

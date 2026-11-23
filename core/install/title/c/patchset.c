@@ -10,6 +10,11 @@
 #include "zlib_mini.h"
 
 #define MAGIC "HFPS"
+#define SHARED_MAGIC "HFSH"              /* the release's shared file (core/install/title/shared_file.py) */
+#define SHARED_FORMAT 1u
+#define SHARED_HEADER 0x20u
+#define SHARED_RECORD 0x38u
+#define SHARED_MAX_INDEX (1u << 20)
 #define CHUNK 65536u                     /* the size of one read or write */
 #define PS_MAX_ADD (1u << 20)            /* a literal chunk's raw size */
 #define PS_MAX_Z (PS_MAX_ADD + PS_MAX_ADD / 8 + 1024u)
@@ -83,8 +88,12 @@ struct Patchset {
     uint64_t size, ops_base;
     uint32_t format, region, zlevel;
     char edition[17], version[17];
-    uint64_t second_title;               /* format 2: the second game's title id and RomFS superblock hash */
+    uint64_t second_title;               /* format 2 (3: 0 for none): the second game's title id and RomFS hash */
     uint8_t second_hash[32];
+    uint8_t shared_sha[32];              /* format 3: the shared file the set reads (zeros: none), its size */
+    uint64_t shared_size;
+    uint8_t stamp[32];                   /* format 3: the source stamp */
+    uint32_t flags;                      /* format 3: PS_FLAG_* */
     PsSrc *src;
     size_t nsrc;
     PsPart *parts;                       /* every base's parts (format 1: one per base, made at open) */
@@ -215,7 +224,7 @@ static int record_base(Patchset *ps, uint32_t a, uint32_t b, uint32_t *first, ui
     PsPart *p;
     *first = PS_NONE;
     *count = 0;
-    if (ps->format == PS_FORMAT_SECOND) {
+    if (ps->format != PS_FORMAT) {
         if (b && (a >= ps->nparts || b > ps->nparts - a)) return TITLE_E_FORMAT;
         *first = b ? a : PS_NONE;
         *count = b;
@@ -271,7 +280,7 @@ static int parse_file(Patchset *ps, Cur *fc, const Want *want, size_t cap) {
         (rc = cur_u64(fc, &rec.ops_off)) || (rc = cur_u64(fc, &rec.ops_len)) || (rc = cur_u32(fc, &rec.arc_version)) ||
         (rc = cur_u32(fc, &rec.nent)))
         return rc;
-    if (ps->format == PS_FORMAT_SECOND && ((rc = cur_u32(fc, &count)) || (rc = cur_u32(fc, &reserved)))) return rc;
+    if (ps->format != PS_FORMAT && ((rc = cur_u32(fc, &count)) || (rc = cur_u32(fc, &reserved)))) return rc;
     if ((rc = cur_name(fc, pathlen, &path))) return rc;
     if (rec.kind > PS_FILE_ARC || !pathlen || rec.ops_off > ps->size || rec.ops_len > ps->size - rec.ops_off ||
         (rec.kind == PS_FILE_PLAIN && rec.nent) || rec.nent > 65535u)
@@ -311,7 +320,7 @@ static int parts_keep_read(Patchset *ps) {
     size_t i, n = 0;
     uint64_t total = 0;
     uint32_t k;
-    if (ps->format != PS_FORMAT_SECOND) return TITLE_OK;     /* format 1's are made for the records kept */
+    if (ps->format == PS_FORMAT) return TITLE_OK;            /* format 1's are made for the records kept */
     for (i = 0; i < ps->nfiles; i++) {
         total += ps->files[i].nparts;
         for (k = 0; k < ps->files[i].nent; k++) total += ps->files[i].ents[k].nparts;
@@ -331,6 +340,13 @@ static int parts_keep_read(Patchset *ps) {
     return TITLE_OK;
 }
 
+/* The highest source kind of the set's format: a shared file's only when the header names one. */
+static uint32_t max_kind(const Patchset *ps) {
+    if (ps->format == PS_FORMAT) return PS_SRC_CODE;
+    if (ps->format == PS_FORMAT_SECOND || !ps->shared_size) return PS_SRC_SECOND;
+    return PS_SRC_SHARED;
+}
+
 /* One source at `sc`: source `i` of the set, or only stepped over (PS_NONE). */
 static int parse_source(Patchset *ps, Cur *sc, uint32_t i) {
     const uint8_t *sha, *path;
@@ -341,8 +357,8 @@ static int parse_source(Patchset *ps, Cur *sc, uint32_t i) {
     if ((rc = cur_u32(sc, &kind)) || (rc = cur_u32(sc, &pathlen)) || (rc = cur_u64(sc, &size)) ||
         (rc = cur_take(sc, &sha, 32)) || (rc = cur_name(sc, pathlen, &path)))
         return rc;
-    if (kind > (ps->format == PS_FORMAT_SECOND ? PS_SRC_SECOND : PS_SRC_CODE) ||
-        ((kind == PS_SRC_EXHEADER || kind == PS_SRC_CODE) && pathlen))
+    if (kind > max_kind(ps) || (kind == PS_SRC_SECOND && !ps->second_title) ||
+        ((kind == PS_SRC_EXHEADER || kind == PS_SRC_CODE) && pathlen) || (kind == PS_SRC_SHARED && !pathlen))
         return TITLE_E_FORMAT;
     if (i == PS_NONE) return TITLE_OK;
     s = &ps->src[i];
@@ -383,7 +399,7 @@ static int parse_sources(Patchset *ps, Cur *sc, uint32_t nsrc, int some) {
 static int parse_tables(Patchset *ps, Cur *sc, Cur *pc, Cur *fc, uint32_t nsrc, uint32_t nfiles, const Want *want) {
     size_t i, cap = want ? want->n : nfiles;
     int rc;
-    for (i = 0; ps->format == PS_FORMAT_SECOND && i < ps->nparts; i++)
+    for (i = 0; ps->format != PS_FORMAT && i < ps->nparts; i++)
         if ((rc = cur_u32(pc, &ps->parts[i].src)) || (rc = cur_u32(pc, &ps->parts[i].entry))) return rc;
     if (pc->p != pc->end) return TITLE_E_FORMAT;
     if (!(ps->files = (PsFile *)calloc(cap ? cap : 1, sizeof(PsFile)))) return TITLE_E_MEM;
@@ -411,8 +427,8 @@ static int open_set(Patchset **out, TitleRead read, void *ctx, void *handle, uin
     memset(h, 0, sizeof h);
     if (read(ctx, handle, 0, h, PS_HEADER_SIZE)) return TITLE_E_IO;
     format = get_le32(h + 4);
-    if (memcmp(h, MAGIC, 4) || (format != PS_FORMAT && format != PS_FORMAT_SECOND)) return TITLE_E_FORMAT;
-    if (format == PS_FORMAT_SECOND) {
+    if (memcmp(h, MAGIC, 4) || format < PS_FORMAT || format > PS_FORMAT_SHARED) return TITLE_E_FORMAT;
+    if (format != PS_FORMAT) {
         if (size < PS_HEADER2_SIZE) return TITLE_E_FORMAT;
         if (read(ctx, handle, PS_HEADER_SIZE, h + PS_HEADER_SIZE, PS_HEADER2_SIZE - PS_HEADER_SIZE)) return TITLE_E_IO;
     }
@@ -441,6 +457,12 @@ static int open_set(Patchset **out, TitleRead read, void *ctx, void *handle, uin
         if (tables_off != PS_HEADER2_SIZE || ops_off != tables_off + stored || nparts > MAX_PARTS ||
             parts_at > files_at || files_at > inflated || files_at - parts_at != (uint64_t)nparts * 8)
             return TITLE_E_FORMAT;
+        if (format == PS_FORMAT_SHARED) {   /* the flags known, the word after them zero, a hash with its size */
+            static const uint8_t zero[32];
+            if ((get_le32(h + 0xF8) & ~PS_FLAG_CHEATS) || get_le32(h + 0xFC) ||
+                !memcmp(h + 0xB0, zero, 32) != !le64(h + 0xD0))
+                return TITLE_E_FORMAT;
+        }
     }
     if (stored > MAX_TABLES || inflated > MAX_TABLES) return TITLE_E_FORMAT;
     if (check) {
@@ -476,6 +498,12 @@ static int open_set(Patchset **out, TitleRead read, void *ctx, void *handle, uin
     memcpy(ps->version, h + 0x50, 16);
     ps->second_title = le64(h + 0x80);
     memcpy(ps->second_hash, h + 0x88, 32);
+    if (format == PS_FORMAT_SHARED) {
+        memcpy(ps->shared_sha, h + 0xB0, 32);
+        ps->shared_size = le64(h + 0xD0);
+        memcpy(ps->stamp, h + 0xD8, 32);
+        ps->flags = get_le32(h + 0xF8);
+    }
     ps->pc_file = (size_t)-1;
     ps->keep_budget = KEEP_BUDGET;
     ps->nparts = nparts;
@@ -483,7 +511,7 @@ static int open_set(Patchset **out, TitleRead read, void *ctx, void *handle, uin
     ps->parts = (PsPart *)malloc(nparts ? (size_t)nparts * sizeof(PsPart) : 1);
     ps->chunk = (uint8_t *)malloc(CHUNK);
     rc = !ps->parts || !ps->chunk ? TITLE_E_MEM : TITLE_OK;
-    if (!rc && format == PS_FORMAT_SECOND) {    /* the stored stream lives only while it is inflated */
+    if (!rc && format != PS_FORMAT) {          /* the stored stream lives only while it is inflated */
         uint8_t *z = (uint8_t *)malloc(stored ? (size_t)stored : 1);  /* first: the records made later fill its room */
         tab = (uint8_t *)malloc(inflated ? (size_t)inflated : 1);
         if (!z || !tab) rc = TITLE_E_MEM;
@@ -545,11 +573,19 @@ void patchset_drop_build_data(Patchset *ps) {
     ps->build_len = 0;
 }
 int patchset_second_game(const Patchset *ps, uint64_t *title_id, uint8_t romfs_hash[32]) {
-    if (ps->format != PS_FORMAT_SECOND) return 0;
+    if (ps->format == PS_FORMAT || (ps->format == PS_FORMAT_SHARED && !ps->second_title)) return 0;
     if (title_id) *title_id = ps->second_title;
     if (romfs_hash) memcpy(romfs_hash, ps->second_hash, 32);
     return 1;
 }
+int patchset_shared(const Patchset *ps, uint8_t sha256[32], uint64_t *size) {
+    if (!ps->shared_size) return 0;
+    if (sha256) memcpy(sha256, ps->shared_sha, 32);
+    if (size) *size = ps->shared_size;
+    return 1;
+}
+const uint8_t *patchset_stamp(const Patchset *ps) { return ps->stamp; }
+uint32_t patchset_flags(const Patchset *ps) { return ps->flags; }
 
 size_t patchset_source_count(const Patchset *ps) { return ps->nsrc; }
 int patchset_source_info(const Patchset *ps, size_t i, PatchsetSourceInfo *info) {
@@ -604,7 +640,7 @@ int patchset_bind_dump(Patchset *ps, const Dump *dump) {
         PsSrc *s = &ps->src[i];
         PatchsetBinding b;
         memset(&b, 0, sizeof b);
-        if (s->kind == PS_SRC_SECOND) continue;          /* patchset_bind_second_dump's */
+        if (s->kind == PS_SRC_SECOND || s->kind == PS_SRC_SHARED) continue;   /* bound by their own calls */
         if (s->kind == PS_SRC_FILE) {
             if ((rc = bind_file(ps, i, d))) return rc;
             continue;
@@ -632,12 +668,95 @@ int patchset_bind_second_dump(Patchset *ps, const Dump *xx) {
     size_t i;
     int rc;
     if (!ps) return TITLE_E_ARG;
-    if (ps->format != PS_FORMAT_SECOND) return TITLE_OK;
+    if (!patchset_second_game(ps, NULL, NULL)) return TITLE_OK;
     if (!d || d->title_id != ps->second_title || memcmp(d->header + DUMP_ROMFS_HASH, ps->second_hash, 32))
         return TITLE_E_GAME;
     for (i = 0; i < ps->nsrc; i++)
         if (ps->src[i].kind == PS_SRC_SECOND && (rc = bind_file(ps, i, d))) return rc;
     return TITLE_OK;
+}
+
+/* A record of the shared file's index: its entry's offset, size, SHA-256 (at 16) and name (after the record). */
+static uint64_t shared_offset(const uint8_t *rec) { return le64(rec); }
+static uint64_t shared_size(const uint8_t *rec) { return le64(rec + 8); }
+static uint32_t shared_name_len(const uint8_t *rec) { return get_le32(rec + 0x30); }
+static size_t shared_record(uint32_t name_len) { return SHARED_RECORD + ((name_len + 3u) & ~3u); }
+
+/* The shared file's index read and walked once: entries one after another from the index's end to the file's. */
+static int shared_index(Patchset *ps, void *handle, uint64_t size, uint8_t **out, uint32_t *count) {
+    uint8_t head[SHARED_HEADER], *index;
+    uint32_t index_len, k;
+    uint64_t next;
+    size_t at = 0;
+    *out = NULL;
+    if (ps->read(ps->ctx, handle, 0, head, SHARED_HEADER)) return TITLE_E_IO;
+    *count = get_le32(head + 8);
+    index_len = get_le32(head + 12);
+    if (memcmp(head, SHARED_MAGIC, 4) || get_le32(head + 4) != SHARED_FORMAT || le64(head + 16) != size ||
+        le64(head + 24) || index_len > SHARED_MAX_INDEX || SHARED_HEADER + (uint64_t)index_len > size ||
+        *count > index_len / SHARED_RECORD)
+        return TITLE_E_FORMAT;
+    if (!(index = (uint8_t *)malloc(index_len ? index_len : 1))) return TITLE_E_MEM;
+    if (index_len && ps->read(ps->ctx, handle, SHARED_HEADER, index, index_len)) {
+        free(index);
+        return TITLE_E_IO;
+    }
+    next = SHARED_HEADER + (uint64_t)index_len;
+    for (k = 0; k < *count; k++) {
+        const uint8_t *rec = index + at;
+        uint32_t name_len;
+        if (index_len - at < SHARED_RECORD) break;
+        name_len = shared_name_len(rec);
+        if (shared_offset(rec) != next || shared_size(rec) > size - next || get_le32(rec + 0x34) || !name_len ||
+            name_len > index_len - at - SHARED_RECORD)
+            break;
+        next += shared_size(rec);
+        at += shared_record(name_len);
+    }
+    if (k != *count || at != index_len || next != size) {
+        free(index);
+        return TITLE_E_FORMAT;
+    }
+    *out = index;
+    return TITLE_OK;
+}
+
+int patchset_bind_shared(Patchset *ps, void *handle, uint64_t size) {
+    uint8_t *index;
+    uint32_t count, k;
+    size_t i, at;
+    int rc;
+    if (!ps) return TITLE_E_ARG;
+    if (!ps->shared_size) return TITLE_OK;
+    if (!handle || size != ps->shared_size || size < SHARED_HEADER) return TITLE_E_FORMAT;
+    if ((rc = shared_index(ps, handle, size, &index, &count))) return rc;
+    for (i = 0; !rc && i < ps->nsrc; i++) {
+        PsSrc *s = &ps->src[i];
+        size_t n;
+        int found = 0;
+        if (s->kind != PS_SRC_SHARED) continue;
+        n = strlen(s->path);
+        for (k = 0, at = 0; k < count && !found; k++) {
+            const uint8_t *rec = index + at;
+            uint32_t name_len = shared_name_len(rec);
+            at += shared_record(name_len);
+            if (name_len != n || memcmp(rec + SHARED_RECORD, s->path, n)) continue;
+            found = 1;
+            if (shared_size(rec) != s->size || memcmp(rec + 16, s->sha, 32)) {
+                rc = TITLE_E_FORMAT;     /* another file of this name: not the shared file the set was made with */
+            } else {
+                PatchsetBinding b;
+                memset(&b, 0, sizeof b);
+                b.handle = handle;
+                b.offset = shared_offset(rec);
+                b.size = s->size;
+                rc = patchset_bind(ps, i, &b);
+            }
+        }
+        if (!rc && !found) rc = TITLE_E_FORMAT;
+    }
+    free(index);
+    return rc;
 }
 
 /* The decompressed executable, read once: its stored bytes read into the start of the buffer they decompress into (in

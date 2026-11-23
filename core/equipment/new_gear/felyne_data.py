@@ -17,6 +17,7 @@ EquipmentTables.read sees the added pieces and a game in progress can be fixed.
 import struct
 from dataclasses import dataclass
 
+from core.equipment.new_gear.weapon_marks import spare_places
 from core.equipment.tables.layout import PALICO_TABLES, RECIPE_RECORD_SIZE
 
 BASE = 0x100000                    # virtual address of code.bin's first byte
@@ -24,8 +25,60 @@ WINDOW = 200                       # ids per piece type in the save's bit arrays
 FEATURE = "felyne_gear"            # the blocks' feature (game/executable/blocks.py)
 
 TABLE = {t.key: t for t in PALICO_TABLES}
-MAX_NEW = {key: WINDOW - table.count for key, table in TABLE.items()}     # weapon 21, head 32, body 26
 KINDS = tuple(TABLE)
+
+# The save's marks (had it once, seen, new): three bit arrays of 3 x WINDOW bits, a piece's bit base + id, the bases
+# the i16 table at felyne_marks.BASES. A kind's own bits hold OWN ids past the game's: weapon 21, head 32, body 26.
+# The weapons' first SPILL ids past the window are marked on the heads' last bits, counting down from the window's
+# last, and the heads' own ids stop below them: ON_ARRAYS new ids a kind on the Felynes' arrays (26, 27, 26). Every
+# id past those takes a place of the hunters' equipment arrays that no piece uses (weapon_marks.spare_places, 40), in
+# the order of the new ids (`EXTRA`), so that every kind gets ROOM new ids and a bit never moves
+# (felyne_marks.py, felyne_marks.c).
+MARK_BASE = {"body": 0, "head": WINDOW, "weapon": 2 * WINDOW}
+OWN = {key: WINDOW - table.count for key, table in TABLE.items()}
+SPILL_KIND, SPILL_INTO = "weapon", "head"      # the kind with the fewest own bits, the one with the most
+SPILL = 5                                      # the save's layout: weapon ids 200-204 on the heads' bits of 199-195
+ON_ARRAYS = {key: OWN[key] + SPILL if key == SPILL_KIND else OWN[key] - SPILL if key == SPILL_INTO else OWN[key]
+             for key in KINDS}                 # weapon 26, head 27, body 26
+SPARE = spare_places()                         # the equipment arrays' bits the Felynes' ids past theirs take
+
+
+def _room() -> int:
+    """The most new ids every kind can have: those past its ids on the Felynes' arrays take spare places."""
+    room = min(ON_ARRAYS.values())
+    while sum(max(0, room + 1 - ON_ARRAYS[key]) for key in KINDS) <= len(SPARE):
+        room += 1
+    return room
+
+
+ROOM = _room()                                  # 39
+MAX_NEW = {key: ROOM for key in KINDS}
+LIMIT = {key: TABLE[key].count + MAX_NEW[key] for key in KINDS}   # the first id past the room: 218, 207, 213
+FIRST_EXTRA = {key: TABLE[key].count + ON_ARRAYS[key] for key in KINDS}   # the first id on a spare place: 205, 195, 200
+
+
+def _extra() -> dict[str, tuple[int, ...]]:
+    """kind -> the spare place (an equipment bit) of each id from FIRST_EXTRA on: the places go to the new ids in their
+    order (the n-th new id of every kind, weapon, head, body, then the next), so a larger room only adds places."""
+    out = {key: [] for key in KINDS}
+    places = iter(SPARE)
+    for n in range(min(ON_ARRAYS.values()), ROOM):
+        for key in KINDS:
+            if n >= ON_ARRAYS[key]:
+                out[key].append(next(places))
+    return {key: tuple(bits) for key, bits in out.items()}
+
+
+EXTRA = _extra()
+# Block felyne_marks_table (felyne_marks.table): three i32 (the equipment arrays' first bit, counted from the Felynes'
+# array of the same mark), a row per kind (u16 base, first id, ids, first entry), then a u16 bit per spare place
+MARK_ARRAYS = 3
+MARK_ROW_SIZE = 8
+MARK_TABLE_BYTES = 4 * MARK_ARRAYS + MARK_ROW_SIZE * len(KINDS) + 2 * len(SPARE)
+# The constants of felyne_marks.c (block felyne_marks_code)
+MARK_DEFINES = (f"FELYNE_WINDOW={WINDOW}", f"FELYNE_SPILL_BASE={MARK_BASE[SPILL_KIND]}", f"FELYNE_SPILL={SPILL}",
+                f"FELYNE_SPILL_TOP={MARK_BASE[SPILL_INTO] + WINDOW - 1}", f"FELYNE_KINDS={len(KINDS)}",
+                f"FELYNE_ARRAYS={MARK_ARRAYS}")
 
 # The literal-pool words that hold each table's address (virtual addresses of the words).
 WEAPON_POOL = 0x2F4760             # one of the 11 words that hold the weapons' (never repointed)
@@ -52,9 +105,10 @@ def recipe_room(key: str) -> int:
 
 
 def block_specs() -> tuple[tuple[str, int], ...]:
-    """(block name, bytes) of what the added pieces take in the extension: the moved stats and recipes."""
+    """(block name, bytes) of what the added pieces take in the extension: the moved stats (LIMIT records: the game's
+    and the room) and recipes."""
     return (
-        *((block_name(key, "stats"), WINDOW * TABLE[key].record_size) for key in STATS_MOVED),
+        *((block_name(key, "stats"), LIMIT[key] * TABLE[key].record_size) for key in STATS_MOVED),
         *((block_name(key, "recipes"), recipe_room(key) * RECIPE_RECORD_SIZE) for key in RECIPES_MOVED),
     )
 
@@ -81,10 +135,11 @@ def _moved(code: bytes, address: int) -> int | None:
     return value - BASE if BASE <= value < BASE + len(code) else None
 
 
-def _used(code: bytes, offset: int, size: int, floor: int) -> int:
-    """Records of a stats table up to the last one that is not all zeros (never fewer than `floor`)."""
+def _used(code: bytes, offset: int, size: int, floor: int, end: int) -> int:
+    """Records of a stats table up to the last one that is not all zeros (never fewer than `floor`, never `end` or
+    more)."""
     count = floor
-    for i in range(floor, WINDOW):
+    for i in range(floor, end):
         if any(code[offset + i * size:offset + (i + 1) * size]):
             count = i + 1
     return count
@@ -111,7 +166,7 @@ def locate(code: bytes) -> dict[str, Location]:
         if stats_moved:
             pool = WEAPON_POOL if key == "weapon" else STATS_POOL[key][0]
             offset = _moved(code, pool) or offset
-            count = _used(code, offset, table.record_size, table.count)
+            count = _used(code, offset, table.record_size, table.count, LIMIT[key])
         if recipes_moved:
             recipe_offset = _moved(code, RECIPE_POOL[key]) or recipe_offset
             recipe_count = _listed(code, recipe_offset)

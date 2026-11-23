@@ -3,8 +3,7 @@
  * and the patch set -> the dump -> the title, the version recorded, the chime and Play now. A failure says what
  * happened and what to do. When the app updated itself and the mod waits for the new app, it leaves resume.json and
  * relaunches (a CIA) or asks to be opened again (a .3dsx), and the new app goes on by itself. The set is the one with
- * MH XX when the player's XX dump is the revision its header names, else the plain one; either is the cheats set when
- * the title has the cheats (More's Cheats, update_cheats: "Cheats on a console"). The online (friends patch)
+ * MH XX when the player's XX dump is the revision its header names, else the plain one; The online (friends patch)
  * page lives here too. The probe build (make PROBE=1) takes the mod's release from
  * sdmc:/3ds/heavenfall/<edition>/test_release/ (copied there from its romfs when it carries one) and only tries the
  * real GitHub API with a small real download. */
@@ -23,16 +22,9 @@
 #include "settitle.h"
 #include "updplan.h"
 
-#define SUPPORTED_SET_FORMAT ((unsigned)PS_FORMAT_SECOND)   /* the newest set format the applier reads */
+#define SUPPORTED_SET_FORMAT ((unsigned)PS_FORMAT_SHARED)   /* the newest set format the applier reads */
 
 static int net_ok;
-
-/* The cheats: what More's Cheats asks of this update (-1: nothing,
- * the record's state stays; 0 off; 1 on), the state the update wants (hf_want_cheats) and the sets it takes (the
- * cheats ones or not). */
-static int cheats_request = -1;
-static int want_cheats;
-static int run_cheats;
 
 /* HfXxWhy in the log's words. */
 static const char *const XX_WHY[] = {"no MH XX dump", "the dump is the revision the XX set names",
@@ -106,16 +98,20 @@ static void show_failure(int rc, int had_title) { advise(hf_fail_kind(rc, (uint3
 
 int release_latest(const HfTransport *tr, const HfEdition *e, HfRelease *rel, char *notes, size_t notes_cap) {
     const char *wanted[HF_W_COUNT];
-    int http = 0, rc;
+    char file[HF_NAME_MAX];
+    int http = 0, api_rc = 0, rc;
     u64 t = osGetTime();
     hf_edition_wanted(e, wanted);
+    if (hf_edition_release_file(e, file, sizeof file)) file[0] = 0;
     memset(rel, 0, sizeof *rel);
     if (notes && notes_cap) notes[0] = 0;
-    rc = hf_latest_release(tr, HF_API_BASE, e->repository, e->name, wanted, HF_W_COUNT, rel, notes, notes_cap, &http);
-    LOG("release: %s -> %d (http %d), tag '%s', assets %d%d%d%d%d%d, notes %lu bytes", e->repository, rc, http,
-        rc == HF_OK ? rel->tag : "", rel->assets[0].found, rel->assets[1].found, rel->assets[2].found,
-        rel->assets[3].found, rel->assets[4].found, rel->assets[5].found,
-        (unsigned long)(rc == HF_OK && notes ? strlen(notes) : 0));
+    /* the API first; when it gives no release (its limit spent behind a shared address, no answer), the release's file */
+    rc = hf_find_release(tr, HF_API_BASE, e->repository, e->name, file, wanted, HF_W_COUNT, rel, notes, notes_cap, &http,
+                         &api_rc);
+    LOG("release: %s -> %d (http %d; the API %d%s), tag '%s', assets %d%d%d%d%d%d, notes %lu bytes", e->repository, rc,
+        http, api_rc, api_rc != rc ? ", then the release's file" : "", rc == HF_OK ? rel->tag : "",
+        rel->assets[0].found, rel->assets[1].found, rel->assets[2].found, rel->assets[3].found, rel->assets[4].found,
+        rel->assets[5].found, (unsigned long)(rc == HF_OK && notes ? strlen(notes) : 0));
     hf_log_phase(&app.log, osGetTime(), "latest release", t, 0);
     return rc;
 }
@@ -190,7 +186,7 @@ int release_local(const HfEdition *e, HfRelease *rel, char *notes, size_t notes_
     if (rc != HF_REL_OK || !rel->tag[0] || !s->installed[0] || s->layout != 2) return rc;
     snprintf(first, sizeof first, "%s", rel->tag);
     if (!strcmp(bare_tag(first), s->installed) &&
-        status_xx_came(first, rel->assets[hf_w_patch(region, 1, s->installed_cheats)].found))
+        status_xx_came(first, rel->assets[hf_w_patch(region, 1)].found))
         return rc;   /* MH XX came: the first release again, with it */
     snprintf(next, sizeof next, "%s/next", dir);
     if (release_file(e, next, rel, notes, notes_cap) != HF_REL_OK ||
@@ -219,9 +215,9 @@ static int set_head(const HfTransport *tr, const HfEdition *e, const HfAsset *a,
     return n == len && !memcmp(head, "HFPS", 4) ? HF_OK : HF_E_FORMAT;
 }
 
-int release_xx_check(const HfTransport *tr, int edition, const HfRelease *rel, int region, int cheats, int xx,
+int release_xx_check(const HfTransport *tr, int edition, const HfRelease *rel, int region, int xx,
                      const uint8_t xx_hash[32], HfPlanIn *in, XxCheck *out) {
-    const HfAsset *a = &rel->assets[hf_w_patch(region, 1, cheats)];
+    const HfAsset *a = &rel->assets[hf_w_patch(region, 1)];
     uint8_t head[HF_SET_HEAD_MAX];
     int rc;
     in->xx_dump = xx == XX_FOUND || xx == XX_OTHER_VERSION;
@@ -318,7 +314,7 @@ static struct {
 
 /* A set of the release onto the card (the probe's: its test release is used where it is). */
 static int set_fetch(const HfTransport *tr, const HfRelease *mod_rel, int region, int use_xx) {
-    const HfAsset *set = &mod_rel->assets[hf_w_patch(region, use_xx, run_cheats)];
+    const HfAsset *set = &mod_rel->assets[hf_w_patch(region, use_xx)];
     int rc;
     set_file.have = 0;
     set_file.xx = use_xx;
@@ -369,19 +365,65 @@ static int set_ready(const HfTransport *tr, const HfRelease *mod_rel, int region
     return set_fetch(tr, mod_rel, region, plan->use_xx);
 }
 
+/* The release's shared file the set on the card reads (format 3), into
+ * `path` ("" when the set reads none). It stays on the card beside the sets after an install: ctr_net_fetch hashes the
+ * copy an earlier update left and keeps it when it is the release's (nothing is downloaded), else fetches it anew, so
+ * it is downloaded once and again only when the hash a set names changes. HF_E_FORMAT, nothing written, when the release
+ * does not carry the file the set names (another hash or size). The probe takes its test release's copy. */
+static int shared_ready(const HfTransport *tr, const HfRelease *mod_rel, char *path, size_t cap) {
+    const HfAsset *a = &mod_rel->assets[HF_W_SHARED];
+    uint8_t head[PS_HEADER2_SIZE];
+    uint64_t size = 0;
+    struct stat st;
+    FILE *f;
+    size_t n;
+    int rc, k;
+    u64 t;
+    path[0] = 0;
+    if (!(f = fopen(set_file.path, "rb"))) return TITLE_E_IO;
+    n = fread(head, 1, sizeof head, f);
+    fclose(f);
+    if (n < 8 || memcmp(head, "HFPS", 4)) return HF_E_FORMAT;
+    if (head_format(head) < PS_FORMAT_SHARED) return 0;          /* an older set reads no shared file */
+    if (n != sizeof head) return HF_E_FORMAT;
+    for (k = 7; k >= 0; k--) size = size << 8 | head[0xD0 + k];
+    if (!size) return 0;
+    if (!a->found || a->size != size || memcmp(a->sha256, head + 0xB0, 32)) {
+        LOG("shared file: the set names one of %lu bytes; the release's %s is %s", (unsigned long)size, a->name,
+            a->found ? "another" : "missing");
+        return HF_E_FORMAT;
+    }
+    if (app.probe) {
+        snprintf(path, cap, "%s/%s", probe_dir, a->name);
+        rc = stat(path, &st) || (uint64_t)st.st_size != size ? TITLE_E_IO : 0;
+        LOG("shared file: the test release's %s: %d", path, rc);
+        if (rc) path[0] = 0;
+        return rc;
+    }
+    t = osGetTime();
+    ui_phase(HT_PHASE_SET_DOWNLOAD);
+    rc = fetch(tr, a, path, cap);
+    LOG("shared file: %s (%lu bytes), kept or downloaded: %d", a->name, (unsigned long)size, rc);
+    hf_log_phase(&app.log, osGetTime(), "the shared file", t, size);
+    if (rc) path[0] = 0;
+    return rc;
+}
+
 /* One title of the plan from the set: the game data (HF_STEP_GAME) or the mod (HF_STEP_MOD). */
 static int title_set_step(const HfTransport *tr, const HfRelease *mod_rel, int region, const HfPlanIn *in, HfPlan *plan,
                           HfTitleKind kind) {
+    char shared[400] = "";
     int rc = set_ready(tr, mod_rel, region, in, plan);
     if (rc) return rc;
-    LOG("%s: the %s set %s (MH XX: %s; cheats %d)", kind == HF_TITLE_GAME ? "game data" : "mod",
-        plan->use_xx ? "XX" : "plain", set_file.path, XX_WHY[plan->xx_why], run_cheats);
+    /* the mod's title copies the shared file's files; the game data reads none of the set's */
+    if (kind == HF_TITLE_MOD && (rc = shared_ready(tr, mod_rel, shared, sizeof shared))) return rc;
+    LOG("%s: the %s set %s (MH XX: %s)", kind == HF_TITLE_GAME ? "game data" : "mod",
+        plan->use_xx ? "XX" : "plain", set_file.path, XX_WHY[plan->xx_why]);
     if (plan->xx_why == HF_XX_OTHER_VERSION) ui_notice(HT_XX_OTHER_NOTE);
     else if (plan->xx_why == HF_XX_NOT_IN_RELEASE) ui_notice(HT_XX_NO_SET_NOTE);
     else if (plan->xx_why == HF_XX_NO_ROOM) ui_notice(HT_XX_NO_ROOM_NOTE);
-    else if (kind == HF_TITLE_MOD && want_cheats && !run_cheats && cheats_request < 0)
-        ui_notice(HT_CHEATS_NO_SET_NOTE);   /* an update of a title with cheats (its record's) from a release without them */
-    rc = install_set(set_file.path, mod_rel->tag, plan->use_xx, plan->xx_why == HF_XX_NO_ROOM, run_cheats, kind);
+    rc = install_set(set_file.path, mod_rel->tag, plan->use_xx, plan->xx_why == HF_XX_NO_ROOM, kind,
+                     shared[0] ? shared : NULL);
     /* kept after other failures, so the next try resumes it; an XX set that did not fit is not tried again; the game
      * data's set is the mod's too */
     if (((rc == 0 && kind == HF_TITLE_MOD) || (rc == TITLE_E_MEM && plan->use_xx)) && !app.probe) {
@@ -471,6 +513,7 @@ static int done_page(int first) {
     UiEvent ev;
     HfView *v;
     int id, waits = app.status.save_restore[0] && saves_restore_flow(1) == SAVE_NOT_RUN;
+    saves_legacy_move(0);   /* the full mod's earlier hunters move into Heavenfall's own save, or are told to wait */
     hf_text_fill(T(HT_DONE_READY), app_edition()->name, text, sizeof text);
     v = ui_begin();
     ui_reset(v, HF_SCREEN_MENU);
@@ -570,6 +613,19 @@ int resume_found(void) {
 
 /* What the plan downloads and installs, for the bar and the expected time: the app's file and the set (not in a
  * probe), and the title (the dump's size until the set gives the exact one). */
+/* The release's shared file's bytes to download: none when the card keeps a copy of its size (an earlier update's). */
+static uint64_t shared_missing(const HfRelease *mod_rel) {
+    const HfAsset *a = &mod_rel->assets[HF_W_SHARED];
+    char folder[200], path[300];
+    struct stat st;
+    if (!a->found) return 0;
+    if (!ctr_net_folder(app_edition(), folder, sizeof folder) &&
+        snprintf(path, sizeof path, "%s/%s", folder, a->name) < (int)sizeof path && !stat(path, &st) &&
+        (uint64_t)st.st_size == a->size)
+        return 0;
+    return a->size;
+}
+
 static void plan_bytes(const HfPlan *plan, const HfRelease *real, const HfRelease *mod_rel, int region,
                        uint64_t bytes[HF_STAGES], uint64_t *game_bytes) {
     int i, set = 0;
@@ -580,13 +636,16 @@ static void plan_bytes(const HfPlan *plan, const HfRelease *real, const HfReleas
             bytes[HF_STAGE_DOWNLOAD] += real->assets[app_asset()].size;
             continue;
         }
-        if (!set++ && !app.probe)
-            bytes[HF_STAGE_DOWNLOAD] += mod_rel->assets[hf_w_patch(region, plan->use_xx, run_cheats)].size;
+        if (!set++ && !app.probe)   /* the set, and the shared file it may copy from (kept on the card afterwards) */
+            bytes[HF_STAGE_DOWNLOAD] += mod_rel->assets[hf_w_patch(region, plan->use_xx)].size +
+                                        shared_missing(mod_rel);
         if (plan->steps[i] == HF_STEP_GAME) {
             *game_bytes = app.status.dump_bytes ? app.status.dump_bytes : 1;   /* the dump's RomFS, near enough */
-        } else {   /* the mod title: its own files only, a guess from the set until the set is open */
+        } else {   /* the mod title: its own files only, a guess from the set until the set is open; the shared
+                      file's files go in as they are */
             bytes[HF_STAGE_INSTALL] =
-                mod_rel->assets[hf_w_patch(region, plan->use_xx, run_cheats)].size * HF_TUNE_MOD_TITLE_PER_SET;
+                mod_rel->assets[hf_w_patch(region, plan->use_xx)].size * HF_TUNE_MOD_TITLE_PER_SET +
+                (mod_rel->assets[HF_W_SHARED].found ? mod_rel->assets[HF_W_SHARED].size : 0);
             if (!bytes[HF_STAGE_INSTALL]) bytes[HF_STAGE_INSTALL] = 1;
         }
     }
@@ -658,20 +717,8 @@ int update_run(int resuming, int reinstall) {
     }
     region = s->region >= 0 ? s->region : REGION_EUR;
 
-    /* the cheats: More's switch, else the record's, with the title there or not (an install stopped after removing it
-     * leaves its record cut, with the cheats it was putting in); the release's cheats sets, when it has them */
     memset(&rec, 0, sizeof rec);
     have_rec = read_installed_record(&rec);
-    want_cheats = hf_want_cheats(cheats_request, have_rec ? &rec : NULL);
-    run_cheats = want_cheats && mod_rel->assets[hf_w_patch(region, 0, 1)].found;
-    LOG("cheats: asked %d, installed %d, record %d, wanted %d, the release's cheats set %d -> the %s sets",
-        cheats_request, s->installed_cheats, have_rec ? rec.cheats : -1, want_cheats,
-        mod_rel->assets[hf_w_patch(region, 0, 1)].found, run_cheats ? "cheats" : "plain");
-    if (cheats_request == 1 && !run_cheats) {   /* the switch asked for what this release has not: nothing changes */
-        task_end(0);
-        ui_message(T(HT_CHEATS_NONE));
-        goto out;
-    }
 
     memset(&in, 0, sizeof in);
     in.release_tag = mod_rel->tag;
@@ -680,9 +727,7 @@ int update_run(int resuming, int reinstall) {
     in.mod_incomplete = s->title_installed && !s->installed_complete;
     in.app_in_release = app_local || (real.assets[app_asset()].found && rc == HF_OK);
     in.app_tag = app_rel->tag;
-    in.set_in_release = mod_rel->assets[hf_w_patch(region, 0, run_cheats)].found;
-    in.mod_cheats = s->title_installed && s->installed_cheats;
-    in.cheats = run_cheats;
+    in.set_in_release = mod_rel->assets[hf_w_patch(region, 0)].found;
     in.supported_format = SUPPORTED_SET_FORMAT;
     set_file.have = 0;
     in.game_stale = hf_game_stale(s->game_installed, have_rec ? &rec : NULL, s->dump_hash);
@@ -695,12 +740,12 @@ int update_run(int resuming, int reinstall) {
     in.reinstall = reinstall;
     if (in.set_in_release || app.probe) {
         uint8_t head[8];
-        int peek = set_head(&tr, app_edition(), &mod_rel->assets[hf_w_patch(region, 0, run_cheats)], head, sizeof head);
+        int peek = set_head(&tr, app_edition(), &mod_rel->assets[hf_w_patch(region, 0)], head, sizeof head);
         in.set_format = peek == HF_OK ? head_format(head) : 0;
         LOG("set format peek: %d, format %u", peek, (unsigned)in.set_format);
     }
     memset(&xx_seen, 0, sizeof xx_seen);
-    if ((rc = release_xx_check(&tr, app.edition, mod_rel, region, run_cheats, s->xx, s->xx_hash, &in, &xx_seen))) {
+    if ((rc = release_xx_check(&tr, app.edition, mod_rel, region, s->xx, s->xx_hash, &in, &xx_seen))) {
         advise(HF_FAIL_NET, rc, 0);
         goto out;
     }
@@ -723,9 +768,6 @@ int update_run(int resuming, int reinstall) {
         LOG("probe: the real release's plan status %d, %d steps", (int)real_plan.status, real_plan.count);
         in.app_in_release = app_local || real.assets[app_asset()].found;
     }
-    /* the switch rebuilds the mod's title only: the launcher's own update (a relaunch, which would forget the switch)
-     * waits for the next Update; a set only a newer launcher reads stops it with that advice */
-    if (cheats_request >= 0) in.app_in_release = 0;
     hf_plan(&in, &plan);
     LOG("plan: status %d, %d steps (%d %d %d), mod after restart %d; game data stale %d, layout %d", (int)plan.status,
         plan.count, plan.steps[0], plan.steps[1], plan.steps[2], plan.mod_after_restart, in.game_stale, in.mod_layout);
@@ -811,15 +853,6 @@ out:
     aptSetSleepAllowed(true);
     LOG("update: end%s", leave ? ", the app leaves" : "");
     if (!leave) status_gather();
-    return leave;
-}
-
-int update_cheats(int on) {
-    int leave;
-    LOG("more: cheats %s", on ? "on" : "off");
-    cheats_request = on ? 1 : 0;
-    leave = update_run(0, 0);
-    cheats_request = -1;
     return leave;
 }
 

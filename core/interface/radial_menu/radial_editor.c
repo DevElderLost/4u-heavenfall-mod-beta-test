@@ -6,10 +6,10 @@
  *
  * Three levels share the widget:
  *   - the menu level, under the row's title: the switch (Enabled / Disabled, first as every feature's switch),
- *     Edit Slots, Trigger, Autocombine, Position and Size, the switch and the settings with their values. Up and Down
- *     walk them, A changes the row's value to the next one (Trigger: Tilt, Flick, Release; Position: centre, right,
- *     bottom left; Size: the next size), from the last back to the first, or opens Edit Slots; B goes back to the small
- *     list. It draws no wheel;
+ *     Edit Slots, Trigger, Autocombine, Position, Size and Text Size, the switch and the settings with their values.
+ *     Up and Down walk them, A changes the row's value to the next one (Trigger: Tilt, Flick, Release, ZR; Position:
+ *     centre, right, bottom left; Size and Text Size: the next size), from the last back to the first, or opens Edit
+ *     Slots; B goes back to the small list. It draws no wheel;
  *   - Edit Slots, the wheel level: the big list is hidden and the wheel is shown centred (radial_menu_wheel, layout 1)
  *     with the cursor's slot in gold. The C-stick points at a slot at once (the angle's sector, as the wheel's use reads
  *     it, from a curated magnitude), the D-pad's Left and Right turn the cursor one slot, anticlockwise and clockwise;
@@ -48,7 +48,8 @@ typedef short s16;
 #define ROW_AUTOCRAFT 3
 #define ROW_POSITION 4
 #define ROW_SIZE 5
-#define MENU_ROWS 6
+#define ROW_TEXT 6
+#define MENU_ROWS 7
 
 #define KEY_UP 1
 #define KEY_DOWN 2
@@ -101,15 +102,18 @@ struct radial_editor_data {     /* radial_editor.py editor_data */
     u16 size_help;
     u16 autocraft_help, trigger_help;
     u16 autocraft_values[2];    /* 0 off, 1 on */
-    u16 trigger_values[TRIGGERS];       /* 0 Tilt, 1 Flick, 2 Release */
+    u16 trigger_values[TRIGGERS];       /* 0 Tilt, 1 Flick, 2 Release, 3 ZR */
     u16 edit_slots, edit_help;  /* the Edit Slots row, its description and its levels' title */
     u16 size_values[MAX_SIZES]; /* the Size row's text at each size */
     u8 sizes;                   /* how many sizes there are (1 to MAX_SIZES) */
     u8 point;                   /* the least magnitude of a stick that points at a slot */
     u8 sector_to_slot[8];       /* the slot each of the stick's 8 sectors uses, as the wheel's use reads it */
+    u16 text_help;              /* the Text Size row's description */
+    u16 text_values[MAX_TEXTS]; /* the Text Size row's text at each text size */
+    u8 texts;                   /* how many text sizes there are (1 to MAX_TEXTS) */
 };
 
-_Static_assert(sizeof(struct radial_editor_data) == 80, "blocks.py RADIAL_EDITOR_DATA_SIZE, radial_editor.py");
+_Static_assert(sizeof(struct radial_editor_data) == 94, "blocks.py RADIAL_EDITOR_DATA_SIZE, radial_editor.py");
 
 enum { LEVEL_SLOTS, LEVEL_POUCH, LEVEL_MENU };
 
@@ -362,6 +366,7 @@ static void draw_values(const struct choices *choices)
     mod_list_text(ROW_AUTOCRAFT, radial_editor_data.autocraft_values[choices->autocraft != 0]);
     mod_list_text(ROW_POSITION, radial_editor_data.position_values[choices->position < POSITIONS ? choices->position : 0]);
     mod_list_text(ROW_SIZE, radial_editor_data.size_values[choices->size < MAX_SIZES ? choices->size : 0]);
+    mod_list_text(ROW_TEXT, radial_editor_data.text_values[choices->text < MAX_TEXTS ? choices->text : 0]);
 }
 
 static void show_menu_help(void)
@@ -372,7 +377,8 @@ static void show_menu_help(void)
                   : row == ROW_TRIGGER   ? radial_editor_data.trigger_help
                   : row == ROW_AUTOCRAFT ? radial_editor_data.autocraft_help
                   : row == ROW_POSITION  ? radial_editor_data.position_help
-                                         : radial_editor_data.size_help);
+                  : row == ROW_SIZE      ? radial_editor_data.size_help
+                                         : radial_editor_data.text_help);
 }
 
 /* The menu level with its cursor on `row` (the list shown again after Edit Slots hid it) */
@@ -414,8 +420,10 @@ static int menu_frame(struct choices *choices, u32 pressed, u32 keys)
             radial_choose(CHOOSE_AUTOCRAFT, !choices->autocraft);
         else if (row == ROW_POSITION)
             radial_choose(CHOOSE_POSITION, choices->position + 1u < POSITIONS ? choices->position + 1u : 0);
-        else
+        else if (row == ROW_SIZE)
             radial_choose(CHOOSE_SIZE, choices->size + 1u < radial_editor_data.sizes ? choices->size + 1u : 0);
+        else
+            radial_choose(CHOOSE_TEXT, choices->text + 1u < radial_editor_data.texts ? choices->text + 1u : 0);
         radial_choices(choices);
         draw_values(choices);
     } else if (keys & (KEY_UP | KEY_DOWN)) {

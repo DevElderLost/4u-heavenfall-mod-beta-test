@@ -7,7 +7,7 @@ GROUP_FRAME = "ui401_wt_frame"     # the list's frame and the header's bar
 GROUP_ROWS = "ui401_wt_rows"       # the rows' bands
 GROUP_NODES = "ui401_wt_nodes"     # the cells and the header's texts
 GROUP_CURSOR = "ui401_wt_cursor"
-GROUP_KEYS = "ui401_wt_keys"       # the key bar, its words and the edges' arrows
+GROUP_KEYS = "ui401_wt_keys"       # the key bar, its words, the edges' arrows and the price beside the money
 GROUP_CHOICE = "ui401_wt_choice"   # the window "upgrade or craft": shown only while it asks
 GROUPS = (GROUP_FRAME, GROUP_ROWS, GROUP_NODES, GROUP_CURSOR, GROUP_KEYS, GROUP_CHOICE)
 TREE_GROUPS = GROUPS[:-1]          # the ones the screen shows while it is open
@@ -22,6 +22,11 @@ COUNT_TEXT = "wt_m_count"          # "3/41": the cursor's row and the rows
 HINT_TEXT = "wt_m_hint"
 KEY_BAR = "wt_keybar"
 ARROWS = ("wt_arrow_l", "wt_arrow_r", "wt_arrow_u", "wt_arrow_d")
+# The price beside the money: the money window's second box (ui024's) copied, its left end, middle and right end, then
+# the word "Cost" and the price
+PRICE_BOX = ("wt_pr_l", "wt_pr_m", "wt_pr_r")
+COST_TEXT = "wt_m_cost"
+PRICE_TEXT = "wt_m_price"
 CURSOR_BRACKET = ("wt_cur_b0", "wt_cur_b1")                           # the game's bracket: left half, right half
 CURSOR_FRAME = ("wt_cur_f0", "wt_cur_f1", "wt_cur_f2", "wt_cur_f3")   # a thin frame: top, bottom, left, right
 
@@ -59,7 +64,7 @@ def choice_panes() -> tuple[str, ...]:
 def text_panes() -> tuple[str, ...]:
     """Every text pane (each takes a null of the layout's pool)."""
     return (NAME_TEXT, COUNT_TEXT, HINT_TEXT, CHOICE_TITLE) + tuple(
-        choice_word_pane(option) for option in range(CHOICE_OPTIONS))
+        choice_word_pane(option) for option in range(CHOICE_OPTIONS)) + (COST_TEXT, PRICE_TEXT)
 
 # A cell's pieces, in the order they are drawn: the plate, the link from the parent, the trunk of a branch in its two
 # halves (TRUNK: from the cell's top to mid height; TRUNK_LOW: from mid height to the bottom, each lit or dim by
@@ -88,7 +93,7 @@ def group_panes() -> dict[str, tuple[str, ...]]:
         GROUP_ROWS: bands,
         GROUP_NODES: cells + (NAME_TEXT, COUNT_TEXT),
         GROUP_CURSOR: CURSOR_BRACKET + CURSOR_FRAME,
-        GROUP_KEYS: (KEY_BAR, HINT_TEXT) + ARROWS,
+        GROUP_KEYS: (KEY_BAR, HINT_TEXT) + ARROWS + PRICE_BOX + (COST_TEXT, PRICE_TEXT),
         GROUP_CHOICE: choice_panes(),
     }
 

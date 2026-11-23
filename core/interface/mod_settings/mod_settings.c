@@ -24,6 +24,9 @@ functions from the game's menu code.
  * and runs FUN_0060d058, where mod_menu_closed ends our bind of the pager; a new pick starts on the top list's first
  * row.
  *
+ * A 3DS title's top list leaves out its last rows, the Cheats group, until the launcher's flag file allows the cheats
+ * (list_count, mod_options.c mod_cheats_allowed): the page is then exactly the one of a mod built with them.
+ *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, ARM, linked with mod_settings.ld where it places the
  * block); the game's functions and variables are named in blocks.py GAME_SYMBOLS.
  */
@@ -35,7 +38,7 @@ typedef short s16;
 
 #define ACTION 0x14             /* mod_settings.py ACTION */
 #define KIND 0x2F               /* mod_settings.py KIND */
-#define MAX_LISTS 11            /* mod_settings.py MAX_LISTS */
+#define MAX_LISTS 14            /* mod_settings.py MAX_LISTS */
 #define MAX_TABLE 72            /* mod_settings.py MAX_TABLE */
 #define SUBLIST_ROWS 5          /* mod_settings.py SUBLIST_ROWS: the game's own lines of its small list */
 #define PAGE_LIST_ROWS 10       /* mod_settings.py LIST_PAGE_ROWS: a page of a small list */
@@ -155,11 +158,14 @@ struct mod_settings_data {      /* the curated table (mod_settings.py settings_d
     u32 small_frames[PAGE_LIST_ROWS];   /* the hash of our small list's frame of n rows at n - 1, 0: the game's frame */
     u32 big_frames[BIG_ROWS];           /* ... the big list's */
     u8 raise[PAGE_LIST_ROWS];   /* how far up a small list goes, by its first page's rows - 1 (single-screen mode, else 0) */
-    u16 pad;
+    u8 cheats_rows;             /* the top list's last rows (the Cheats group) shown only while the cheats are allowed
+                                   (mod_options.c mod_cheats_allowed): 0 but in a 3DS title, which has the gate */
+    u8 pad;
 };
-_Static_assert(sizeof(struct mod_settings_data) == 936, "blocks.py MOD_SETTINGS_DATA_SIZE");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 808, "blocks.py MOD_SETTINGS_PANE_HASHES");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 924, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, cheats_rows) == 946, "mod_settings.py settings_data");
+_Static_assert(sizeof(struct mod_settings_data) == 948, "blocks.py MOD_SETTINGS_DATA_SIZE");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 820, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 936, "blocks.py MOD_SETTINGS_PANE_HASHES");
 
 enum { LEVEL_LIST, LEVEL_SCREEN };
 
@@ -218,7 +224,8 @@ int aspect_screen_open(int title);                              /* aspect_list.c
 int aspect_screen_frame(u32 pressed, u32 keys);                  /* aspect_list.c */
 int option_screen_open(int option, int title);                  /* option_list.c */
 int option_screen_frame(u32 pressed, u32 keys);                 /* option_list.c */
-int radial_editor_open(int title);                               /* radial_editor.c, the item wheel's block: only */
+int mod_cheats_allowed(void);                                   /* mod_options.c: the gate's flag allowed them */
+int radial_editor_open(int title);                              /* radial_editor.c, the item wheel's block: only */
 int radial_editor_frame(char *menu, u32 pressed, u32 keys);     /* called from its row, which a mod has with it */
 void radial_editor_leave(void);                                 /* ... and from the close, only with its screen open */
 
@@ -438,9 +445,24 @@ static void show_entry_help(void)
     facility_help(KIND_TEXT, mod_settings_data.file, current_entry()->help);
 }
 
+/* A list's rows on the page: the top list without its last cheats_rows (the Cheats group, whose list comes after it in
+ * the table) while the cheats are not allowed */
+static int list_count(const struct mod_list *list)
+{
+    if (list == &mod_settings_data.lists[0] && mod_settings_data.cheats_rows != 0 && !mod_cheats_allowed())
+        return list->count - mod_settings_data.cheats_rows;
+    return list->count;
+}
+
+/* 1 from the pick until the player leaves (mod_options.c reads the cheats' flag only while it is 0) */
+int mod_settings_open(void)
+{
+    return mod_settings_state.open;
+}
+
 static int list_pages(void)
 {
-    return (current_list()->count + PAGE_LIST_ROWS - 1) / PAGE_LIST_ROWS;
+    return (list_count(current_list()) + PAGE_LIST_ROWS - 1) / PAGE_LIST_ROWS;
 }
 
 static int list_page(void)
@@ -451,7 +473,7 @@ static int list_page(void)
 /* The list's rows on its page `page` */
 static int rows_on(int page)
 {
-    int rows = current_list()->count - page * PAGE_LIST_ROWS;
+    int rows = list_count(current_list()) - page * PAGE_LIST_ROWS;
 
     return rows > PAGE_LIST_ROWS ? PAGE_LIST_ROWS : rows;
 }
@@ -508,7 +530,8 @@ static void small_cursor(void)
  * list goes as far, so turning a page does not move it */
 static void small_raise(int rows)
 {
-    int tallest = current_list()->count < PAGE_LIST_ROWS ? current_list()->count : PAGE_LIST_ROWS;
+    int count = list_count(current_list());
+    int tallest = count < PAGE_LIST_ROWS ? count : PAGE_LIST_ROWS;
     float by = (float)mod_settings_data.raise[tallest - 1];
 
     if (by == 0.0f)

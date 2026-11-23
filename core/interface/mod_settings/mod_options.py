@@ -21,8 +21,11 @@ These functions change, in the update's executable (canonical):
   long a turn has been held, and so of the turn's top speed (CAMERA_CAP, 10.0), takes the mod's value;
 - FUN_009ec82c, which opens an item box's menu: its store of the box's kind (BOX_KIND; 0 the house's, 1 the
   Gathering Hall's) makes every box the house's, and its store of the menu's count of lines (BOX_LINES; 7 at home, 4
-  at the Hall's box) takes the option's count at a box away from home, so Manage Equipment and Equipment Sets are at
-  every box, drawn, and Change Appearance stays at the house's;
+  at the Hall's box) keeps Change Appearance only where its screen's layout is loaded (mod_options.c mod_box_count),
+  so Manage Equipment, Equipment Sets and Change Appearance are at every box, drawn: every town area's stage list
+  loads the layout too (box_appearance.py);
+- FUN_00b0b0ac and FUN_00b0a658, which load a Honed weapon's glow and put it on the weapon's models: their reads of
+  the weapon's honing (HONING_SITES) see none while the option is No;
 - FUN_002b58e8, the poll of the game's keyboard: through a gate to the system keyboard (system_keyboard);
 - the calls of hold A, fast text, fast gathering, the lock-on's D-pad filter, the death camera skip (FUN_00c006f4's
   call of a camera sequence's frame), the modern camera (FUN_00b3cc64's question "is the C-stick tilted", the
@@ -35,6 +38,7 @@ carry it to the base games.
 
 import json
 import struct
+from collections.abc import Collection
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -67,9 +71,16 @@ OPTION_IDS = {
     "fast_gathering": 28, "cheat_interruptible_flex": 29, "cheat_whetstone_cancel": 30, "cheat_skip_quest_end": 31,
     "cheat_rewards_no_limit": 32, "cheat_capture_guru": 33, "cheat_autotracker": 34,
     "world_sharpness": 35,
+    "upgrade_stars": 36, "rare_rewards": 37, "upgrade_stars_colour": 38,
+    "honing_glow": 39,
+    "town_map": 40,
 }
 # The rows of a feature the installer chooses, which mean nothing without it: the row, the feature's Settings field
-FEATURE_ROWS = {"layered_looks": "layered_equipment"}  # Layered Gear's switch (equipment/layered/layered_switch.c)
+FEATURE_ROWS = {"layered_looks": "layered_equipment",  # Layered Gear's switch (equipment/layered/layered_switch.c)
+                # the town minimap's start (interface/single_screen/executable/single_screen_minimap_hall.c)
+                "town_map": "single_screen"}
+CHEATS_ALLOWED = "cheats_allowed"   # the gate's variable (mod_options.c struct cheats_allowed)
+GATE_SIZE = 12                  # struct cheats_gate: two words of gated options, the retry's frames, a pad
 MAX_OPTIONS = 52                # the room (mod_options.c MOD_OPTIONS; mod_options_state.values): zone bytes 10-35
 MAX_VALUES = 15                 # a list of values (two pages): a value's place + 1 fits half a byte
 PAYLOAD_WORDS = 2               # what a value writes or hands to a hook
@@ -98,6 +109,10 @@ CAMERA_DISTANCE = ((0xBFFF78, 0xED9F1A2A),      # FUN_00bfff70: vldr s2, [pc, #0
 CAMERA_DISTANCE_STUBS = ("mod_camera_rest", "mod_camera_event", "mod_camera_state")
 BOX_KIND = (0x9EC870, 0xE5C46002)                       # FUN_009ec82c: strb r6, [r4, #0x2] (the box's kind)
 BOX_LINES = (0x9EC8A4, 0xE5C4100A)                      # FUN_009ec82c: strb r1, [r4, #0xa] (the menu's lines)
+# The two reads of a weapon's honing (its reference's halfword +0x12, bits 14-15) that give it its glow, each replaced
+# by a call of mod_honing_glow
+HONING_SITES = ((0xB0B0E0, 0xE1A00720),     # FUN_00b0b0ac: lsr r0, r0, #14 (which glow to load)
+                (0xB0A680, 0xE1B00720))     # FUN_00b0a658: lsrs r0, r0, #14 (put it on the weapon's models)
 CLASS_TABLE = 0xED24A0
 CLASS_WORDS = (480, 140, 520, 230, 150, 130, 130, 330, 540, 230, 120, 140, 520, 310, 360, 170)
 
@@ -206,12 +221,35 @@ def default_value(option: dict, settings: Any) -> int:
     return 0
 
 
-def options_data(settings: Any, available: set[str] | frozenset[str] | list[str], path: Path = SETTINGS_FILE) -> bytes:
+def cheats_retry(path: Path = SETTINGS_FILE) -> int:
+    """The frames between two reads of the cheats' flag that got no answer (curated `cheats_gate`, `retry_frames`)."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8")).get("cheats_gate")
+    frames = raw.get("value", {}).get("retry_frames") if isinstance(raw, dict) else None
+    if not isinstance(frames, int) or isinstance(frames, bool) or not 1 <= frames <= 0xFFFF:
+        raise ModOptionsError("mod_settings.json: cheats_gate must be {\"value\": {\"retry_frames\": 1 to 65535}}")
+    return frames
+
+
+def gate_data(gated: Collection[str] = (), path: Path = SETTINGS_FILE) -> bytes:
+    """struct cheats_gate (mod_options.c), the tail of `mod_options_data`: a bit per option of `gated`, the options that
+    are 0 while the launcher's flag has not allowed the cheats, and the frames between two reads of the flag (curated
+    `cheats_gate`); all zeros without one (every mod but a 3DS title's: the flag is never read)."""
+    if not gated:
+        return bytes(GATE_SIZE)
+    mask = 0
+    for key in gated:
+        mask |= 1 << OPTION_IDS[key]
+    return struct.pack("<2I2H", mask & 0xFFFFFFFF, mask >> 32, cheats_retry(path), 0)
+
+
+def options_data(settings: Any, available: set[str] | frozenset[str] | list[str], path: Path = SETTINGS_FILE,
+                 gated: Collection[str] = ()) -> bytes:
     """The block `mod_options_data` (struct mod_options_data in mod_options.c): the save zone's place, magic and
     version, the value list's texts, per option (MAX_OPTIONS of them, in the order of OPTION_IDS) its count of values
     (0: the mod does not have it), the default place, its first value in the pool and its half byte of the zone
     (option_half), then the pool: each value's name and what it writes (PAYLOAD_WORDS words), the options' values one
-    after another from the second; the first is none (no name, zeros), which an option the mod lacks points at."""
+    after another from the second; the first is none (no name, zeros), which an option the mod lacks points at; last
+    the Cheats group's gate (gate_data of `gated`, options of `available`)."""
     from core.interface.mod_settings.mod_settings import load_zone
 
     zone, known = load_zone(path), message_indices()
@@ -231,6 +269,9 @@ def options_data(settings: Any, available: set[str] | frozenset[str] | list[str]
     names += [0] * (VALUE_POOL - len(names))
     payload += [0] * (PAYLOAD_WORDS * VALUE_POOL - len(payload))
     data += struct.pack(f"<{VALUE_POOL}H", *names) + struct.pack(f"<{PAYLOAD_WORDS * VALUE_POOL}I", *payload)
+    if set(gated) - set(available):
+        raise ModOptionsError(f"gated options the mod does not have: {sorted(set(gated) - set(available))}")
+    data += gate_data(gated, path)
     if len(data) != MOD_OPTIONS_DATA_SIZE:
         raise ModOptionsError(f"mod_options_data holds {MOD_OPTIONS_DATA_SIZE} bytes, the options make {len(data)}")
     return data
@@ -268,6 +309,8 @@ def supports_option(code: bytes, key: str) -> bool:
         return _static_ok(code, CAMERA_DISTANCE)
     if key == "box_equipment":
         return _static_ok(code, (BOX_KIND, BOX_LINES))
+    if key == "honing_glow":
+        return _static_ok(code, HONING_SITES)
     from core.interface.system_keyboard.system_keyboard import supports_system_keyboard
     from core.gameplay.death_camera_skip.death_camera_skip import supports_death_camera_skip
     from core.gameplay.modern_camera.modern_camera import supports_modern_camera
@@ -290,6 +333,9 @@ def supports_option(code: bytes, key: str) -> bool:
     if key == "world_sharpness":
         from core.interface.world_sharpness.world_sharpness import supports_world_sharpness
         return supports_world_sharpness(code)
+    if key in ("upgrade_stars", "rare_rewards", "upgrade_stars_colour"):
+        from core.interface.item_marks.item_marks import supports_item_marks
+        return supports_item_marks(code)
     checks = {"touchless_target": supports_target_switch, "hold_a": supports_hold_a, "fast_text": supports_fast_text,
               "fast_gathering": supports_fast_gathering, "system_keyboard": supports_system_keyboard,
               "skip_death_camera": supports_death_camera_skip, "modern_camera": supports_modern_camera,
@@ -315,13 +361,16 @@ def supports_mod_options(code: bytes) -> bool:
     return bl_target(code, FRAME_CALL) == FRAME_UPDATE and supports_mod_settings(code)
 
 
-def available_options(code: bytes, settings: Any, console: bool = False) -> list[str]:
+def available_options(code: bytes, settings: Any, console: bool = False, cheats_gate: bool = False) -> list[str]:
     """The options the player's game can change during play, in the order of OPTION_IDS: the edition's
     (gui_presets.json, `in_game`) and the page's own (page_only_options), the ones a 3DS can use when `console`, those
-    of a feature the run has (FEATURE_ROWS) and those whose hooks the executable has."""
+    of a feature the run has (FEATURE_ROWS) and those whose hooks the executable has. The Cheats group's only with the
+    settings' `cheats_enabled`, or with `cheats_gate` (a 3DS title: the group always there, behind the launcher's flag,
+    patch_mod_options)."""
     from core.app.presets import in_game_fields
     from core.app.settings import EMULATOR_ONLY
-    cheats = cheat_options() if getattr(settings, "cheats_enabled", False) else []   # the Cheats group: only with them
+    with_cheats = cheats_gate or getattr(settings, "cheats_enabled", False)
+    cheats = cheat_options() if with_cheats else []     # the Cheats group: only with them
     wanted = [key for key in (*in_game_fields(), *page_only_options(), *cheats)
               if not (console and key in EMULATOR_ONLY)
               and (key not in FEATURE_ROWS or getattr(settings, FEATURE_ROWS[key]))]
@@ -329,20 +378,29 @@ def available_options(code: bytes, settings: Any, console: bool = False) -> list
 
 
 def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: Layout | None = None,
-                      aspect: bool = False, wheel: bool = False) -> bytes:
+                      aspect: bool = False, wheel: bool = False, cheats_gate: bool = False) -> bytes:
     """`code` (the update's executable) with the START menu's page for `available` options, each frame's read of them,
     and the hooks of those that need one. The Settings field of an option is its installed default. `aspect`: the
     aspect ratio's switch is on, so its row is in the page; `wheel`: the mod has the item wheel, so its Radial Menu
-    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data).
-    Refuses an executable where a site is not the game's word."""
+    row is (interface/radial_menu/radial_menu.py patches the wheel and its screens' data). With the box's option a
+    run also gives every town area Change Appearance's layout (box_appearance.py: the lobby's ARC and, after the
+    single-screen mode's patches, the stage lists).
+    `cheats_gate` (a 3DS title): the Cheats group's rows of `available` and
+    their hooks are there, but the page leaves the group out and their options are 0 until the launcher's flag file
+    allows them, which the game reads once a launch through Heavenfall Beta's sidecars (save/beta_sidecar.c
+    beta_cheats_flag: the run must also patch_beta_sidecar). Without it a mod is exactly as before: the group shows
+    and acts when `available` has its rows. Refuses an executable where a site is not the game's word."""
     from core.interface.mod_settings.mod_settings import load_settings, patch_mod_settings
     if not supports_mod_options(code):
         raise CodeSpaceError("the options' sites are not the update's words: already patched or another game")
     layout = layout or load_layout()
-    table = load_settings(available=available, aspect=aspect, wheel=wheel)
+    gated = [key for key in available if key in cheat_options()] if cheats_gate else []
+    table = load_settings(available=available, aspect=aspect, wheel=wheel, gated=gated)
     out = bytearray(patch_mod_settings(code, layout, table, bool(getattr(settings, "single_screen", False))))
     layout.place(out, STUB)
-    layout.place(out, DATA, options_data(settings, available))
+    layout.place(out, DATA, options_data(settings, available, gated=gated))
+    if gated:
+        layout.reserve(out, CHEATS_ALLOWED)
     layout.place(out, RAW_TABLE, raw_table())
     layout.hook(out, FRAME_CALL, STUB, calls=FRAME_UPDATE)
     word = lambda value: value.to_bytes(4, "little")  # noqa: E731
@@ -367,6 +425,9 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
     if "box_equipment" in available:
         layout.hook(out, BOX_KIND[0], at("mod_box_kind"), original=word(BOX_KIND[1]))
         layout.hook(out, BOX_LINES[0], at("mod_box_lines"), original=word(BOX_LINES[1]), link=False)
+    if "honing_glow" in available:
+        for site, original in HONING_SITES:
+            layout.hook(out, site, at("mod_honing_glow"), original=word(original))
     from core.gameplay.fast_gathering.fast_gathering import patch_fast_gathering
     from core.gameplay.hold_a.hold_a import patch_hold_a
     from core.interface.fast_text.fast_text import patch_fast_text
@@ -397,6 +458,6 @@ def patch_cheats_options(code: bytes, available: list[str], layout: Layout) -> b
     return out
 
 
-__all__ = ["OPTION_IDS", "available_options", "cheat_options", "default_value", "load_options", "option_half",
-           "options_data", "page_only_options", "patch_cheats_options", "patch_mod_options", "raw_table",
-           "supports_mod_options", "supports_option"]
+__all__ = ["OPTION_IDS", "available_options", "cheat_options", "cheats_retry", "default_value", "gate_data",
+           "load_options", "option_half", "options_data", "page_only_options", "patch_cheats_options",
+           "patch_mod_options", "raw_table", "supports_mod_options", "supports_option"]

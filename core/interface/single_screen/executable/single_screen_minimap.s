@@ -6,8 +6,10 @@
 @ call (0x694CE0) is this block, which first makes the call it replaces (the "[X] Map" hint's block, which runs the world
 @ map block, the prompt block and the raw pad read), then, every frame:
 @  1. the groups are found afresh, never kept: the GUI manager's list (*(*(gui + 0x100) + 0x154), 0x600 pointers) is
-@     scanned once, and each hash of minimap_hashes (the state group, the hint, then up to 8 groups that follow the
-@     state; 0 unused) gets the first group whose name hash (group + 0) is it. A null gui, manager or list: none found;
+@     scanned once, and each hash of minimap_hashes (the state group, the hint, then up to 7 groups that follow the
+@     state and last the place name's; 0 unused) gets the first group whose name hash (group + 0) is it. A null gui,
+@     manager or list: none found. When the state group is found, minimap_start(state)
+@     (single_screen_minimap_hall.c) makes Mod Settings' choice of the minimap's start once per load of the town;
 @  2. ACTIVE (r7) is 1 only when the button may turn the minimap: the game control's byte +0x2B is 2 (the lobby), the
 @     lobby scene exists, scene + 0x9788 is 0 (no talk, menu, box or map), the halfword +0x97D6 (the input lock) is
 @     0, the hub machine is set up (+0x172D4 not 0) and idle (+0x172D5 is 2), the state group and the first following
@@ -35,9 +37,11 @@
 @     or hides the map with the game's own functions in the hall's hub states (nothing in the others). Then
 @     bits 14-17 of group + 0x44, then FUN_00ae65b0(group), only for a group whose screen differs
 @     (as the prompt block moves ui006). What the game shows or hides of them follows on the screen they are on; a
-@     bind that puts them back on the touch screen is undone the next frame. The last one is the town's place name
+@     bind that puts them back on the touch screen is undone the next frame. The last slot is the town's place name
 @     (ui421_midasi_mura, minimap.label): the frames block's label unit (single_screen_label.c) scales and moves its
-@     frame null while it is on the top screen;
+@     frame null while it is on the top screen. It goes up only while ACTIVE too: the game GUI engine draws the map
+@     only with its hint (shown while ACTIVE), and the whole interface is drawn after the game's fade, so a name
+@     left up showed over a fade to black and a loading screen;
 @  5. the hint group (on the top screen, hidden there otherwise) is shown while ACTIVE and hidden in every other case,
 @     with FUN_00ae53e0 only when its shown bit differs; when it was shown just now its word is filled in, as the X
 @     hint's block does but with the lobby message file's function FUN_005a882c(ref, lobby file, message) (as
@@ -68,6 +72,7 @@
     .equ MARK, 0x8000000              @ an unused bit of the held word: "the button was hidden last frame"
     .equ ROOM, 40                     @ the hashes: the state group, the hint, 8 following groups (bytes)
     .equ FOUND, 0                     @ sp + FOUND: the group of each hash, 0 none (ROOM bytes)
+    .equ LABEL, FOUND + ROOM - 4      @ ... the last: the place name's
     .equ KEYS, 40                     @ sp + KEYS: (hint hash, 0), (pane hash, 0) for the text's ref
     .equ FRAME, 56
 
@@ -119,6 +124,9 @@ next:
     subs    r2, r2, #1
     bne     scan
 scanned:
+    ldr     r0, [sp, #FOUND]          @ the state's start in a town just loaded (minimap_start: once per load)
+    cmp     r0, #0
+    blne    minimap_start
     mov     r7, #0                    @ 2. ACTIVE
     mov     r11, #0                   @ TALK
     ldr     r0, =game_control
@@ -228,7 +236,11 @@ follow:
     ldr     r0, [sp, r6]
     cmp     r0, #0
     beq     followed
-    cmp     r8, #0
+    mov     r1, r8
+    cmp     r6, #LABEL                @ the place name goes up only while the map can show (ACTIVE): the whole
+    cmpeq   r7, #0                    @ interface is drawn after the game's fade, and the map leaves with its hint
+    moveq   r1, #0
+    cmp     r1, #0
     ldrneb  r2, [r5, #0x245]          @ the top screen's value
     ldreqb  r2, [r5, #0x246]          @ the touch screen's
     and     r2, r2, #0xF

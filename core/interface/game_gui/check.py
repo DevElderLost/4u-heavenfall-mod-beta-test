@@ -43,6 +43,7 @@ from core.interface.game_gui import strings as S
 from core.interface.game_gui.config import ARRANGEMENT_DIR, MODES, Arrangement, Placement
 from core.interface.game_gui.recorded import RecordedScreen, recorded_screens
 from core.interface.game_gui.snapshot import SnapshotFormatError, load
+from core.interface.mod_settings.box_appearance import stage_layouts
 
 CHECK_SETTINGS = ARRANGEMENT_DIR / "check.json"
 POOLS = ("groups", "nulls", "sprites", "texts", "boundaries", "panes")
@@ -473,8 +474,8 @@ def _path_list(code: bytes, address: int) -> list[str]:
 def game_pools(code: bytes, romfs: Path, language: str) -> tuple[dict[str, bytes], dict[str, list[str]],
                                                                   dict[str, int]]:
     """(layout name -> bytes, scene -> layout names, pool -> size) of the game: the layouts of the RomFS dump's
-    `language` (its core and map ARCs), each stage kind's lists from the canonical executable `code`, and the pool
-    sizes with the null pool as single-screen mode sets it."""
+    `language` (its core and map ARCs), each stage kind's lists from the canonical executable `code` with the layouts
+    the mod adds to them, and the pool sizes with the null pool as single-screen mode sets it."""
     folder = Path(romfs) / language / "data"
     layouts: dict[str, bytes] = {}
     for path in sorted(folder.glob("core_*.arc")) + sorted(folder.glob("*_map.arc")):
@@ -485,8 +486,9 @@ def game_pools(code: bytes, romfs: Path, language: str) -> tuple[dict[str, bytes
     common = _path_list(code, COMMON_LIST) + _path_list(code, LOBBY_LIST)
     for kind in range(STAGE_KINDS):
         pointer = struct.unpack_from("<I", code, STAGE_LISTS + 8 * kind - BASE_ADDRESS)[0]
-        if pointer:
-            scenes[S.tr(S.SCENE, kind=kind)] = common + _path_list(code, pointer)
+        added = list(stage_layouts(kind))   # the mod's own: Change Appearance's layout (box_appearance.py)
+        if pointer or added:
+            scenes[S.tr(S.SCENE, kind=kind)] = common + (_path_list(code, pointer) if pointer else []) + added
     patched = single_screen_pools.patch_pools(code, single_screen_pools.gui_pool_nulls())
     table = struct.unpack_from("<7I", patched, single_screen_pools.TABLE - BASE_ADDRESS)
     sizes = {"groups": table[0], "nulls": table[1], "sprites": table[2], "texts": table[4], "boundaries": table[5],

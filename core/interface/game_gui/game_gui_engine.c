@@ -27,7 +27,9 @@
  *
  * gui_engine_frame:
  *  1. walks every GUI manager (the uLayout family, told by its vtable) of sUnit's 32 move lines, and each manager's
- *     group list; a group is found in the table's names by its name hash (binary search: the names are sorted);
+ *     group list; a group is found in the table's names by its name hash (the table's name index, probed from the
+ *     hash's home slot); one walk a frame notes the shown names and keeps the groups of a block it meets, which step 3
+ *     places in that order (a scene with more than MATCH_LIMIT of them walks again to place);
  *  2. the screen: the first of the table's screens (in the order the build wrote: by number) whose rule matches the
  *     names of the shown groups (bit 0x400 of group + 0x44): all of `all`, one of `any` (or none listed), none of
  *     `none`. Kept in game_gui_state for the draw's hook (index + 1; 0: none, the blocks' defaults);
@@ -45,7 +47,15 @@
  *     its bits differ, and then the pane is redrawn (its draw node's byte + 0x12 = 3, or FUN_00ae6bcc without one).
  *     The priority (bits 19-26 of group + 0x18) is written when the place sets one and it differs, then
  *     FUN_00ae65b0(group) as FUN_00ae63c8 does. A view the manager does not draw in is added to its mDrawView (bits
- *     16-25 of + 4: the keyboard's managers draw in the top screen's view only).
+ *     16-25 of + 4: the keyboard's managers draw in the top screen's view only), but the top screen's while
+ *     `top_screen_hidden` is set (L held in Change Appearance took it away: it would come back the same frame).
+ *  4. the name keyboard: `game_gui_keyboard` is its line + 1 (sUnit's line of a keyboard manager, uSwkbdLayout, 27)
+ *     while one of its groups is shown on the top screen. Its background covers the whole top screen
+ *     (single_screen.json, keyboard `backdrop_width`), so nothing drawn before it can be seen there but what is wrongly
+ *     drawn over it (a panel whose priority passes the keyboard's): while it is open the draw's hook draws no group of
+ *     a manager on an earlier line (the main GUI's, 26) on
+ *     the top screen. The keyboard's line keeps all of its own: its rows and the four other classes there that draw its
+ *     name box and its suggestion bar.
  *  Nothing is read back from what was written: every value is a function of the table, the group's translate and
  *  its own screen, so a frame that chose a wrong screen is right again the next one.
  *
@@ -55,8 +65,9 @@
  *
  * The table (all little endian, offsets from its start; a table without the magic makes both entries do nothing):
  * a header, the names sorted by hash, their targets, the direct targets' file values, the screens, the rules' name
- * indices, a default place per block, each screen's places sorted by block and the photo screens (a record of the
- * screen, its first kept hash and their count each, then the hashes).
+ * indices, a default place per block, each screen's places sorted by block, the photo screens (a record of the
+ * screen, its first kept hash and their count each, then the hashes) and the name index (a u16 per slot: the index of
+ * the name whose probe from its home slot reaches it, INDEX_EMPTY in at least half of them).
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with game_gui_engine.ld).
  */
@@ -65,19 +76,27 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define MAGIC 0x31454747u            /* "GGE1" */
+#define MAGIC 0x32454747u            /* "GGE2": the table with its name index */
 #define SHOWN 0x400u                 /* group + 0x44: shown */
 #define VIEW_SHIFT 14                /* group + 0x44: bits 14-17 the view (screen) */
 #define VIEW_BOTTOM 7                /* the touch screen's view */
 #define VIEW_NONE 15                 /* a view no camera draws: the group is hidden */
 #define PRIORITY_SHIFT 19            /* group + 0x18: bits 19-26 */
+#define GROUP_MANAGER 0x14           /* group + 0x14: its manager + MANAGER_CONTEXT */
+#define MANAGER_CONTEXT 0x104
+#define UNIT_LINE_SHIFT 3            /* cUnit + 4: bits 3-9 its move line (the order units draw in) */
+#define UNIT_LINE_MASK 0x7F
 #define DRAW_VIEWS 16                /* manager + 4: bit 16 + view, the views its unit draws in */
 #define LINES 32                     /* sUnit's move lines: + 0x14, 0x18 each, + 0x0C the first unit */
 #define UNIT_LIMIT 0x4000            /* units walked per line at most (a broken chain never hangs the frame) */
 #define GROUP_LIMIT 0x2000           /* a manager's group list length at most */
 #define MAX_NAMES 4096               /* the shown names' bits on the stack (the build refuses more names) */
+#define MATCH_LIMIT 256              /* groups of a block the frame's walk keeps to place (12 bytes each, on the stack) */
 #define NO_BLOCK 0xFFFFu
 #define WRAPPER 0xFFFFu              /* a target's `direct`: the build's wrapper null */
+#define INDEX_EMPTY 0xFFFFu          /* a free slot of the name index */
+#define INDEX_MULTIPLIER 0x9E3779B1u /* a hash's home slot: the top index_bits bits of hash * this (engine.py index_slot) */
+#define INDEX_MAX_BITS 16
 
 #define PLACE_VIEW 0x07u             /* place flags: the view to draw in (0 top, 7 touch) ... */
 #define PLACE_KEEP_VIEW 0x10u        /* ... or the group's own */
@@ -99,6 +118,7 @@ struct header {
     u32 photo_at, photos;            /* the photo screens' records (struct photo_screen), then the kept hashes */
     u32 toggle, dismiss;             /* the photo mode's raw pad bits: the settings' toggle (each record holds the one
                                         used), those that end it */
+    u32 index_at, index_bits;        /* the name index: 2 ** index_bits u16 slots, a name's index or INDEX_EMPTY */
 };
 struct name { u32 hash; u16 block, target_first, target_count, pad; };
 struct target { u32 hash; u16 direct, block; };        /* block: a part block's index, NO_BLOCK for the name's */
@@ -113,7 +133,10 @@ struct photo { u32 on, muted; };       /* the mode is on; the raw pad bits it hi
 extern const u8 game_gui_table[];                      /* the block game_gui_table, the build's */
 extern struct state game_gui_state;                    /* .bss */
 extern struct photo game_gui_photo;                    /* .bss */
+extern u32 game_gui_keyboard;                          /* .bss: a keyboard's group is shown on the top screen */
 extern float aspect_way;                               /* .bss, cheats/aspect_ratio.c: 0 without the aspect ratio */
+extern u32 top_screen_hidden;                          /* .bss, interface/appearance_peek/appearance_peek.c: L took the
+                                                          top screen's view from the main GUI: not given back */
 extern u8 *pad_control;                                /* the pad object (its variable) */
 extern u8 *sunit;                                      /* the game's sUnit (the units' move lines) */
 extern const u8 ulayout_vtable[], ulayout_monnyan_vtable[], uswkbd_layout_vtable[], ulayout_scheduler_vtable[],
@@ -170,23 +193,30 @@ static int is_manager(u32 vtable)
            vtable == (u32)ulyt_anime_scheduler_vtable || vtable == (u32)ulyt_message_scheduler_vtable;
 }
 
-/* The name of `hash` and its index, or 0. */
+/* A table the engine can read: the build's magic, names within the shown bits, an index of a size it can probe. */
+static int usable(const struct header *h)
+{
+    return h->magic == MAGIC && h->names <= MAX_NAMES && h->index_bits && h->index_bits <= INDEX_MAX_BITS;
+}
+
+/* The name of `hash` and its index, or 0: the index probed from the hash's home slot, one slot on at a time, until
+ * the name or a free slot (the build leaves at least half the slots free, so a miss, most of a scene's groups, ends
+ * after a slot or two; at most every slot once). */
 static const struct name *find(u32 hash, u32 *index)
 {
     const struct header *h = TABLE;
     const struct name *names = AT(struct name, h->name_at);
-    u32 low = 0, high = h->names;
-    while (low < high) {
-        u32 mid = (low + high) >> 1;
-        u32 at = names[mid].hash;
-        if (at == hash) {
-            *index = mid;
-            return &names[mid];
+    const u16 *slots = AT(u16, h->index_at);
+    u32 mask = (1u << h->index_bits) - 1;
+    u32 at = (hash * INDEX_MULTIPLIER) >> (32 - h->index_bits);
+    for (u32 tries = 0; tries <= mask; tries++, at = (at + 1) & mask) {
+        u32 n = slots[at];
+        if (n == INDEX_EMPTY)
+            return 0;
+        if (names[n].hash == hash) {
+            *index = n;
+            return &names[n];
         }
-        if (at < hash)
-            low = mid + 1;
-        else
-            high = mid;
     }
     return 0;
 }
@@ -374,22 +404,30 @@ static void apply(u8 *manager, u8 *group, const struct name *n, u32 screen)
             gui_group_changed(group);
         }
     }
-    if (!(p->flags & PLACE_KEEP_VIEW) && (!(p->flags & PLACE_HIDDEN) || parted))
-        W(manager, 0x04) |= 1u << (DRAW_VIEWS + (p->flags & PLACE_VIEW));
+    u32 view = p->flags & PLACE_VIEW;
+    if (!(p->flags & PLACE_KEEP_VIEW) && (!(p->flags & PLACE_HIDDEN) || parted) && !(view == 0 && top_screen_hidden))
+        W(manager, 0x04) |= 1u << (DRAW_VIEWS + view);
 }
 
-/* Each group of each GUI manager: `pass` 0 notes the shown names, 1 applies the places. */
-static void walk(u32 pass, u32 *bits, u32 screen)
+/* A group of a block met by the frame's walk, kept to be placed once the screen is chosen. */
+struct match { u8 *manager, *group; const struct name *n; };
+
+/* Each group of each GUI manager: `pass` 0 notes the shown names (and the watched group's flags, the groups met) and
+ * keeps each group of a block in `matches` while there is room (MATCH_LIMIT); 1 places every group of a block on
+ * `screen`. Returns the groups of a block met. */
+static u32 walk(u32 pass, u32 *bits, u32 screen, struct match *matches)
 {
     const struct header *h = TABLE;
     u8 *units = sunit;
+    u32 met = 0;
     if (!units)
-        return;
+        return 0;
     for (u32 line = 0; line < LINES; line++) {
         u8 *unit = P(units, 0x14 + 0x18 * line + 0x0C);
         for (u32 seen = 0; unit && seen < UNIT_LIMIT; seen++, unit = P(unit, 0x0C)) {
             if (!is_manager(W(unit, 0)))
                 continue;
+            u32 keyboard = pass == 0 && W(unit, 0) == (u32)uswkbd_layout_vtable;
             u8 *list = P(unit, 0x154);
             u32 count = W(unit, 0x160);
             if (!list)
@@ -403,6 +441,8 @@ static void walk(u32 pass, u32 *bits, u32 screen)
                 u32 hash = W(group, 0), index;
                 if (pass == 0 && h->watch && hash == h->watch)
                     game_gui_state.watch_flags = W(group, 0x44);
+                if (keyboard && (W(group, 0x44) & SHOWN) && ((W(group, 0x44) >> VIEW_SHIFT) & 0xF) == 0)
+                    game_gui_keyboard = line + 1;
                 const struct name *n = find(hash, &index);
                 if (!n)
                     continue;
@@ -410,31 +450,51 @@ static void walk(u32 pass, u32 *bits, u32 screen)
                     game_gui_state.groups++;
                     if (W(group, 0x44) & SHOWN)
                         bits[index >> 5] |= 1u << (index & 31);
+                    if (n->block != NO_BLOCK) {
+                        if (met < MATCH_LIMIT) {
+                            matches[met].manager = unit;
+                            matches[met].group = group;
+                            matches[met].n = n;
+                        }
+                        met++;
+                    }
                 } else if (n->block != NO_BLOCK) {
                     apply(unit, group, n, screen);
                 }
             }
         }
     }
+    return met;
 }
 
+/* One walk a frame: it notes the shown names and keeps the
+ * groups of a block it meets; once the screen is chosen they are placed in the order the walk met them, so the frame
+ * writes what the walk to choose and the walk to place wrote, in the same order. A scene with more of them than
+ * MATCH_LIMIT walks again to place them all. */
 __attribute__((used)) void gui_engine_frame(void)
 {
     const struct header *h = TABLE;
     game_gui_state.frames++;
     game_gui_state.screen = 0;
-    if (h->magic != MAGIC || h->names > MAX_NAMES)
+    game_gui_keyboard = 0;
+    if (!usable(h))
         return;
     u32 bits[MAX_NAMES / 32];
+    struct match matches[MATCH_LIMIT];
     for (u32 i = 0; i < (h->names + 31) / 32; i++)
         bits[i] = 0;
     game_gui_state.groups = 0;
-    walk(0, bits, 0);
+    u32 met = walk(0, bits, 0, matches);
     u32 screen = screen_of(bits);
     game_gui_state.screen = screen;
     if (game_gui_photo.on && !photo_of(screen))
         game_gui_photo.on = 0;            /* the card closed or on its monster page: the next one starts without it */
-    walk(1, bits, screen);
+    if (met > MATCH_LIMIT) {
+        walk(1, bits, screen, 0);
+        return;
+    }
+    for (u32 i = 0; i < met; i++)
+        apply(matches[i].manager, matches[i].group, matches[i].n, screen);
 }
 
 /* The photo mode, after the pad update's chain: on a photo screen a fresh press of the
@@ -472,11 +532,12 @@ __attribute__((used)) void gui_engine_pad(void)
         W(pad, at) = W(pad, at) & ~clear;
 }
 
-__attribute__((used)) u32 gui_engine_view(u8 *group, u32 flags)
+/* The view the arrangement and the photo mode draw `group` in, << 28. */
+static u32 view_of(u8 *group, u32 flags)
 {
     u32 own = (flags >> VIEW_SHIFT) & 0xF;
     const struct header *h = TABLE;
-    if (h->magic != MAGIC)
+    if (!usable(h))
         return own << 28;
     if (game_gui_photo.on) {                   /* the photo mode: every group but the screen's kept ones draws nowhere */
         const struct photo_screen *photo = photo_of(game_gui_state.screen);
@@ -493,4 +554,17 @@ __attribute__((used)) u32 gui_engine_view(u8 *group, u32 flags)
     if (p->flags & PLACE_KEEP_VIEW)
         return own << 28;
     return (u32)(p->flags & PLACE_VIEW) << 28;
+}
+
+/* The view to draw `group` in, << 28: the arrangement's, but none on the top screen for a group of a manager on a line
+ * before the name keyboard's while it is open there (step 4 above). */
+__attribute__((used)) u32 gui_engine_view(u8 *group, u32 flags)
+{
+    u32 view = view_of(group, flags);
+    if (game_gui_keyboard && view == 0) {
+        u8 *manager = P(group, GROUP_MANAGER);
+        if (manager && ((W(manager - MANAGER_CONTEXT, 0x04) >> UNIT_LINE_SHIFT) & UNIT_LINE_MASK) + 1 < game_gui_keyboard)
+            return (u32)VIEW_NONE << 28;
+    }
+    return view;
 }

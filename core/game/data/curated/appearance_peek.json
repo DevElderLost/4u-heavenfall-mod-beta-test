@@ -1,0 +1,8 @@
+{
+ "description": "Hold L in Change Appearance to hide the interface (interface/appearance_peek/appearance_peek.py). words: the cue's word in each language, a message appended to the lobby's ItemBox text file. cue: the cue on the top screen, in pixels from its top left corner: x, y its bar's top left corner, height the bar's, key the L key's square (the game's own L of cmn_win00_ID) from the bar's left end, gap the pixels between the key and the word, padding the pixels after the word, font the word's size; the bar's width is worked out per language from the game font's advances. colours: bar the black bar's tint (the forge's key bar), word the word's. priority: the cue's draw priority in front of the other groups of layer 1. misses: frames without the edit before the cue is hidden and the screen given back (the edit runs every frame; a scene change stops it).",
+ "words": {"eng": "Hide Interface", "fre": "Masquer l'interface", "ger": "Anzeige ausblenden", "ita": "Nascondi interfaccia", "spa": "Ocultar interfaz"},
+ "cue": {"x": 4, "y": 222, "height": 14, "key": 14, "gap": 3, "padding": 5, "font": 9},
+ "colours": {"bar": [0, 0, 0], "word": [230, 230, 230]},
+ "priority": 60,
+ "misses": 3
+}

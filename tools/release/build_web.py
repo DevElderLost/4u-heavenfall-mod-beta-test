@@ -48,6 +48,8 @@ BUNDLE_SKIPS_FOLDERS = ("core/gui/qt/", "core/interface/game_gui/recorder/")
 BUNDLE_SKIPS_SUFFIXES = (".pyc", ".c", ".h", ".s", ".ld")
 MIME_TYPES = {".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm",
               ".json": "application/json"}
+# The files outside core/ the run reads (core/music/audio/volumes.py: the songs' levels, beside the package)
+BUNDLE_ROOT_FILES = ("extra_ost_volumes.json",)
 ZIP_DATE = (1980, 1, 1, 0, 0, 0)       # the same bytes for the same files
 
 
@@ -109,7 +111,7 @@ def bundle() -> bytes:
     """The mod's code and data as a zip, the same bytes for the same files."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for path in sorted((ROOT / "core").rglob("*")):
+        for path in sorted([*(ROOT / "core").rglob("*"), *(ROOT / name for name in BUNDLE_ROOT_FILES)]):
             name = path.relative_to(ROOT).as_posix()
             skipped = name.startswith(BUNDLE_SKIPS_FOLDERS) or name.endswith(BUNDLE_SKIPS_SUFFIXES)
             if path.is_file() and not skipped:

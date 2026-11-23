@@ -55,10 +55,14 @@ ASSET_FOLDERS = (
     "interface/monster_icons/icons",
     "interface/monster_icons/mhw",  # MH World's icons
     "music/mhw/music",              # MH World's music
+    "music/jukebox/extra",          # the Jukebox's extra songs (music/jukebox/catalogue.py shipped_bytes)
     "install/installer_3ds",        # the 3DS app
     "interface/single_screen/layout/images",
     "interface/damage_numbers/art",  # Damage Numbers' picture and its cells
     "interface/radial_menu/art",    # the item wheel's picture and its cells
+    "interface/hud/art",            # the target hint's HD glyph
+    "interface/weapon_tree/art",    # the weapon tree's HD marks
+    "interface/item_marks/art",     # the item marks' HD stars and halo
 )
 # What the program reads at run time, relative to core/ (a folder: every file in it that is not code).
 RESOURCES = ASSET_FOLDERS + (
@@ -77,10 +81,13 @@ RESOURCES = ASSET_FOLDERS + (
     "monsters/maccao/recordings_ems046.json",
     "monsters/valstrax/recordings_em086.json",
     "monsters/astalos/recordings_em081.json",
+    "monsters/nargacuga/recordings_em037_00.json",
+    "monsters/lagiacrus/recordings_em046_00.json",
     # the Deviants' own recordings (their statics.c are their bases')
     "monsters/boltreaver/recordings_em081_04.json",
     "monsters/hellblade/recordings_em080_04.json",
     "monsters/soulseer/recordings_em082_04.json",
+    "monsters/silverwind/recordings_em037_04.json",
     # read for the sizes of the shells' point tables (monsters/porting/proof_blocks.py)
     "monsters/alatreon/em050/statics.c",
     "monsters/glavenus/em080/statics.c",
@@ -89,6 +96,8 @@ RESOURCES = ASSET_FOLDERS + (
     "monsters/maccao/ems046/static.c",       # Maccao has no shells: his spec's statics, read the same way
     "monsters/valstrax/em086/static.c",
     "monsters/astalos/em081/static.c",
+    "monsters/nargacuga/em037/static.c",
+    "monsters/lagiacrus/em046/static.c",
     "native/lib",                   # the native kernels' library
 )
 # Files outside the package, to the bundle's top (where the modules that use them look: the checkout's top).

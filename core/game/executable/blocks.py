@@ -86,15 +86,15 @@ BUBBLEBLIGHT = "bubbleblight"
 # other block keeps its address. Its data block (interface/radial_menu/radial_menu.py wheel_data) holds the curated
 # numbers, the default items and the save zone's place.
 RADIAL_MENU = "radial_menu"
-RADIAL_DATA_SIZE = 0x3C
+RADIAL_DATA_SIZE = 0x40
 # The wheel's picture (interface/radial_menu/radial_draw.c, a unit of the wheel's block; radial_draw.py draw_data fills
 # the block): the group's and panes' name hashes, its index and draw order, each slot's and its big name's
-# place, the places and scales of each position by size, the digits' cells in the wheel's art, the quantity's
-# colours, the thresholds and tables; and Edit Slots' (the START menu's) panes and places by size
-RADIAL_DRAW_DATA_SIZE = 1188
+# place, the places and scales of each position by size and text size, the digits' cells in the wheel's art, the
+# quantity's colours, the tables; and Edit Slots' (the START menu's) panes and places by size
+RADIAL_DRAW_DATA_SIZE = 3088
 # The Radial Menu's screen in Mod Settings (interface/radial_menu/radial_editor.c; radial_editor.py editor_data fills
 # the texts' block)
-RADIAL_EDITOR_DATA_SIZE = 80
+RADIAL_EDITOR_DATA_SIZE = 94
 # The cheats of the quest's timers (cheats/quest_timers/quest_timers.py) and of the minimap's skills
 # (cheats/map_skills/map_skills.py): their hooks' stubs, the C and the data with each cheat's
 # option of Mod Settings. After the item wheel, so they move no block of the product; only a mod with the cheats places
@@ -132,11 +132,15 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 936
-MOD_SETTINGS_PANE_HASHES = (808, 924)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 948
+MOD_SETTINGS_PANE_HASHES = (820, 936)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
-MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8)   # mod_options.c: the header, 52 options, a pool of 256 values
+# mod_options.c: the header, 52 options, a pool of 256 values, the Cheats group's gate (struct cheats_gate)
+MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8) + 12
 MOD_RAW_TABLE_SIZE = 64
+# The town's stage lists with ui415 (interface/mod_settings/box_appearance.py): six lists' paths and bytes
+BOX_APPEARANCE_LISTS_SIZE = 160
+APPEARANCE_PEEK_DATA_SIZE = 16       # appearance_peek.c struct peek_data
 ASPECT_DATA_SIZE = 124
 ASPECT_ANCHORS_SIZE = 0x3000
 # The split title's two RomFS, `rom:` from the game data title and `mod:` from the title's own (install/title/
@@ -159,7 +163,7 @@ MODERN_CAMERA_STATE_SIZE = 72
 # Numbers and the horn's songs share, their code and their table
 # (struct quest_layouts).
 QUEST_LAYOUTS = "quest_layouts"
-QUEST_LAYOUTS_DATA_SIZE = 128
+QUEST_LAYOUTS_DATA_SIZE = 160
 # The Hunting Horn's songs (interface/horn_songs/horn_songs.py): the C and its data
 # (struct horn_data); its state is in the extension's variables.
 HORN_SONGS = "horn_songs"
@@ -169,21 +173,52 @@ HORN_SONGS_STATE_SIZE = 60
 # Jamo's mod adapted: the C and its data (struct world_data).
 WORLD_SHARPNESS = "world_sharpness"
 WORLD_SHARPNESS_DATA_SIZE = 64
+# Item marks (interface/item_marks/item_marks.py): the hook stubs, the C (both ARM: the
+# stubs call the C), its data (struct marks_data) and its state in the extension's variables (struct marks_state).
+ITEM_MARKS = "item_marks"
+ITEM_MARKS_DATA_SIZE = 788
+ITEM_MARKS_STATE_SIZE = 3424
 # The Smithy's weapon tree (interface/weapon_tree/weapon_tree.py): the C with its hooks,
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
 WEAPON_TREE = "weapon_tree"
-WEAPON_TREE_DATA_SIZE = 252 + 4 * 560
+WEAPON_TREE_DATA_SIZE = 260 + 4 * 565
 WEAPON_TREE_STATE_SIZE = 94 + 6 * 336
 # The new map numbers 28 and 29 (maps/new_map.py): packed after all of them
 # too, so that it moves no other block.
 NEW_MAP = "new_map"
 # Boltreaver Astalos' pulling ball on the hunter (gameplay/boltreaver_pull/boltreaver_pull.py): after the new maps too
 BOLTREAVER_PULL = "boltreaver_pull"
+# The jukebox (music/jukebox/patch.py): one block of three units and a stub (the
+# engine jukebox.c, the card's store and load jukebox_save.c, the house Felyne's menu jukebox_menu.c, jukebox.s), its
+# data (jukebox.h struct jukebox_data: the replaced requests, the limits, the defaults, the menu's messages, each track
+# id's request) and its state in the extension's variables (struct jukebox_state: the saved block's copy and the
+# engine's). Packed after the product's other blocks, so it moves none of them.
+JUKEBOX = "jukebox"
+# The jukebox's menu (music/jukebox/menu_patch.py): its unit of hook stubs, the
+# menu's part at the end of the data block (the page counter's place, the track names' first message, the categories,
+# the track list, the counter's way back on a wider picture) and its variable (jukebox.h struct jukebox_menu)
+JUKEBOX_MENU_DATA_SIZE = 2 * 2 + 2 + 2 + 8 * 12 + 2 * 256 + 2 * 2
+JUKEBOX_MENU_SIZE = 12 + 4 + 4 + 2 * 12 * 10 + 2 * 4 * 10 + 2 * 12 * 2
+JUKEBOX_MENU_UNITS = ("music/jukebox/jukebox_menu_stub.s",)
+JUKEBOX_MENU_DEFINES = (f"JUKEBOX_MENU_SIZE={JUKEBOX_MENU_SIZE}",)
+JUKEBOX_DATA_SIZE = 2 * 16 * 2 + 8 + 8 + 2 * 2 + 2 * 2 + 2 * 64 + 2 * 512 + JUKEBOX_MENU_DATA_SIZE
+JUKEBOX_STATE_SIZE = 848 + 8 + 8 + 2 * 6 + 4 * 8 + 40
 # The cheats Interruptible Flex and Whetstone Sharpening Cancel (cheats/action_cancel/action_cancel.py; docs/cheats/
 # cheats.md): after the item wheel, so that it moves no other product block
 ACTION_CANCEL = "cheat_action_cancel"
 ACTION_CANCEL_DATA_SIZE = 8
+# Heavenfall Beta's sidecars (save/beta_sidecar.py): the four sites' stubs and
+# the C with the extras core; its state (struct state in beta_sidecar.c: the slots, the request, the log) and its two
+# card images are in the extension's variables. After the jukebox too.
+BETA_SIDECAR = "beta_sidecar"
+BETA_SIDECAR_STATE_SIZE = 0x1FC + 64 * 16
+BETA_SIDECAR_CARD_SIZE = 2 * 0x5000 + 16      # the two card images, and the read's sentinel (beta_sidecar.c read_file)
+# The Cheats group's gate on a 3DS title (interface/mod_settings/mod_options.py): what the title has read of the
+# launcher's flag file (mod_options.c struct cheats_allowed). Its variable goes
+# after the debug ones with the sidecars' (tools/build/build_code_space.py pack_variables): adding it moved no other.
+CHEATS_GATE = "cheats_gate"
+CHEATS_ALLOWED_SIZE = 12
 # The new map's fog cycle (maps/misty_peaks/fog_cycle.py), with the map
 FOG_CYCLE_DATA_SIZE = 236
 # The debug fog control (maps/misty_peaks/fog_debug.py): only a diagnostics file places it, so it goes last of all and
@@ -198,6 +233,20 @@ FOG_DEBUG_STATE_SIZE = 296
 TRIO_DIAG = "trio_diagnostics"
 TRIO_DIAG_LOG_SIZE = 0x3A0 + 64 * 96 + 2048 * 32 + 256 * 128
 TRIO_DIAG_DATA_SIZE = 32
+# The online sync log (diagnostics/sync_diag.py): one ring of 8192 rows of 20 words after a 0x200-byte header (640 KB: a
+# 15-minute quest with the watched monsters of a room fits), its hook stubs and the data of what it watches. A probe's
+# only, packed after the trio diagnostics.
+SYNC_DIAG = "sync_diagnostics"
+SYNC_DIAG_LOG_SIZE = 0x200 + 8192 * 20 * 4
+SYNC_DIAG_DATA_SIZE = 24
+# The sound latch of the Felynes' rocket (diagnostics/sound_latch.py): a ring of the last 512 sound requests and three
+# latches of the requests and voices around a rocket hit, its hook stubs and the windows' lengths. A probe's only,
+# packed after the online sync log. SOUND_LATCH_LOG_SIZE is struct latch_log (sound_latch.c): the 0x480-byte header,
+# 512 requests of 96 bytes, three latches (a 0x60-byte head, 8 hits of 56 bytes, two snapshots of 24 voices of 64
+# bytes, 256 requests of 96).
+SOUND_LATCH = "sound_latch"
+SOUND_LATCH_LOG_SIZE = 0x480 + 512 * 96 + 3 * (0x60 + 8 * 56 + 2 * 24 * 64 + 256 * 96)
+SOUND_LATCH_DATA_SIZE = 20
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -219,6 +268,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.equipment.mhgen.felyne_pack import FELYNE_IDS, FIRST_MODEL, SOUND_SLOT
     from core.equipment.new_gear.felyne_data import FEATURE as FELYNE
     from core.equipment.new_gear.felyne_data import block_specs as felyne_blocks
+    from core.equipment.new_gear.felyne_data import MARK_DEFINES as FELYNE_MARK_DEFINES
+    from core.equipment.new_gear.felyne_data import MARK_TABLE_BYTES as FELYNE_MARK_TABLE_BYTES
     from core.gameplay.quests.quest_lists import HALL_LIST_LENGTH, NEW_QUEST_ROOM, SAVE_LIST_LENGTH
     from core.gameplay.wyporium import trades as wyporium_trades
     from core.gameplay.tail_fall.tail_fall import ANIMATION_SIZE as TAIL_FALL_ANIMATION_SIZE
@@ -228,7 +279,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, TRIO_DIAG)
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, BETA_SIDECAR, TRIO_DIAG,
+                   SYNC_DIAG, SOUND_LATCH)
     return packed_last, (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -270,10 +322,6 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): two entries, one for the
     # SDK's pad step and one for the Game Menu's per-frame logic
     BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext"),
-    # Heavenfall's own save files (save/game_redirect.py): the logic in
-    # C, the two hooks' entries in assembly
-    BlockSpec("save_redirect", "save_redirect", "save/game_redirect.c", region="ext"),
-    BlockSpec("save_redirect_entry", "save_redirect", "save/game_redirect.s", region="ext"),
     # START skips a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.py): one entry, for the
     # camera manager's call of a camera sequence's frame
     BlockSpec("death_camera_skip", "skip_death_camera", "gameplay/death_camera_skip/death_camera_skip.c", region="ext"),
@@ -285,7 +333,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
     BlockSpec("virtual_map", "monster_routes", "monsters/routes/virtual_map.s", region="ext"),
-    BlockSpec("virtual_maps", "monster_routes", size=4 * 320 + 4, region="ext"),
+    BlockSpec("virtual_maps", "monster_routes", size=4 * 352 + 4, region="ext"),
     BlockSpec("virtual_map_tables", "monster_routes", size=32 * 160, region="ext"),
     # The Smithy's layered gear screens (layered_selector.c, layered_forge.c) and its catalogs (equipment/layered/
     # layered_equipment.py, layered_data()), with the Felynes' looks (felyne_looks.c, felyne_looks_data:
@@ -294,6 +342,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("layered_selector", "layered_equipment", "equipment/layered/layered_selector.c", region="ext", thumb=True,
               align=8, units=("equipment/layered/layered_forge.c", "equipment/layered/felyne_looks.c",
                      "equipment/layered/layered_online.c", "equipment/layered/layered_switch.c",
+                     "equipment/layered/layered_card.c", "equipment/layered/layered_box.c",
                      "interface/screen_kit/screen_kit.c")),
     BlockSpec("layered_data", "layered_equipment", size=0x9000, region="ext"),
     # The Wyporium's Rare Materials Exchange: its menu line and screens (gameplay/wyporium/rare_exchange.c), and its
@@ -343,11 +392,16 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("quest_special_levels", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
     BlockSpec("hall_quest_list", "new_quests", size=2 * (HALL_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
     BlockSpec("save_quest_list", "new_quests", size=2 * (SAVE_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
+    # the three instructions that address the save's cleared bits: positions 512-543 in one more word of the save data
+    BlockSpec("quest_bits", "new_quests", "gameplay/quests/quest_bits.s", region="ext"),
     # Black and Crimson Fatalis and Alatreon at low health (gameplay/monster_phases/monster_phases.py): their speed,
     # their World music by phase and the slain theme at the quest's end; the options and requests the patcher fills in
     # (8 bytes)
     BlockSpec("monster_phases", "monster_phases", "gameplay/monster_phases/monster_phases.s", region="ext"),
     BlockSpec("monster_phase_options", "monster_phases", size=8, region="ext"),
+    # The monster stat table copied with the weak monsters' records past the game's 141 (monsters/stat_table.py): every
+    # index a stat byte names, 32 bytes each
+    BlockSpec("stat_table", "stat_records", size=32 * 256, region="ext"),
     # The quest list's key quest marks (interface/key_quests/executable/key_quests.py):
     # the row refresh's hook, the key quests' ids (u16 and an end mark) and the name hashes of the rows' star nulls (8
     # u32)
@@ -458,6 +512,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # radial_menu.md, "Editor"): Mod Settings (mod_settings.c) opens them from the wheel's row, in ARM; their texts
     BlockSpec("radial_editor", RADIAL_MENU, "interface/radial_menu/radial_editor.c", region="ext"),
     BlockSpec("radial_editor_data", RADIAL_MENU, size=RADIAL_EDITOR_DATA_SIZE, region="ext"),
+    # The trigger ZR: the stub that stands in for the pad
+    # update's raw read (FUN_005b8460 in FUN_005b8284) and then lets radial_wheel.c take ZR's bit from the raw words
+    BlockSpec("radial_pad_stub", RADIAL_MENU, "interface/radial_menu/radial_pad_stub.s", region="ext"),
     # Bubbleblight (gameplay/bubbleblight/bubbleblight.py): the
     # hunter's code (hit, status, tick, resets), and the entry points of the effects task (bubble_changed) and the large
     # bubbles (bubble_large), each in a block of its own
@@ -468,6 +525,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # hooks; bubble_icon_table: B's table copied with the bubbles' entry, 28 entries of 8 bytes)
     BlockSpec("bubble_icon", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_icon.s", region="ext"),
     BlockSpec("bubble_icon_table", BUBBLEBLIGHT, size=28 * 8, region="ext"),
+    # ... and the other hunters' bubbles online: the local hunter's state into free bits of its status word, which the
+    # game sends; the others' word into the look and the icon
+    BlockSpec("bubble_online", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_online.c", region="ext"),
+    # ... and the effect class's destructor freeing only its own slot of the effect manager, so that no look leaves
+    # the manager's array while it lives
+    BlockSpec("effect_slot", BUBBLEBLIGHT, "gameplay/bubbleblight/effect_slot.c", region="ext"),
     # The ported MH Generations monsters (core/monsters/).
     # What they share (feature SHARED, in whenever one of them is on): MH Generations' effect player and its glue
     # (monsters/porting/mhgen_port.c), the ported monsters' records, the
@@ -559,6 +622,13 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # bodies' and heads' stats and the body and weapon recipes, moved here with room for the new pieces
     # (felyne_data.block_specs)
     *(BlockSpec(name, FELYNE, size=size, region="ext") for name, size in felyne_blocks()),
+    # The save's marks of the Felyne ids past the window (equipment/new_gear/felyne_marks.py; docs/equipment/
+    # equipment_data.md, "What the save keeps"): the function that gives an id its bit, its table (the ids marked in
+    # the hunters' equipment arrays) and the four places' stubs
+    BlockSpec("felyne_marks_code", FELYNE, "equipment/new_gear/felyne_marks.c", region="ext",
+              defines=FELYNE_MARK_DEFINES),
+    BlockSpec("felyne_marks_table", FELYNE, size=FELYNE_MARK_TABLE_BYTES, region="ext"),
+    BlockSpec("felyne_marks_stubs", FELYNE, "equipment/new_gear/felyne_marks.s", region="ext"),
     # A Felyne wearing a new piece is written to the save file wearing a Derring piece, and the real one is put back at
     # load (gameplay/felyne_save/felyne_save.py): both
     # hooks and their table
@@ -592,11 +662,17 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext"),
     BlockSpec("mod_settings_code", MOD_SETTINGS, "interface/mod_settings/mod_settings.c", region="ext",
               units=("interface/mod_settings/aspect_list.c", "interface/mod_settings/mod_options.c",
-                     "interface/mod_settings/option_list.c")),
+                     "interface/mod_settings/option_list.c", "interface/appearance_peek/appearance_peek.c",
+                     "interface/screen_kit/screen_kit.c")),
     BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext"),
     BlockSpec("mod_options_stub", MOD_SETTINGS, "interface/mod_settings/mod_options_stub.s", region="ext"),
     BlockSpec("mod_options_data", MOD_SETTINGS, size=MOD_OPTIONS_DATA_SIZE, region="ext"),
     BlockSpec("mod_raw_table", MOD_SETTINGS, size=MOD_RAW_TABLE_SIZE, region="ext"),
+    # Change Appearance at every item box: the town's stage lists with ui415 (box_appearance.py)
+    BlockSpec("box_appearance_lists", MOD_SETTINGS, size=BOX_APPEARANCE_LISTS_SIZE, region="ext"),
+    # Holding L in Change Appearance hides the interface (interface/appearance_peek/appearance_peek.py): the cue's
+    # names, word and priority
+    BlockSpec("appearance_peek_data", MOD_SETTINGS, size=APPEARANCE_PEEK_DATA_SIZE, region="ext"),
     BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext"),
     # The split title's RomFS (install/title/split_romfs.py): the mount, the game data's open and the lookup, and the
     # game's nn::fs::FileStream::TryInitialize with its first instruction (the lookup's hook takes it)
@@ -622,6 +698,9 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
     BlockSpec("world_sharpness_code", WORLD_SHARPNESS, "interface/world_sharpness/world_sharpness.c", region="ext"),
     BlockSpec("world_sharpness_data", WORLD_SHARPNESS, size=WORLD_SHARPNESS_DATA_SIZE, region="ext"),
+    BlockSpec("item_marks_stub", ITEM_MARKS, "interface/item_marks/item_marks_stub.s", region="ext"),
+    BlockSpec("item_marks_code", ITEM_MARKS, "interface/item_marks/item_marks.c", region="ext"),
+    BlockSpec("item_marks_data", ITEM_MARKS, size=ITEM_MARKS_DATA_SIZE, region="ext"),
     # 8-aligned: a Thumb block's size depends on its address mod 8
     BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", region="ext", thumb=True, align=8,
               units=("interface/screen_kit/screen_kit.c",)),
@@ -639,6 +718,19 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # and the two Mod Settings options' ids (action_cancel.py action_cancel_data)
     BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext"),
     BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext"),
+    # The jukebox: the engine with the card's and the menu's units and the selector's stub, and its data (patch.py
+    # data_block)
+    BlockSpec(JUKEBOX, JUKEBOX, "music/jukebox/jukebox.c", region="ext",
+              units=("music/jukebox/jukebox_save.c", "music/jukebox/jukebox_menu.c", "music/jukebox/jukebox.s",
+                     "music/jukebox/jukebox_save_stub.s") + JUKEBOX_MENU_UNITS,
+              defines=(f"JUKEBOX_DATA_SIZE={JUKEBOX_DATA_SIZE}", f"JUKEBOX_STATE_SIZE={JUKEBOX_STATE_SIZE}")
+              + JUKEBOX_MENU_DEFINES),
+    BlockSpec("jukebox_data", JUKEBOX, size=JUKEBOX_DATA_SIZE, region="ext"),
+    # Heavenfall Beta's sidecars: the stubs of the four sites, and the C linked with the extras core (save/c/extras.c)
+    # and what an older Heavenfall left (save/c/heav.c)
+    BlockSpec("beta_sidecar_stubs", BETA_SIDECAR, "save/beta_sidecar.s", region="ext"),
+    BlockSpec("beta_sidecar_code", BETA_SIDECAR, "save/beta_sidecar.c", region="ext", thumb=True, align=8,
+              units=("save/c/extras.c", "save/c/heav.c")),
     # The debug fog control's code and data (a diagnostics file's only)
     BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
     BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
@@ -657,6 +749,16 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("trio_diag_code", TRIO_DIAG, "diagnostics/trio_diag.c", region="ext",
               defines=(f"TRIO_LOG_SIZE={TRIO_DIAG_LOG_SIZE}",)),
     BlockSpec("trio_diag_data", TRIO_DIAG, size=TRIO_DIAG_DATA_SIZE, region="ext"),
+    # The online sync log's block, after the trio diagnostics (a diagnostics file's only)
+    BlockSpec("sync_diag_stub", SYNC_DIAG, "diagnostics/sync_diag_stub.s", region="ext"),
+    BlockSpec("sync_diag_code", SYNC_DIAG, "diagnostics/sync_diag.c", region="ext",
+              defines=(f"SYNC_LOG_SIZE={SYNC_DIAG_LOG_SIZE}",)),
+    BlockSpec("sync_diag_data", SYNC_DIAG, size=SYNC_DIAG_DATA_SIZE, region="ext"),
+    # The sound latch of the Felynes' rocket, after the online sync log (a diagnostics file's only)
+    BlockSpec("sound_latch_stub", SOUND_LATCH, "diagnostics/sound_latch_stub.s", region="ext"),
+    BlockSpec("sound_latch_code", SOUND_LATCH, "diagnostics/sound_latch.c", region="ext",
+              defines=(f"LATCH_LOG_SIZE={SOUND_LATCH_LOG_SIZE}",)),
+    BlockSpec("sound_latch_data", SOUND_LATCH, size=SOUND_LATCH_DATA_SIZE, region="ext"),
 )
 
 
@@ -678,13 +780,16 @@ VARIABLES = (
     VariableSpec("aspect_list_state", MOD_SETTINGS, 4),
     VariableSpec("option_list_state", MOD_SETTINGS, 4),
     VariableSpec("mod_options_state", MOD_SETTINGS, 104, region="ext_vars"),
+    VariableSpec("appearance_peek_state", MOD_SETTINGS, 4, region="ext_vars"),   # appearance_peek.c struct peek_state
+    # appearance_peek.c took view 0 from the main GUI manager; the game GUI engine (single-screen mode) then does not
+    # give it back
+    VariableSpec("top_screen_hidden", MOD_SETTINGS, 4),
     VariableSpec("fps_carry_state", MOD_SETTINGS, 4),     # mod_options.c: the frame rate's credit, a float
     VariableSpec("keyboard_finger", SINGLE_SCREEN, 8, align=8),
     VariableSpec("target_request", "touchless_target", 4),  # dpad_filter.s -> target_button.s
     VariableSpec("fast_text_state", "fast_text", 8),        # fast_text.s: calls while B is held, last result
     VariableSpec("fast_gathering_state", "fast_gathering", 4),  # fast_gathering.s: the mPlayerSpeed it last wrote
     VariableSpec("select_kick_state", "select_kick", 4),     # select_kick.c: Select held (1), seen by the menu (2)
-    VariableSpec("save_redirect_state", "save_redirect", 4),  # game_redirect.c: bit n: file kind n is read from MH4U's
     # death_camera_skip.c, intro_skip.c -> select_kick.c: frames left in which START belongs to the death camera or to
     # the touch screen's Skip
     VariableSpec("death_camera_skip_state", "skip_death_camera", 4),
@@ -697,7 +802,7 @@ VARIABLES = (
     # The looks worn: written by the selector, read by the
     # render.
     VariableSpec("layered_state", "layered_equipment", 0x3C),
-    VariableSpec("layered_ui", "layered_equipment", 0x64),     # layered.h: struct ui
+    VariableSpec("layered_ui", "layered_equipment", 0x68),     # layered.h: struct ui
     VariableSpec("layered_preview", "layered_equipment", 0x68),  # layered.h: struct preview
     # single_screen_prompt.s reads it (HELP_FLAGS): non-zero while a forge-style screen of Layered Gear is on, which
     # closes the help strips (layered.h screens_open); the Rare Materials Exchange does not use it
@@ -715,6 +820,10 @@ VARIABLES = (
     # Layered Gear's switch in the game (layered_switch.c struct layered_switch): the value the town's hunters were
     # dressed with, the one a quest's preload took, a re-dress of the local hunter waiting for its load
     VariableSpec("layered_switch", "layered_equipment", 4),
+    # The Guild Card (layered_card.c struct card): the card its 3D hunter was last built from
+    VariableSpec("layered_card", "layered_equipment", 8),
+    # The item box's Layered Gear line (layered_box.c struct box_line_state): the line of the box last opened, or none
+    VariableSpec("layered_box", "layered_equipment", 4),
     VariableSpec("exchange_ui", RARE_EXCHANGE, 72),           # rare_exchange.c: struct xui
     # The game GUI recorder's frame counters (u32 started, done): only the
     # recording probe writes them (tools/ui/ui_probe.py, block gui_frame_marks_probe), never the product. Not a debug
@@ -728,6 +837,9 @@ VARIABLES = (
     # The photo mode (interface/game_gui/game_gui_engine.c, struct photo): on (+0, the Guild Card's GUI hidden but the
     # characters, the sky and the greeting), and the raw pad bits it hid from the game last frame (+4)
     VariableSpec("game_gui_photo", GAME_GUI, 8),
+    # The name keyboard is open (interface/game_gui/game_gui_engine.c, gui_engine_frame): u32, its line + 1 while a
+    # keyboard's group is shown on the top screen, when the draw's hook leaves out the earlier lines' groups there
+    VariableSpec("game_gui_keyboard", GAME_GUI, 4),
     # The item wheel's state (interface/radial_menu/radial_wheel.c, struct state): the hunter whose use awaits its
     # result (+0), whether the stick came back since the wheel opened or fired (+4), whether the wheel was open last
     # frame (+5), the frames the stick has held one sector (+6) and that sector (+7), the hunter whose item waits for
@@ -737,12 +849,12 @@ VARIABLES = (
     # mask), which tools/inspect/citra_state.py reads from a save state. Both are written in the product: not debug
     # variables. All of the wheel's are in the extension's variables (the game's .bss is full); patch_radial_menu
     # reserves them.
-    VariableSpec("radial_state", RADIAL_MENU, 32, region="ext_vars"),
+    VariableSpec("radial_state", RADIAL_MENU, 36, region="ext_vars"),
     VariableSpec("radial_debug", RADIAL_MENU, 64, region="ext_vars"),
     # The wheel's picture (interface/radial_menu/radial_draw.c, struct draw_state): the group it painted and the
     # hunter and open flag the input update left for the quest's frame, what each slot, the chosen slot, the big name
     # and the position last showed, whether the group is shown, the frames a change was left undone for lack of room
-    # in the pane pool and the slots painted
+    # in the pane pool, the slots painted and the sector the wheel gave for the gold
     VariableSpec("radial_draw_state", RADIAL_MENU, 48, region="ext_vars"),
     # The wheel's picture in Edit Slots (radial_draw.c, struct menu_state): the same fields for ui020's group, then the
     # layout last shown, the frame's parts it hid, whether it cleared the group's cache flag and whether its root shows
@@ -753,6 +865,11 @@ VARIABLES = (
     # camera does not see the C-stick, set by radial_editor.c each frame Edit Slots is open and counted down by
     # radial_wheel.c
     VariableSpec("radial_stick_hold", RADIAL_MENU, 4, region="ext_vars"),
+    # The wheel's hold on ZR (radial_wheel.c, struct zr): the pad updates its claim lasts (set by the hunter's frame
+    # with L held and the trigger ZR), ZR held at the last raw read, ZR taken from the game until it is released, a
+    # press the wheel has not used or dropped yet, and the pad updates its hold with the console's L lasts (set by the
+    # hunter's frame with the trigger ZR)
+    VariableSpec("radial_zr", RADIAL_MENU, 8, region="ext_vars"),
     VariableSpec("face_dump", "target_face (FACE_DEBUG)", 0x20, align=0x10, debug=True),
     # +0 next entry, +4 call count, +0x10 last values (16 bytes), +0x20 ring of 88 entries of 32 bytes (100 until
     # the merge of xx and main, whose variables left bss_tail no room for more).
@@ -788,9 +905,6 @@ VARIABLES = (
                  region="ext_vars"),
     VariableSpec("hf_records_slots", "new monster id (core/monsters/porting/hf_records.py)", 0xC00, align=0x10,
                  region="ext_vars"),
-    # The log of Heavenfall's own save files: every call of the file task's two operations (core/save/game_redirect.c
-    # struct save_log: 16 + 160 notes of 16 bytes); patch_game_redirect calls Layout.reserve
-    VariableSpec("save_redirect_log", "save_redirect", 0xA10, align=0x10, region="ext_vars"),
     # Damage Numbers' events, numbers and monsters (damage_numbers.c struct dmg_state); patch_damage_numbers reserves it
     VariableSpec("damage_numbers_state", DAMAGE_NUMBERS, DAMAGE_NUMBERS_STATE_SIZE, align=0x10, region="ext_vars"),
     # The modern camera's kept C-stick, each camera input's turn and the aim's (modern_camera.c struct
@@ -798,11 +912,22 @@ VARIABLES = (
     VariableSpec("modern_camera_state", MODERN_CAMERA, MODERN_CAMERA_STATE_SIZE, region="ext_vars"),
     # The horn's songs' rows and lights (horn_songs.c struct horn_state); patch_horn_songs reserves it
     VariableSpec("horn_songs_state", HORN_SONGS, HORN_SONGS_STATE_SIZE, align=0x10, region="ext_vars"),
+    # The item marks' noted icons, their stars and the rare effect (item_marks.c struct marks_state); patch_item_marks
+    # reserves it
+    VariableSpec("item_marks_state", ITEM_MARKS, ITEM_MARKS_STATE_SIZE, align=0x10, region="ext_vars"),
     # The weapon tree's class, placing, cursor and window (weapon_tree.h struct wt_state); patch_weapon_tree reserves it
     VariableSpec("weapon_tree_state", WEAPON_TREE, WEAPON_TREE_STATE_SIZE, align=0x10, region="ext_vars"),
     # The pull's registration of the hunter and the ball's marks (boltreaver_pull.c struct pull_state: 4 + 4 owners of
     # 20 bytes); patch_boltreaver_pull reserves it
     VariableSpec("boltreaver_pull_state", BOLTREAVER_PULL, 4 + 4 * 20, region="ext_vars"),
+    # The jukebox's saved block and its engine (jukebox.h struct jukebox_state); patch_jukebox reserves it
+    VariableSpec("jukebox_state", JUKEBOX, JUKEBOX_STATE_SIZE, region="ext_vars"),
+    # The jukebox's menu: its screen, cursor and the strings its rows show (jukebox.h struct jukebox_menu);
+    # patch_jukebox_menu reserves it
+    VariableSpec("jukebox_menu", JUKEBOX, JUKEBOX_MENU_SIZE, region="ext_vars"),
+    # Holding A in the Wyporium's Claim Items (hold_a.c hold_a_claim): the cell the last call's take emptied, which the
+    # cursor leaves a call later; patch_hold_a reserves it
+    VariableSpec("hold_a_claim_take", "hold_a", 4, region="ext_vars"),
     # gameplay/monster_phases/monster_phases.s: the phases of 77, 78 and 124 and the monster whose theme played last
     VariableSpec("monster_phase", "monster_phases", 4),
     # adapter, engine side: the effect player's own managers, which MH4U lacks (core/monsters/porting/sdk/proof_api.h):
@@ -822,10 +947,21 @@ VARIABLES = (
     # the variable holding the shells' manager sShell, which MH4U lacks (MH Generations keeps it at 0xDA95F0;
     # proof/shell_mgr.c, sdk/enemy_4u.h shell_launch_01_from)
     VariableSpec("proof_shell_mgr", "mhgen_port (core/monsters/porting/effect_player)", 4),
+    # Heavenfall Beta's sidecars: the slots, the request and the log (beta_sidecar.c struct state), and the two card
+    # images the card's split and join read into; patch_beta_sidecar reserves them
+    VariableSpec("beta_sidecar_state", BETA_SIDECAR, BETA_SIDECAR_STATE_SIZE, align=0x10, region="ext_vars"),
+    VariableSpec("beta_sidecar_card", BETA_SIDECAR, BETA_SIDECAR_CARD_SIZE, align=0x10, region="ext_vars"),
+    # The Cheats group's gate on a 3DS title: the flag file's answer, the frames to the next read, the last read's
+    # result and the reads (mod_options.c struct cheats_allowed); patch_mod_options reserves it with the gate
+    VariableSpec("cheats_allowed", CHEATS_GATE, CHEATS_ALLOWED_SIZE, region="ext_vars"),
     # The debug fog control's steps and live text (a diagnostics file's only), after every other variable
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
     # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others
     VariableSpec("trio_diag_log", TRIO_DIAG, TRIO_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
+    # The online sync log's ring (diagnostics/sync_diag.c struct sync_log), after the trio's
+    VariableSpec("sync_diag_log", SYNC_DIAG, SYNC_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
+    # The sound latch's ring and latches (diagnostics/sound_latch.c struct latch_log), after the sync log's
+    VariableSpec("sound_latch_log", SOUND_LATCH, SOUND_LATCH_LOG_SIZE, align=0x10, region="ext_vars"),
 )
 
 # Game functions the sources call by name (addresses in the update's executable).
@@ -869,6 +1005,11 @@ GAME_SYMBOLS = {
     "heal": 0xB24580,             # FUN_00b24580(hunter, health, 0): heals, with the food skills' scaling
     "status_icon_resume": 0xB8A5D0,  # FUN_00b8a524: after the cell hook of bubble_icon.s (0xB8A5CC, a strb)
     "hunter_masks": 0xB31630,     # FUN_00b31630(hunter) -> the mask pw + 0x800 (the party list's type 2 entries)
+    # Bubbleblight online (gameplay/bubbleblight/bubble_online.c)
+    "blight_edges": 0xB3B124,     # FUN_00b3b124(hunter): FUN_00b6c56c's step before the status word's end effects
+    # FUN_00c07424(manager, index): the effect manager's word +0x1F8 + 4 * index zeroed, its count byte +0x1F4 lowered
+    # (the effect class's destructor's call; gameplay/bubbleblight/effect_slot.c)
+    "effect_slot_clear": 0xC07424,
     # Bubbleblight's look and sound (gameplay/bubbleblight/bubble_fx.s): the path FUN_00b3f560 takes for the
     # waterblight's effect
     "effect_request_init": 0xC0CA90,  # FUN_00c0ca90(request): the 0x68-byte effect request with its defaults
@@ -880,7 +1021,7 @@ GAME_SYMBOLS = {
     "menu_cursor_init": 0x9BC954,    # FUN_009bc954(obj, cursor, count, rows, disabled, a / v / h sounds)
     "menu_cursor_update": 0x9BC9B4,  # FUN_009bc9b4(obj, cursor, 0): 1 A, 2 B
     "facility_pressed": 0x9AC3A4,    # FUN_009ac3a4(obj, GUI bits): pressed this frame
-    "facility_dirs": 0x9B3830,       # FUN_009b3830(obj): D-pad bits, pressed or repeating
+    "facility_dirs": 0x9B3830,       # FUN_009b3830(obj): every GUI bit pressed or repeating (pad + 0x348 | 0x35C)
     "facility_help": 0x298560,       # FUN_00298560(kind, file, message): the help line
     "sound_play": 0x31294C,          # FUN_0031294c(*0xFCCD6C, sound)
     "smithy_done": 0x9AE280,         # the end of the Smithy's per-frame state switch
@@ -915,13 +1056,6 @@ GAME_SYMBOLS = {
     "viewport_close": 0xC00EC8,      # FUN_00c00ec8(*0x105729C)
     "save_copy_out": 0xC2789C,       # FUN_00c2789c(save, buffer, 0x12600): save data -> the file's buffer
     "file_checksum": 0x2ABCAC,       # FUN_002abcac(files, buffer, size, write): the save file's checksum
-    # Heavenfall's own save files (save/game_redirect.py)
-    "file_manager": 0x104DEB0,       # the variable holding the file thread's manager (+0x20 the extdata id)
-    "file_exists": 0xC19CE8,         # FUN_00c19ce8(manager, name, archive, &found): the file exists (0 = no error)
-    "file_extdata_set": 0xC195FC,    # FUN_00c195fc(manager, id): the extdata the archive 1 operations mount
-    "save_task_resume": 0x2ACAA4,    # FUN_002acaa0 after its first instruction (the archive 0 file operations)
-    "extdata_task_resume": 0x2ABA08,  # FUN_002aba04 after its first instruction (the archive 1 file operations)
-    "slot_exists_resume": 0x2AF394,   # FUN_002af390 after its first instruction (whether a kind's file exists)
     # The forge-style screens: the forge's
     # materials box and money box, its yes / no window, the hammer scene, payment and the GUI's panes by hash; all in
     # the runs of the base games and the update (eur_base, usa_base, usa_update)
@@ -929,6 +1063,7 @@ GAME_SYMBOLS = {
     "forge_hide": 0xA1C640,          # FUN_00a1c640(obj): hides the Smithy's panels (ui407, ui402, ui034, the money box)
     "model_frame": 0x2727C8,         # FUN_002727c8(): shows ui034's model frame with its L, R and stick words
     "money_write": 0xA52860,         # FUN_00a52860(obj, money, 1): writes the sum in the money box
+    "money_number": 0xC0DA68,        # FUN_00c0da68(gui, text ref, n): "<n>z" in the text, as the money box writes it
     "money_show": 0xA5D424,          # FUN_00a5d424(obj, shown, 0): shows / hides the money box (obj + 0xA010)
     "window_open": 0x2921CC,         # FUN_002921cc(kind, slot, 4[, 1]): the yes / no window of the Smithy (ui006)
     "window_update": 0x2A2414,       # FUN_002a2414(): draws the window every frame
@@ -1071,6 +1206,20 @@ GAME_SYMBOLS = {
     "quest_cleared": 0xC21FE0,         # FUN_00c21fe0(save, quest id): non-zero if cleared
     "story_flag": 0xC1C278,            # FUN_00c1c278(save, flag): non-zero if the story flag is set (layered ranks)
     "quest_available_body": 0xA15B64,  # FUN_00a15b60's second instruction (the hook runs the first)
+    # The save's cleared bits past 512 (gameplay/quests/quest_bits.s): after each hooked `add rA, rA, #0x3F4`
+    "quest_bit_set_resume": 0xC1F1BC,     # FUN_00c1f170 (sets a quest's bit), after 0xC1F1B8
+    "quest_bit_count_resume": 0xC21EA8,   # FUN_00c21e24 (counts the cleared quests), after 0xC21EA4
+    "quest_bit_read_resume": 0xC22050,    # FUN_00c21fe0 (quest_cleared), after 0xC2204C
+    # The save's Felyne marks past the window (equipment/new_gear/felyne_marks.s): after each hooked `add` of the id
+    # and the base, and each function's way out with no mark
+    "felyne_mark_get_resume": 0xC1E9C4,   # FUN_00c1e998(save, type, id, array): a mark, after 0xC1E9C0
+    "felyne_mark_get_none": 0xC1EA44,     # its mov r0, #0; bx lr
+    "felyne_mark_set_resume": 0xC1FB04,   # FUN_00c1fadc(save, type, id, array): sets a mark, after 0xC1FB00
+    "felyne_mark_set_none": 0xC1FB48,     # its bx lr
+    "felyne_mark_clear_resume": 0xC22704,  # FUN_00c226dc(save, type, id, array): clears a mark, after 0xC22700
+    "felyne_mark_clear_none": 0xC22748,   # its bx lr
+    "felyne_mark_had_resume": 0xC2359C,   # FUN_00c23500(save, data, entry): a piece into the box, after 0xC23598
+    "felyne_mark_had_none": 0xC235CC,     # its pop {r4, r5, pc}
     # Monster phases (gameplay/monster_phases/monster_phases.s)
     "monster_theme": 0x30E16C,         # FUN_0030e16c(manager, monster id, u8 *queue, u32 *request)
     "music_play": 0x309D5C,            # FUN_00309d5c(manager, player, state, queue, [request, instance, force])
@@ -1295,6 +1444,9 @@ GAME_SYMBOLS |= {
     "bit_ref_copy": 0xD11F98,              # 0xB14824: a bit reference's copy (the same five instructions)
     "mt_mat_identity": 0x10E6448,          # 0xE2F4E0: the identity matrix, written at start-up
     "collision_ray_attr": 0x2B96E4,        # 0x2F6C38: a ray's hit attribute (engine_pairs.json, verified)
+    # 0x2F6F1C (MH XX 0x2CEE8C, xx_pairs.json verified): the line query (from, to, area, out, normal, record, kind,
+    # mask), MH XX's base 46's setup's (engine_pairs.json: the candidate the line checks 0x2B9888 / 0x2B9CD4 call)
+    "collision_line_query": 0x2B9904,
 }
 # ==== end of shell bases 00, 01 and 11 ====
 
@@ -1557,6 +1709,20 @@ GAME_SYMBOLS |= {
     "equipment_control": 0xF3ED1C,      # the variable holding the equipment data object of the getters
     "lobby_hunter_loader": 0x109D8C4,   # the lobby's hunter model loader
     "preview_hunter": 0x109EB10,        # the variable holding the Smithy's preview hunter, once created
+    # The Guild Card's 3D hunter (equipment/layered/layered_card.c): FUN_009fbd08 builds it from this static info
+    "card_hunter_info": 0x109E970,
+    "card_to_info": 0x9B9F30,           # FUN_009b9f30(screen, card, info): the card shown into its hunter's info
+    # The item box's Layered Gear line (equipment/layered/layered_box.c)
+    "box_frame_setup": 0x589BF0,        # FUN_00589bf0(frame, box): the box menu's frame object
+    "box_menu_update": 0xA55A20,        # FUN_00a55a20(scene, menu): the box menu's commands of the frame
+    "box_menu_done": 0x9CA31C,          # FUN_009c9ee0: the end of a choice of the box menu (its FUN_00a99430 call)
+    "box_states_done": 0x9CA580,        # FUN_009c9ee0: the end of its states (r0 2: back to the menu, rebuilt)
+    "facility_menu_draw": 0xA0A708,     # FUN_00a0a708(scene): the facility menu drawn as set (the Smithy's tail's)
+    "facility_menu_open": 0xA5D584,     # FUN_00a5d584(scene, menu, row, bright): binds scene + 0x98D0, sets and draws
+    "facility_gui_open": 0x9BB2B0,      # FUN_009bb2b0(scene): the Smithy's GUI set up (ui401, ui402, ui407 bound)
+    "facility_gui_close": 0x9BB1AC,     # FUN_009bb1ac(scene): the Smithy's end
+    "preview_target_make": 0x9C32A0,    # FUN_009c32a0(scene): the preview's camera target and its two objects
+    "preview_target_drop": 0x9C3180,    # FUN_009c3180(scene): those destroyed, the preview's viewport closed
     "preview_mode": 0xEDBE90,           # the variable holding the preview's state: + 0x6C 1 / 2 while one is shown
     "menu_line_pictures": 0xE045B2,     # u8 per facility menu line (7: the cursor's copy): its first picture
     "menu_line_texts": 0xE045E6,        # ... and its first text pane
@@ -1694,6 +1860,8 @@ GAME_SYMBOLS |= {
     "frame_update": 0x644320,           # FUN_00644320(app): the engine's timing update, once per frame (frame limiter)
     "gx_main": 0x10572CC,               # the variable holding MtGX's draw object
     "gui_projection": 0xB70FC0,         # FUN_00b70fc0(matrix): the GUI's 2D projection from s0, s1 (aspect_stub.s)
+    # FUN_00ba106c(icon, place): a minimap icon's place, its group's plus its pane's (aspect_stub.s aspect_icon)
+    "minimap_icon_place": 0xBA106C,
     # FUN_002f8f34(table, hunter, stat, flag): a stat of the hunter's equipment (6: the weapon's attack); insta_kill.c
     "hunter_gear_stat": 0x2F8F34,
 }
@@ -1710,6 +1878,8 @@ GAME_SYMBOLS |= {
     "list_has": 0xB2ADFC,               # FUN_00b2adfc(hunter, group, action): the transition list holds the record
     "use_ready": 0xB08F94,              # FUN_00b08f94(hunter): the current list accepts an item (p + 0x6FA, p + 0x93F1)
     "item_control": 0xED2E40,           # the variable FUN_005e588c takes as its first argument
+    "pad_raw_read": 0x5B8460,           # FUN_005b8460(pad object, pad + 0x2C, status): the raw words (+0x60 on), which
+                                        # radial_pad_stub.s calls before the wheel takes ZR from them
 }
 
 # The wheel's picture (interface/radial_menu/radial_draw.c): an item's picture on a sprite (with its colour) and an
@@ -1718,6 +1888,17 @@ GAME_SYMBOLS |= {
     "item_icon": 0xC0DE18,              # FUN_00c0de18(any, sprite data + 0x10, item): the picture's cell (+0x20, +0x24)
                                         # and the four corners' colour (+0x30 to +0x3C) of that item
     "item_name": 0x5A86F8,              # FUN_005a86f8({group, pane}, item): the item's name in a text pane
+}
+
+# Item marks (interface/item_marks/item_marks_stub.s, item_marks.c): the item setters'
+# third instructions (where their entry stubs go back to), the vertex builder each drawn sprite goes through, and the
+# variable holding the quest result scene's object
+GAME_SYMBOLS |= {
+    "item_icon_body": 0xC0DE20,         # FUN_00c0de18, after its `stmdb sp!, {r4, r5, r6, lr}`: `cpy r4, r1`
+    "item_icon_small_body": 0xC0E270,   # FUN_00c0e268, after the same: `cpy r4, r1`
+    "sprite_vertices": 0xAE7098,        # FUN_00ae7098(sprite data + 0x10, context, state): its vertex record
+    "result_scene_object": 0xEF32B4,    # the result scene (FUN_00accd24's first argument): + 4 the page, + 0x4A /
+                                        # + 0x10A the cells of pages 1 and 2
 }
 
 # The wheel's Auto-Combine (interface/radial_menu/radial_craft.c): the four steps of the game's combining (START menu's
@@ -1764,6 +1945,8 @@ GAME_SYMBOLS |= {
     "camera_event_return": 0xC056E0,    # FUN_00c056d4 after its load of an event's zoom-out distance (630.0)
     "camera_state_return": 0xC00AA8,    # FUN_00c009ac after its load of the distance of a state of the hunter (300.0)
     "box_lines_return": 0x9EC8A8,       # FUN_009ec82c after its store of the box menu's count of lines
+    "appearance_binds": 0xDFF050,       # FUN_005976a8's table of ui415's ten root groups (12 bytes each, hash first)
+    "box_view_mode": 0xA8BB9C,          # FUN_00a8bb9c(scene, menu, mode): the item box's View Mode (START); 1: acted
     "keyboard_poll_body": 0x2B58EC,     # FUN_002b58e8 (the poll of the game's keyboard) after its first instruction
 }
 
@@ -1880,6 +2063,12 @@ GAME_SYMBOLS |= {
     # His leader's pack in MH4U (porting/sdk/pack.h)
     "enemy_is_live": 0x9124F0,              # (uEnemy): non-zero for a live monster, FUN_0068239c's test of sEnemy's 32
     "enemy_mgr_records": 0x10B04F0,         # sEnemy's 0x80 records of 0x80 bytes: the quest's monsters, waiting or not
+    # Maccao online, MH4U's kind-5 path (core/monsters/maccao/ems046/online.c; maccao_port.md "Phase ON: online sync")
+    "enemy_factory_4u": 0x690228,           # (factory, id, info, tag) -> the monster: FUN_0068dab8's call, info[2] kind
+    "enemy_mgr_record_step": 0x68A268,      # (sEnemy, record): a record's frame (FUN_0068545c's driver hand-over first)
+    "enemy_mgr_count_called": 0x68239C,     # (sEnemy, set id, area, flags, large): the alive a call counts (kind 3)
+    "enemy_revive_wait": 0x91E218,          # (uEnemy): the wait in 12/0xFF after a death; its end em+0x798A by kind
+    "enemy_mgr_record_end": 0x684574,       # (sEnemy, record, from a message): kind 3 back to waiting, kind 5 active
     "enemy_hit_linked": 0xB6FCA8,           # (hit, victim): 1 when the victim is the attacker's linked monster
                                             # (em+0x78E8), the victims' loop's test before a monster is hit ("Phase P2")
 }
@@ -1983,6 +2172,36 @@ GAME_SYMBOLS |= {
     "collision_line_4u": 0x2B9CD4,              # 0x2CF17C: (sCollision, this, from, to, area, out, normal, record, b),
                                                 # s0 the radius; XX's two virtual calls on `this` are direct uEnemy
                                                 # calls (0x911D34, 0x91DFC0); its Rathian calls it at 0x6D6034
+}
+
+# Nargacuga's MH4U engine calls (phase G2e; the comment holds the MH XX address; each
+# is a verified row of nargacuga/em037/pairs.py, read in both games by phase B1)
+GAME_SYMBOLS |= {
+    "enemy_fight_point_add": 0x933B30,  # 0x8BC884: (this, points) toward his rage (Boltreaver's name)
+    "enemy_set_em59ac": 0x94C57C,       # 0x8D94CC: (this, v) the word em+0x7E6C = v (em+0x5998 in XX)
+    # 0x8B6140 / 0x8B6668: (this, st, no) st 10 and no one of nine reactions (0x1F, 0x23 ... 0x85) / the nine after them
+    "enemy_is_reaction_a": 0x92D71C,
+    "enemy_is_reaction_b": 0x92E37C,
+    # 0x8DD018 (uFestaEnemy's slot 9, its two Festa core records and time left out): uEnemy's slot 9, the unit's move
+    "enemy_base_slot_9": 0x94CD6C,
+    # an adapter's callee (xx_area_pos_test, 0x895574: em037/engine_4u.c)
+    "area_zone_test_4u": 0x6C5878,      # (sStage, area, pos, zone out, kind out): pos in one of the area's zone
+                                        # cylinders (sStage+0x34C + 4 x area) of an active kind (sStage+0x14)
+}
+
+# Lagiacrus' MH4U engine calls (phase G2e; the comment holds the MH XX address; each is
+# a row of lagiacrus/em046/pairs.py or names_d3.py, read in both games)
+GAME_SYMBOLS |= {
+    # 0x8AEEC4: (this, rate) mPos += mRate and mRateG times the unit's delta, mRate += mRateG times it, then falls into
+    # the landing test (0x922B68: mPos.y clamped to the ground em+0x624; XX em+0x58C)
+    "enemy_move_accel_land": 0x922AE8,
+    # 0x8B8730: (this, n, absolute) the angle from his yaw to homing point n, folded when absolute
+    "enemy_homing_point_yaw_diff": 0x930830,
+    "enemy_stay_times_load": 0x932F54,  # 0x8BBFC4: (this) the area's stay times from the species' data
+    "enemy_area_move_timer": 0x93EF30,  # 0x8C6D48: (this) the area move's timer em+0x1FC: 720, 2700 or 3600 frames
+    # 0x8CBEBC: (this, action) uEnemy's slot 94 (XX 279): may he take the action a network message asks for (the same
+    # jump table of 0x6A actions)
+    "enemy_slot237": 0x9431F4,
 }
 
 # The C-stick turns the camera analogically (gameplay/modern_camera/modern_camera.c)
@@ -2148,7 +2367,25 @@ GAME_SYMBOLS |= {
     "hunter_state_d": 0xD05284,         # FUN_00d05284(hunter): the state test of hits of kind 0xC, 0xD and 0x1E
 }
 
-GAME_SYMBOLS["color_fog_build"] = 0xC29308    # FUN_00c29308: a uColorFog's slot 10, which builds the fog table
+# The online sync log (diagnostics/sync_diag.py): the game's reliable sender and setAction, which its stubs leave by a
+# branch after logging, and the second instruction of the synced monster's frame 0x912504 (its first is the hook's)
+GAME_SYMBOLS |= {
+    "net_send_reliable": 0x688274,      # FUN_00688274(net, sender, 5, event, message, size): the last two on the stack
+    "enemy_set_action_main": 0x90EFAC,  # FUN_0090efac(monster, st, no, mode, player): setAction
+    "enemy_drive_resume": 0x912508,     # FUN_00912504's second instruction (`mov r6, r0`, after its `push`)
+}
+
+# The sound latch of the Felynes' rocket (diagnostics/sound_latch.py): the functions its stubs call in the game's place
+# and the rocket's class
+GAME_SYMBOLS |= {
+    "voice_start": 0xBD0750,            # FUN_00bd0750(driver, handle, context): a wave of a request onto a voice, 1
+    "voice_update": 0xBD4D18,           # FUN_00bd4d18(voice): its gains, distance and mix each driver tick
+    "hit_sound": 0xBE815C,              # FUN_00be815c(sound, monster, hit, position): the sound of a hit on a monster
+    "union_object_update": 0xB0762C,    # FUN_00b0762c(object): the Felynes' union attacks' objects' common move
+    "rocket_vtable": 0xE62B60,          # uOtomoSkill_rocket's vtable: the Felynes' rocket (constructor FUN_003d1ce0)
+}
+
+GAME_SYMBOLS["color_fog_build"] = 0xC29308   # FUN_00c29308: a uColorFog's slot 10, which builds the fog table
 
 # Boltreaver Astalos' pulling ball on the hunter (gameplay/boltreaver_pull/boltreaver_pull.c; docs/monsters/
 # boltreaver_port.md, "The pull"): the hunter's game move and turn, the list of monsters, and where the hit goes on
@@ -2170,4 +2407,69 @@ GAME_SYMBOLS |= {
     "hunter_update_check": 0xB18618,    # FUN_00b18618(hunter): the update's first check before the action's frame
                                         # (0xB14960); non-zero when it started an action
     "hunter_update_check_more": 0xB0D784,   # FUN_00b0d784(hunter): its second (0xB1496C), when the first started none
+}
+
+# The jukebox (music/jukebox/jukebox.c): the town's theme
+# selector, the resume list, the queue's lookup and the sound driver's stream voices
+GAME_SYMBOLS |= {
+    "town_theme": 0x304990,             # FUN_00304990(manager, which): the place's request of bgm_lob
+    "resume_list": 0xFCCE54,            # u16 requests whose play position the town keeps (manager + 0x178C + 8 n),
+                                        # 0xFFFF after the last (FUN_0030ace0's list)
+    "strq_request": 0xCEBBDC,           # FUN_00cebbdc(queue handle, request): its record, 0 when the queue has none
+    "stream_voice_newest": 0xBD1580,    # FUN_00bd1580(driver, handle, request, set): the newest live stream voice, 0
+    "stream_voice_position": 0xBD2AD0,  # FUN_00bd2ad0(driver, handle, request, set): that voice's position, samples
+    "sound_request_play": 0xBCACBC,     # FUN_00bcacbc(driver, handle, request, set, 0, 0): a queue's request played
+}
+
+# The jukebox's block in the card file (music/jukebox/jukebox_save_stub.s, save_patch.py)
+GAME_SYMBOLS |= {
+    "card_read": 0x2ADC98,              # FUN_002adc98(file task): the card file read into the save (1), or refused (0)
+}
+
+# The jukebox's menu (music/jukebox/jukebox_menu.c): the house Felyne's lines, the list
+# ui443 and its page counter, the GUI's frames, the exit event and the name keyboard as the equipment sets use it
+GAME_SYMBOLS |= {
+    "housekeeper_lines": 0xAA771C,      # FUN_00aa771c(obj): the menu's actions (facility + 0x228) and count (+ 0xC)
+    "list_bind": 0x59E3AC,              # FUN_0059e3ac(list): ui443's panes looked up into the refs at obj + 0x12C8C
+    "list_unbind": 0x59E44C,            # FUN_0059e44c(list): the list's groups closed
+    "ribbon_title": 0xA5985C,           # FUN_00a5985c(obj, group hash, pane hash, file, message): a static text shown
+    "page_counter": 0x288FAC,           # FUN_00288fac(x, y, page, pages, 0, 0): ui036's counter at (x, y), pages > 1
+    "page_arrow_idle": 0x29F084,        # FUN_0029f084(sprite ref): a page arrow's flash fades, every frame
+    "page_arrow_flash": 0x29EBAC,       # FUN_0029ebac(sprite ref): a page arrow flashes
+    "page_turn_next": 0x28BAE0,         # FUN_0028bae0(): the page counter's next-page animation
+    "page_turn_back": 0x28BABC,         # FUN_0028babc(): its previous-page animation
+    "touch_owner": 0x289708,            # FUN_00289708(): the touch menus' shared owner (ui036), made once
+    "touch_owner_close": 0x289544,      # FUN_00289544(): as the Gallery and the Song Select close their list
+    "touch_panels": 0x28BFA0,           # FUN_0028bfa0(0): the lower screen's panels for the place, as the Gallery and
+                                        # the Song Select open their list (0x9C5F74, 0x9F80F8)
+    "gui_layer_set": 0x29DF10,          # FUN_0029df10(0xB): as the Song Select opens its list
+    "menu_close_frames": 0x2A0778,      # FUN_002a0778(): as every Housekeeper screen closes
+    "gui_event": 0x288F4C,              # FUN_00288f4c(kind): 1 when the GUI's event record holds an event of the kind
+    "house_farewell": 0x9BCB90,         # FUN_009bcb90(obj, 1, 0): the house Felyne's farewell line (state 9 waits)
+    "keyboard_open": 0x2B5788,          # FUN_002b5788(manager, 1, characters, 1): the name keyboard set up
+    "keyboard_start": 0x2B59DC,         # FUN_002b59dc(manager, 0, text): opened on a text
+    "keyboard_poll": 0x2B58E8,          # FUN_002b58e8(manager): 0 open, 1 accepted, -1 cancelled or blank
+    "keyboard_text": 0x2AFC2C,          # FUN_002afc2c(manager): the typed text (manager + 0x2FC8)
+    "keyboard_copy": 0x2B5F48,          # FUN_002b5f48(manager, out, text, width, width): at most `width` units
+    "keyboard_close": 0x2B5DF8,         # FUN_002b5df8(manager): closes an open keyboard
+}
+
+# Heavenfall Beta's sidecars (save/beta_sidecar.c, beta_sidecar.s): the file
+# manager's requests made at once, and the two copies the join sites replace. file_manager and save_control are named
+# again here (the same addresses) so that this feature needs no other's entries.
+GAME_SYMBOLS |= {
+    "file_manager": 0x104DEB0,          # the variable holding the file thread's manager
+    "save_control": 0xFCF7EC,           # the variable holding the save object
+    "file_task": 0xF31FC4,              # the variable holding the file task (FUN_005dd674's DAT_005dd7b0)
+    "file_request_entry": 0xC19E14,     # FUN_00c19e14(entry, name, buffer, size, flags): a request's file
+    "file_read_sync": 0xC1A424,         # FUN_00c1a424(manager, entries, count, archive)
+    "file_write_sync": 0xC1A48C,        # FUN_00c1a48c(manager, entries, count, archive, check_free, commit)
+    "file_delete_sync": 0xC17ED0,       # FUN_00c17ed0(manager, entries, count, archive, commit)
+    "file_exists_sync": 0xC19CE8,       # FUN_00c19ce8(manager, name, archive, &found): 0 when asked
+    "file_thread_wait": 0xC17FB8,       # FUN_00c17fb8(thread): until the file thread runs no handler
+    "file_extdata_set": 0xC195FC,       # FUN_00c195fc(manager, id): manager + 0x20 = id when it mounts
+    "save_copy_in": 0xC27830,           # FUN_00c27830(save, buffer + 8, 0x12600): the file's data -> the save data
+    "card_sets_in": 0xC1AC68,           # FUN_00c1ac68(save, card + 0x75C78, 0x2C00): the card's sets -> the save
+    "save_sum_cipher": 0x2ABCAC,        # FUN_002abcac(task, file, size, 1): the sum at + 4, then the XOR stream
+    "save_blowfish": 0x2AB9B0,          # FUN_002ab9b0(task, file, size): Blowfish on (FUN_002abe04's last step)
 }

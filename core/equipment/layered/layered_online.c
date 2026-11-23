@@ -577,5 +577,6 @@ ARM u32 layered_town_frame(u32 town)
     if (game)
         layered_switch_frame(town, (u8)game[GAME_LOCAL]);
     redress_changed();
+    layered_card_store();        /* the own Guild Card carries the looks of now (layered_card.c) */
     return result;
 }

@@ -201,15 +201,14 @@ void status_gather(void) {
     s->layout = have_rec ? rec.layout : 0;
     s->installed_xx = s->title_installed && have_rec && rec.xx;
     s->installed_xx_no_room = s->title_installed && have_rec && rec.xx_no_room;
-    s->record_cheats = hf_want_cheats(-1, have_rec ? &rec : NULL);
-    s->installed_cheats = s->title_installed && s->record_cheats;
     if (have_rec) snprintf(s->installed_xx_dump, sizeof s->installed_xx_dump, "%s", rec.xx_dump);
     find_game(s, have_rec ? &rec : NULL);
     find_xx_dump(s);
     find_luma(s);
+    if (have_rec && rec.cheats && s->title_installed) cheat_flag_refresh();   /* a 0.2.1 title with the cheats: once */
     s->free_bytes = ctr_sd_free();
-    LOG("status: layout %d, game data installed %d complete %d state %d, dump romfs %.8s..., cheats %d", s->layout,
-        s->game_installed, s->game_complete, s->game_state, s->dump_hash, s->installed_cheats);
+    LOG("status: layout %d, game data installed %d complete %d state %d, dump romfs %.8s...", s->layout,
+        s->game_installed, s->game_complete, s->game_state, s->dump_hash);
     LOG("status: installed '%s' (record complete %d, save pending %d), dump %d '%s' region %d, MH XX %d '%s' romfs "
         "%02x%02x%02x%02x..., luma %d %s, free %lu MB", s->installed, s->installed_complete, s->save_pending, s->dump,
         s->dump_path, s->region, s->xx, s->xx_path, s->xx_hash[0], s->xx_hash[1], s->xx_hash[2], s->xx_hash[3], s->luma,

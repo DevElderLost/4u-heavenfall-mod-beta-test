@@ -31,12 +31,18 @@ KEYS = {
     "mhgen_rom_usa": "decrypted USA .3ds of MH Generations (0004000000187000)",
     "arm_toolchain": "bin folder of devkitARM or the Arm GNU Toolchain",
     "tools_3ds": "folder with makerom and bannertool, for the launcher app's CIA (default <work_dir>/tools/3ds)",
+    "devkitpro": "devkitPro root with devkitARM, libctru, the 3ds portlibs and msys2/usr/bin/make (default "
+                 "<work_dir>/tools/devkitpro)",
     "ghidra": "Ghidra install folder (the one with support/analyzeHeadless.bat)",
     "ghidra_projects": "folder of the Ghidra projects (default <work_dir>/ghidra)",
     "jdk": "JDK 21 folder, used as JAVA_HOME for Ghidra",
     "zig": "folder of zig.exe (winget install zig.zig --version 0.17.0), the C compiler of tools/build/build_native.py",
     "emulator_dir": "Azahar/Citra user folder (default %APPDATA%/Azahar)",
     "work_dir": "derived inputs and scratch (default work/ in the main checkout)",
+    "jukebox_inbox": "folder where the developer drops the jukebox's extra .mca songs",
+    "portable_emulator": "folder of a portable Citra build (citra-qt.exe, citra-room.exe, DLLs) the online probes copy "
+                         "(research/probes/online_rig.py)",
+    "probe_save": "MH4U's save data folder (the title's `data` folder) each emulator of an online probe starts from",
     "beta_repo": "Heavenfall Beta's repository (tools/release/export_edition.py; default ../4u-heavenfall-mod-beta "
                  "beside the main checkout)",
 }
@@ -182,6 +188,7 @@ def env_values(config: LocalConfig) -> dict[str, Path]:
         "MHGEN_USA_CODE_BIN": _first_existing(config.input("mhgen_usa_code")),
         "ARM_TOOLCHAIN": _first_existing(config.get("arm_toolchain")),
         "MH4U_3DS_TOOLS": _first_existing(config.get("tools_3ds"), config.work_dir / "tools" / "3ds"),
+        "MH4U_DEVKITPRO": _first_existing(config.get("devkitpro"), config.work_dir / "tools" / "devkitpro"),
     }
     return {name: path for name, path in candidates.items() if path is not None}
 

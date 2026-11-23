@@ -2,6 +2,60 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
+## 0.2.2
+
+### Weapon tree
+- Beside your money, the tree shows the price of the weapon under the cursor, grey when you are short.
+
+### Item wheel
+- The item wheel starts off in a new character; turn it on in Mod Settings, Radial Menu.
+- With the Flick or Release trigger, the wheel uses the item the stick points at when let go.
+- The wheel's gold shows the item it will use, and nothing on a push too light to use one.
+
+### Layered Gear
+- Layered Gear gains Nargacuga's and Silverwind Nargacuga's looks from Monster Hunter XX.
+- Monster Hunter XX's Felyne costumes, like Happy's, show their own head; transforming weapons show their drawn form.
+- Every item box has a Layered Gear line to put on the looks you own.
+- Your Guild Card shows your Layered Gear, and modded players' cards keep and show theirs.
+
+### QoL
+- Your save is MH4U's own, clean; Heavenfall Beta's extras live in files beside it on the SD card.
+- Without the mod, MH4U keeps every hunter you saved in Heavenfall Beta; install it again and the extras return.
+- A save MH4U would not fully understand is cleaned as soon as the title screen reads it.
+- On a 3DS, the launcher's More menu can take your hunter's save to MH4U and put MH4U's save back (3DS only).
+- It shows both saves' hunters and play time first, and warns when you would go back in time.
+- Both saves are backed up on the SD card before anything changes.
+- It marks a slot holding a different hunter in each game, since they would overwrite each other's sets.
+- When MH4U is on both the cartridge and the SD card, the launcher asks which one to use.
+- Bringing your MH4U save says plainly it replaces all three hunters, and names the backup folder.
+- On a 3DS, the launcher's More menu turns the cheats on or off without reinstalling the game.
+- The program backs up your saves before it installs or updates the mod.
+- Your Housekeeper has a Jukebox: one song or a playlist of the game's music plays in the towns.
+- With Monster Hunter XX's game, the Jukebox can also have its monster, area, town and hall themes.
+- A playlist can play in order or shuffled, in the halls too, changing song after a few loops.
+- The top-screen menus and the smaller HUD take less of the game's time each frame: smoother at 60 FPS (emulator only).
+- New characters can skip the sand ship's prologue and start on arriving in Val Habar.
+- Upgraded items like Mega Potions show a yellow star, two on level 3 ammo; Mod Settings can make them white.
+- Rare materials like gems glow and twinkle on the quest rewards screen; Mod Settings can turn either mark off.
+- Honed weapons keep their bonus without the glow; Mod Settings can turn the glow back on.
+- Mod Settings can start the town map hidden on arriving; L still shows or hides it.
+- Change Appearance works from every item box too, not only at home.
+- In Change Appearance, holding L hides the interface so you can see your hunter.
+- In single-screen mode, Change Appearance shows no Camera or Back button (emulator only).
+
+### The program
+- With an HD texture pack, the weapon tree, item wheel, item stars, damage numbers and target hint look sharp.
+
+### Fixes
+- The 3DS launcher no longer says there is no internet when the console's date is wrong.
+- The 3DS launcher still finds updates when GitHub limits requests from your network.
+- The town map's place name no longer shows over the fade to black and the loading screen.
+- While the game loads your hunter, its Layered Gear keeps its colors, not the real armor's.
+- Trying on Layered Gear no longer shows your worn look in the new color for a moment.
+- Holding A in the Wyporium's Claim Items no longer leaves old icons behind or hides the item's details.
+- In Claim Items, the item's icon stays inside its details panel at wide aspect ratios (emulator only).
+- At wide aspect ratios, monsters' marks stay on the moved minimap instead of hiding under it (emulator only).
+
 ## 0.2.1
 
 ### Weapon tree
@@ -17,7 +71,8 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Item wheel
 - With a C-Stick, holding L and pushing it uses one of eight items from a wheel, sheathing your weapon first.
 - The wheel shows each item's name and quantity; an empty item that can be combined is combined once.
-- Mod Settings' Radial Menu edits the wheel's items on the wheel itself, sets its place, size and trigger, or turns it off.
+- Mod Settings' Radial Menu edits the wheel's items, place, size, text size and trigger, or turns it off.
+- The wheel's trigger can be ZR: point with the C-Stick, press ZR, and ZR does nothing else.
 
 ### QoL
 - Damage numbers over monsters, in three styles; switch them on in Mod Settings.
@@ -31,7 +86,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 - The frame rate can be set from 30 to 60 FPS in fives (emulator only).
 
 ### Mod Settings
-- Mod Settings sorts its options into Interface, Camera, QoL, Display and Other, most important first.
+- Mod Settings sorts its options into Interface, Camera, QoL, Display, Effects and Other, most important first.
 - Mod Settings' lists show up to ten rows a page, each page in a frame its size; Left and Right turn pages.
 - Mod Settings has room for many more options; every character's choices return to their defaults once.
 - Field of View, Online Room Fix and True Weapon Attack work on a real 3DS too.

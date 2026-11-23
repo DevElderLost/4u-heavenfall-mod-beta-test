@@ -102,12 +102,26 @@ def item_monsters(sets: Iterable[SetMonster], series_items: Mapping[int, Mapping
             if len(monsters) == 1 and item not in common}
 
 
-def ported_item_monsters(records: Iterable, names: Mapping[str, str]) -> dict[int, str]:
+def ported_item_monsters(records: Iterable, names: Mapping[str, str], item_names: Mapping[int, str] | None = None,
+                         extra: Mapping[str, str] | None = None) -> dict[int, str]:
     """XX's item id -> the ported monster it is a material of, for each curated ported monster (`records`:
     ported_gear.curated.MonsterRecord) read from XX: his weapons ask his own items, which few armor sets name.
-    `names`: a monster's key -> the name the file uses for him."""
-    return {item.mhgen: names[record.key] for record in records if record.source == "xx" and record.key in names
-            for item in record.items if item.mhgen is not None and not item.shared}
+    `names`: a monster's key -> the name the file uses for him. `item_names` (`english_item_names`): an item MH4U
+    already has carries only its MH4U id in the record, so it is found by its English name; `extra`: an English name ->
+    the monster, for XX items his record does not list (Silverwind's base Scale and Blackfur)."""
+    out = {item.mhgen: names[record.key] for record in records if record.source == "xx" and record.key in names
+           for item in record.items if item.mhgen is not None and not item.shared}
+    by_name: dict[str, list[int]] = {}
+    for index, name in (item_names or {}).items():
+        by_name.setdefault(name, []).append(index)
+    for record in records:
+        if record.source == "xx" and record.key in names:
+            for item in record.items:
+                if item.mhgen is None and getattr(item, "name", None) and not item.shared:
+                    out.update({index: names[record.key] for index in by_name.get(item.name, ())})
+    for name, monster in (extra or {}).items():
+        out.update({index: monster for index in by_name.get(name, ())})
+    return out
 
 
 def family_roots(data) -> dict[str, str]:
@@ -168,12 +182,18 @@ def weapon_monster(items: Mapping[int, int], mapped: Mapping[int, str], common: 
     return top if not tied or top in tied else tied[0]
 
 
+def weapon_models(gen: GenLooks, plan) -> dict[tuple[str, int], int]:
+    """(pack class, XX model) -> the model of its weapon look: the pack's (`plan`), and the models of MH4U a weapon of
+    XX is identical to (GenLooks.weapon_models)."""
+    return {**{(model.slot, model.source): model.model for model in plan}, **getattr(gen, "weapon_models", {})}
+
+
 def weapon_monsters(gen: GenLooks, plan, weapon_items: Mapping[str, Mapping[int, int]], mapped: Mapping[int, str],
                     common: set[int], xx: Mapping, families: Mapping[int, str] | None = None,
                     roots: Mapping[str, str] | None = None) -> dict[str, tuple[str | None, int, str]]:
     """Every weapon look of `gen` -> (its monster or None, rank, its English name). `plan`: the pack's models
     (equipment_pack.PackModel), `weapon_items`: "<class>:<line>" -> item -> units over the line's recipes."""
-    packed = {(model.slot, model.source): model.model for model in plan}
+    packed = weapon_models(gen, plan)
     members: dict[tuple[str, int], list[int]] = defaultdict(list)
     for weapon in gen.catalog.weapons:
         model = packed.get((weapon.cls, weapon.model))
@@ -288,7 +308,7 @@ def recipe_looks(gen: GenLooks, plan, game, names: Mapping[int, str], skip: Mapp
                       if (found := _spent(recipe, names))), [])
         if spent:
             out["armor"][look.key] = {"rank": look.rank, "name": look.group, "materials": spent}
-    packed = {(model.slot, model.source): model.model for model in plan}
+    packed = weapon_models(gen, plan)
     members: dict[tuple[str, int], list] = defaultdict(list)
     for weapon in gen.catalog.weapons:
         model = packed.get((weapon.cls, weapon.model))
@@ -316,7 +336,7 @@ def look_items(gen: GenLooks, plan, series_items: Mapping[int, Mapping[int, int]
         for position in {p for halves in pack_set.look.pieces.values() for p in halves}:
             items.update(series_items.get(gen.catalog.series[position].index, {}))
         out["armor"][pack_set.look.key] = items
-    packed = {(model.slot, model.source): model.model for model in plan}
+    packed = weapon_models(gen, plan)
     members: dict[tuple[str, int], list[int]] = defaultdict(list)
     for weapon in gen.catalog.weapons:
         model = packed.get((weapon.cls, weapon.model))

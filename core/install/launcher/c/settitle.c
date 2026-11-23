@@ -86,8 +86,9 @@ static int slot_lists_the_set(Patchset *ps, const TitleDigest *dg, const size_t 
 /* A line of the open's steps in the install's log, when the input carries one. */
 #define NOTE(in, ...) do { if ((in)->log) hf_log((in)->log, (in)->now_ms ? (in)->now_ms() : 0, __VA_ARGS__); } while (0)
 
-/* The set opened (every file, or only those `paths` names) and bound to MH4U's dump, and to MH XX's for a set made with
- * it; `note` says so in the log (the first open of an attempt: the second binds the same dumps). */
+/* The set opened (every file, or only those `paths` names) and bound to MH4U's dump, to MH XX's for a set made with
+ * it and to the release's shared file for a set that reads one; `note` says so in the log (the first open of an
+ * attempt: the second binds the same inputs). */
 static int open_bound(Patchset **ps, TitleRead read, void *ctx, void *set_handle, uint64_t set_size, int check, Dump *d,
                       const HfSetTitleIn *in, const char *const *paths, size_t npaths, int note) {
     int rc = paths ? patchset_open_files(ps, read, ctx, set_handle, set_size, check, paths, npaths)
@@ -111,6 +112,12 @@ static int open_bound(Patchset **ps, TitleRead read, void *ctx, void *set_handle
                  "made with (another revision, or a file missing or of another size)" : "MH XX's dump bound", rc);
     } else if (in->xx && note) {
         NOTE(in, "open: a set without MH XX: MH XX's dump not used");
+    }
+    if (!rc && patchset_shared(*ps, NULL, NULL)) {   /* a release's set reads the release's shared file too */
+        rc = patchset_bind_shared(*ps, in->shared, in->shared_size);
+        if (note || rc)
+            NOTE(in, "open: the release's shared file: %s: %d", !in->shared ? "none given" : rc ? "not the one the set "
+                 "was made with" : "bound", rc);
     }
     return rc;
 }

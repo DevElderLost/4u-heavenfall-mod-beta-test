@@ -35,7 +35,8 @@ MAX_SCRAP_PERCENT = 30
 # ids after the blocks of the monsters before it (blocks.py), so an id never depends on which monsters are on. Only
 # ever append (with a block in blocks.BLOCKS).
 ORDER = ("mizutsune", "alatreon", "great_maccao", "glavenus", "valstrax", "astalos",
-         "boltreaver", "hellblade", "soulseer")     # the Deviants
+         "boltreaver", "hellblade", "soulseer",     # the Deviants
+         "nargacuga", "silverwind", "lagiacrus")
 
 
 class CuratedError(ValueError):
@@ -105,6 +106,13 @@ class WeaponShape:
     prefix."""
     reference: Mapping[str, str]
     keep: Mapping[str, tuple[str, ...]]
+    # `drop`: a step the line does not keep has no id at all (the Deviants: the last two steps of each XX line; no save
+    # holds a dropped one). `price`: {"g_rarity": the lowest rarity of MH4U's G rank weapons, "forge": factor,
+    # "upgrade": factor}: the first kept step's forge price is MH4U's highest forge price of a G rank weapon of its
+    # class times `forge`, the second's upgrade price that forge price times `upgrade` (the game forges at 1.5 times
+    # the stored price, weapons.shape_prices).
+    drop: bool = False
+    price: Mapping[str, float] = field(default_factory=dict)
 
     def kept(self, cls: str) -> tuple[str, ...]:
         """The labels of the steps `cls`'s line keeps."""
@@ -183,6 +191,9 @@ class MonsterRecord:
     # his item key -> the key of the same material one rank down, for a host with no low rank (Deviljho): his low rank
     # carve lists are the high ones filled in, and their rows (and a low rank quest's rewards) take the lower versions
     carve_low: Mapping[str, str] = field(default_factory=dict)
+    # quest reward items the host's quests pay in every rank, replaced by rank: host item name -> {rank: (his item key,
+    # weight)} (`rewards.ranked`; Zinogre's Fulgurbug, AH-2)
+    reward_ranked: Mapping[str, Mapping[str, tuple[tuple[str, int], ...]]] = field(default_factory=dict)
     # The small monsters his own call brings (curated/monster_rules.json `called_small`): their id -> {rank: (his item
     # key, percent)} of the carve list of each rank, adding up to 100
     carve_called: Mapping[int, Mapping[str, tuple[tuple[str, int], ...]]] = field(default_factory=dict)
@@ -257,7 +268,8 @@ def _monster(key: str, m: dict) -> MonsterRecord:
                         {rank: dict(by_name) for rank, by_name in w.get("promote", {}).items()},
                         dict(w.get("substitutes", {})), tuple(w.get("overrides", ())),
                         WeaponShape(dict(shape.get("reference", {})),
-                                    {cls: tuple(labels) for cls, labels in shape["keep"].items()}) if shape else None)
+                                    {cls: tuple(labels) for cls, labels in shape["keep"].items()},
+                                    bool(shape.get("drop", False)), dict(shape.get("price", {}))) if shape else None)
     f = m.get("felyne")
     felyne = FelyneSpec(f["rarities"], tuple(f.get("armor", ())), tuple(f.get("weapons", ())), f.get("model"),
                         tuple(f.get("pieces", ()))) if f else None
@@ -275,6 +287,7 @@ def _monster(key: str, m: dict) -> MonsterRecord:
         names={eng: dict(by_lang) for eng, by_lang in m.get("names", {}).items()},
         breaks=tuple(_break_bit(bit) for bit in m.get("breaks", ())), shiny=_shiny(m.get("shiny")),
         carve_low=dict(carves.get("low", {})), source=m.get("source", "gen"),
+        reward_ranked={name: _weights(by_rank) for name, by_rank in rewards.get("ranked", {}).items()},
         carve_called={int(monster): {rank: tuple((k, int(p)) for k, p in rows) for rank, rows in by_rank.items()}
                       for monster, by_rank in carves.get("called", {}).items()})
     check(record)
@@ -310,6 +323,12 @@ def check(record: MonsterRecord) -> None:
             for target, weight in rows:
                 if target not in keys or weight < 1:
                     raise CuratedError(f"{record.key}: {name} -> {target!r}")
+    for name, by_rank in record.reward_ranked.items():
+        if name in record.carve_map or name in record.reward_map or set(by_rank) != set(RANKS) or any(
+                not rows or any(target not in keys or weight < 1 for target, weight in rows)
+                for rows in by_rank.values()):
+            raise CuratedError(f"{record.key}: rewards.ranked {name}: rows of his items for each of {RANKS}, and "
+                               "not also in carves.map or rewards.map")
     for rank, key, percent in record.carve_extra:
         if key not in keys or rank not in RANKS or not 1 <= percent <= 50:
             raise CuratedError(f"{record.key}: extra carve {rank} {key} {percent}")
@@ -416,6 +435,8 @@ def check_shape(key: str, shape: WeaponShape) -> None:
                                "(G steps), each once, in the line's order")
     if shape.reference and not (shape.reference.get("name") and shape.reference.get("item_prefix")):
         raise CuratedError(f"{key}: weapons.shape.reference needs a name and the item_prefix of the monster's items")
+    if shape.price and set(shape.price) != {"g_rarity", "forge", "upgrade"}:
+        raise CuratedError(f"{key}: weapons.shape.price needs g_rarity, forge and upgrade, not {sorted(shape.price)}")
 
 
 MAX_BREAK_BITS = 8              # equipment/tables/item_data.BREAK_BITS

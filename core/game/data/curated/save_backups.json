@@ -1,0 +1,15 @@
+{
+ "description": "How many backups of the save files the program keeps (core/save/backup.py). The newest set and every pinned set are always kept, whatever these say. Each entry is {\"value\": ..., \"description\": ...}; edit the values by hand, the code reads them.",
+ "automatic_sets": {
+  "value": 20,
+  "description": "How many sets the program's own snapshots keep (before an install, an update, a write to a save)."
+ },
+ "manual_sets": {
+  "value": 50,
+  "description": "How many sets the player's own backups keep."
+ },
+ "emulator_processes": {
+  "value": ["citra-qt", "citra", "azahar", "azahar-qt", "lime3ds", "lime3ds-gui"],
+  "description": "Process names (lower case, without .exe) of the emulators: a save is not written while one runs."
+ }
+}

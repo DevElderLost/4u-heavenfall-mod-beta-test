@@ -133,6 +133,16 @@ class RomFS:
             f.seek(self.level3 + self.data_offset + data_offset)
             return read_exactly(f, data_size, f"{path} in the RomFS")
 
+    def head(self, path: str, length: int) -> tuple[int, bytes]:
+        """(the file's size, its first `length` bytes), without reading the rest of the file."""
+        entry = self._find(path)
+        if entry is None:
+            raise FileNotFoundError(f"{path} is not in the RomFS of {self.path.name}")
+        data_offset, data_size = struct.unpack_from("<QQ", self.files, entry + 0x08)
+        with open_container(self.path) as f:
+            f.seek(self.level3 + self.data_offset + data_offset)
+            return data_size, read_exactly(f, min(length, data_size), f"{path} in the RomFS")
+
     def entries(self):
         """(path, absolute offset in the file open_container returns, size) of every file."""
         for name, entry in self._walk_entries(0, ""):

@@ -81,15 +81,39 @@ EXT_START = 0x111E000
 # + Alatreon's icicle ground marker and the ported monsters' XX turn cut (1 page)
 # + the diagnostics block, packed after everything (1 page)
 # + Boltreaver Astalos' pull on the hunter, limited to the ball (1 page)
-EXT_SIZE = 0x1FA000
+# + the jukebox: its engine, its card's and menu's units and its data (4 pages)
+# + the rooms for Nargacuga and Silverwind Nargacuga: armor ids 44 to 51, armor recipes 192 to 240, weapon recipes 240
+#   to 288, carve windows 50 to 60, break lists 2,048 to 2,560 bytes (2 pages)
+# + Nargacuga's class and data, his shells' and Silverwind Nargacuga's blocks (38 pages)
+# + Silverwind Nargacuga's shells on bases 45 and 46: the two bases' code, his sp_45 and sp_46 images and four vtables
+#   (6 pages)
+# + the item marks: their stubs, their C and its data (2 pages)
+# + the Felyne room 26 -> 39 (moved stats and recipes, the marks' table, C and stubs: 1 page)
+# + Lagiacrus' class and data and his shells' blocks: his C, his glue, his images, his five shell images and nine
+#   vtables with bases 25 and 26 (35 pages)
+# + the monster stat table with the weak monsters' records past the game's (1 page)
+# + Layered Gear's item box line and its screens there (1 page)
+# + the rocket's sound latch, a probe's only, packed after the sync log (2 pages with Layered Gear's item box line
+#   before it)
+# + Heavenfall Beta's sidecars: the four sites' stubs and the C with the extras core, packed after the jukebox (3
+#   pages)
+# + what an older Heavenfall left (save/c/heav.c in the sidecars' block), the strips and the title's sweep (2 pages)
+# + main merged in (Lagiacrus, his Felyne room and stat table, the honing glow, the town minimap, Change
+#   Appearance at every box: 0x257000 in main) with the save system's pages above (5), and one page of room
+EXT_SIZE = 0x25D000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
 # uses one takes the whole extension before it (zeros where it has no block). Two pages: the new monster ids' kill
 # records, em data slots and save records; a third for Damage Numbers'
 # state. 26 more for the diagnostics ring (105 KB, only a diagnostics
-# file reaches it: the product's variables are packed first and the file ends at the last page a build uses).
-EXT_VARS_SIZE = 29 * PAGE
+# file reaches it: the product's variables are packed first and the file ends at the last page a build uses). One more
+# for the jukebox's saved block, its engine and its menu. 162 more for the online
+# sync log's ring (640 KB; a diagnostics file's only). 32 more for the rocket's
+# sound latch (132 KB; a diagnostics file's only).
+# Eleven more for Heavenfall Beta's sidecars, their state and two card images, in the tail stage before the
+# diagnostics.
+EXT_VARS_SIZE = 235 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000

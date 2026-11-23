@@ -36,6 +36,11 @@ typedef struct {
     /* MH XX's opened dump (dump_open with the set's read callback), or NULL: bound when the set is made with it (format
      * 2, patchset_bind_second_dump), unused by a set of MH4U alone. It must outlive the title. */
     const Dump *xx;
+    /* The release's shared file (`shared_size` bytes behind the handle, read with the set's callback), or NULL: bound
+     * when the set reads one (format 3, patchset_bind_shared), unused otherwise. The caller has checked its SHA-256
+     * against the set's (patchset_shared). It must outlive the title. */
+    void *shared;
+    uint64_t shared_size;
 } HfSetTitleIn;
 
 typedef struct HfSetTitle HfSetTitle;
@@ -48,8 +53,9 @@ typedef struct HfSetTitle HfSetTitle;
  * by the install's hash pass. A slot made for other inputs is set aside (hf_set_title_slot_rc) and the title is built
  * without it. The dump must outlive the title. TITLE_E_GAME for a set of the other region or another game, or a set
  * made with MH XX given no MH XX dump (in->xx) or another one (another revision, a file missing or of another size);
- * TITLE_E_FORMAT for a damaged set; TITLE_E_HASH when the set's executable or exheader comes out wrong (another dump),
- * or (the game data) when the dump's RomFS is not its NCCH header's. */
+ * TITLE_E_FORMAT for a damaged set, or a set that reads the release's shared file given none or another (in->shared);
+ * TITLE_E_HASH when the set's executable or exheader comes out wrong (another dump), or (the game data) when the
+ * dump's RomFS is not its NCCH header's. */
 int hf_set_title_open(HfSetTitle **out, TitleRead read, void *read_ctx, void *set_handle, uint64_t set_size, Dump *d,
                       const HfSetTitleIn *in);
 TitleBuild *hf_set_title_build(HfSetTitle *t);

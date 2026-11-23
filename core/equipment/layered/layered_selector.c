@@ -83,7 +83,8 @@ struct debug { u16 saves, loads, marked, preloads; };   /* the variable layered_
 _Static_assert(sizeof(struct debug) == 8, "layered_debug size (game/executable/blocks.py)");
 extern struct debug layered_debug;
 struct select {                  /* the variable layered_select: the title's hunter select screen (FUN_00bdfba0) */
-    u32 infos;                   /* its slot 0's player info (slot n's: + n * SELECT_INFO) */
+    u32 infos;                   /* its slot 0's player info (slot n's: + n * SELECT_INFO); once a slot is loaded (slots
+                                    0), that slot's, whose hunter is drawn on while the game loads; 0 none */
     const u8 *slots;             /* its slot 0's buffer (slot n's: + n * SLOT_SIZE); 0: no screen */
 };
 _Static_assert(sizeof(struct select) == 8, "layered_select size (game/executable/blocks.py)");
@@ -340,13 +341,22 @@ static int local_status(const u8 *st)
 }
 
 /* 1 if `st` is a hunter of the hunter select screen noted in layered_select (a title hunter made from that screen's
-   info of its slot); `*looks` then the looks its slot's file holds, read from the slot's buffer, or none. */
+   info of its slot); `*looks` then the looks its slot's file holds, read from the slot's buffer, or none. Once a slot
+   is loaded the screen is over, but its hunter is drawn on while the game loads: it wears what the load took from that
+   same file (layered_state), as the screen showed it. */
 static int select_hunter(const u8 *st, const struct layered_state **looks)
 {
     const struct select *s = &layered_select;
     u32 slot = st[0x33];
-    if (!s->slots || st[0x30] != SELECT_KIND || slot >= SELECT_SLOTS ||
-        *(const u32 *)(st + ST_INFO) != s->infos + slot * SELECT_INFO)
+    if (st[0x30] != SELECT_KIND)
+        return 0;
+    if (!s->slots) {
+        if (!s->infos || *(const u32 *)(st + ST_INFO) != s->infos)
+            return 0;
+        *looks = layered_state.enabled ? &layered_state : 0;
+        return 1;
+    }
+    if (slot >= SELECT_SLOTS || *(const u32 *)(st + ST_INFO) != s->infos + slot * SELECT_INFO)
         return 0;
     const u8 *saved = s->slots + slot * SLOT_SIZE + SAVE_AT;
     *looks = saved[1] == SAVE_MAGIC && saved[0] ? (const struct layered_state *)saved : 0;
@@ -363,9 +373,9 @@ static int creation_hunter(const u8 *st)
     return game && st[0x30] == SELECT_KIND && *(const u32 *)(st + ST_INFO) == (u32)(game + GAME_INFO);
 }
 
-/* The looks a hunter (its status) wears: the screen's preview, a hunter select screen's slot's, the local
-   hunter's, another player's (a hall hunter: the entry of its member; a quest hunter: the quest's snapshot, both built
-   in `out`), or none (the character creation's included). The switch (layered_switch.c) takes the local hunter's and
+/* The looks a hunter (its status) wears: the screen's preview, a hunter select screen's slot's, the Guild Card's (the
+   card shown: layered_card.c), the local hunter's, another player's (a hall hunter: the entry of its member; a quest
+   hunter: the quest's snapshot, both built in `out`), or none (the character creation's included). The switch (layered_switch.c) takes the local hunter's and
    the others' off; the preview shows what it tries on whatever it says. */
 static const struct layered_state *looks_of(const u8 *st, struct layered_state *out)
 {
@@ -379,6 +389,8 @@ static const struct layered_state *looks_of(const u8 *st, struct layered_state *
         return slot_looks;
     if (creation_hunter(st) || !layered_shown())
         return 0;
+    if (layered_card_hunter(st))
+        return layered_card_looks(out);
     if (local_status(st))
         return layered_state.enabled ? &layered_state : 0;
     const u8 *game = GAME_STATE;
@@ -406,13 +418,13 @@ static u32 bare_model(u32 equipment, const u8 *record, u32 gender, u32 fallback)
     return armor_model(equipment, bare, gender, fallback);
 }
 
-/* The armor getter's calls (layered_armor_lobby / _quest noted the hunter's status and the part). */
-ARM u32 layered_armor_model(u32 equipment, const u8 *record, u32 gender, u32 fallback)
+/* The model a part of the hunter of status `st` wears now: its look there (Nothing: the game's bare part), else the
+   real piece's. The getters and the colours (layered_part_dye) both go by it. */
+static u32 part_model(const u8 *st, u32 equipment, const u8 *record, u32 part, u32 gender, u32 fallback)
 {
     u32 model = armor_model(equipment, record, gender, fallback);
     struct layered_state other;
-    const struct layered_state *s = looks_of((const u8 *)layered_preview.status, &other);
-    u32 part = layered_preview.part;
+    const struct layered_state *s = looks_of(st, &other);
     if (s && part < 5 && s->armor[part][gender & 1] &&
         (checked(s, &other) || known_armor(part, gender & 1, s->armor[part][gender & 1]))) {
         model = s->armor[part][gender & 1];
@@ -422,10 +434,21 @@ ARM u32 layered_armor_model(u32 equipment, const u8 *record, u32 gender, u32 fal
     return model;
 }
 
+/* The armor getter's calls (layered_armor_lobby / _quest noted the hunter's status and the part). */
+ARM u32 layered_armor_model(u32 equipment, const u8 *record, u32 gender, u32 fallback)
+{
+    return part_model((const u8 *)layered_preview.status, equipment, record, layered_preview.part, gender, fallback);
+}
+
 /* ----- the looks' colours ----------------------------------- */
 
 #define ST_GENDER 0x34           /* status: the hunter's gender, the getters' (bit 0 female) */
+#define ST_FALLBACK 0x35         /* status: the armor getter's last argument (FUN_00b0ab90) */
 #define ST_SKIN 0x40             /* status: the skin colour, what the game gives a part of armor id 0 */
+#define ST_LOADED 0x1F8          /* status + part * 4: the part's model sent to the lobby loader (FUN_0065fca8 writes it
+                                    when it sends one, with the piece the colour reads at + 0x70; FUN_00b0ab90 compares) */
+#define LOBBY_HUNTERS 0x123C     /* lobby_hunter_loader + player index * 4: the hunters it dresses (4: the preview's) */
+#define LOBBY_INDICES 5
 #define MODEL_STATE 4            /* model + 4, bits 0-2: 1 or 2 once its materials can take a colour (FUN_00b0a978) */
 #define DYE_GROUP 3              /* the materials a dye colours (FUN_00b05ae4's group; 1 hair, 2 skin) */
 
@@ -457,14 +480,30 @@ static u32 own_colour(u32 part, u32 female, u32 model)
     return rgb[0] | rgb[1] << 8 | rgb[2] << 16 | 0xFF000000u;
 }
 
+/* 1 while the part of a hunter the lobby loader dresses still draws another model than the one it wears now (a look
+   tried on or taken off whose model the game has not sent to the loader yet). The game changes a part's colour only
+   when it sends the model (the piece at + 0x70 and ST_LOADED together), and colours nothing while one loads; so the
+   part keeps its colour until its old model is gone. A quest's hunters are no hunters of that loader. */
+static int model_pending(u32 hunter, const u8 *st, const u8 *ref, u32 part)
+{
+    u32 index = st[0x33];
+    if (index >= LOBBY_INDICES || *(const u32 *)(LOADER + LOBBY_HUNTERS + index * 4) != hunter)
+        return 0;
+    return *(const u32 *)(st + ST_LOADED + part * 4) !=
+           part_model(st, EQUIPMENT, ref, part, st[ST_GENDER] & 1, st[ST_FALLBACK]);
+}
+
 /* The game's part colour calls (FUN_00b0a978: `ref` the part's real piece, among the status's five, `model` its model).
    A part wearing a look takes the look's colour, never the real piece's dye: the colour chosen for it (dye), else its
-   own; Nothing is the hunter's bare body (its skin, as the game's armor id 0). Any other part, the game's call. */
+   own; Nothing is the hunter's bare body (its skin, as the game's armor id 0). Any other part, the game's call. A part
+   whose model is pending keeps the colour it has. */
 ARM void layered_part_dye(u32 hunter, const u8 *ref, u32 model)
 {
     const u8 *st = *(const u8 *const *)(hunter + HUNTER_STATUS);
     u32 at = (u32)ref - (u32)(st + ST_ARMOR), part = at < 5 * RECORD ? small_divide(at, RECORD) : 5;
     u32 female = st[ST_GENDER] & 1;
+    if (part < 5 && part * RECORD == at && model_pending(hunter, st, ref, part))
+        return;
     struct layered_state other;
     const struct layered_state *s = part < 5 && part * RECORD == at ? looks_of(st, &other) : 0;
     u32 look = s ? s->armor[part][female] : 0;
@@ -574,13 +613,24 @@ ARM void layered_save_load(u8 *data, const u8 *slot, u32 size)
     }
     layered_state.reserved = 0;
     layered_clear(data + SAVE_AT, sizeof layered_state);
-    layered_select.slots = 0;    /* the hunter select screen is over */
+    /* The hunter select screen is over; the loaded slot's hunter (FUN_005dd674 copies from the screen's buffer of that
+       slot) is drawn on while the game loads: its info stays (select_hunter). A load from elsewhere keeps none. */
+    struct select *s = &layered_select;
+    u32 loaded = 0;
+    for (u32 i = 0; s->slots && i < SELECT_SLOTS; i++)
+        if (slot == s->slots + i * SLOT_SIZE)
+            loaded = s->infos + i * SELECT_INFO;
+    s->infos = loaded;
+    s->slots = 0;
 }
 
 /* The hunter select screen sets a slot's hunter up (FUN_00bdfba0: r7 the slot's buffer, r9 the slot, passed by
-   layered_select_hunter): the game's call, then the screen is noted, so that its hunters wear their slots' looks. */
+   layered_select_hunter): the game's call, then the screen is noted, so that its hunters wear their slots' looks. A
+   screen not noted yet forgets the hunter of the last load first. */
 ARM void layered_select_note(u32 hunter, const u8 *info, const u8 *slot, u32 index)
 {
+    if (!layered_select.slots)
+        layered_select.infos = 0;
     hunter_setup(hunter, info);
     if (index < SELECT_SLOTS) {
         layered_select.infos = (u32)info - index * SELECT_INFO;
@@ -734,8 +784,12 @@ static void back(u32 obj, u8 *state)
         else
             show_entry(obj, 0);
     } else {
-        state[0] = 1;  /* the Smithy's menu again, on our line */
-        facility_menu_set(obj, u->smithy_menu, u->smithy_row, 0xFF);
+        if (u->from_box) {
+            u->box_state |= BOX_LEAVING;                /* the box's menu again (layered_box_frame, layered_box_down) */
+        } else {
+            state[0] = 1;  /* the Smithy's menu again, on our line */
+            facility_menu_set(obj, u->smithy_menu, u->smithy_row, 0xFF);
+        }
         if (*(u32 *)(obj + OBJ_HUNTER))
             hunter_reload(*(u32 *)(obj + OBJ_HUNTER), 0);   /* the real hunter wears the looks chosen */
         layered_net_state_left();                           /* and the other players see them */
@@ -804,6 +858,9 @@ ARM void layered_open(u32 obj, u8 *state)
     struct ui *u = &layered_ui;
     u->smithy_menu = *(u8 *)(obj + OBJ_MENU);
     u->smithy_row = state[STATE_ROW];
+    u->from_box = 0;             /* the Smithy's screens sell, */
+    u->box_state = 0;            /* and nothing a box left behind stops their menu */
+    u->refused = 0;
     felyne_ui.dirty = 0;
     state[0] = LAYERED_STATE;
     play(SOUND_DECIDE);
@@ -818,6 +875,8 @@ u32 help_message(void)
     const u8 *cats[FELYNE_MAX_ACTIVE];
     if (u->level == FORGE)
         return R->messages[u->mode == M_WEAPON ? MSG_HELP_WEAPONS : u->mode == M_ARMOR ? MSG_HELP_ARMOR : MSG_HELP_FELYNE];
+    if (u->refused)
+        return R->msg_none[u->refused - 1];
     if (u->level == CATS)
         return felyne_looks_data.msg_choose;
     if (u->level == CLASSES_MENU || u->cursor.index == 0)
@@ -829,7 +888,8 @@ u32 help_message(void)
     return felyne_active(cats) ? R->messages[MSG_HELP_FELYNE] : felyne_looks_data.msg_none;
 }
 
-/* layered_smithy_update: every frame of the Smithy's state 3. */
+/* layered_smithy_update: every frame of the Smithy's state 3 (layered_box_frame: of the box's BOX_STATE, `state` the box
+   menu). */
 ARM void layered_update(u32 obj, u8 *state)
 {
     struct ui *u = &layered_ui;
@@ -838,12 +898,66 @@ ARM void layered_update(u32 obj, u8 *state)
         return;
     }
     facility_help(1, MAKESHOP, help_message());
+    u32 at = u->cursor.index;
     u32 result = menu_cursor_update(obj, &u->cursor, 0);
+    if (result || u->cursor.index != at)
+        u->refused = 0;          /* a refusal's help lasts until the cursor moves (choose may refuse again) */
     if (result == 2)
         back(obj, state);
     else if (result == 1)
         choose(obj, u->cursor.index);
-    if (state[0] != LAYERED_STATE || u->level == FORGE)
+    /* At a box, only leaving stops the menu (BOX_FRAME alone is the box's frame to bind again later); the Smithy never
+       reads the box's flags */
+    if (state[0] != (u->from_box ? BOX_STATE : LAYERED_STATE) || u->level == FORGE
+        || (u->from_box && u->box_state & (BOX_LEAVING | BOX_DOWN)))
         return;
     facility_menu_set(obj, menu_shown(), u->cursor.row, 0xFF);
+}
+
+/* ----- from the item box (layered_box.c) ----------------------------------------------------------------------- */
+
+#define FRAME_BOUND 0x50         /* the preview's frame widget (obj + OBJ_FRAME): 1 once FUN_0059e5d0 bound it */
+
+/* layered_box_open: the item box's Layered Gear line was chosen (FUN_00a46694 played the decide sound, FUN_00a9a38c hid
+   the box's menu); `menu` is the box menu, whose state byte the screens then run in. The facility menu is opened with
+   FUN_00a5d584, which binds its panes (scene + 0x98D0) as the Smithy's first state does: a box of an area whose Smithy
+   was never visited has them unbound. */
+ARM void layered_box_entry(u32 obj, u8 *menu)
+{
+    struct ui *u = &layered_ui;
+    u->from_box = 1;             /* equip only */
+    u->box_state = *(u8 *)(obj + OBJ_FRAME + FRAME_BOUND) ? BOX_FRAME : 0;
+    u->refused = 0;
+    felyne_ui.dirty = 0;
+    box_screens_open(obj);
+    menu[0] = BOX_STATE;
+    show_entry(obj, 0);
+    facility_menu_open(obj, LAYERED_MENU, 0, 0xFF);
+}
+
+/* layered_box_state: every frame of the box's BOX_STATE: the screens, and the facility menu drawn as the Smithy's own tail
+   draws it; 2 once the entry was left: the box takes the screens down (its FUN_00a9a38c: layered_box_down), then
+   rebuilds its menu, the cursor still on the line. Nothing once they are down (the box closed by force keeps the state). */
+ARM u32 layered_box_frame(u32 obj, u8 *menu)
+{
+    struct ui *u = &layered_ui;
+    if (u->box_state & BOX_DOWN)
+        return 0;
+    layered_update(obj, menu);
+    if (u->box_state & BOX_LEAVING)
+        return 2;
+    facility_menu_draw(obj);
+    return 0;
+}
+
+/* FUN_00a9a38c, the box's way out of a state, with BOX_STATE: B on the entry, or the box closed by force (a quest, the
+   network). The screens go, once. */
+ARM void layered_box_down(u32 obj, u8 *menu)
+{
+    struct ui *u = &layered_ui;
+    (void)menu;
+    if (!u->from_box || u->box_state & BOX_DOWN)
+        return;
+    u->box_state |= BOX_DOWN;
+    box_screens_close(obj);
 }

@@ -24,6 +24,9 @@ CAPS = 28                            # descriptors per copy; 0xFFFFFFFF is an em
 # copy, which the console checks it against. Bits: 3dbrew "NCCH/Extended Header", "Filesystem Access Info".
 FS_ACCESS = (0x248, 0x648)
 FS_ACCESS_SIZE = 7
+# ARM11 local system capabilities' storage info: the extdata id (u64) the process may open (Q8). The access descriptor's
+# copy (0x630) is 0 in retail and stays.
+EXTDATA_ID = 0x230
 FS_CATEGORY_SYSTEM_APPLICATION = 0x1
 EMPTY = 0xFFFFFFFF
 SVC_PREFIX, SVC_PREFIX_MASK = 0xF0000000, 0xF8000000  # 0b11110: SVCs 24 * index + bit (bits 0-23)
@@ -95,6 +98,21 @@ def allow_fs_access(exheader: bytes, bits: int) -> bytes:
     for at in FS_ACCESS:
         have = int.from_bytes(out[at:at + FS_ACCESS_SIZE], "little")
         out[at:at + FS_ACCESS_SIZE] = (have | bits).to_bytes(FS_ACCESS_SIZE, "little")
+    return bytes(out)
+
+
+def exheader_extdata_id(exheader: bytes) -> int:
+    """The extdata id of `exheader`'s storage info."""
+    if len(exheader) != SIZE:
+        raise ExheaderError(f"an exheader has {SIZE:#x} bytes, not {len(exheader):#x}")
+    return struct.unpack_from("<Q", exheader, EXTDATA_ID)[0]
+
+
+def with_exheader_extdata_id(exheader: bytes, extdata: int) -> bytes:
+    """`exheader` whose storage info names extdata `extdata`."""
+    exheader_extdata_id(exheader)
+    out = bytearray(exheader)
+    struct.pack_into("<Q", out, EXTDATA_ID, extdata)
     return bytes(out)
 
 

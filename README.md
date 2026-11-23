@@ -22,7 +22,7 @@ Heavenfall Beta moves the menus of the bottom screen to the top screen, locks on
 | **Steam Deck** (Azahar) | [The web installer or the Linux script](docs/install/steam_deck.md) |
 | **A real 3DS or New 3DS** (custom firmware) | [The Heavenfall Launcher app](docs/install/3ds.md) |
 
-On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
+On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks and the Jukebox XX's songs. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
 
 > **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
 
@@ -31,17 +31,22 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **Single Screen Mode** (emulators): every menu of the bottom screen on the top screen.
 - **Lock-on with L**, **Kick on Select**, **holding A** to keep gathering, **faster text**, a **faster camera** and a **closer or farther camera**.
 - **Damage numbers** over monsters, in three styles (off unless you switch them on).
-- **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, and a
+- **Better Camera** (a smooth C-Stick camera and aim, its speed and acceleration yours to set), **Start skips a monster's intro** when the game allows it, **new characters can skip the prologue** on the sand ship (off unless you switch it on), and a
   **Hunting Horn's songs** under the minimap.
-- An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick).
+- An **item wheel**: hold L and push the C-Stick to use one of eight items (needs a C-Stick). It starts off: turn it on in Mod Settings, **Radial Menu**.
 - A **weapon tree** at the Smithy: Forge Weapons shows each weapon class as a tree to forge and upgrade from.
 - A **World-style sharpness gauge** that shrinks as each colour wears down.
+- **Item marks**: a yellow star (white if you prefer) on upgraded items such as Mega Potions (two on level 3 ammo), and rare materials that glow on the quest rewards screen.
+- A **Jukebox** at your Housekeeper: one song or playlists of the game's music, played in the towns instead of their
+  own; with Monster Hunter XX's game, XX's monster, area, town and hall themes too.
 - **A smaller HUD**, from 90% to 60%.
-- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Mod Settings can hide it for a character.
+- **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Every item box puts on the looks you own, and your Guild Card shows them. Mod Settings can hide it for a character.
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.
 - **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
 
-Almost everything is changed during play: START menu, third page, **Mod Settings**. The installer only asks for Single Screen Mode, Layered Gear, the HUD size, the aspect ratio and the cheats.
+**Your save stays MH4U's.** The game still reads and writes MH4U's own save files, and once it has saved with room on the SD card they hold nothing MH4U does not know; what only Heavenfall Beta has (Layered Gear, your settings, the Jukebox) is kept in files of its own beside them. There is nothing to do: you can play MH4U in between, and saves made with the earlier Beta carry on, with the original kept as a backup. [Playing MH4U without the mod](docs/back_to_mh4u.md) takes a few clicks, on a 3DS too.
+
+Almost everything is changed during play: START menu, third page, **Mod Settings**. The installer only asks for Single Screen Mode, Layered Gear, the HUD size, the aspect ratio, the Jukebox and the cheats.
 
 The full list is in **[what the mod adds](docs/features.md)**, and every change in the **[changelog](CHANGELOG.md)**.
 

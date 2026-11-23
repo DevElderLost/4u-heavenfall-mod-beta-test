@@ -18,7 +18,7 @@ No. The mod works with or without the game update installed.
 
 **Can I use an HD texture pack?**
 
-Yes. Put the pack in the emulator's custom textures folder before you press **Install** in the program: the few textures the mod changes (icons, the quest HUD) get their own HD copies. If you add the pack later, press **Update**. Your pack's files are not changed. The web installer does not make these copies. If brackets, quotes or long dashes look wrong in texts with a pack, its picture of the game's letters was made from the game's update: delete `tex1_1024x1024_4C512887312E1BC2_11.png` from the pack to get the normal letters back.
+Yes. Put the pack in the emulator's custom textures folder before you press **Install** in the program: the few textures the mod changes (icons, the quest HUD) get their own HD copies, and what the mod draws itself (the weapon tree's marks, the item wheel, the damage numbers) gets HD pictures of its own. If you add the pack later, press **Update**. Your pack's files are not changed. The web installer does not make these copies. If brackets, quotes or long dashes look wrong in texts with a pack, its picture of the game's letters was made from the game's update: delete `tex1_1024x1024_4C512887312E1BC2_11.png` from the pack to get the normal letters back.
 
 **It says there are files from another mod.**
 

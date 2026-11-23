@@ -67,16 +67,19 @@ CENTRED = 4             # a sprite's or a text box's origin: x, y is its middle
 ALIGN_LEFT, ALIGN_RIGHT, ALIGN_CENTRED = 0, 1, 2        # how a text's lines sit in its box (lyt.py text_align)
 MAX_SIZES = 8           # radial_choices.h: the sizes the save's half byte and the data's places per position hold
 POSITIONS = 3           # the centre, the right, the bottom left (radial_choices.h: the choices' position)
+MAX_TEXTS = 4           # radial_choices.h: the Text Size row's sizes the save and the data's places hold
 SHEET_SIZE = (256, 512)     # the game's item sheet, cmn_icon_GSM_NOMIP (the picture texture of ui205)
 # The craft mark: the plain "+" of the item sheet (x, y, width, height in its pixels; the glyph is 7 by 8 pixels at
 # (245, 196) in a 16 by 16 cell that none of the game's layouts shows, grey)
 CRAFT_CELL = (244, 195, 9, 10)
 SIZE_RANGE = (0.5, 2.0)
+TEXT_RANGE = (1.0, 3.0)
 SIDES = ("above", "below", "right", "left")
 COLOURS = ("ring", "fill", "edge", "gold_fill", "gold_edge", "halo", "hub", "needle", "count", "count_none", "craft",
            "name", "big_name")
 CELL_NAMES = ("ring", "fill", "edge", "halo", "hub", "needle_up", "needle_right", "needle_diag")
 MAX_FONT = 64.0         # the largest letters a name may have, in pixels
+FONT_CELL = 14          # the game's layout font: a letter's advance is in pixels of a 14-pixel letter
 MAX_COUNT = 99          # radial_draw.c: a quantity has two digits
 # The quarters of the ring, clockwise from the top right, as the screen's directions (right, down) of their corner
 QUARTER_SIGNS = ((1, -1), (1, 1), (-1, 1), (-1, -1))
@@ -88,9 +91,12 @@ MENU_BODY = ("ui020_waku10_00", "ui020_waku10_01", "ui020_naka10")
 MENU_TEXTURE = "lyt\\common\\texture\\hf_wheel_GSM_NOMIP"
 MENU_LAYOUTS = 2
 # ui020's places on the top screen, in pixels: its big list's frame starts at x 228 (the rows take 254 to 396), its
-# title bar ends at y 38, and in single-screen mode the START menu's description starts at y 196 (Edit Slots' wheels
-# stay inside that room at every size: menu_places)
+# title bar (the title and the pager, over the list) is 228 to 396 by 18 to 38, and in single-screen mode the START
+# menu's description starts at y 196 (Edit Slots' wheels stay inside that room at every size: menu_places)
 MENU_FRAME_LEFT, MENU_TITLE_BOTTOM, MENU_DESCRIPTION_TOP = 228.0, 38.0, 196.0
+MENU_TITLE_BAR = (MENU_FRAME_LEFT, 0.0, 2.0 * SCREEN_HALF_WIDTH, MENU_TITLE_BOTTOM)    # what the centred one keeps off
+FIT_STEPS = 40          # halvings of the search for the largest scale that keeps the centred wheel off the title bar
+FIT_GRAIN = 1e6         # that scale rounded down to millionths
 
 
 class RadialDrawError(ValueError):
@@ -191,12 +197,13 @@ def _numbers(raw: dict, key: str, low: tuple[float, ...], high: tuple[float, ...
     return tuple(float(v) for v in value)
 
 
-def _sizes(raw: dict) -> tuple[float, ...]:
-    value = _value(raw, "draw_sizes")
-    low, high = SIZE_RANGE
-    if not isinstance(value, list) or not 1 <= len(value) <= MAX_SIZES or not all(_is_number(v) for v in value) or \
+def _sizes(raw: dict, key: str = "draw_sizes", most: int = MAX_SIZES,
+           bounds: tuple[float, float] = SIZE_RANGE) -> tuple[float, ...]:
+    value = _value(raw, key)
+    low, high = bounds
+    if not isinstance(value, list) or not 1 <= len(value) <= most or not all(_is_number(v) for v in value) or \
             not all(low <= v <= high for v in value) or any(b <= a for a, b in zip(value, value[1:])):
-        raise RadialDrawError(f"radial_menu.json: draw_sizes must be 1 to {MAX_SIZES} numbers from {low} to {high}, "
+        raise RadialDrawError(f"radial_menu.json: {key} must be 1 to {most} numbers from {low} to {high}, "
                               "smallest first")
     return tuple(float(v) for v in value)
 
@@ -226,6 +233,9 @@ def load_draw_settings(path: Path = SETTINGS_FILE) -> dict:
         "scale": _numbers(raw, "draw_scale", (0.1,) * POSITIONS, (1.0,) * POSITIONS),   # centre, right, bottom left
         "craft_mark": _numbers(raw, "draw_craft_mark", (1.0, 1.0, -64.0, -64.0), (64.0, 64.0, 64.0, 64.0)),
         "sizes": _sizes(raw),
+        "text_sizes": _sizes(raw, "draw_text_sizes", MAX_TEXTS, TEXT_RANGE),
+        "screen_margin": _number(raw, "draw_screen_margin", 0.0, 32.0),
+        "fit_name": _number(raw, "draw_fit_name_width", 1.0, 400.0),
         "radius": _number(raw, "draw_radius", 1.0, 110.0),
         "icon": _numbers(raw, "draw_icon_size", *size),
         "rhombus": _numbers(raw, "draw_rhombus_size", *size),
@@ -250,7 +260,7 @@ def load_draw_settings(path: Path = SETTINGS_FILE) -> dict:
         "layer": _whole(raw, "draw_layer", 0, 31),
         "priority": _whole(raw, "draw_priority", 20, 62),
         "colours": _colours(raw),
-        "menu_centre": _numbers(raw, "menu_centre", (0.0, 0.0), screen),
+        "menu_centre": _numbers(raw, "menu_centre", (0.0, 0.0, 0.0), (screen[0], screen[1], screen[1])),
         "menu_left": _numbers(raw, "menu_left", (0.0, 0.0), screen),
         "menu_scale": _numbers(raw, "menu_scale", (0.1, 0.1), (1.0, 1.0)),      # centred, small
     }
@@ -282,16 +292,23 @@ def layout_point(x: float, y: float) -> tuple[float, float]:
     return SCREEN_HALF_WIDTH - x, SCREEN_HALF_HEIGHT - y
 
 
-def name_box(slot: int, settings: Mapping, big: bool = False) -> tuple[tuple[float, float, float, float], int]:
-    """Slot `slot`'s name box (its larger gold one with `big`): (left, top, right, bottom) from the wheel's middle, and
-    how its text sits in it. A name to the right starts `name_gap` beside the diamond (the chosen one's when big) and
-    runs right; to the left, the other way; above or below, the box is `name_gap` from the diamond's tip, centred on a
-    slot of the middle line, else starting under the picture's inner edge and running outwards."""
+def name_box(slot: int, settings: Mapping, big: bool = False, text: float = 1.0,
+             room: float | None = None) -> tuple[tuple[float, float, float, float], int]:
+    """Slot `slot`'s name box (its larger gold one with `big`) at the text size `text` (a draw_text_sizes value: the
+    box and its letters that many times larger): (left, top, right, bottom) from the wheel's middle, and how its text
+    sits in it. A name to the right starts `name_gap` beside the diamond (the chosen one's when big) and runs right; to
+    the left, the other way; above or below, the box is `name_gap` from the diamond's tip, centred on a slot of the
+    middle line, else starting under the picture's inner edge and running outwards. With `room` (advances of the
+    game's 14-pixel font) the box is only as wide as a name that long takes, from the same edge the text sits at: the
+    part of the box such a name fills."""
     x, y = slot_point(slot, settings["radius"])
     scale = settings["marked_scale"] if big else 1.0
     half_w, half_h = settings["rhombus"][0] / 2 * scale, settings["rhombus"][1] / 2 * scale
     icon_half = settings["icon"][0] / 2 * scale
     width, height = settings["big_box"] if big else settings["name_box"]
+    if room is not None:
+        width = min(width, room * (settings["big_font"] if big else settings["name_font"])[0] / FONT_CELL)
+    width, height = width * text, height * text
     gap, side = settings["name_gap"], settings["sides"][slot]
     if side in ("right", "left"):
         top = y - height / 2
@@ -314,10 +331,18 @@ def box_middle(box: tuple[float, float, float, float]) -> tuple[float, float]:
     return (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
 
 
-def wheel_bounds(settings: Mapping) -> tuple[float, float, float, float]:
-    """The box (left, top, right, bottom) around everything the wheel may show at its full size, from its middle in
-    screen pixels: every name box, small and big, each slot's chosen diamond and glow, and each quantity's digits."""
-    boxes = [name_box(k, settings, big)[0] for k in range(SLOTS) for big in (False, True)]
+def wheel_bounds(settings: Mapping, text: float = 1.0, room: float | None = None) -> tuple[float, float, float, float]:
+    """The box (left, top, right, bottom) around everything the wheel may show at its full size with its names at the
+    text size `text`, from its middle in screen pixels: every name box, small and big (with `room`, only the part a
+    name of that many advances fills: name_box), each slot's chosen diamond and glow, and each quantity's digits."""
+    boxes = wheel_boxes(settings, text, room)
+    return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+
+
+def wheel_boxes(settings: Mapping, text: float = 1.0,
+                room: float | None = None) -> list[tuple[float, float, float, float]]:
+    """Each box (left, top, right, bottom) wheel_bounds goes around, from the wheel's middle in screen pixels."""
+    boxes = [name_box(k, settings, big, text, room)[0] for k in range(SLOTS) for big in (False, True)]
     marked = settings["marked_scale"]
     (place_x, place_y), (digit_w, digit_h) = settings["count_place"], settings["count_size"]
     mark_w, mark_h, mark_x, mark_y = settings["craft_mark"]
@@ -330,50 +355,105 @@ def wheel_bounds(settings: Mapping) -> tuple[float, float, float, float]:
         for dx in (0.0, -settings["count_advance"]):
             digit_x, digit_y = x + place_x + dx, y + place_y
             boxes.append((digit_x - digit_w / 2, digit_y - digit_h / 2, digit_x + digit_w / 2, digit_y + digit_h / 2))
-    return (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
+    return boxes
 
 
-def wheel_places(settings: Mapping) -> tuple[tuple[tuple[float, float, float], ...], ...]:
+def _clamp(value: float, low: float, high: float) -> float:
+    return min(max(value, low), high)
+
+
+def wheel_places(settings: Mapping, text: float = 1.0) -> tuple[tuple[tuple[float, float, float], ...], ...]:
     """Where the wheel's middle goes and how large it is drawn, (x, y, scale) in screen pixels from the top-left corner,
-    for each curated size: at the centre (its curated place), then at the right, where x keeps the wheel's rightmost
-    part (wheel_bounds) the curated margin from the screen's right edge, then at the bottom left, where x keeps its
-    leftmost part and y its lowest part the curated margins from the left edge and the bottom."""
-    left_edge, _top, right_edge, bottom_edge = wheel_bounds(settings)
+    for each curated size with the names at the text size `text`: at the centre (its curated place), then at the right,
+    where x keeps the wheel's rightmost part (wheel_bounds) the curated margin from the screen's right edge, then at the
+    bottom left, where x keeps its leftmost part and y its lowest part the curated margins from the left edge and the
+    bottom. A size at which the wheel would not fit the screen less `screen_margin` on every side is drawn at the
+    largest scale that fits, and the middle then moves as little as keeps it inside. That fit counts each name as wide
+    as a name of `fit_name` advances (draw_fit_name_width) and as tall as its box: the room kept for the longest name of
+    the five languages would stop the wheel growing long before ordinary names reach the edges, so a longer name may
+    run past the screen's edge at the largest sizes. The right and bottom-left edges are kept with the whole room."""
+    left_edge, _top, right_edge, bottom_edge = wheel_bounds(settings, text)
+    fit_left, fit_top, fit_right, fit_bottom = bounds = wheel_bounds(settings, text, settings["fit_name"])
     (centre_x, centre_y), (margin, right_y) = settings["centre"], settings["right"]
     (left_margin, bottom_margin), (centre_scale, right_scale, corner_scale) = settings["bottom_left"], settings["scale"]
-    screen_w, screen_h = 2.0 * SCREEN_HALF_WIDTH, 2.0 * SCREEN_HALF_HEIGHT
-    centre = tuple((centre_x, centre_y, centre_scale * size) for size in settings["sizes"])
-    right = tuple((screen_w - margin - right_edge * right_scale * size, right_y, right_scale * size)
-                  for size in settings["sizes"])
-    corner = tuple((left_margin - left_edge * corner_scale * size,
-                    screen_h - bottom_margin - bottom_edge * corner_scale * size, corner_scale * size)
-                   for size in settings["sizes"])
+    screen_w, screen_h, edge = 2.0 * SCREEN_HALF_WIDTH, 2.0 * SCREEN_HALF_HEIGHT, settings["screen_margin"]
+    fit = _largest_fit((screen_w / 2, screen_h / 2), bounds, (edge, edge, screen_w - edge, screen_h - edge), whole=True)
+
+    def inside(x: float, y: float, scale: float) -> tuple[float, float, float]:
+        return (_clamp(x, edge - fit_left * scale, screen_w - edge - fit_right * scale),
+                _clamp(y, edge - fit_top * scale, screen_h - edge - fit_bottom * scale), scale)
+
+    centre = tuple(inside(centre_x, centre_y, min(centre_scale * size, fit)) for size in settings["sizes"])
+    right = tuple(inside(screen_w - margin - right_edge * scale, right_y, scale)
+                  for scale in (min(right_scale * size, fit) for size in settings["sizes"]))
+    corner = tuple(inside(left_margin - left_edge * scale, screen_h - bottom_margin - bottom_edge * scale, scale)
+                   for scale in (min(corner_scale * size, fit) for size in settings["sizes"]))
     return centre, right, corner
 
 
 def _largest_fit(middle: tuple[float, float], bounds: tuple[float, float, float, float],
-                 room: tuple[float, float, float, float]) -> float:
+                 room: tuple[float, float, float, float], whole: bool = False) -> float:
     """The largest scale at which the wheel's box (`bounds`, from its middle at scale 1) drawn around `middle` stays
-    inside `room` (left, top, right, bottom)."""
+    inside `room` (left, top, right, bottom); with `whole`, wherever its middle goes (the box's width and height
+    against the room's)."""
     (x, y), (left, top, right, bottom) = middle, bounds
+    if whole:
+        return min((room[2] - room[0]) / (right - left), (room[3] - room[1]) / (bottom - top))
     return min((x - room[0]) / -left, (y - room[1]) / -top, (room[2] - x) / right, (room[3] - y) / bottom)
 
 
-def menu_places(settings: Mapping) -> tuple[tuple[tuple[float, float, float], ...], ...]:
+def menu_places(settings: Mapping, text: float = 1.0) -> tuple[tuple[tuple[float, float, float], ...], ...]:
     """Where the wheel's middle goes in Edit Slots and how large it is drawn, (x, y, scale) in screen pixels from the
-    top-left corner, for each curated size (the player's Size row): centred (menu_centre) and small at the left of the
-    pouch list (menu_left), at menu_scale's two scales times the size. A size that would leave the wheel's room (under
-    ui020's title bar and above the description, and for the small one left of the list's frame) is drawn at the
-    largest scale that fits; the middles never move, and the player's position is not used there."""
-    bounds = wheel_bounds(settings)
+    top-left corner, for each curated size (the player's Size row) with the names at the text size `text`: centred
+    (menu_centre) and small at the left of the pouch list (menu_left), at menu_scale's two scales times the size. A
+    size that would leave the wheel's room (under ui020's title bar and above the description, and for the small one
+    left of the list's frame) is drawn at the largest scale that fits; the small one's middle never moves, the centred
+    one's y is the one of menu_centre's range where it is largest, and the player's position is not used there. The
+    centred one counts the names as wheel_places does (`fit_name` wide) and keeps
+    each of its boxes off the title bar (MENU_TITLE_BAR: the title strip over the list), not its whole height, so the
+    top name may rise beside the bar; the small one keeps the whole room, so no long name runs into the list beside
+    it."""
     screen_w = 2.0 * SCREEN_HALF_WIDTH
-    rooms = ((0.0, MENU_TITLE_BOTTOM, screen_w, MENU_DESCRIPTION_TOP),
-             (0.0, 0.0, MENU_FRAME_LEFT, MENU_DESCRIPTION_TOP))
-    places = []
-    for middle, base, room in zip((settings["menu_centre"], settings["menu_left"]), settings["menu_scale"], rooms):
-        fit = _largest_fit(tuple(middle), bounds, room)
-        places.append(tuple((middle[0], middle[1], min(base * size, fit)) for size in settings["sizes"]))
-    return tuple(places)
+    (centre_x, highest, lowest), left = settings["menu_centre"], tuple(settings["menu_left"])
+    centred_base, small_base = settings["menu_scale"]
+    boxes = wheel_boxes(settings, text, settings["fit_name"])
+    small_fit = _largest_fit(left, wheel_bounds(settings, text), (0.0, 0.0, MENU_FRAME_LEFT, MENU_DESCRIPTION_TOP))
+    heights = [lowest - step for step in range(int(lowest - highest) + 1)]
+
+    def centred(size: float) -> tuple[float, float, float]:
+        best = None
+        for y in heights:
+            scale = _largest_clear((centre_x, y), boxes, (0.0, 0.0, screen_w, MENU_DESCRIPTION_TOP), MENU_TITLE_BAR,
+                                   centred_base * size)
+            if best is None or scale > best[2] + 1e-9:
+                best = (centre_x, y, scale)
+        return best
+
+    return (tuple(centred(size) for size in settings["sizes"]),
+            tuple((*left, min(small_base * size, small_fit)) for size in settings["sizes"]))
+
+
+def _largest_clear(middle: tuple[float, float], boxes, room: tuple[float, float, float, float],
+                   avoid: tuple[float, float, float, float], most: float) -> float:
+    """The largest scale up to `most` at which every box of `boxes` (from the wheel's middle at scale 1) drawn around
+    `middle` is inside `room` and off `avoid` (left, top, right, bottom). The boxes only grow away from the middle as
+    the scale grows, so the scales that keep them clear are all those under one, found by halving."""
+    def clear(scale: float) -> bool:
+        for left, top, right, bottom in boxes:
+            box = (middle[0] + left * scale, middle[1] + top * scale, middle[0] + right * scale,
+                   middle[1] + bottom * scale)
+            if box[0] < room[0] or box[1] < room[1] or box[2] > room[2] or box[3] > room[3]:
+                return False
+            if not (box[2] <= avoid[0] or avoid[2] <= box[0] or box[3] <= avoid[1] or avoid[3] <= box[1]):
+                return False
+        return True
+
+    if clear(most):
+        return most
+    low, high = 0.0, most
+    for _ in range(FIT_STEPS):
+        low, high = ((low + high) / 2, high) if clear((low + high) / 2) else (low, (low + high) / 2)
+    return math.floor(low * FIT_GRAIN) / FIT_GRAIN      # the same for every size it holds back
 
 
 def needle_sizes(settings: Mapping) -> dict[str, tuple[float, float]]:
@@ -673,8 +753,14 @@ def menu_wheel_files(rom: GameFiles, files: Mapping[str, bytes] | None = None,
 
 # ---- the data block
 
-DATA = struct.Struct(f"<5I{len(root_children())}I{SLOTS}I{len(BIG_TEXTS)}I{POSITIONS * MAX_SIZES * 3}f{2 * SLOTS}f"
-                     f"{2 * SLOTS}f40f f2I 2II {SLOTS}B{SLOTS}B {3 + len(MENU_BODY)}I{3 * MENU_LAYOUTS * MAX_SIZES}f")
+DATA = struct.Struct(f"<5I{len(root_children())}I{SLOTS}I{len(BIG_TEXTS)}I{MAX_TEXTS * POSITIONS * MAX_SIZES * 3}f"
+                     f"{2 * SLOTS}f{MAX_TEXTS * 2 * SLOTS}f{MAX_TEXTS * 2 * SLOTS}f{MAX_TEXTS}f40f fI 2II {SLOTS}B"
+                     f"{SLOTS}B {3 + len(MENU_BODY)}I{MAX_TEXTS * 3 * MENU_LAYOUTS * MAX_SIZES}f")
+
+
+def _repeat_last(values: tuple, count: int) -> list:
+    """`values` with its last repeated to `count`."""
+    return [*values, *[values[-1]] * (count - len(values))]
 
 
 def _rgba(colour) -> int:
@@ -684,46 +770,52 @@ def _rgba(colour) -> int:
 def draw_data(sector_to_slot: list[int], settings: Mapping | None = None, cells: Mapping | None = None) -> bytes:
     """The block `radial_draw_data` (struct draw_data in radial_draw.c): the group's name hash, its slot in the GUI
     manager, its layer and priority, the root null's hash and its children's, the names' and the big name's texts'
-    hashes; the root's x, y and scale at the centre, at the right and at the bottom left for each size (wheel_places;
-    the last size repeated to MAX_SIZES), each slot's middle and its big name's place in the root (floats); the
-    digits' cells (u, v, w, h); the chosen slot's scale; the pool's reserve, the stick's magnitude that chooses a slot;
-    the quantity's colour words (carried, not carried) and the share of its colour a picture keeps when not carried
-    (of 256); the sector to slot table and each slot's big name text; then the START menu's: the hashes of ui020's
-    frame group, its frame null, the frame's body sprites and the strips' null, and the root's x, y and scale (layout
-    units) in Edit Slots' two layouts for each size (menu_places; the last size repeated to MAX_SIZES)."""
+    hashes; for each text size (draw_text_sizes, the last repeated to MAX_TEXTS) the root's x, y and scale at the
+    centre, at the right and at the bottom left for each size (wheel_places; the last size repeated to MAX_SIZES);
+    each slot's middle in the root; for each text size each slot's name null's place and the big name's place at each
+    slot (floats); each text size's scale of the names' nulls; the digits' cells (u, v, w, h); the chosen slot's scale;
+    the pool's reserve; the quantity's colour words (carried, not carried)
+    and the share of its colour a picture keeps when not carried (of 256); the sector to slot table and each slot's
+    big name text; then the START menu's: the hashes of ui020's frame group, its frame null, the frame's body sprites
+    and the strips' null, and for each text size the root's x, y and scale (layout units) in Edit Slots' two layouts
+    for each size (menu_places; the last size repeated to MAX_SIZES)."""
     settings = settings or load_draw_settings()
     cells = cells or atlas()
     if sorted(sector_to_slot) != list(range(SLOTS)):
         raise RadialDrawError(f"the sector to slot table must list each slot 0 to {SLOTS - 1} once")
+    texts = _repeat_last(settings["text_sizes"], MAX_TEXTS)
     hashes = [name_hash(GROUP), INDEX, settings["layer"], settings["priority"], name_hash(ROOT),
               *(name_hash(name) for name in root_children()),
               *(name_hash(name_text(k)) for k in range(SLOTS)),
               *(name_hash(name) for name in BIG_TEXTS)]
-    places = [v for sized in wheel_places(settings) for x, y, scale in [*sized, *[sized[-1]] * (MAX_SIZES - len(sized))]
-              for v in (*layout_point(x, y), scale)]
+    places = [v for text in texts for sized in wheel_places(settings, text)
+              for x, y, scale in _repeat_last(sized, MAX_SIZES) for v in (*layout_point(x, y), scale)]
     slots = [v for k in range(SLOTS) for v in to_layout(*slot_point(k, settings["radius"]))]
-    bigs = [name_box(k, settings, big=True) for k in range(SLOTS)]
-    big_at = [v for box, _align in bigs for v in to_layout(*box_middle(box))]
+    name_at = [v for text in texts for k in range(SLOTS)
+               for v in to_layout(*box_middle(name_box(k, settings, text=text)[0]))]
+    big_at = [v for text in texts for k in range(SLOTS)
+              for v in to_layout(*box_middle(name_box(k, settings, big=True, text=text)[0]))]
+    aligns = [name_box(k, settings, big=True)[1] for k in range(SLOTS)]
     digits = [v for cell in cells["digits"] for v in region(cell, cells=cells)]
     colours = settings["colours"]
     menu = [name_hash(name) for name in (MENU_GROUP, MENU_FRAME, *MENU_BODY, MENU_STRIPS)]
-    menu_at = [v for sized in menu_places(settings)
-               for x, y, scale in [*sized, *[sized[-1]] * (MAX_SIZES - len(sized))]
-               for v in (*layout_point(x, y), scale)]
-    data = DATA.pack(*hashes, *places, *slots, *big_at, *digits, settings["marked_scale"], settings["reserve"],
-                     settings["mark_magnitude"], _rgba(colours["count"]), _rgba(colours["count_none"]),
-                     round(settings["dark"] * 256), *sector_to_slot, *(align for _box, align in bigs), *menu, *menu_at)
+    menu_at = [v for text in texts for sized in menu_places(settings, text)
+               for x, y, scale in _repeat_last(sized, MAX_SIZES) for v in (*layout_point(x, y), scale)]
+    data = DATA.pack(*hashes, *places, *slots, *name_at, *big_at, *texts, *digits, settings["marked_scale"],
+                     settings["reserve"], _rgba(colours["count"]),
+                     _rgba(colours["count_none"]), round(settings["dark"] * 256), *sector_to_slot, *aligns, *menu,
+                     *menu_at)
     if len(data) != RADIAL_DRAW_DATA_SIZE:
         raise RadialDrawError(f"radial_draw_data holds {RADIAL_DRAW_DATA_SIZE} bytes, the settings make {len(data)}")
     return data
 
 
-__all__ = ["ALIGN_CENTRED", "ALIGN_LEFT", "ALIGN_RIGHT", "BIG", "BIG_TEXTS", "CELLS", "CRAFT_CELL", "DATA", "GOLD_EDGE",
-           "GOLD_FILL", "GROUP", "HALO", "HUB", "INDEX", "LAYOUT_PATH", "MAX_COUNT", "MAX_SIZES", "MENU_BODY",
-           "MENU_FRAME", "MENU_GROUP", "MENU_LAYOUTS", "MENU_STRIPS", "MENU_TEXTURE", "PICTURE", "POSITIONS",
-           "QUARTER_SIGNS", "ROOT", "RadialDrawError", "SELECTOR", "SLOTS", "TEXTURE", "atlas", "box_middle",
-           "build_layout", "build_menu_layout", "draw_data", "edge_name", "fill_name", "icon_name", "layout_point",
-           "load_draw_settings", "mark_name", "menu_places", "menu_wheel_files", "name_box", "name_null", "name_text",
-           "needle_name", "needle_of", "needle_sizes", "patch_arc", "patch_common_arc", "region", "ring_name",
-           "root_children", "sheet_region", "slot_point", "tens_name", "texture", "to_layout", "units_name",
-           "wheel_bounds", "wheel_files", "wheel_places"]
+__all__ = ["ALIGN_CENTRED", "ALIGN_LEFT", "ALIGN_RIGHT", "BIG", "BIG_TEXTS", "CELLS", "CRAFT_CELL", "DATA",
+           "GOLD_EDGE", "GOLD_FILL", "GROUP", "HALO", "HUB", "INDEX", "LAYOUT_PATH", "MAX_COUNT", "MAX_SIZES",
+           "MAX_TEXTS", "MENU_BODY", "MENU_FRAME", "MENU_GROUP", "MENU_LAYOUTS", "MENU_STRIPS", "MENU_TEXTURE",
+           "PICTURE", "POSITIONS", "QUARTER_SIGNS", "ROOT", "RadialDrawError", "SELECTOR", "SLOTS", "TEXTURE", "atlas",
+           "box_middle", "build_layout", "build_menu_layout", "draw_data", "edge_name", "fill_name", "icon_name",
+           "layout_point", "load_draw_settings", "mark_name", "menu_places", "menu_wheel_files", "name_box",
+           "name_null", "name_text", "needle_name", "needle_of", "needle_sizes", "patch_arc", "patch_common_arc",
+           "region", "ring_name", "root_children", "sheet_region", "slot_point", "tens_name", "texture", "to_layout",
+           "units_name", "wheel_bounds", "wheel_files", "wheel_places"]

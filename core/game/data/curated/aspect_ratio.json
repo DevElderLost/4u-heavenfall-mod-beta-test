@@ -19,6 +19,12 @@
     "keep_centred": ["ui000_*", "ui005_*", "ui010_*", "ui013_assign", "ui409_*", "ui430_*", "ui50[2-5]_*", "ui7*", "ui9*"],
     "sides": {
       "ui036_yazi02": "right",
+      "ui404_subwaku01": "left",
+      "ui404_item_syousai01": "left",
+      "ui404_item_b01": "left",
+      "ui404_mozi": "left",
+      "ui404_line": "left",
+      "ui404_pouch_box": "left",
       "ui401_koumoku00": "right",
       "ui407_new": "right",
       "ui408_sitaji": "right",

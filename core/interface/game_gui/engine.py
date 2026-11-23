@@ -12,7 +12,8 @@ nulls in the layout files and the bytes of the engine's table; and the canonical
   that null itself.
 * **The table** (`engine_table`): a header, the names (every group a block or a rule names) sorted by hash, the
   targets (the panes the engine writes, by hash), the screens of one mode in the order `Arrangement.screens_of` gives
-  with their rules as name indices, a default place per block and each screen's places. A place holds, besides the
+  with their rules as name indices, a default place per block, each screen's places and the name index the engine
+  finds a group's name by (`name_index`: a hash's home slot and the free slots after it). A place holds, besides the
   view, priority and hidden flags, the wrapper's (cx, cy, scale) at a group translate of 0, cx for each screen the
   group may be on at run time (the engine reads the group's own screen bits): the engine adds (scale - 1) * translate,
   so the values come from `geometry.wrapper_null` exactly as the pictures place the block.
@@ -51,14 +52,23 @@ FRAME_HOOK, FRAME_WORD = 0xAF555C, bytes.fromhex("900294e5")      # ldr r0, [r4,
 VIEW_HOOK, VIEW_WORD = 0xB0481C, bytes.fromhex("0117a0e1")        # lsl r1, r1, #0xe
 WRAPPER_SUFFIX = "_gg"
 PART_SUFFIX = "_ggp"                  # a null a part block's panes (or what follows them) are split off into
-MAGIC = 0x31454747                    # "GGE1": a table without it leaves the game alone
+MAGIC = 0x32454747                    # "GGE2" (the table with its name index): a table without it leaves the game alone
 VIEWS = {"top": 0, "bottom": 7}       # a root group's view bits for each screen (geometry.RUNTIME_SCREENS)
 OWN_SCREENS = ("top", "bottom")       # cx[0], cx[1] of a place: the group's own screen at run time
 SIDE_FLAGS = {LEFT: 0x08, RIGHT: 0x80}  # the side of a wider interface a place keeps to (game_gui_engine.c PLACE_LEFT)
 MAX_NAMES = 4096                      # game_gui_engine.c MAX_NAMES (the shown names' bits on its stack)
+MATCH_LIMIT = 256                     # game_gui_engine.c MATCH_LIMIT (the groups of a block one walk keeps to place)
 NO_INDEX = 0xFFFF
-# ... the watched hash, then the photo section's offset and count, the photo mode's two pad masks
-HEADER = struct.Struct("<15I2fI4I")
+# ... the watched hash, then the photo section's offset and count, the photo mode's two pad masks, the name index's
+# offset and size (2 ** bits slots)
+HEADER = struct.Struct("<15I2fI6I")
+INDEX_AT_FIELD, INDEX_BITS_FIELD = 22, 23
+# The name index (game_gui_engine.c find): a u16 per slot, the name's index or INDEX_EMPTY; a hash's home slot is the
+# top `bits` bits of hash * INDEX_MULTIPLIER, a name sits in the first free slot from its home on; at most half the
+# slots taken, so a miss (most of a scene's groups) ends after a slot or two
+INDEX_EMPTY = 0xFFFF
+INDEX_MULTIPLIER = 0x9E3779B1
+INDEX_MIN_BITS, INDEX_MAX_BITS = 6, 16
 # a photo screen: the screen (index + 1), its first kept hash, their count, the raw pad bit that turns the mode on
 # there (the screen's own toggle, else the settings')
 PHOTO = struct.Struct("<4H")
@@ -340,6 +350,29 @@ def _identity(placement: Placement) -> bool:
     return placement.x is None and placement.y is None and placement.scale in (None, 1.0)
 
 
+def index_slot(hash_: int, bits: int) -> int:
+    """The home slot of a name hash in an index of 2 ** `bits` slots (game_gui_engine.c find)."""
+    return (hash_ * INDEX_MULTIPLIER & 0xFFFFFFFF) >> (32 - bits)
+
+
+def name_index(hashes: Sequence[int], bits: int | None = None) -> tuple[bytes, int]:
+    """(the index's bytes, its bits) for the names' hashes in their table order: each name's index in the first free
+    slot from its home slot on. `bits`: the size, by default the smallest that keeps half the slots free
+    (INDEX_MIN_BITS at least); refused when it leaves no slot free (a miss would never end)."""
+    if bits is None:
+        bits = max(INDEX_MIN_BITS, (2 * len(hashes) - 1).bit_length())
+    if not 1 <= bits <= INDEX_MAX_BITS or len(hashes) >= 1 << bits:
+        raise ValueError(f"an index of 2 ** {bits} slots leaves no slot empty for {len(hashes)} names")
+    mask = (1 << bits) - 1
+    slots = [INDEX_EMPTY] * (1 << bits)
+    for n, hash_ in enumerate(hashes):
+        at = index_slot(hash_, bits)
+        while slots[at] != INDEX_EMPTY:
+            at = (at + 1) & mask
+        slots[at] = n
+    return struct.pack(f"<{len(slots)}H", *slots), bits
+
+
 def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tuple[Target, ...]],
                  layouts: Mapping[str, Layout], own_screens: Mapping[str, str], watch: str | None = None,
                  edge: tuple[float, float] | None = None) -> bytes:
@@ -471,8 +504,10 @@ def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tupl
         own = toggle if screen.photo_toggle is None else RAW_BUTTONS[screen.photo_toggle]
         photo_records += PHOTO.pack(number, len(photo_hashes), len(screen.photo), own)
         photo_hashes += [name_hash(name) for name in screen.photo]
+    index, index_bits = name_index([name_hash(name) for name in ordered])
     sections = [names_bytes, target_bytes, direct_bytes, screen_records, struct.pack(f"<{len(terms)}H", *terms),
-                defaults, bytes(entries), bytes(photo_records) + struct.pack(f"<{len(photo_hashes)}I", *photo_hashes)]
+                defaults, bytes(entries), bytes(photo_records) + struct.pack(f"<{len(photo_hashes)}I", *photo_hashes),
+                index]
     offsets, at = [], HEADER.size
     for section in sections:
         at = -(-at // 4) * 4
@@ -480,7 +515,8 @@ def engine_table(arrangement: Arrangement, mode: str, targets: Mapping[str, tupl
         at += len(section)
     header = HEADER.pack(MAGIC, len(ordered), target_count, direct_count, len(screens), len(terms), len(block_ids),
                          count, *offsets[:7], *(geometry.screen_centre(s)[0] for s in OWN_SCREENS),
-                         name_hash(watch) if watch else 0, offsets[7], len(photo_screens), toggle, dismiss)
+                         name_hash(watch) if watch else 0, offsets[7], len(photo_screens), toggle, dismiss,
+                         offsets[8], index_bits)
     out = bytearray(header)
     for offset, section in zip(offsets, sections):
         out += bytes(offset - len(out)) + section

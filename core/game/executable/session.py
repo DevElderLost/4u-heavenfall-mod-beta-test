@@ -17,10 +17,13 @@ from dataclasses import dataclass, field
 class Session:
     """Canonical addresses: `branches` maps a B/BL/BLX written by a patcher to its target; `pointers` are words a
     patcher wrote that hold a canonical address of the game's code or data; `placed` are the blocks written, by name
-    and address (their own relocations are in the layout)."""
+    and address (their own relocations are in the layout); `version_words` are words in a hole of the player's
+    version that the patcher knows the version's own place of: canonical address -> {version key: (the version's
+    address, its original word there, the word written)}."""
     branches: dict[int, int] = field(default_factory=dict)
     pointers: set[int] = field(default_factory=set)
     placed: dict[str, int] = field(default_factory=dict)
+    version_words: dict[int, dict[str, tuple[int, int, int]]] = field(default_factory=dict)
 
 
 _current: ContextVar[Session | None] = ContextVar("exefs_session", default=None)
@@ -52,6 +55,14 @@ def note_pointer(at: int) -> None:
     session = _current.get()
     if session is not None:
         session.pointers.add(at)
+
+
+def note_version_word(at: int, words: dict[str, tuple[int, int, int]]) -> None:
+    """The word at canonical `at` lies in a hole of some versions: `words` {version key: (its address there, its
+    original word there, the word to write)}; the rebase checks and writes the player's version's."""
+    session = _current.get()
+    if session is not None:
+        session.version_words[at] = dict(words)
 
 
 def note_place(name: str, at: int) -> None:

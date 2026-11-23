@@ -14,6 +14,10 @@ whose own panels moved keeps a counter in the touch screen's place:
   `mov r0, #0x100` (x 256) at 0x9C6C4C: under the movie's preview, while the list's ribbon keeps an empty plank where
   the counter goes on the touch screen.
 
+A menu of the mod's own (OWN) passes the place from its data instead: `jukebox`, the jukebox's menu on the list ui443
+(music/jukebox/jukebox_menu.c, jukebox_data's counter_x and counter_y), at the Gallery's place in the game. Its curated
+shift gives own_counter_place, which its patcher writes into the data; no instruction changes here.
+
 This patch rewrites each menu's two instructions by its curated shift (`single_screen.json`, "page_counters": whole
 pixels right and down): that menu's counter moves, the others' (each passes its own place) stay. A place is a `mov`
 of an ARM immediate (an 8-bit value turned right by an even count) or, below zero, a `mvn` of one less than its
@@ -61,6 +65,8 @@ def _immediate(word: int) -> int:
 CANTEEN = Menu(0x9C5188, 0xE3A01024, 0x9C518C, 0xE3A00F45, 0x9C5190)    # mov r1, #0x24 / mov r0, #0x114
 GALLERY = Menu(0x9C6C48, 0xE3A0100A, 0x9C6C4C, 0xE3A00C01, 0x9C6C50)    # mov r1, #0xa / mov r0, #0x100
 MENUS = {"canteen": CANTEEN, "gallery": GALLERY}
+# The mod's menus that pass the counter's place from their data: the place the game's own list would give it
+OWN = {"jukebox": GALLERY.place}
 
 
 def arm_immediate(value: int) -> int | None:
@@ -87,18 +93,28 @@ def _place(menu: Menu, shift: tuple[float, float]) -> tuple[int, int]:
     return x + int(shift[0]), y + int(shift[1])
 
 
+def own_counter_place(name: str, shifts: dict[str, tuple[float, float]]) -> tuple[int, int]:
+    """The counter's place (x, y) of the mod's menu `name` (OWN) with its shift of `shifts` (none: the game's)."""
+    x, y = OWN[name]
+    dx, dy = shifts.get(name, (0.0, 0.0))
+    return x + int(dx), y + int(dy)
+
+
 def page_counter_shifts(path: Path = SETTINGS_FILE) -> dict[str, tuple[float, float]]:
     """How far each menu's counter moves (single_screen.json, "page_counters": menu -> [right, down], whole pixels);
     a menu left out stays where the game puts it."""
     where = "single_screen.json, page_counters"
     record = json.loads(Path(path).read_text(encoding="utf-8")).get("page_counters", {})
-    if not isinstance(record, dict) or not set(record) <= set(MENUS):
-        raise ValueError(f"{where}: an object of menus ({', '.join(MENUS)}) and their shifts")
+    if not isinstance(record, dict) or not set(record) <= set(MENUS) | set(OWN):
+        raise ValueError(f"{where}: an object of menus ({', '.join([*MENUS, *OWN])}) and their shifts")
     shifts = {}
     for name, shift in record.items():
         if (not isinstance(shift, list) or len(shift) != 2
                 or not all(isinstance(v, int) and not isinstance(v, bool) and abs(v) <= SHIFT_LIMIT for v in shift)):
             raise ValueError(f"{where}, {name}: [right, down], whole numbers within {SHIFT_LIMIT}")
+        if name in OWN:
+            shifts[name] = (float(shift[0]), float(shift[1]))
+            continue
         menu = MENUS[name]
         for value, word, axis in zip(_place(menu, shift), (menu.x_word, menu.y_word), "xy"):
             if encode_place(word, value) is None:
@@ -122,12 +138,14 @@ def supports_page_counters(code: bytes) -> bool:
 
 def patch_page_counters(code: bytes, shifts: dict[str, tuple[float, float]]) -> bytes:
     """`code` where each menu of `shifts` places its page counter that many whole pixels (right, down) from the game's
-    place."""
+    place (the mod's menus, OWN, are left to their own patchers: own_counter_place)."""
     if not supports_page_counters(code):
         raise CodeSpaceError("page counters: the words at the menus' calls of FUN_00288fac are not the update's "
                              "(another executable, or already patched)")
     out = bytearray(code)
     for name, shift in shifts.items():
+        if name in OWN:
+            continue
         menu = MENUS[name]
         x, y = _place(menu, shift)
         words = encode_place(menu.x_word, x), encode_place(menu.y_word, y)

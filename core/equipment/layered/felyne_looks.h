@@ -25,8 +25,10 @@ struct felyne_data {             /* the block felyne_looks_data (felyne_looks.py
     u8 known[FELYNE_PARTS][FELYNE_KNOWN_BYTES];
     u8 pad2[2];
     struct felyne_case cases[FELYNE_CASES];
+    u8 suits[FELYNE_KNOWN_BYTES];  /* a bit per body number: a whole suit of MH XX, its head the helm of its number */
+    u8 pad3[2];
 };
-_Static_assert(sizeof(struct felyne_data) == 184, "felyne_looks.py HEADER");
+_Static_assert(sizeof(struct felyne_data) == 228, "felyne_looks.py HEADER");
 extern const struct felyne_data felyne_looks_data;
 
 struct felyne_ui {              /* the variable felyne_ui */

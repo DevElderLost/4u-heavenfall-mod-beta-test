@@ -6,7 +6,7 @@ cells; each cell has its plate, a link, the two halves of a
 trunk, its icon (the 24 px one, scaled), the forge mark (a small hammer), the worn mark, the box mark and the new mark,
 and each row a band; the sixth group is the small window "upgrade or craft". Nothing is drawn by us: the pieces are the
 list's own frame, bars, plate, cursors, arrows and "NEW" (ui407), the icon sheet's cells (the marks shrunk from two of
-them: node_marks.py), the key bar (ui034) and one plain texel
+them: node_marks.py), the key bar (ui034), the money window's second box beside the money (ui024) and one plain texel
 (ui034's own plain panel) stretched into the links, the trunks, the thin cursor and the choice window's edge, and
 tinted into the fills. Every rectangle, colour and word is curated (weapon_tree.json).
 """
@@ -33,6 +33,11 @@ ARROW_PIECES = {"wt_arrow_l": "ui407_left00_01", "wt_arrow_r": "ui407_right00_01
                 "wt_arrow_d": "ui407_down01"}
 NEW_MARK = "ui407_new"                # a group of ui407: its null's first sprite is the "NEW" label
 CURSOR_BRACKET = ("ui407_cursor02_10", "ui407_cursor02_11")
+# The money window's second box (ui024_waku01, the lobby's points box): its left end, middle and mirrored right end, and
+# the texts the copies take their fonts from: its unit's (12) for the word, its number's (14 x 12, the money's) for the
+# price
+PRICE_PIECES = ("ui024_ita01_00", "ui024_ita01_02", "ui024_ita01_01")
+COST_TEMPLATE, PRICE_TEMPLATE = "ui024_m_00", "ui024_m_suji00_01"
 ICON_SHEET = (256, 512)               # cmn_icon_GSM_NOMIP's size: the cells' texels as the region's fractions
 ICON_CELL = (0, 208, 24, 24)          # the sheet's 24 px icons start at v = 208 (shape 0's cell, 10 per row, pitch 24).
 #                                       The game's call (FUN_00c0de18) writes a cell's corner, not its size
@@ -138,8 +143,8 @@ def add_tree_panes(data: bytes, sources: Mapping, curated: Mapping | None = None
     """A ui401 layout with the weapon tree's five groups (unchanged if it has them). `sources`: the language's layouts
     the panes copy (equipment.layered.menu_layout.forge_sources: ui407 and ui034 are the ones used)."""
     from core.equipment.layered.menu_layout import (   # not at import: the equipment package is large
-        CURSOR_ROW, FORGE_LAYOUT, FRAME_LAYOUT, GROUP_TEMPLATE, ICON_HOLDER, KEY_BAR, KEY_TEXT, NAME_TEXT, PLATE,
-        PaneBuilder,
+        CURSOR_ROW, FORGE_LAYOUT, FRAME_LAYOUT, GROUP_TEMPLATE, ICON_HOLDER, KEY_BAR, KEY_TEXT, MONEY_LAYOUT, NAME_TEXT,
+        PLATE, PaneBuilder,
     )
     layout = parse_lyt(data)
     if any(pane.name == names.GROUP_FRAME for pane in layout.panes):
@@ -218,6 +223,18 @@ def add_tree_panes(data: bytes, sources: Mapping, curated: Mapping | None = None
         arrow = forge(ARROW_PIECES[name])
         build.sprite(names.GROUP_KEYS, arrow, name, _rect(settings, name), colours["arrow"])
         layout.find(name).origin = arrow.origin & TURN_MASK     # the quarter turns of the up and down arrows stay
+
+    # The price beside the money: the money window's second box (its points box) copied, its own pieces in its own
+    # dark red, without its icon; the word "Cost" where the icon was and the price where its number is, at the box's
+    # own fonts.
+    for name, piece in zip(names.PRICE_BOX, PRICE_PIECES):
+        build.sprite(names.GROUP_KEYS, build.template(MONEY_LAYOUT, piece), name, _rect(settings, name))
+    for name, piece, align in ((names.COST_TEXT, COST_TEMPLATE, 0), (names.PRICE_TEXT, PRICE_TEMPLATE, 1)):
+        template = build.template(MONEY_LAYOUT, piece)
+        key = "cost" if name == names.COST_TEXT else "price"
+        build.text(names.GROUP_KEYS, template, name, _rect(settings, name), rooms[key], template.font_size[0],
+                   align=align, colour=tuple(colours[key]))
+        layout.find(name).font_size = template.font_size
 
     # The window "upgrade or craft", in front of everything: its fill and thin edge, the title's bar (the header's),
     # each option's row bar (a row's band) with the list's cursor bar over it, then the words.

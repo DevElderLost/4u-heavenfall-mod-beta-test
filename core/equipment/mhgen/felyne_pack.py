@@ -23,7 +23,7 @@ from core.game.files.arc import Arc, ArcEntry, parse_arc, write_arc
 from core.game.executable.code_space import Layout, load_layout
 from core.equipment.mhgen import convert, equipment_pack as pack, sound
 from core.equipment.mhgen.felyne_face import (base_face_samples, dress_bare_skin, fit_head, hide_additive,
-                                               hide_second_form)
+                                               hide_second_form, hide_sheathed_form)
 from core.equipment.mhgen.gear_data import FELYNE_WEAPON_SIZE, XX_FORMAT, GenGame
 from core.equipment.mhgen.felyne_skin import reweight_cloth
 from core.equipment.mhgen.tables import CODE_BASE, hair_flags, repoint
@@ -44,8 +44,11 @@ FELYNE_IDS = FIRST_LOOK + LAST_SOURCE + 1 + SPARE_MODELS      # entries of the m
 # looks (118 on); the next ported sets take the numbers past the last look: FIRST_LOOK + LAST_SOURCE + 1 (333) on
 # The Deviants' sets (folders 184 Boltreaver, 151 Hellblade, 185 Soulseer) wear the number of their own look
 # (FIRST_LOOK + folder): the files are the same, so a run with both writes them once (`merged`); no spare is used.
+# So do Nargacuga's X set (folder 18, 136) and Silverwind's two G sets (folder 147, 265).
+# Lagiacrus's three sets and spears (folder 73, 191) too.
 MODEL_SLOTS = {124: 114, 119: 115, 121: 116, 191: 117, 122: 333, 184: FIRST_LOOK + 184, 151: FIRST_LOOK + 151,
-               185: FIRST_LOOK + 185}
+               185: FIRST_LOOK + 185, 18: FIRST_LOOK + 18, 147: FIRST_LOOK + 147,
+               73: FIRST_LOOK + 73}
 PARTS = {"helm": "h", "body": "b", "we": "w"}   # MH4U's archive prefix `o_<part>` -> MHGen's file
 
 # The update's tables (VA; file offset + CODE_BASE) and the literal words their readers load them from. All
@@ -73,6 +76,7 @@ TAIL_OBJECTS = range(2, 7)
 MHGEN_SOUNDS = "arc/otomo/wp_se/{:03d}.arc"
 SKIN_ARC = "arc/otomo/mod/skin/000.arc"   # the first coat: its texture is the one the pieces name as their skin
 ARMOR_MODEL, ARMOR_FORMS = 6, 0x1D         # an `otArmorData` record of MH XX: its model, and non-zero for two forms
+ARMOR_HEAD = 0x0C                          # its byte that is 0 when the record has no head piece (a whole suit's)
 ARMOR_PRICE = 8                            # its u32 price (gear_data.parse_felyne_armor)
 WEAPON_MODEL, WEAPON_PRICE = 4, 25         # an `otWeaponData` record: u16 model, u32 price (parse_felyne_weapon)
 DONOR_WEAPON = "data/o_we001.arc"   # a MH4U Felyne weapon whose sounds a model without its own gets
@@ -367,9 +371,10 @@ def weapon_arc(source: bytes, source_shaders, target_shaders, model: FelyneModel
     """MHGen weapon archive `source` as MH4U's `o_we<N>`, with MHGen's own sounds (`own_sounds`, wp_se/<N>.arc;
     weapon_sounds) or, without them or when they do not convert, those of MH4U Felyne weapon archive `donor`
     renamed (`donor_used`, when given, then gets a True appended). A weapon with neither has no sound. Its additive
-    shells are hidden (felyne_face.hide_additive)."""
+    shells are hidden (felyne_face.hide_additive), then the sheathed form of one with two (hide_sheathed_form)."""
     arc = _converted(source, source_shaders, target_shaders, model)
     hide_additive(arc, target_shaders[1])
+    hide_sheathed_form(arc, target_shaders[1])
     if own_sounds is not None:
         try:
             arc.entries += weapon_sounds(own_sounds, model)

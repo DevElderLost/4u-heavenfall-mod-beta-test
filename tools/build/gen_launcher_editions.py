@@ -12,6 +12,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from core.install.title.shared_file import shared_name  # noqa: E402  (standard library only)
+
 EDITION_REL = Path("core") / "game" / "data" / "curated" / "edition.json"
 OUTPUT = ROOT / "tools" / "build" / "installer_3ds" / "source" / "hf_editions.h"
 REGIONS = ("eur", "usa")
@@ -44,7 +49,8 @@ def ours(title: str) -> bool:
 
 
 def table_entry(values: dict, path: Path) -> dict | None:
-    """One edition's row: slug, names, repository, title ids and release assets, or None without console_release."""
+    """One edition's row: slug, names, repository, title ids and release assets (the shared file's name made from
+    the CIA's, as ConsoleRelease.shared_file), or None without console_release."""
     release = values.get("console_release")
     if release is None:
         return None
@@ -64,9 +70,18 @@ def table_entry(values: dict, path: Path) -> dict | None:
         "cia": release["app_cia"], "dsx": release["app_3dsx"],
         "patch_eur": release["patch_eur"], "patch_usa": release["patch_usa"],
         "patch_eur_xx": release["patch_eur_xx"], "patch_usa_xx": release["patch_usa_xx"],
-        "patch_eur_cheats": release["patch_eur_cheats"], "patch_usa_cheats": release["patch_usa_cheats"],
-        "patch_eur_xx_cheats": release["patch_eur_xx_cheats"], "patch_usa_xx_cheats": release["patch_usa_xx_cheats"],
+        "shared": shared_name(release["app_cia"]),
+        "own_save": _own_save(values, path),
     }
+
+
+def _own_save(values: dict, path: Path) -> int:
+    """`own_save` (core/app/edition.py): the game plays on Heavenfall's own extdata, so the app's save copy brings a
+    hunter into it (app_saves.c); without it the copy goes into the title's save, as before."""
+    own = values.get("own_save", False)
+    if not isinstance(own, bool):
+        raise ValueError(f"{path}: own_save must be true or false")
+    return int(own)
 
 
 def render(root: Path = ROOT) -> str:
@@ -89,9 +104,8 @@ def render(root: Path = ROOT) -> str:
            "static const HfEdition HF_EDITIONS[HF_EDITION_COUNT] = {"]
     for row in rows:
         fields = ("slug", "name", "repository", "title_eur", "title_usa", "cia", "dsx", "patch_eur", "patch_usa",
-                  "patch_eur_xx", "patch_usa_xx", "patch_eur_cheats", "patch_usa_cheats", "patch_eur_xx_cheats",
-                  "patch_usa_xx_cheats")
-        out.append("    {" + ", ".join(_c_string(row[f]) for f in fields) + "},")
+                  "patch_eur_xx", "patch_usa_xx", "shared")
+        out.append("    {" + ", ".join(_c_string(row[f]) for f in fields) + f", {row['own_save']}" + "},")
     out += ["};", "", "#endif", ""]
     return "\n".join(out)
 

@@ -4,7 +4,7 @@ equipment/new_gear/new_weapons.py fills them.
 
 Every class has the same room for new weapons, ROOM. The save marks an id in three bit arrays, and a class's own bits
 end 40 (the Insect Glaive) to 73 ids past its last; the ids past them are marked on bits no piece of the game uses
-(equipment/new_gear/weapon_marks.py; section "The save" of the doc), up to 82 per class (`weapon_marks.mark_room`).
+(equipment/new_gear/weapon_marks.py; section "The save" of the doc), up to 80 per class (`weapon_marks.MARKED`).
 ROOM is 80: Astalos and three more ports of his size after the 40 ids the first five ported monsters took. A class of
 the game keeps its tables where they are; its new weapons' records (the game's view of a record, in
 `new_weapon_stats`) and upgrade records (in `new_weapon_upgrades`) follow each other in the order of `WEAPON_CLASSES`.
@@ -13,8 +13,9 @@ the game keeps its tables where they are; its new weapons' records (the game's v
 from core.equipment.tables.layout import WEAPON_CLASSES
 
 FEATURE = "new_weapons"
-ROOM = 80                    # new weapons per class (at most weapon_marks.mark_room)
-SHARPNESS_ROOM = 120         # new sharpness profiles (the game has OLD_PROFILES): the nine monsters need up to 98
+ROOM = 80                    # new weapons per class (at most weapon_marks.MARKED)
+SHARPNESS_ROOM = 136         # new sharpness profiles (the game has OLD_PROFILES; a profile index is a byte:
+#                              119 + 136 < 256): the twelve monsters need up to 126
 OLD_PROFILES = 119
 SHARPNESS_RECORD_SIZE = 14
 ROW_SIZE = 16                # new_weapon_rows: one row per equipment type 7..20 (asm/new_weapons.s)

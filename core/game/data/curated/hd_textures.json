@@ -1,0 +1,27 @@
+{
+ "description": "HD texture packs: every texture the mod makes or draws into. pictures: the ready-made HD picture the installer writes for a texture (texture: its name without folders; picture: from core/; region [x, y, width, height]: the texels it covers in a game texture the mod draws into, none for a texture of the mod's own). no_hd_source: name patterns (whole name) of the textures that have none, and why. default_scale: the size of the pictures for a pack none of whose pictures can be measured. tests/install/test_hd_coverage.py fails when a build writes a texture listed in neither. A region drawn into without a picture of its own: cmn_icon_GSM_NOMIP (182, 56, 12, 12), the ported leviathans' minimap mark, MH XX's own 12 x 12 art read from the player's XX (core/monsters/porting/map_marks.py), so no picture can ship; the installer's repaint enlarges it smoothly.",
+ "default_scale": 4,
+ "pictures": [
+  {"texture": "hf_wt_marks_BM_NOMIP", "picture": "interface/weapon_tree/art/marks_hd.png"},
+  {"texture": "hf_dmg_GSM_NOMIP", "picture": "interface/damage_numbers/art/damage_numbers_4x.png"},
+  {"texture": "hf_wheel_GSM_NOMIP", "picture": "interface/radial_menu/art/radial_menu_4x.png"},
+  {"texture": "qst00_ID", "region": [448, 448, 16, 16], "picture": "interface/hud/art/dpad_up_4x.png"},
+  {"texture": "cmn_icon_GSM_NOMIP", "region": [0, 492, 64, 20], "picture": "interface/item_marks/art/marks_4x.png"}
+ ],
+ "no_hd_source": {
+  "hf_horn_GSM_NOMIP": "plain white, tinted by the layout: the same at any size",
+  "lby_paper_BM_MQ_NOMIP": "the single-screen world map's parchment: a photo no larger than the texture",
+  "cmn_micon_BM_MQ_NOMIP": "the new and ported monsters' icons: 36 px art (MH World's, MH XX's); enlarged smoothly",
+  "qst_icon_BM_MQ_NOMIP": "Bubbleblight's icons: MH Generations' 12 x 16 art; enlarged smoothly",
+  "m2[89]a\\d+_ID": "Misty Peaks' area maps: MH XX's art",
+  "m2[89]d_ID": "Misty Peaks' whole map: MH XX's art",
+  "m2[89](a\\d+)?d[-_][\\w-]*": "Misty Peaks' stage (maps 28 and 29): MH XX's 3D art, which no pack of this game has",
+  "m03d_[\\w-]+": "Misty Peaks' pit traps: map 3's own textures copied unchanged, so a pack's pictures of them apply",
+  "em\\d+_[\\w-]+": "the ported monsters' models: MH XX's 3D art",
+  "cm\\d+_\\w+": "the ported monsters' effects: MH XX's art",
+  "env_\\w+": "the ported models' environment maps: MH XX's art",
+  "(f|m)_((arm|body|helm|leg|wst)\\d+|skin)_BM": "the ported gear's armour (and Layered Gear's): MH XX's 3D art",
+  "(axe|bow|gaxe|gun|ham|hbg|hue|lan|lbg|one|rod|sou|swo|two)\\d+_BM": "the ported gear's weapons: MH XX's 3D art",
+  "o_((body|helm|we)\\d+|skin\\d+)_BM": "MH XX's Felyne gear (Layered Gear): MH XX's 3D art"
+ }
+}

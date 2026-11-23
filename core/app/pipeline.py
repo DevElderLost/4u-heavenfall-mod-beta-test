@@ -3,16 +3,17 @@
 Heavenfall Beta puts the touch screen's menus on the top screen (single-screen mode), shrinks the HUD, adds a page to
 the game's START menu, Mod Settings, where the player changes the cheats, the lock-on with L and holding A during play,
 shows the Smithy's Forge Weapons as a weapon tree, and adds Layered Gear (the looks of the Smithy's Layered Equipment
-line), the Wyporium's new trades and its Rare Materials Exchange, all for the emulator (docs/how_it_works.md). They
+line), the Wyporium's new trades and its Rare Materials Exchange, and the house Felyne's Jukebox (playlists of the
+game's music for the villages), all for the emulator (docs/how_it_works.md). They
 come in three modules, each with a switch of its own (gui_presets.json `install.modules`): single screen (with the HUD
 size, the lock-on, the aspect ratio and Select's kick), Layered Gear (with the new trades and the Rare Materials
-Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree and the
-cheats); a module that is off leaves the game as it is, but for Layered Gear's new items (the rare materials of MH XX's
-monsters, Foreign Scrap), which every run defines so that a save holding them reads them whatever is on. Input: the
-player's
-decrypted base game, European or American; the executable and the interface's files are read from it in memory, and the
-update is never needed. MH XX's decrypted game is optional: with it, Layered Gear also offers XX's looks and the
-Wyporium trades the new materials they cost.
+Exchange) and the quality-of-life one (holding A, fast text, the camera, the item boxes, the weapon tree, the Jukebox,
+the intro skip and the cheats); a module that is off leaves the game as it is, but for Layered Gear's new items
+(the rare materials of MH XX's monsters, Foreign Scrap), which every run defines so that a save holding them reads
+them whatever is on.
+Input: the player's decrypted base game, European or American; the executable and the interface's files are read
+from it in memory, and the update is never needed. MH XX's decrypted game is optional: with it, Layered Gear also
+offers XX's looks and the Wyporium trades the new materials they cost.
 
 Output (copy its contents into the emulator's load/mods/<title>/: 0004000000126100 European, 0004000000126300
 American; the program does it for the player):
@@ -29,7 +30,7 @@ The original files are never modified; every run starts from them.
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from core.equipment.layered import felyne_looks
@@ -57,9 +58,11 @@ from core.game.executable.memory_split import patch_memory_split, resource_to_ro
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
 from core.game.executable.rebase import feature_gaps
+from core.save.beta_sidecar import patch_beta_sidecar, supports_beta_sidecar
 from core.interface.single_screen.executable.single_screen import patch_single_screen, supports_single_screen
 from core.game.executable.versions import VersionMap
 from core.gameplay.meownster_scrap.meownster_scrap import patch_meownster_scrap
+from core.gameplay.new_game_skip.new_game_skip import patch_new_game_skip, supports_new_game_skip
 from core.gameplay.select_kick.select_kick import patch_select_kick, supports_select_kick
 from core.gameplay.wyporium.exchange_texts import exchange_text_files, remove_exchange_text_files
 from core.gameplay.wyporium.rare_exchange import patch_rare_exchange, supports_rare_exchange
@@ -81,10 +84,17 @@ from core.interface.weapon_tree.tree_layout import weapon_tree_files
 from core.interface.weapon_tree.tree_texts import message_base as tree_message_base
 from core.interface.weapon_tree.weapon_tree import patch_weapon_tree
 from core.interface.world_sharpness.world_sharpness import patch_world_sharpness
+from core.interface.item_marks.art import sheet_files as item_marks_sheet_files
+from core.interface.mod_settings.box_appearance import lobby_files, patch_stage_lists, supports_stage_lists
+from core.interface.appearance_peek.appearance_peek import (
+    patch_appearance_peek, peek_files, peek_message, supports_appearance_peek,
+)
+from core.interface.item_marks.item_marks import OPTIONS as ITEM_MARKS_OPTIONS, patch_item_marks
 from core.app import presets
 from core.app.record import RunRecord, save_run
 from core.app.settings import HudScale, Settings
 from core.interface.single_screen.run import single_screen_romfs
+from core.music.jukebox import build as jukebox
 from core.install.title.split_romfs import patch_split_romfs, supports_split_romfs, title_exheader
 
 # Stages announced through run(stage=...), in order.
@@ -152,13 +162,17 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
                           felynes: felyne_looks.FelyneLooks | None = None, damage_numbers: bool = False,
                           horn_songs: bool = False,
                           weapon_tree: bool = False,
-                          radial_wheel: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
+                          radial_wheel: bool = False,
+                          item_marks: bool = False,
+                          box_appearance: bool = False,
+                          appearance_peek: bool = False) -> tuple[dict[int, int], bytes | None, bytes | None]:
     """The HUD size's, the START menu page's (`menu_texts`), the new items' names (`gear_texts`: the rare materials of
     MH XX's monsters), Layered Gear's (with MH XX's looks: `gen_looks`; the Felynes': `felynes`), the Rare Materials
     Exchange's, the Smithy's weapon tree's (`weapon_tree`: its messages and its panes in the facility menu's layout),
     Damage Numbers', the Hunting Horn's songs' and the item wheel's layouts (`damage_numbers`, `horn_songs`,
-    `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common) and the
-    single-screen mode's RomFS files, and with the game's
+    `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common), the
+    single-screen mode's RomFS files, the item marks' stars in the icon sheet (`item_marks`), Change Appearance's
+    layout in the lobby's ARC (`box_appearance`), its L cue and word (`appearance_peek`), and with the game's
     files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
     made on the previous
     one's copies and everything is written once; files of an earlier run are removed first (they would still be
@@ -199,11 +213,21 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         own |= horn_songs_files(rom, {**hud, **names, **texts, **own}, settings.hud_scale.factor, edge)
     if radial_wheel and rom is not None:    # the item wheel's, one size whatever the HUD's
         own |= wheel_files(rom, {**hud, **names, **texts, **own})
+    # Change Appearance at every item box: the room's ui415 in the lobby's ARC, which every town area's stage list
+    # names (interface/mod_settings/box_appearance.py); before the single-screen mode, which places it as the room's
+    if box_appearance and rom is not None:
+        own |= lobby_files(rom, {**hud, **names, **texts, **own})
+    # Change Appearance's cue "L Hide Interface": its group in the lobby's ui401, its word in ItemBox
+    # (interface/appearance_peek/appearance_peek.py; the run's patch_appearance_peek)
+    if appearance_peek and rom is not None:
+        own |= dict(peek_files(rom, {**hud, **names, **texts, **own}))
     screens, offsets, engine_table, engine_groups = {}, {}, None, frozenset()
     if single_screen:       # last: it places whole layouts, with what the others added (single_screen.py)
         made = single_screen_romfs(rom, {**hud, **names, **texts, **own}, edge if anchored else None)
         screens, offsets, engine_table, engine_groups = made.files, made.offsets, made.engine_table, made.engine_groups
     written = {**hud, **names, **texts, **own, **screens}
+    if item_marks and rom is not None:      # the stars and halo in each language's icon sheet, on the others' copies
+        written |= dict(item_marks_sheet_files(rom.read, written))
     if rom is not None:     # always: the font's blank characters away from its glyphs (interface/font/blank_glyphs.py)
         written |= font_files(lambda path: written.get(path) or rom.read(path))
     # after all of them: the backdrops of the files as they are, and the table of each layout's final places
@@ -238,9 +262,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     `settings.layered_by_rank`, all at once without it. `progress` and `console` are kept for the installer's sake:
     Heavenfall Beta counts nothing and makes no Luma3DS mod. `title_build`: the mod is for a real 3DS as an installed
     title (install/title/build_title.py): the emulator's form, with the settings a console can use
-    (Settings.for_console: no single-screen mode) and the START menu's rows a console allows; its executable reads the
-    game from the game data title and the mod's files from its own RomFS first (install/title/split_romfs.py), and its
-    exheader may open the game data title. `probe`: a developer probe's own patch, after the mod's (Probe). A module
+    (Settings.for_console: no single-screen mode) and the START menu's rows a console allows, the Cheats group always,
+    shown and on only once the launcher's flag file allows it (mod_options.py patch_mod_options); its executable reads
+    the game from the game data title and the mod's files from its own RomFS first (install/title/split_romfs.py), and
+    its exheader may open the game data title. `probe`: a developer probe's own patch, after the mod's (Probe). A module
     whose switch is off in `settings` has every field of it at the game's own value (presets.apply_modules) and no row
     in the START menu's page. Layered Gear's new items are defined in every run, its module on or off, so the
     executable is written even with every module off."""
@@ -271,7 +296,14 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     # every mod carries them, with the Settings values as the defaults of a character with no choice. The page needs the
     # executable's extension (the exheader)
     in_menu = player.exheader is not None and supports_mod_options(code)
-    menu_options = [key for key in available_options(code, settings, title_build) if key not in off] if in_menu else []
+    # the save's sidecars (below), whose code also reads the launcher's cheats flag
+    with_sidecar = player.exheader is not None and supports_beta_sidecar(code)
+    # A 3DS title has the Cheats group behind that flag (More > Cheats turns it on and off without a new title), never
+    # by the settings' switch, which is the emulator's
+    cheats_gate = title_build and with_sidecar
+    shown = replace(settings, cheats_enabled=False) if title_build else settings
+    menu_options = [key for key in available_options(code, shown, title_build, cheats_gate=cheats_gate)
+                    if key not in off] if in_menu else []
     if not in_menu:
         notices.append(left_out("Mod Settings", "the cheats, the lock-on with L and holding A are left out",
                                 NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
@@ -280,6 +312,13 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     damage = in_menu and "damage_numbers" in menu_options     # its layout and its page's option
     horn = in_menu and "horn_songs" in menu_options           # the Hunting Horn's songs: the same, on by default
     world_sharpness = in_menu and "world_sharpness" in menu_options     # the World-style sharpness gauge: only code
+    item_marks = in_menu and any(key in menu_options for key in ITEM_MARKS_OPTIONS)   # code and the icon sheet's art
+    # Change Appearance at every item box: its layout in the lobby's ARC and every town area's stage list, with the
+    # box's option (interface/mod_settings/box_appearance.py); both halves or neither
+    box_appearance = in_menu and "box_equipment" in menu_options
+    # Change Appearance's L, which hides the interface: with Mod Settings (its frame ends the cue) and the quality of
+    # life module, its cue in the lobby's ARC (interface/appearance_peek/)
+    appearance_peek = in_menu and settings.quality_of_life and supports_appearance_peek(code)
     # Forge Weapons' tree: its files and code whatever the installed view, which its row of the page chooses
     tree = in_menu and "smithy_view" in menu_options
     if in_menu and not tree and "smithy_view" in presets.in_game_fields() and "smithy_view" not in off:
@@ -311,10 +350,29 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     select_plain = (not screen_module and (layered or "skip_death_camera" in menu_options
                                            or "skip_monster_intro" in menu_options)
                     and supports_select_kick(code))
+    # a new character starts at the arrival in Val Habar, without the prologue on the sand ship: the Caravaneer's
+    # first talk, the registration and the caravan's tutorial stay the game's (gameplay/new_game_skip/new_game_skip.py;
+    # gui_presets.json install.intro_skip_stop)
+    intro = settings.skip_intro and supports_new_game_skip(code)
+    if settings.skip_intro and not intro:
+        notices.append(left_out("skip intro", "new games start with the prologue", NOT_AVAILABLE))
     exchange = layered and settings.rare_exchange and supports_rare_exchange(code)
     if layered and settings.rare_exchange and not exchange:
         notices.append(left_out("rare materials exchange", "the Wyporium has no Rare Materials Exchange line",
                                 NOT_AVAILABLE))
+    # the house Felyne's Jukebox (music/jukebox/build.py): its queue and texts in the lobby's ARCs, its block in the
+    # extension, which needs the game's exheader
+    with_jukebox = settings.jukebox and player.exheader is not None and jukebox.supports(code)
+    if settings.jukebox and not with_jukebox:
+        notices.append(left_out("jukebox", "the villages keep their own music",
+                                NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
+    # the save: MH4U's own files stay clean and what the mod adds lives in sidecar files beside them
+    # (save/beta_sidecar.py). No option: every run has it; its blocks are in the extension, which needs the game's
+    # exheader. Without it the game keeps MH4U's plain save (no mod content in it either: Layered Gear and the
+    # Jukebox need the extension too)
+    if not with_sidecar:
+        notices.append(left_out("the save's extra files", "the game keeps MH4U's plain save",
+                                NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
     # MH XX's looks, and the rare materials of its monsters that MH4U lacks: only with its game and Layered Gear
     prepared = cached_pack(Path(xx_rom), Path(game)) if layered and xx_rom is not None else None
     materials = load_materials() if prepared else None
@@ -343,15 +401,34 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if felyne_looks_pack:
         felyne_pack.write_files(output_dir, felyne_looks_pack)
         made_from_xx.update({"romfs/" + path: read for path, read in felyne_looks_pack.sources.items()})
-    write_sources(output_dir, made_from_xx)
     gen_looks = prepared.gen_looks() if prepared else None
+    jukebox.remove_files(output_dir)    # before the interface's: they write the same ARCs
     screen_offsets, engine_table, anchors = write_interface_files(
         result, RomFS(game), settings, patch_interface_code, single_screen, in_menu, target_switch, layered, exchange,
-        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel)
+        gen_looks, added.texts if added else None, felynes, damage, horn, tree, wheel, item_marks, box_appearance,
+        appearance_peek)
+    jukebox_plan = None
+    if with_jukebox:    # on what the interface left in the lobby's ARCs; the game's own songs and the shipped ones
+        game_files = RomFS(game)
+        jukebox_plan = jukebox.jukebox_build(
+            lambda path: (output_dir / "romfs" / path).read_bytes() if (output_dir / "romfs" / path).is_file()
+            else game_files.read(path),
+            game_files.head, settings, single_screen=single_screen,
+            xx_read=RomFS(xx_rom).read if xx_rom is not None else None)
+        for path, data in jukebox_plan.files.items():
+            target = output_dir / "romfs" / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        made_from_xx.update(jukebox_plan.made_from_xx)    # the Jukebox's songs of MH XX
+    write_sources(output_dir, made_from_xx)    # after every writer of files made from MH XX
     # the weapon tree's first message in E_makeshop, after what the other options appended (tree_texts.message_base)
     tree_base = tree_message_base(lambda path: (output_dir / "romfs" / path).read_bytes()) if tree else None
-    if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange
-            or added or title_build or probe is not None):
+    game_files = RomFS(game)
+    peek_word = peek_message(lambda path: (output_dir / "romfs" / path).read_bytes()
+                             if (output_dir / "romfs" / path).is_file() else game_files.read(path)) \
+        if appearance_peek else None
+    if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange or intro
+            or jukebox_plan is not None or with_sidecar or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
     else:
         with session.recording(notes):
@@ -362,6 +439,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             patched = patch_memory_split(patched, resource_to_root_mb())
             book = added.book if added else None    # the new items by name
             item_ids = {book.english[key]: item for key, item in book.ids.items()} if book else None
+            if intro:       # the character creation's last call
+                patched = patch_new_game_skip(patched, prologue_only=presets.intro_skip_stop() == "arrival")
             if layered:
                 if felyne_looks_pack:
                     patched = felyne_pack.patch_executable(patched, felyne_looks_pack.needs)
@@ -380,7 +459,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
             if wheel:       # its blocks, its picture's entry and its screens, which the page's Radial Menu row opens
                 patched = patch_radial_menu(patched)
             if in_menu:
-                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on, wheel=wheel)
+                patched = patch_mod_options(patched, settings, menu_options, aspect=settings.aspect_on, wheel=wheel,
+                                            cheats_gate=cheats_gate)
+            if appearance_peek:     # the hunter edit's calls of its View Mode, to the block patch_mod_options placed
+                patched = patch_appearance_peek(patched, peek_word)
             if tree:        # the START menu's row chooses the view: its gates stand before the tree's entries
                 patched = patch_weapon_tree(patched, message_base=tree_base, gated=True)
             if cheats:
@@ -391,12 +473,22 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 result.interface_patched = True
             if single_screen:
                 patched = patch_single_screen(patched, screen_offsets, engine_table=engine_table)
-            if damage:      # after the target face: its loader and freer hooks go on to the face's
+            # Change Appearance's layout in every town area's stage list: copies of the lists as the patches before
+            # left them (the single-screen mode's screen bytes), with the lobby's ARC holding it (the interface files)
+            if box_appearance and supports_stage_lists(patched):
+                patched = patch_stage_lists(patched)
+            if jukebox_plan is not None:    # the Jukebox's engine, the card's hooks and the house Felyne's menu
+                patched = jukebox.patch_executable(patched, jukebox_plan)
+            if with_sidecar:    # after the layered store's and the Jukebox's card hooks: it splits what they wrote
+                patched = patch_beta_sidecar(patched)
+            if damage:     # after the target face: its loader and freer hooks go on to the face's
                 patched = patch_damage_numbers(patched)
             if horn:        # the quest's hooks it shares with Damage Numbers: whichever comes first places them
                 patched = patch_horn_songs(patched)
             if world_sharpness:     # a frame-only entry of the same hooks
                 patched = patch_world_sharpness(patched)
+            if item_marks:          # another one; no ported monsters' items in this edition
+                patched = patch_item_marks(patched, ported=False)
             if prepared:    # the executable's tables for the pack's models
                 patched = patch_executable(patched, prepared.needs)
             if title_build:     # the installed title's: the game data as `rom:`, its own RomFS first

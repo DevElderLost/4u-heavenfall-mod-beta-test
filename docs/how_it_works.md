@@ -225,6 +225,18 @@ of; a stream without one would play on into the fight. The block takes that call
 every live voice of the sound driver on the two event queues, by the voice's own queue and request; at the end only
 when the event was skipped. The fight's music is on other queues and plays as the game starts it.
 
+## Skipping the prologue
+
+The character creation (FUN_00b7961c) ends with a call to FUN_00c25b50, the new profile, at 0xB79B2C. The option
+`skip_intro` (off by default, in the quality-of-life module) turns that call into one to block `new_game_skip`
+(`gameplay/new_game_skip/new_game_skip.s`, patch in `new_game_skip.py`), which makes the same call and then leaves the
+new save as the game leaves it after the prologue on the sand ship: 1500z, the starting armor in the box and worn, the
+prologue's quest cleared and the prologue's story flags, with the arrival seen (flag 0x5BA). Its data, block
+`new_game_data`, is written by `new_game_data(prologue_only=True)` (`install.intro_skip_stop` of the presets). The flags
+of the arrival's events, the registration and the Gathering Hall's introduction stay off and the Hunter Rank 0, so the
+town plays them: the Caravaneer's first talk, then the registration. Only a character created with the option on
+changes; the caravan and its tutorial stay the game's.
+
 ## Holding A
 
 Block `hold_a` (`gameplay/hold_a/hold_a.c`, patch in `hold_a.py`) hooks three calls of the game. In a quest, with the
@@ -240,12 +252,30 @@ the facility menu's layout (`tree_layout.py`: the screen's five and the window t
 of the game's own sprites, and its words go after the game's in the Smithy's messages (`tree_texts.py`: among them,
 copies of the game's own help lines and price questions with the verb in capitals). Its code (`weapon_tree.c`) runs as a state of the Smithy the game never uses: when a class is
 chosen it reads the class's weapons, upgrade records and create recipes with the game's own readers, places the
-weapons the hunter has discovered as a tree, and draws the game's stats panels for the weapon under the cursor. A
+weapons the hunter has discovered as a tree, and draws the game's stats panels for the weapon under the cursor, with
+its price beside the money in a copy of the money window's own second box. A
 replays the game's own forge or upgrade, call by call, so the price, the materials, the box and the statistics change
 as they do in the game; both then play the forge's hammer scene and ask "Equip now?", an upgrade too (the game's own
 Upgrade has no scene). Nothing is computed when the mod is made: the tree is what the game's tables hold. Every
 size and colour is in `core/game/data/curated/weapon_tree.json`. The row Smithy View of Mod Settings stands before
 the tree's two entries (a class in Forge Weapons, a weapon in Upgrade): on List the game's own code runs.
+
+## The Jukebox
+
+The Jukebox (`music/jukebox/`) puts one song or playlists of the game's music in the towns. `jukebox_build` (`build.py`) gives
+the files and `patch_executable` the three patches, both called by the run. For every song the lobby's music queue
+(`core_lobby.arc`, in each language) gets a request that copies Val Habar's theme, so the game's fades and room levels
+treat it as a town theme; the songs' stream entries and levels come from `generated/jukebox_streams.json`, so the run
+reads little of the game. The Housekeeper's menu texts go into the copies of `Room_s`. With MH XX's game and the
+option `jukebox_xx`, XX's themes (`xx_all` in `curated/jukebox.json`) are read from it, rewritten in MH4U's layout and
+shipped, at their own requests' levels in XX's queues (`xx_tracks.py`); one that sounds as a song the build has is left
+out.
+
+The code is one block (`jukebox.c`, with `jukebox_save.c` for the card file and `jukebox_menu.c` for the menu). It
+replaces the town theme selector's answer with the one song's or the playlist's request, counts the passes of a
+playlist's song's loop to fade it out and move on (the one song loops), keeps the song and the playlists in a block of
+the card file, and adds the Jukebox line and its screens to the
+house Felyne's menu with the game's own lists and windows (no new texture, so HD texture packs need nothing).
 
 ## Layered Gear and the Wyporium
 
@@ -275,6 +305,23 @@ In local play each player's looks travel in a message of their own (`equipment/l
 the game's own gear and join messages; an unmodded game drops it unread. The other players' hunters and Felynes wear
 those looks, and their colours, in the hall and in quests; a game that lacks any of a player's looks shows that
 player's real gear.
+
+## The save
+
+MH4U's `userN` and `cardN` stay clean. Four hooks in the executable (`core/save/beta_sidecar.c`, `.s`, `.ld`,
+`beta_sidecar.py`; the set-apart rules in `core/save/c/extras.c`) split a file when the game writes it and join it
+when the game reads it: what MH4U does not know (ids of the new items, Mod Settings, Layered Gear's state, the card's
+Jukebox block and more) goes into a sidecar image of the slot in MH4U's extdata, written first; the file is written
+only after. The sidecar is read and written with an inline request to the game's own file manager, so it needs the
+extension (the exheader) and the save archive's mount: this edition always plays on MH4U's own save archive and
+extdata. If the sidecar cannot be written the file is written whole with a mark, and the next join sorts it out.
+A file from the earlier Beta (no sidecar) is taken as it is; the first save keeps it unchanged in `hfoldN`. What an
+older Heavenfall left in a file (gear past MH4U's counts, their marks, Heavenfall's quests in the log and the quest
+bits, the new monsters' hunt records; `core/save/c/heav.c`) goes into one more sidecar of the slot, `hfheavN`, and the
+file keeps MH4U's own values in its place (the type's first piece, a Derring piece for Felynes), so every index stays
+valid. A slot whose file MH4U would not know byte for byte is split and written back clean when the title reads it,
+once per launch. Every install copies the saves first (`core/save/backup.py`); a build from a bare executable has no
+hooks.
 
 ## The cheats
 
@@ -307,8 +354,10 @@ emulator, draw it as pictures, check an arrangement and build probes to try it. 
 | `core/interface/hud/` | The smaller HUD and the lock-on code |
 | `core/interface/game_gui/` | The arrangement, the engine's table, the recorder, the pictures and the checker |
 | `core/gameplay/select_kick/`, `core/gameplay/hold_a/`, `core/gameplay/death_camera_skip/`, `core/gameplay/intro_skip/`, `core/gameplay/modern_camera/` | Select and Start; holding A; skipping the death camera; skipping a monster's intro; the modern camera |
+| `core/save/` | The save's sidecars (`beta_sidecar.*`, `c/extras.*`) and the saves' backup before an install |
 | `core/interface/mod_settings/` | The START menu's page, its options and their values |
 | `core/equipment/layered/`, `core/equipment/mhgen/`, `core/gameplay/wyporium/` | Layered Gear, the models of MH XX's looks, the Wyporium's trades and exchange |
+| `core/music/` | The Jukebox: its build, patches and C, and the game's audio formats it reads |
 | `core/cheats/` | The emulator cheats and the aspect ratio |
 | `core/game/executable/` | Reading the game file, the executable, versions and their maps, free space, the blocks (compiled into `generated/code_space.json`) |
 | `core/game/files/` | The game's file formats: archives (`.arc`), layouts (`lyt.py`), texts |

@@ -2,11 +2,11 @@
 these; no imports, so that blocks.py can). ."""
 
 # New pieces per armor part. A ported monster brings 3 ranks x 2 hunter styles = 6 pieces per part (Alatreon 3);
-# 44 = the five monsters' 26, Astalos' 6 (32) and two more ports (12).
-ARMOR_ROOM = 44
+# 57 = the eleven monsters' 45 (Deviants 3 each, Nargacuga S and Silverwind 4), Lagiacrus 6 (51) and one more port (6).
+ARMOR_ROOM = 57
 # New create recipes (24 bytes each) in the armor table (types 1-5) and in the weapons' (types 7-20).
-ARMOR_RECIPE_ROOM = 192
-WEAPON_RECIPE_ROOM = 240
+ARMOR_RECIPE_ROOM = 264
+WEAPON_RECIPE_ROOM = 360
 # Runs of consecutive new recipes per table: a run sits in front of one recipe of the game (or at the end).
 RECIPE_RUNS = 16
 

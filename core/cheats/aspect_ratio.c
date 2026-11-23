@@ -176,6 +176,18 @@ void aspect_panel_place(float x, float y, char *group, int kind)
     *(float *)(group + GROUP_Y) = y;
 }
 
+/* FUN_00b9db98's place of a monster's minimap icon (its group's and its pane's, filled by FUN_00ba106c), which the
+ * game then tests against the map's square in the game's frame: off it, FUN_00b954ec draws the icon under the map.
+ * The icon moved with the minimap (aspect_panel_place: FUN_00b954ec places it through FUN_00b972d8 just before), so
+ * the move is taken back from the place the test reads. */
+void aspect_minimap_icon(float *place)
+{
+    const struct ratio *ratio = in_use();
+
+    place[0] += CENTRE_X * (ratio->gui_width - 1.0f);
+    place[1] -= CENTRE_Y * (ratio->gui_height - 1.0f);
+}
+
 /* The side a box from `low` to `high` pixels of the 400 wide frame keeps to: the rule of interface/hud/anchors.py side_of */
 static int side_of(float low, float high)
 {

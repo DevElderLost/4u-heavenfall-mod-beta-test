@@ -166,6 +166,22 @@ class DeviantMode(str, Enum):
     EXTENDED = "extended"        # his quest, randomized as any quest, and he joins the randomized monsters
 
 
+class MistyOnlyMode(str, Enum):
+    """Where a monster that lives only on Misty Peaks (Nargacuga and Silverwind Nargacuga, from MH XX) is met: his
+    quests are records of curated/misty_peaks_quests.json (`built_with`), never a table, and he is never a randomizer
+    candidate."""
+    OFF = "off"
+    QUESTS = "quests"            # his Misty Peaks quests (Silverwind: off while Nargacuga is off)
+
+
+class LagiacrusMode(str, Enum):
+    """Where Lagiacrus (from MH XX) is met (core/monsters/lagiacrus/lagiacrus_quests.py)."""
+    OFF = "off"
+    QUESTS = "quests"            # three Gathering Hall quests of his own on the Primal Forest: 3★, 6★ and G★1
+    RANDOMIZED = "randomized"    # tier 3 among the randomized monsters, without his quests
+    EXTENDED = "extended"        # his quests, randomized as any quest, and he joins the randomized monsters
+
+
 @dataclass(frozen=True)
 class PortedOption:
     """The option of one ported monster: an entry of PORTED_OPTIONS, the one place that names the
@@ -278,6 +294,34 @@ PORTED_OPTIONS: tuple[PortedOption, ...] = (
                  "only among the randomized monsters, or `extended`; off while --mizutsune is off (needs --rom and "
                  "--xx-rom, MH XX's decrypted .3ds)",
         game="xx"),
+    # Nargacuga and Silverwind Nargacuga: only on Misty Peaks, so no pool, quests
+    # table
+    # or extended mode, only the switch that builds them and adds their Misty Peaks quests (`built_with`). No installer
+    # or GUI option and not yet fixed on: they are in spec.KNOWN only (phase G2 builds them; a run asking for either is
+    # refused until then, pipeline.unbuilt_monsters).
+    PortedOption(
+        "nargacuga", "Nargacuga", MistyOnlyMode, MistyOnlyMode.OFF,
+        cli_help="add Nargacuga from MH XX (switches the additional monsters on): three quests of his own on "
+                 "Misty Peaks (low rank 3 stars, high rank 6 stars and G rank 1 star; needs --rom and --xx-rom, "
+                 "MH XX's decrypted .3ds)",
+        game="xx"),
+    PortedOption(
+        "silverwind", "Silverwind Nargacuga", MistyOnlyMode, MistyOnlyMode.OFF, base="nargacuga",
+        cli_help="add Silverwind Nargacuga from MH XX (switches the additional monsters on): a quest of his own on "
+                 "Misty Peaks (G rank 3 stars); off while --nargacuga is off (needs --rom and --xx-rom, "
+                 "MH XX's decrypted .3ds)",
+        game="xx"),
+    # Lagiacrus has no installer or GUI option either: fixed on once phase G2 puts him in spec.BUILT
+    # (a run that asks for
+    # him is refused until then). His quests' save bits come after Misty Peaks' (ported_quests.AFTER_MAPS_QUESTS).
+    PortedOption(
+        "lagiacrus", "Lagiacrus", LagiacrusMode, LagiacrusMode.OFF, pool=LagiacrusMode.RANDOMIZED,
+        quests=LagiacrusMode.QUESTS, extended=LagiacrusMode.EXTENDED,
+        cli_help="add Lagiacrus from MH XX (switches the additional monsters on): three quests of his own on "
+                 "the Primal Forest (low rank 3 stars, high rank 6 stars and G rank 1 star), only among the "
+                 "randomized monsters, or `extended`: his quests, randomized like any quest, and among the "
+                 "randomized monsters (needs --rom and --xx-rom, MH XX's decrypted .3ds)",
+        game="xx"),
 )
 
 
@@ -377,11 +421,11 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "skip_intro", "skip_caravan_tutorial", "fast_text", "hold_a", "camera_speed",
                    "camera_distance", "box_equipment", "system_keyboard", "damage_numbers",
                    "layered_equipment", "layered_by_rank", "rare_exchange", "smithy_view", "quality_of_life",
-                   "mhw_fatalis_music", "alatreon_music", "radial_menu",
+                   "mhw_fatalis_music", "alatreon_music", "jukebox", "jukebox_xx", "radial_menu",
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled")
+                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled", "hd_pack")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only), a 3DS run takes their defaults (Settings.for_console) and the START menu's
@@ -391,7 +435,7 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
 # moves layouts
 # between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard")
+                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard", "hd_pack")
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -519,6 +563,10 @@ class Settings:
     # ingredients, the yes / no boxes...) are shown on the top screen
     # (interface/single_screen/executable/single_screen.py, interface/single_screen/layout/single_screen.py)
     single_screen: bool = False
+    # HD texture pack compatibility: an install into an emulator with a pack writes our HD pictures of the textures the
+    # mod makes or changes (core/install/hd_textures.py); off, it removes them. Not in
+    # the build: installs before the switch always wrote them
+    hd_pack: bool = True
     # Holding B runs through the conversation windows: every page at once, the next one every other frame
     # (core/interface/fast_text/fast_text.py)
     fast_text: bool = False
@@ -566,6 +614,12 @@ class Settings:
     # Monster Hunter World's music for Black and Crimson Fatalis: its battle theme, phase 2 from half health, Proof of
     # a Hero from 10 %, its slain theme when that death ends the quest (core/music/mhw/music.py)
     mhw_fatalis_music: bool = False
+    # The Housekeeper's line "Jukebox": playlists of the game's music played in the towns instead of their themes
+    # (core/music/jukebox/). The GUI starts with it on (curated/gui_defaults.json)
+    jukebox: bool = False
+    # With the Jukebox and MH XX's game: MH XX's monster, area, town and hall themes in its lists too
+    # (core/music/jukebox/xx_tracks.py); a run without MH XX leaves them out. The GUI starts with it on
+    jukebox_xx: bool = False
 
     # Cheats (emulator only; executable patches written from the players' cheat codes for 1.1: core/app/
     # cheats.py). The neutral values leave the game as it is; the GUI's defaults are in
@@ -614,6 +668,12 @@ class Settings:
     boltreaver: DeviantMode = DeviantMode.OFF
     hellblade: DeviantMode = DeviantMode.OFF
     soulseer: DeviantMode = DeviantMode.OFF
+    # Nargacuga and his Deviant, only on Misty Peaks (no option in the GUI: fixed on once built; not built yet)
+    nargacuga: MistyOnlyMode = MistyOnlyMode.OFF
+    silverwind: MistyOnlyMode = MistyOnlyMode.OFF
+    # Lagiacrus, from the player's MH XX ROM: three quests of his own on the Primal Forest, one per rank (no option in
+    # the GUI: fixed on once he is built)
+    lagiacrus: LagiacrusMode = LagiacrusMode.OFF
 
     # Debug
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster
@@ -791,6 +851,16 @@ class Settings:
     def builds_astalos(self) -> bool:
         """builds("astalos")."""
         return self.builds("astalos")
+
+    @property
+    def lagiacrus_mode(self) -> LagiacrusMode:
+        """mode_of("lagiacrus")."""
+        return self.mode_of("lagiacrus")
+
+    @property
+    def builds_lagiacrus(self) -> bool:
+        """builds("lagiacrus")."""
+        return self.builds("lagiacrus")
 
     @property
     def builds_ported(self) -> bool:

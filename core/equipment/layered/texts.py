@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from core.game.files.arc import parse_arc, write_arc
 from core.game.files.text.lmd import LMD_TYPE_HASH, parse_lmd, write_lmd
 from core.interface.hud.build import GameFiles
+from core.equipment.layered.box_row import add_box_row
 from core.equipment.layered.menu_layout import add_forge_screen
 from core.equipment.layered.looks import (
     NAME_PARTS, NOTHING_KEY, STATE_WEAPONS, Looks, WeaponLook, abbreviate, armor_labels, common_name, fit_label,
@@ -40,10 +41,11 @@ FORGE_KEYS = ("rank_low", "rank_high", "rank_g", "game_mh4u", "game_gen", "game_
 # dye_keys, select_key: the colour window's key bar and the word on SELECT's key (menu_layout.py, struct fg_dye);
 # relics, help_relics: the entry's Relics line and its help (layered_rules.py gives their messages to the screens'
 # code);
-# owned_only, zl_key: the word of the "owned only" plate and the ZL key's (menu_layout.py, struct fg_owned)
+# owned_only, zl_key: the word of the "owned only" plate and the ZL key's (menu_layout.py, struct fg_owned);
+# none_*: the help line once A was refused at the item box, nothing of that kind bought (layered_rules.py NONE_KEYS)
 UI_KEYS = ("entry", "entry_help", "weapons", "blank", "felynes", "felyne_none", "felyne_choose", *FORGE_KEYS,
            "help_row_weapons", "counter", "dye_keys", "select_key", "relics", "help_relics",
-           "owned_only", "zl_key")
+           "owned_only", "zl_key", "none_armor", "none_weapons", "none_felyne")
 COUNTER = None  # the "counter" message: only the text renderer's string slot 0 (Lmd.add_number_message), no text
 SET_BASE = MESSAGE_BASE + len(UI_KEYS)  # the name of armor look i is message SET_BASE + i
 NAME_FILES = {"head": "HeadName", "body": "BodyName", "arms": "ArmName", "waist": "WaistName", "legs": "LegName"}
@@ -234,7 +236,8 @@ def layered_text_files(rom: GameFiles, files: Mapping[str, bytes] | None = None,
         for arc_name in MAKESHOP_ARCS:
             path = f"{lang}/data/{arc_name}"
             raw = files.get(path) or rom.read(path)
-            yield path, add_forge_screen(add_messages(raw, lang, messages), lang, common, title)
+            arc = add_forge_screen(add_messages(raw, lang, messages), lang, common, title)
+            yield path, add_box_row(arc, lang, MAX_LINE)
 
 
 def layered_text_paths(mod_dir: Path) -> list[Path]:

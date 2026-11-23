@@ -18,7 +18,7 @@ each model once. A weapon look is a pack weapon model, named after its first wea
 import json
 import struct
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
@@ -205,6 +205,9 @@ class GenLooks:
     weapons: dict[str, list[WeaponLook]]  # STATE_WEAPONS key -> looks (names: language -> MHGen's name)
     catalog: GenCatalog
     prices: dict[str, int] = field(default_factory=dict)  # look key -> what forging its real gear costs in XX
+    # (pack class, XX model) -> the model its look wears: the pack's, or MH4U's that it is identical to (no look of
+    # MH4U wears it); the weapons of XX each weapon look stands for
+    weapon_models: dict[tuple[str, int], int] = field(default_factory=dict)
 
     @property
     def empty(self) -> bool:
@@ -240,9 +243,11 @@ def _set_colour(catalog: GenCatalog, position: int, female: int, part: str) -> i
 
 
 def gen_looks(catalog: GenCatalog, plan: Iterable[PackModel],
-              same: Mapping[tuple[str, int], tuple[int, ...]] | None = None) -> GenLooks:
+              same: Mapping[tuple[str, int], tuple[int, ...]] | None = None,
+              taken: Mapping[str, Collection[int]] | None = None) -> GenLooks:
     """The looks of the pack `plan`. `same`: (slot, MHGen model) -> the MH4U models ((male, female) for armor)
-    identical to a model the pack left out."""
+    identical to a model the pack left out. `taken`: weapon class key -> the MH4U models a look of MH4U wears; a weapon
+    identical to a model of MH4U that none wears is a look at that model (None: every MH4U model has its look)."""
     plan, same = list(plan), same or {}
     ported = {(p.slot, p.source): p.model for p in plan}
     pack_models = defaultdict(set)
@@ -291,16 +296,28 @@ def gen_looks(catalog: GenCatalog, plan: Iterable[PackModel],
                 seen[part].add((male, female))
                 listed.append(part)
         sets.append(GenSet(look, models, tuple(listed), model_of[look.key], colours_of[look.key]))
-    weapons, weapon_prices = _weapon_looks(catalog, plan)
-    return GenLooks(sets, weapons, catalog, {**prices, **weapon_prices})
+    weapons, weapon_prices, weapon_models = _weapon_looks(catalog, plan, same, taken)
+    return GenLooks(sets, weapons, catalog, {**prices, **weapon_prices}, weapon_models)
 
 
-def _weapon_looks(catalog: GenCatalog, plan: list[PackModel]) -> tuple[dict[str, list[WeaponLook]], dict[str, int]]:
-    """The weapon looks by class, and what forging each look's weapon (its first, of lowest rarity) costs."""
+def _weapon_looks(catalog: GenCatalog, plan: list[PackModel], same: Mapping[tuple[str, int], tuple[int, ...]],
+                  taken: Mapping[str, Collection[int]] | None
+                  ) -> tuple[dict[str, list[WeaponLook]], dict[str, int], dict[tuple[str, int], int]]:
+    """The weapon looks by class, what forging each look's weapon (its first, of lowest rarity) costs, and the model of
+    each XX model with a look (GenLooks.weapon_models): the pack's models, and the models of MH4U no look of MH4U wears
+    that a weapon of XX is identical to (`same`, `taken`), each once."""
     looks: dict[str, list[WeaponLook]] = {key: [] for key in STATE_WEAPONS}
     prices = {}
+    weapon_models: dict[tuple[str, int], int] = {}
     for cls, key in CLASS_KEYS.items():
         models = {p.source: p.model for p in plan if p.slot == cls}
+        if taken is not None:
+            used = set(taken.get(key, ())) | set(models.values())
+            for (slot, source), twins in sorted(same.items()):
+                if slot == cls and source not in models and twins[0] not in used:
+                    models[source] = twins[0]
+                    used.add(twins[0])
+        weapon_models.update({(cls, source): model for source, model in models.items()})
         firsts: dict[int, GenWeapon] = {}
         for weapon in catalog.weapons:
             if weapon.cls == cls and weapon.model in models:
@@ -312,4 +329,4 @@ def _weapon_looks(catalog: GenCatalog, plan: list[PackModel]) -> tuple[dict[str,
             looks[key].append(WeaponLook(f"{key}-gen{model}", model, -1, rank_of(weapon.rarity),
                                          f"rarity{weapon.rarity}", names=dict(weapon.names)))
             prices[looks[key][-1].key] = weapon.price
-    return looks, prices
+    return looks, prices, weapon_models

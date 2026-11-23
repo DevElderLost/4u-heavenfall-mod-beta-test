@@ -28,7 +28,7 @@ This works for `.3ds`, `.cci`, `.cxi`, `.app`, `.cia` and Azahar's `.z3ds` forms
 
 ## Updating or removing the mod
 
-- **To uninstall:** delete the mod's folder from `load/mods/`.
+- **To uninstall:** delete the mod's folder from `load/mods/`. To play Monster Hunter 4 Ultimate without the mod this is all it takes: your hunters are already in MH4U's save, and what only Heavenfall Beta has comes back when you make the mod again ([details](../back_to_mh4u.md)).
 - **To update or change your options:** delete that folder too, then make the mod again and move in the new folder: old files left behind would still be loaded.
 
 The web installer does not make HD copies of the textures the mod changes for an HD texture pack.

@@ -43,6 +43,26 @@ int original_game_for(int region, int region_first, u64 *id, FS_MediaType *media
     return 0;
 }
 
+/* The media holding the original MH4U the save copy uses (the edition's region first): the cartridge, then the SD card.
+ * Returns how many (0 none, 2 both) and fills `id` and `media`: original_game_for's order, but all of them. */
+int original_games_for(int region, u64 *id, FS_MediaType media[2]) {
+    static const u64 ids[2] = {DUMP_ID_EUR, DUMP_ID_USA};
+    static const FS_MediaType medias[2] = {MEDIATYPE_GAME_CARD, MEDIATYPE_SD};
+    int order[2] = {REGION_EUR, REGION_USA}, a, b, n;
+    if (region == REGION_USA) { order[0] = REGION_USA; order[1] = REGION_EUR; }
+    for (a = 0; a < 2; a++) {
+        n = 0;
+        for (b = 0; b < 2; b++)
+            if (in_list(medias[b], ids[order[a]])) media[n++] = medias[b];
+        if (n) {
+            *id = ids[order[a]];
+            LOG("original games: %016llX on %d medium(s)", (unsigned long long)*id, n);
+            return n;
+        }
+    }
+    return 0;
+}
+
 int original_game(u64 *id, FS_MediaType *media) { return original_game_for(app.status.region, 0, id, media); }
 
 /* The title started: the start's check stopped, then (once the jump is sure to be asked) the screens on and the drawing

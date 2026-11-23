@@ -57,8 +57,7 @@ typedef struct {
     char installed_xx_dump[65];   /* installed.json xx_dump */
     int installed_xx;             /* installed.json xx */
     int installed_xx_no_room;     /* installed.json xx_no_room */
-    int installed_cheats;         /* installed.json cheats: the title was built from a cheats set (More's Cheats) */
-    int record_cheats;            /* installed.json cheats, the title there or not: the sets the next update takes */
+    int cheat_flag;               /* CHEAT_FLAG_*: the game's cheats file (More's Cheats), read when More opens */
     char latest[48];              /* the latest release's tag, "" when not read */
     int dump;                     /* DUMP_* */
     char dump_path[512];
@@ -174,10 +173,11 @@ int write_whole(const char *path, const char *text, size_t len);
 long read_small(const char *path, char *buf, size_t cap);
 
 /* app_install.c: from a downloaded patch set to the installed title; `xx`: the set is the one with MH XX, `no_room`: the
- * plain set taken because this version's XX set did not fit the memory, `cheats`: the set is a cheats one (all three
- * recorded in installed.json). After the edition's first install the record says the save copy waits (save_pending).
+ * plain set taken because this version's XX set did not fit the memory (both recorded in installed.json); `shared_path`: the release's shared file on the card, checked against the set's hash
+ * (NULL: the set reads none). After the edition's first install the record says the save copy waits (save_pending).
  * A TITLE_* / HF_* code (0 done). */
-int install_set(const char *set_path, const char *version, int xx, int no_room, int cheats, HfTitleKind kind);
+int install_set(const char *set_path, const char *version, int xx, int no_room, HfTitleKind kind,
+                const char *shared_path);
 /* The XX set at `set_path` against the player's XX dump, before anything is installed: its
  * RomFS superblock hash when it equals the set's, else the set's second-game files one by one (srcfiles.h). *match is
  * 1 when the dump can be used; with files rather than the hash, install_set takes it for the set's (install_xx_by_files).
@@ -202,10 +202,17 @@ extern int install_old_removed;
  * and goes on; `reinstall`: More's Reinstall, the mod's title again whatever the version. 1 when the app must leave (a
  * title started, the app relaunching or to be reopened). */
 int update_run(int resuming, int reinstall);
-/* More's Cheats: the mod's title again from the latest release's cheats sets (`on`) or its sets without them, as
- * update_run does it; a release without the region's cheats set
- * changes nothing and says so. 1 when the app must leave. */
-int update_cheats(int on);
+/* More's Cheats: the 16-byte file `hfcheat` of the game's extdata. */
+#define CHEAT_FLAG_OFF 0          /* the file says off, or is not valid */
+#define CHEAT_FLAG_ON 1
+#define CHEAT_FLAG_MISSING 2      /* the extdata is there, the file is not (a game that never wrote it) */
+#define CHEAT_FLAG_NO_EXTDATA 3   /* no extdata yet: the game was never started */
+/* Reads the installed title's region's file into app.status.cheat_flag (logged); when a 0.2.1 record has the cheats and
+ * the file is missing, the migration writes it on once. Opens and closes the archive by itself. */
+void cheat_flag_refresh(void);
+/* Writes the file on or off (created at 16 bytes when missing, never deleted), then reads it back: 1 when it holds
+ * what was asked, 0 else (logged). */
+int cheat_flag_set(int on);
 /* The release file of this app's form: HF_W_CIA or HF_W_3DSX. */
 int app_asset(void);
 /* The latest release of edition `e` into `rel`, its notes into `notes` (NULL: not wanted). An HF_* code. Logged. */
@@ -216,9 +223,9 @@ int release_latest(const HfTransport *tr, const HfEdition *e, HfRelease *rel, ch
 int probe_test_app(HfRelease *rel, char *dir, size_t cap);
 /* A probe build's release from test_release/ on the card, notes included (0, else a HF_REL_* or -1). */
 int release_local(const HfEdition *e, HfRelease *rel, char *notes, size_t notes_cap);
-/* The region's XX set (the cheats one with `cheats`) against a player's MH XX dump (xx: XX_*, its hash): the plan's XX
+/* The region's XX set against a player's MH XX dump (xx: XX_*, its hash): the plan's XX
  * inputs into `in`, and the answer into `out` when the header was read. An HF_* code when it was not. */
-int release_xx_check(const HfTransport *tr, int edition, const HfRelease *rel, int region, int cheats, int xx,
+int release_xx_check(const HfTransport *tr, int edition, const HfRelease *rel, int region, int xx,
                      const uint8_t xx_hash[32], HfPlanIn *in, XxCheck *out);
 /* The resume file of any edition: deleted, and 1 (the edition chosen) when the update goes on with this app. */
 int resume_found(void);
@@ -247,6 +254,11 @@ int wizard_run(void);
  * declined clears installed.json's save_pending. */
 enum { SAVE_COPIED = 0, SAVE_DECLINED, SAVE_FAILED, SAVE_NO_ORIGINAL, SAVE_NOT_RUN };
 int saves_copy_flow(int quiet);
+/* The full mod's earlier hunters (the earlier save system's `hfuserN` in MH4U's extdata) moved by themselves into
+ * Heavenfall's extdata and told to the player (bring.c, hf_bring_legacy); saves_copy_flow runs it too. Called after an
+ * install or an update; `quiet`: nothing said while Heavenfall's extdata is not there yet. Not for Heavenfall Beta.
+ * 1 when a hunter moved. */
+int saves_legacy_move(int quiet);
 /* The save of the edition's installed title copied to the card's backups (before an install removes the title). 0 when
  * done or when the title has no save yet; nonzero when the copy failed. */
 int saves_backup_installed(u64 title_id, char stamp[18]);
@@ -258,10 +270,16 @@ int saves_raw_restore(u64 title_id, const char *stamp);
 /* installed.json's save_restore (the backup of a save an install took away) into the title's save, once that opens
  * (the game's first run made it). `quiet`: no message while it does not open yet. SAVE_* as saves_copy_flow. */
 int saves_restore_flow(int quiet);
+/* Heavenfall Beta's More > MH4U saves (app_saves.c, "More > MH4U saves"): a page with Bring (saves_copy_flow), Take my save
+ * to MH4U and Restore MH4U's save. Only the edition whose game plays on the title's save (own_save 0). */
+void saves_mh4u_page(void);
 
 /* app_start.c */
 int original_game(u64 *id, FS_MediaType *media);   /* the original MH4U on the cartridge or the SD card */
 int original_game_for(int region, int region_first, u64 *id, FS_MediaType *media);   /* app_start.c */
+/* Every medium holding the original MH4U of the save copy (the edition's region first), cartridge before SD: how many
+ * (0, 1 or 2), `id` and `media[]` filled. */
+int original_games_for(int region, u64 *id, FS_MediaType media[2]);   /* app_start.c */
 int start_edition(void);        /* 0 and the app should exit; else a message was shown */
 int start_original(void);
 

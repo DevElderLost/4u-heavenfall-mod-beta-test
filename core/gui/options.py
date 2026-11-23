@@ -712,6 +712,25 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "ends the quest, World's Fatalis slain theme plays instead of the quest complete music. White "
                      "Fatalis and Crimson Fatalis (Super) do not change.")),
         ), T("La música viene con el randomizer.", "The music comes with the randomizer.")),
+        Group(T("Caja de música", "Jukebox"), (
+            Option("jukebox", T("Caja de música", "Jukebox"),
+                   T("El Ayudante tiene una línea nueva, «Caja de música»: elige una canción de la música del juego "
+                     "(temas de los pueblos, las zonas y los monstruos), que suena sin parar, o haz listas, en "
+                     "orden o al azar, para que suenen en los pueblos en lugar de su música. Su menú también puede "
+                     "ponerlas en las salas de reunión.",
+                     "The Housekeeper gets a new line, \"Jukebox\": pick one song of the game's music (town, area "
+                     "and monster themes), which plays without end, or make playlists, in order or shuffled, to play "
+                     "in the towns instead of their own music. Its menu can play them in the Gathering Halls too.")),
+            Option("jukebox_xx", T("Canciones de MH XX", "MH XX's songs"),
+                   T("Con la ROM de MH XX, la caja de música también tiene sus temas de monstruos, zonas, pueblos y "
+                     "salas, en categorías propias (los que suenan igual que los de MH4U no se repiten). Sin la ROM "
+                     "de XX no cambia nada.",
+                     "With MH XX's ROM, the Jukebox also has its monster, area, town and hall themes, in "
+                     "categories of their own (those that sound as MH4U's are not repeated). Without XX's ROM "
+                     "nothing changes."),
+                   requires="jukebox"),
+        ), T("La canción y las listas se guardan con la partida.", "The song and the playlists are saved with your "
+                                                                    "game.")),
     )),
     Section(T("Aspecto", "Looks"), (
         Group(T("Equipo superpuesto", "Layered gear"), (
@@ -735,6 +754,18 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                      "that opens Dundorma. Off, every look and trade is there from the start."),
                    requires="layered_equipment"),
         )),
+        Group(T("Pack de texturas HD", "HD texture pack"), (
+            Option("hd_pack", T("Compatibilidad con pack de texturas HD", "HD texture pack compatibility"),
+                   T("Si el emulador tiene un pack de texturas HD del juego, la instalación añade a su carpeta las "
+                     "versiones HD de lo que dibuja el mod: las marcas del árbol de armas, la rueda de objetos, los "
+                     "números de daño y la pista de cambio de objetivo, y adapta las imágenes del pack que el mod "
+                     "cambia. Los archivos del pack no se tocan. Desactivada, se quita lo que se añadió.",
+                     "If the emulator has an HD texture pack of the game, installing adds to its folder HD versions "
+                     "of what the mod draws: the weapon tree's marks, the item wheel, the damage numbers and the "
+                     "target switch hint, and adapts the pack's pictures the mod changes. The pack's files are never "
+                     "touched. Off, what was added is removed."),
+                   emulator_only=True),
+        ), T("Solo funciona en el emulador.", "It only works in the emulator.")),
     )),
     Section(T("Trucos", "Cheats"), (
         Group(T("Activar trucos", "Enable cheats"), (
@@ -1190,8 +1221,18 @@ def _install_sections() -> tuple[Section, ...]:
     if presets.modules():
         sections = module_sections(sections, presets.modules())
     links = presets.install_links()
-    swaps = {
-        "skip_intro": Option(
+    swaps = {}
+    if presets.intro_skip_stop() == "arrival":     # the skip stops at the arrival in Val Habar
+        swaps["skip_intro"] = Option(
+            "skip_intro", T("Saltar el prólogo", "Skip the prologue"),
+            T("Un personaje nuevo empieza al llegar a Val Habar, sin el prólogo en el barco de arena. Recibe lo que "
+              "daba el prólogo (1500z y la armadura inicial puesta); la charla del Caravanero, el registro en el "
+              "Gremio y el tutorial de la caravana siguen como en el juego original.",
+              "A new character starts on arriving in Val Habar, without the prologue on the sand ship. It gets what "
+              "the prologue gave (1500z and the starting armor, worn); the Caravaneer's first talk, the Guild "
+              "registration and the caravan tutorial stay as in the original game."))
+    elif links.get("skip_intro"):                  # the skip that also skips the caravan tutorial says so
+        swaps["skip_intro"] = Option(
             "skip_intro", T("Empezar en Val Habar con la caravana hecha", "Start in Val Habar with the caravan done"),
             T("Un personaje nuevo empieza directamente en Val Habar, ya registrado en el Gremio, sin el prólogo, las "
               "escenas de llegada y la presentación del Gran Salón. Recibe 1500z, la armadura inicial y RC 1, y ya "
@@ -1201,8 +1242,7 @@ def _install_sections() -> tuple[Section, ...]:
               "arrival scenes and the Gathering Hall introduction. It gets 1500z, the starting armor and HR 1, and "
               "the caravan tutorial is already done: the first Felyne is the partner, equipped and ready for the "
               "caravan quests."),
-            links=tuple(links.get("skip_intro", ()))),    # an edition without it has no such link
-    }
+            links=tuple(links["skip_intro"]))
     result = []
     for section in sections:
         groups = []

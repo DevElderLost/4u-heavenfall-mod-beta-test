@@ -216,6 +216,25 @@ static u32 look_of(const u8 *record, u32 part)
     return known(part, model) ? model : 0;
 }
 
+/* What a cat wears of `part` under its looks `look` and body look `body`: a whole suit of MH XX wears the helm of its
+   number as its head, over a head look or the real helm. The
+   screen's numbers and the word sent online stay the record's (look_of). */
+static u32 worn(u32 part, u32 look, u32 body)
+{
+    int suit = part == FELYNE_HEAD && body < F->ids && F->suits[body >> 3] >> (body & 7) & 1;
+    return suit ? body : look;
+}
+
+static u32 worn_of(const u8 *record, u32 part)
+{
+    return worn(part, look_of(record, part), look_of(record, FELYNE_BODY));
+}
+
+static u32 word_worn(u32 word, u32 part)
+{
+    return worn(part, word_look(word, part), word_look(word, FELYNE_BODY));
+}
+
 /* ----- which cat ------------------------------------------------------------------------------------------ */
 
 /* The own cats wear their looks: a look worn once (layered_state.enabled) and the switch in the game (layered_switch.c). */
@@ -243,7 +262,7 @@ static u32 actor_look(const u8 *actor, u32 part)
     if (!record)
         return 0;
     if (selected(record))
-        return look_of(record, part);
+        return worn_of(record, part);
     u32 kind = status[STATUS_KIND];
     if (kind >= KIND_FIRST_PREVIEW) {
         if (kind > KIND_LAST_PREVIEW || !felyne_ui.preview)
@@ -253,7 +272,7 @@ static u32 actor_look(const u8 *actor, u32 part)
     } else if (!enabled() && !(kind == 0 && record[OWNER_AT])) {   /* another player's cat: its word is there only when valid */
         return 0;
     }
-    return look_of(record, part);
+    return worn_of(record, part);
 }
 
 /* The number of `part` the cat of a quest's slot wears, or 0: our own cats by the record and the switch, another player's
@@ -269,8 +288,8 @@ static u32 quest_look(u32 owner, u32 slot, u32 part)
     else if ((u8)game[GAME_LOCAL] == owner)
         record = felyne_main_record(save_control);
     else
-        return word_look(layered_quest_cat(owner), part);
-    return record && enabled() ? look_of(record, part) : 0;
+        return word_worn(layered_quest_cat(owner), part);
+    return record && enabled() ? worn_of(record, part) : 0;
 }
 
 static u32 quest_actor_look(const u8 *actor, u32 part)
@@ -292,12 +311,12 @@ ARM u32 felyne_actor_model(u32 real, const u8 *actor, u32 part)
 
 ARM u32 felyne_look_or_real(u32 real, const u8 *record, u32 part)
 {
-    return replaced(real, look_of(record, part));
+    return replaced(real, worn_of(record, part));
 }
 
 ARM u32 felyne_record_model(u32 real, const u8 *record, u32 part)
 {
-    return replaced(real, enabled() ? look_of(record, part) : 0);
+    return replaced(real, enabled() ? worn_of(record, part) : 0);
 }
 
 ARM u32 felyne_compact_model(u32 real, const u8 *compact, u32 part)
@@ -327,7 +346,7 @@ ARM u32 felyne_sound_model(u32 real, const u8 *actor, u32 part)
 ARM u32 felyne_index_model(u32 real, u32 index, u32 part)
 {
     const u8 *record = index ? felyne_second_record() : felyne_main_record(save_control);
-    return replaced(real, record && enabled() ? look_of(record, part) : 0);
+    return replaced(real, record && enabled() ? worn_of(record, part) : 0);
 }
 
 /* ----- pieces the game goes by the id of ------------------------------------------------------------------- */
@@ -417,13 +436,13 @@ ARM u32 felyne_quest_effect_gate(u32 manager, const u8 *actor, u32 model, const 
 ARM void felyne_scene_effect_gate(u32 manager, u32 model, const u8 *pair, const u8 *record)
 {
     struct piece_pair own;
-    felyne_scene_effect(manager, model, case_pair(&own, pair, enabled() ? look_of(record, part_of(pair)) : 0), record);
+    felyne_scene_effect(manager, model, case_pair(&own, pair, enabled() ? worn_of(record, part_of(pair)) : 0), record);
 }
 
 ARM void felyne_scene_joints_gate(u32 manager, u32 actor, const u8 *pair, const u8 *record)
 {
     struct piece_pair own;
-    felyne_scene_joints(manager, actor, case_pair(&own, pair, enabled() ? look_of(record, part_of(pair)) : 0), record);
+    felyne_scene_joints(manager, actor, case_pair(&own, pair, enabled() ? worn_of(record, part_of(pair)) : 0), record);
 }
 
 /* FUN_00bdfba0, a slot's cat copied into its actor: that copy's record is noted, and loses its look when the slot's own

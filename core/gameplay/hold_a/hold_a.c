@@ -22,7 +22,10 @@
  *   hold_a_claim(panel)              0xA0A350 and 0x9B74E4, instead of the calls to FUN_005e5cb8 (the Wyporium's "Claim
  *       Items" panel, panel = *0xED2E40: +0x5C the step, 1 "Take Items" and 2 "Send to Item Box", the cursor column
  *       +0x5D (byte) and row +0x6E (halfword), the cells' index +0x6C = row * columns + column, columns +0x94, cells +0x88,
- *       the cells {u16 item, s16 count} at *(panel + 0x80)). The same as the rewards, on those two steps.
+ *       the cells {u16 item, s16 count} at *(panel + 0x80)). The same as the rewards, on those two steps, except that
+ *       the cursor leaves the emptied cell in the next call, which takes nothing: the caller FUN_009b6d84 draws the
+ *       grid again only when the item under the cursor changed and the cursor did not move (0x9B753C), so a move in
+ *       the call of the take would leave the taken item's icon in its empty cell. hold_a_claim_take keeps that cell.
  * Nothing else changes: the swap and exit menus always need a real press.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with hold_a.ld where it places the block); the game
@@ -80,6 +83,8 @@ typedef signed char s8;
 
 extern u8 *const pad_control;           /* the variable holding the pad object */
 extern u8 *const game_control;          /* the variable holding sGameControl */
+/* 0, or the cell the last hold_a_claim's take emptied + 1 (bits 0-15) and its step (bits 16-23) */
+extern u32 hold_a_claim_take;
 
 /* Game functions */
 void hunter_item_mode(u8 *hunter);                          /* FUN_00b28f54 */
@@ -168,14 +173,30 @@ __attribute__((used, section(".text.entry"))) u32 hold_a_rewards(u8 *scene, u32 
 __attribute__((used, section(".text.entry"))) u32 hold_a_claim(u8 *panel)
 {
     u8 *pad = pad_control;
-    u32 step = panel ? U8(panel, C_STEP) : 0, injected = 0;
+    u32 step = panel ? U8(panel, C_STEP) : 0, injected = 0, held = 0, taken = hold_a_claim_take;
     u8 *cells = panel ? (u8 *)U32(panel, C_CELLS) : 0;
     s32 columns = panel ? S16(panel, C_COLUMNS) : 0, count = panel ? S16(panel, C_COUNT) : 0, at = -1;
+    hold_a_claim_take = 0;
     if (cells && (step == 1 || step == 2) && columns > 0) {
-        s32 column = U8(panel, C_COL), row = S16(panel, C_ROW), index = row * columns + column;
-        if (column < columns && row >= 0 && index < count && U16(cells, index * 4))   /* the game's own index */
-            at = index;
-        if (a_repeats(pad)) {
+        s32 column = U8(panel, C_COL), row = S16(panel, C_ROW), index = row * columns + column;   /* the game's own */
+        s32 next = -1;
+        if (column < columns && row >= 0 && index < count) {
+            if (U16(cells, index * 4))
+                at = index;
+            else if (taken == (step << 16 | (u32)(index + 1)))
+                next = next_item(cells, count, index);
+        }
+        if (next >= 0) {
+            /* The last call's take emptied this cell and the game drew it: on to the next item, taking nothing */
+            split(next, columns, &row, &column);
+            U8(panel, C_COL) = column;
+            S16(panel, C_ROW) = row;
+            S16(panel, C_INDEX) = next;
+            if (pad) {
+                held = U32(pad, PAD_PRESSED) & GUI_A;
+                U32(pad, PAD_PRESSED) &= ~GUI_A;
+            }
+        } else if (a_repeats(pad)) {
             U32(pad, PAD_PRESSED) |= GUI_A;
             injected = 1;
         }
@@ -183,15 +204,9 @@ __attribute__((used, section(".text.entry"))) u32 hold_a_claim(u8 *panel)
     u32 result = claim_scene(panel);
     if (injected)
         U32(pad, PAD_PRESSED) &= ~GUI_A;
-    if (at >= 0 && U8(panel, C_STEP) == step && !U16(cells, at * 4)) {
-        s32 next = next_item(cells, count, at);
-        if (next >= 0) {
-            s32 row, column;
-            split(next, columns, &row, &column);
-            U8(panel, C_COL) = column;
-            S16(panel, C_ROW) = row;
-            S16(panel, C_INDEX) = next;
-        }
-    }
+    if (held)
+        U32(pad, PAD_PRESSED) |= held;
+    if (at >= 0 && U8(panel, C_STEP) == step && !U16(cells, at * 4))
+        hold_a_claim_take = step << 16 | (u32)(at + 1);
     return result;
 }

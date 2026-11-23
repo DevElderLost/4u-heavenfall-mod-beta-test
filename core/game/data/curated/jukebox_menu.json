@@ -1,0 +1,97 @@
+{
+ "description": "The jukebox menu's texts (core/music/jukebox/texts.py): the messages added to the house Felyne's message file Room_s, by language, in the order of texts.py TEXT_KEYS; a '{}' is a number or a name the game fills in (a string slot). 'widths' are the panes' sizes and fonts read from the game's layouts: 'line' the menu's line (ui414_m_07, 125 x 14 at font 11), 'row' a row's title (ui443_m_title, 112 x 12 at font 11), 'title' the ribbon's title (ui443_m_arena, 147 x 14 at font 14), 'number' a row's number (ui443_m_jsuji, 16 to 18 x 14 at font 11), 'help' a line of the help window (core_common's ui006, ui006_m_10, 220 px at font 12, which FUN_00298560 kind 1 writes; the game's own help texts there have at most two lines). Texts are measured with a Helvetica estimate (core/equipment/new_gear/new_texts.py name_width), which puts the game's own widest help line at 203 px. 'rows' and 'help' name the texts each width checks; 'cut' ends a name of the game's texts cut to fit a row.",
+ "texts": {
+  "line": {"eng": "Jukebox", "fre": "Juke-box", "ger": "Jukebox", "ita": "Jukebox", "spa": "Caja de música"},
+  "line_help": {
+   "eng": "Choose the music that plays\nin the towns.",
+   "fre": "Choisissez la musique jouée\ndans les villes.",
+   "ger": "Wähle die Musik, die in den\nStädten läuft.",
+   "ita": "Scegli la musica che suona\nnelle città.",
+   "spa": "Elige la música que suena\nen los pueblos."},
+  "slot": {"eng": "{}", "fre": "{}", "ger": "{}", "ita": "{}", "spa": "{}"},
+  "playlist": {"eng": "Playlist {}", "fre": "Playlist {}", "ger": "Playlist {}", "ita": "Playlist {}", "spa": "Lista {}"},
+  "options": {"eng": "Options", "fre": "Options", "ger": "Optionen", "ita": "Opzioni", "spa": "Opciones"},
+  "help_main": {
+   "eng": "A: open  B: back\nMarked: the playlist playing.",
+   "fre": "A : ouvrir  B : retour\nMarquée : la playlist jouée.",
+   "ger": "A: öffnen  B: zurück\nMarkiert: die laufende Playlist.",
+   "ita": "A: apri  B: indietro\nSegnata: la playlist in corso.",
+   "spa": "A: abrir  B: volver\nMarcada: la lista que suena."},
+  "play": {"eng": "Play", "fre": "Jouer", "ger": "Abspielen", "ita": "Riproduci", "spa": "Reproducir"},
+  "stop": {"eng": "Stop", "fre": "Arrêter", "ger": "Anhalten", "ita": "Ferma", "spa": "Detener"},
+  "add": {"eng": "Add songs", "fre": "Ajouter", "ger": "Hinzufügen", "ita": "Aggiungi brani", "spa": "Añadir canciones"},
+  "edit": {"eng": "Edit songs", "fre": "Modifier", "ger": "Bearbeiten", "ita": "Modifica brani", "spa": "Editar canciones"},
+  "rename": {"eng": "Rename", "fre": "Renommer", "ger": "Umbenennen", "ita": "Rinomina", "spa": "Renombrar"},
+  "in_order": {"eng": "Order: In order", "fre": "Ordre : normal", "ger": "Folge: geordnet", "ita": "Ordine: in fila", "spa": "Orden: normal"},
+  "shuffle": {"eng": "Order: Shuffle", "fre": "Ordre : aléatoire", "ger": "Folge: zufällig", "ita": "Ordine: casuale", "spa": "Orden: aleatorio"},
+  "clear": {"eng": "Clear", "fre": "Vider", "ger": "Leeren", "ita": "Svuota", "spa": "Vaciar"},
+  "help_playlist": {
+   "eng": "A: choose  B: back", "fre": "A : choisir  B : retour", "ger": "A: wählen  B: zurück",
+   "ita": "A: scegli  B: indietro", "spa": "A: elegir  B: volver"},
+  "clear_prompt": {
+   "eng": "Remove every song from\nthis playlist?",
+   "fre": "Retirer tous les morceaux\nde cette playlist ?",
+   "ger": "Alle Lieder aus dieser\nPlaylist entfernen?",
+   "ita": "Togliere tutti i brani\nda questa playlist?",
+   "spa": "¿Quitar todas las canciones\nde esta lista?"},
+  "help_categories": {
+   "eng": "A: open  B: back", "fre": "A : ouvrir  B : retour", "ger": "A: öffnen  B: zurück",
+   "ita": "A: apri  B: indietro", "spa": "A: abrir  B: volver"},
+  "help_songs": {
+   "eng": "A: add or remove  Y: listen\nB: back  Marked: in the playlist",
+   "fre": "A : ajouter/retirer  Y : écouter\nB : retour  Marqué : dans la playlist",
+   "ger": "A: hinzufügen/entfernen  Y: anhören\nB: zurück  Markiert: in der Playlist",
+   "ita": "A: aggiungi/togli  Y: ascolta\nB: indietro  Segnato: nella playlist",
+   "spa": "A: añadir/quitar  Y: escuchar\nB: volver  Marcada: en la lista"},
+  "help_edit": {
+   "eng": "A: move  X: remove  Y: listen\nB: back",
+   "fre": "A : déplacer  X : retirer  Y : écouter\nB : retour",
+   "ger": "A: verschieben  X: entfernen\nY: anhören  B: zurück",
+   "ita": "A: sposta  X: togli  Y: ascolta\nB: indietro",
+   "spa": "A: mover  X: quitar  Y: escuchar\nB: volver"},
+  "help_moving": {
+   "eng": "Moving the song.\nA or B: leave it here.",
+   "fre": "Déplacement du morceau.\nA ou B : le poser ici.",
+   "ger": "Lied wird verschoben.\nA oder B: hier ablegen.",
+   "ita": "Spostamento del brano.\nA o B: lascialo qui.",
+   "spa": "Moviendo la canción.\nA o B: dejarla aquí."},
+  "halls_off": {"eng": "Hall music too: Off", "fre": "Halls aussi : Non", "ger": "Auch Hallen: Aus", "ita": "Anche sale: No", "spa": "También salas: No"},
+  "halls_on": {"eng": "Hall music too: On", "fre": "Halls aussi : Oui", "ger": "Auch Hallen: An", "ita": "Anche sale: Sì", "spa": "También salas: Sí"},
+  "keep_session": {"eng": "Keep: This session", "fre": "Garder : session", "ger": "Halten: Sitzung", "ita": "Tieni: sessione", "spa": "Mantener: sesión"},
+  "keep_always": {"eng": "Keep: Always", "fre": "Garder : toujours", "ger": "Halten: immer", "ita": "Tieni: sempre", "spa": "Mantener: siempre"},
+  "loops": {"eng": "Loops: {}", "fre": "Boucles : {}", "ger": "Schleifen: {}", "ita": "Ripetizioni: {}", "spa": "Bucles: {}"},
+  "fade": {"eng": "Fade-out: {} s", "fre": "Fondu : {} s", "ger": "Ausblenden: {} s", "ita": "Dissolvenza: {} s", "spa": "Fundido: {} s"},
+  "help_options": {
+   "eng": "Left/Right or A: change\nB: back",
+   "fre": "Gauche/Droite ou A : changer\nB : retour",
+   "ger": "Links/Rechts oder A: ändern\nB: zurück",
+   "ita": "Sinistra/Destra o A: cambia\nB: indietro",
+   "spa": "Izquierda/Derecha o A: cambiar\nB: volver"},
+  "single": {"eng": "One song", "fre": "Un morceau", "ger": "Ein Lied", "ita": "Un brano", "spa": "Una canción"},
+  "playlists": {"eng": "Playlists", "fre": "Playlists", "ger": "Playlists", "ita": "Playlist", "spa": "Listas"},
+  "help_entry": {
+   "eng": "A: open  B: back\nMarked: what is playing.",
+   "fre": "A : ouvrir  B : retour\nMarqué : ce qui est joué.",
+   "ger": "A: öffnen  B: zurück\nMarkiert: was gerade läuft.",
+   "ita": "A: apri  B: indietro\nSegnato: ciò che è in corso.",
+   "spa": "A: abrir  B: volver\nMarcada: lo que suena."},
+  "help_single": {
+   "eng": "A: play or stop  Y: listen\nB: back  Marked: the one playing",
+   "fre": "A : jouer/arrêter  Y : écouter\nB : retour  Marqué : celui joué",
+   "ger": "A: abspielen/anhalten  Y: anhören\nB: zurück  Markiert: das laufende",
+   "ita": "A: riproduci/ferma  Y: ascolta\nB: indietro  Segnato: quello in corso",
+   "spa": "A: poner/quitar  Y: escuchar\nB: volver  Marcada: la que suena"}
+ },
+ "widths": {
+  "line": {"px": 125, "font": 11},
+  "row": {"px": 112, "font": 11},
+  "title": {"px": 147, "font": 14},
+  "number": {"px": 16, "font": 11},
+  "help": {"px": 220, "font": 12, "lines": 2}
+ },
+ "rows": ["line", "playlist", "options", "play", "stop", "add", "edit", "rename", "in_order", "shuffle", "clear",
+          "halls_off", "halls_on", "keep_session", "keep_always", "loops", "fade", "single", "playlists"],
+ "help": ["line_help", "help_main", "help_playlist", "clear_prompt", "help_categories", "help_songs", "help_edit",
+          "help_moving", "help_options", "help_entry", "help_single"],
+ "cut": "..."
+}
