@@ -24,22 +24,28 @@ nothing looks stretched:
 
 The START menu's third page (interface/mod_settings/mod_settings.py) comes with them: its list changes the ratio in the
 game, for each character, and every hook reads it each time. The files stay fitted to the installer's ratio, so the
-HUD's groups and the game GUI engine's places take the difference at run time (aspect_ratio.c).
+HUD's groups and the game GUI engine's places take the difference at run time (aspect_ratio.c). The Cheats group's
+row CHEAT_ROW (a mod built with the cheats and this option) puts the curated cheat_ratio, which no list has, in use
+while it is on.
 
 Each check of a site is of the update's word; carried to the base games by the version maps.
 """
 
 import struct
 
-from core.cheats.aspect_table import OFF, menu_ratios
+from core.cheats.aspect_table import OFF, cheat_ratio, menu_ratios
 from core.game.data.tuning import tuning
 from core.game.executable.blocks import ASPECT_ANCHORS_SIZE, ASPECT_DATA_SIZE
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
 from core.interface.hud.anchors import AnchorRules, anchor_table, load_anchor_rules
+from core.interface.mod_settings.mod_options import OPTION_IDS
 from core.interface.mod_settings.mod_settings import load_zone, patch_mod_settings, supports_mod_settings
 
 STUB, CODE, DATA, ANCHORS = "aspect_stub", "aspect_code", "aspect_data", "aspect_anchors"
 VARIABLES = ("aspect_state", "aspect_way")
+STATE = "mod_options_state"     # the options' values (interface/mod_settings/mod_options.c), where the row's is read
+CHEAT_ROW = "cheat_aspect_18_9"     # the Cheats group's row of cheat_ratio (mod_options.py OPTION_IDS)
+MAX_RATIOS = 8                  # aspect_ratio.c: the list's ratios and the Cheats group's
 
 VIEW_SITE, VIEW_WORD = 0xAEEFD0, 0xED860A0E     # FUN_00aeee7c: vstr s0, [r6, #0x38]
 GUI_CALLS = (0xAF3EB4, 0xAF41F4)                # FUN_00af3db0: bl FUN_00b70fc0
@@ -57,20 +63,24 @@ MARKER_SITE, MARKER_WORD = 0xB9E694, 0xE3A02013     # FUN_00b94854: mov r2, #0x1
 def aspect_data(name: str, rules: AnchorRules | None = None) -> bytes:
     """The block (struct aspect_data in aspect_ratio.c): the save zone's place and magic, the place in the list of the
     ratio `name` the mod is installed for (OFF: the game's own, the first) and how many there are, the zone's version,
-    the anchors' `rules` (the curated ones by default), and for each ratio of the list the three factors of
-    Ratio.factors (floats; the room of the others stays zero)."""
+    the anchors' `rules` (the curated ones by default), for each ratio of the list and then the Cheats group's
+    (cheat_ratio) the three factors of Ratio.factors (floats; the room of the others stays zero), and CHEAT_ROW's
+    option number, whose value the code reads (0 in a mod without the row)."""
     ratios = menu_ratios()
     names = [ratio.name for ratio in ratios]
     if name != OFF and name not in names:
         raise ValueError(f"no aspect ratio {name!r}: the curated ones are {', '.join(names)}")
+    if len(ratios) + 1 > MAX_RATIOS:
+        raise ValueError(f"aspect_data holds {MAX_RATIOS} ratios: the list's {len(ratios)} and the Cheats group's")
     rules = rules or load_anchor_rules()
     zone = load_zone()
     data = struct.pack("<I4s2BH4f", zone["offset"], zone["magic"], 0 if name == OFF else names.index(name), len(ratios),
                        zone["version"], rules.edge_margin, rules.half_margin, rules.dead_zone, rules.sub_view_margin)
-    data += b"".join(struct.pack("<3f", *ratio.factors()) for ratio in ratios)
-    if len(data) > ASPECT_DATA_SIZE:
+    data += b"".join(struct.pack("<3f", *ratio.factors()) for ratio in (*ratios, cheat_ratio()))
+    data = data.ljust(28 + 12 * MAX_RATIOS, b"\0") + struct.pack("<B3x", OPTION_IDS[CHEAT_ROW])
+    if len(data) != ASPECT_DATA_SIZE:
         raise ValueError(f"aspect_data holds {ASPECT_DATA_SIZE} bytes, the ratios make {len(data)}")
-    return data.ljust(ASPECT_DATA_SIZE, b"\0")
+    return data
 
 
 def marker_priority() -> int:
@@ -105,6 +115,7 @@ def patch_aspect_ratio(code: bytes, name: str, layout: Layout | None = None, anc
     layout.place(out, STUB)
     layout.place(out, CODE)
     layout.place(out, DATA, aspect_data(name, rules))
+    layout.reserve(out, STATE)
     table = anchor_table({}) if anchors is None else anchors
     layout.place(out, ANCHORS, table + bytes(ASPECT_ANCHORS_SIZE - len(table)))
     layout.hook(out, VIEW_SITE, layout.symbol(STUB, "aspect_view"))

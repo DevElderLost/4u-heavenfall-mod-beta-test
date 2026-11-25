@@ -42,7 +42,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **A smaller HUD**, from 90% to 60%.
 - **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Every item box puts on the looks you own, and your Guild Card shows them. Mod Settings can hide it for a character.
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.
-- **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
+- **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): damage multipliers (dealt and taken), faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
 
 **Your save stays MH4U's.** The game still reads and writes MH4U's own save files, and once it has saved with room on the SD card they hold nothing MH4U does not know; what only Heavenfall Beta has (Layered Gear, your settings, the Jukebox) is kept in files of its own beside them. There is nothing to do: you can play MH4U in between, and saves made with the earlier Beta carry on, with the original kept as a backup. [Playing MH4U without the mod](docs/back_to_mh4u.md) takes a few clicks, on a 3DS too.
 

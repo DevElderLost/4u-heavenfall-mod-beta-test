@@ -7,6 +7,11 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Layered Gear
 - Layered Gear leaves out repeated looks: armor that looks the same on your hunter, and weapons.
 
+### Cheats
+- Cheats can multiply the damage your hits deal to monsters, from 1.1x to 10x.
+- Cheats can cut the damage your hunter takes, down to 0.05x.
+- With other aspect ratios allowed, cheats can fit the game to an 18:9 picture (emulator only).
+
 ### Fixes
 - On Old 3DS consoles, Gogmazios' quests no longer freeze the game.
 - Trying on a Layered Gear look marks only that look, not others sharing its pieces.

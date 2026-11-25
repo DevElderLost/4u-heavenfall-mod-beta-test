@@ -42,11 +42,12 @@ void mod_list_frame(int row_on_page, int page, int pages);
 int aspect_saved(void);                                         /* cheats/aspect_ratio.c */
 int aspect_ratios(void);
 int aspect_selected(void);
+int aspect_marked(void);
 void aspect_choose(int place);
 
 static void draw_rows(void)
 {
-    int selected = aspect_selected();
+    int selected = aspect_marked();     /* none while the Cheats group's ratio is in use */
     int count = aspect_ratios();
     int row;
 

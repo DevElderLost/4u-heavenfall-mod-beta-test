@@ -233,8 +233,8 @@ ASPECT_RATIO = "cheat_aspect_ratio"
 # data block (settings_data) holds the curated table, the list's (aspect_list_data) its texts, mod_options_data the
 # options (their values, defaults and what each writes), mod_raw_table the true attack's table of 100s.
 MOD_SETTINGS = "mod_settings"
-MOD_SETTINGS_DATA_SIZE = 948
-MOD_SETTINGS_PANE_HASHES = (820, 936)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
+MOD_SETTINGS_DATA_SIZE = 1028
+MOD_SETTINGS_PANE_HASHES = (900, 1016)   # where struct mod_settings_data holds ui020's pane name hashes (ten_rows.py)
 ASPECT_LIST_DATA_SIZE = 28
 # mod_options.c: the header, 52 options, a pool of 256 values, the Cheats group's gate (struct cheats_gate)
 MOD_OPTIONS_DATA_SIZE = 16 + 52 * 4 + 256 * (2 + 8) + 12
@@ -242,7 +242,7 @@ MOD_RAW_TABLE_SIZE = 64
 # The town's stage lists with ui415 (interface/mod_settings/box_appearance.py): six lists' paths and bytes
 BOX_APPEARANCE_LISTS_SIZE = 160
 APPEARANCE_PEEK_DATA_SIZE = 16       # appearance_peek.c struct peek_data
-ASPECT_DATA_SIZE = 124
+ASPECT_DATA_SIZE = 128
 ASPECT_ANCHORS_SIZE = 0x3000
 # The split title's two RomFS, `rom:` from the game data title and `mod:` from the title's own (install/title/
 # split_romfs.py): only the installed title's build places it. Packed right after Mod
@@ -311,6 +311,10 @@ JUKEBOX_STATE_SIZE = 848 + 8 + 8 + 2 * 6 + 4 * 8 + 40
 # cheats.md): after the item wheel, so that it moves no other product block
 ACTION_CANCEL = "cheat_action_cancel"
 ACTION_CANCEL_DATA_SIZE = 8
+# The Cheats group's damage multipliers (cheats/damage_multipliers/damage_multipliers.py): with
+# the other cheats, after the item wheel
+DAMAGE_MULTIPLIERS = "cheat_damage"
+DAMAGE_MULTIPLIERS_DATA_SIZE = 4
 # Heavenfall Beta's sidecars (save/beta_sidecar.py): the four sites' stubs and
 # the C with the extras core; its state (struct state in beta_sidecar.c: the slots, the request, the log) and its two
 # card images are in the extension's variables, after every variable of the full mod (a full mod's file stops before
@@ -471,7 +475,8 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
-                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, BETA_SIDECAR, TRIO_DIAG,
+                   RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, DAMAGE_MULTIPLIERS, JUKEBOX, BETA_SIDECAR,
+                   TRIO_DIAG,
                    SYNC_DIAG, SOUND_LATCH, MEMORY_DIAG)
     specs = (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
@@ -1101,6 +1106,13 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
               scene=RESIDENT, resident="the hunter (town and quest)"),
     BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext",
               scene=RESIDENT, resident="the hunter (town and quest)"),
+    # The damage multipliers: the hooks' stubs, the C and each row's option (damage_multipliers.py multipliers_data)
+    BlockSpec("damage_multipliers_stub", DAMAGE_MULTIPLIERS, "cheats/damage_multipliers/damage_multipliers_stub.s",
+              region="ext", scene=RESIDENT, resident="the hunter's health and a hit on a monster (town and quest)"),
+    BlockSpec("damage_multipliers", DAMAGE_MULTIPLIERS, "cheats/damage_multipliers/damage_multipliers.c",
+              region="ext", scene=RESIDENT, resident="the hunter's health and a hit on a monster (town and quest)"),
+    BlockSpec("damage_multipliers_data", DAMAGE_MULTIPLIERS, size=DAMAGE_MULTIPLIERS_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the hunter's health and a hit on a monster (town and quest)"),
     # The jukebox, two blocks: `jukebox_save`,
     # resident, holds the card's store and load hooks (jukebox_save_stub.s, jukebox_save.c: FUN_002adedc, the card
     # builder, runs in the title, the town and a quest) and what they reach (jukebox_core.c: the defaults, the owner,
@@ -1381,6 +1393,8 @@ VARIABLES = (
     # The Cheats group's gate on a 3DS title: the flag file's answer, the frames to the next read, the last read's
     # result and the reads (mod_options.c struct cheats_allowed); patch_mod_options reserves it with the gate
     VariableSpec("cheats_allowed", CHEATS_GATE, CHEATS_ALLOWED_SIZE, region="ext_vars"),
+    # damage_multipliers.c: what the hunter's last losses left below one point (a float)
+    VariableSpec("damage_taken_carry", DAMAGE_MULTIPLIERS, 4, region="ext_vars"),
     # The debug fog control's steps and live text (a diagnostics file's only), after every other variable
     VariableSpec("misty_fog_debug_state", MISTY_FOG_DEBUG, FOG_DEBUG_STATE_SIZE, region="ext_vars"),
     # The diagnostics rings (diagnostics/trio_diag.c struct trio_log; a diagnostics file's only), after the others
@@ -2878,6 +2892,13 @@ GAME_SYMBOLS |= {
     "hunter_update_check": 0xB18618,    # FUN_00b18618(hunter): the update's first check before the action's frame
                                         # (0xB14960); non-zero when it started an action
     "hunter_update_check_more": 0xB0D784,   # FUN_00b0d784(hunter): its second (0xB1496C), when the first started none
+}
+
+# The damage multipliers (cheats/damage_multipliers/damage_multipliers_stub.s): the call their dealt hook replaces and
+# the health change past the words their taken hook keeps
+GAME_SYMBOLS |= {
+    "monster_damage_rate": 0x92BF98,    # FUN_0092bf98(uEnemy, total, flag, 1): a hit's final damage, the monster's rate
+    "hunter_health_body": 0xB6B4C4,     # FUN_00b6b4bc(hunter, change), the hunter's health change, past its first two
 }
 
 # The jukebox (music/jukebox/jukebox.c): the town's theme

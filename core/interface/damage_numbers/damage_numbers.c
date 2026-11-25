@@ -36,7 +36,9 @@ typedef signed short s16;
 typedef unsigned char u8;
 typedef signed char s8;
 
-#define SLOTS 16                /* damage_numbers.py SLOTS: the layout's slot nulls */
+#include "hit_owner.h"          /* whose a hit is: shared with the Cheats group's damage multiplier */
+
+#define SLOTS 16               /* damage_numbers.py SLOTS: the layout's slot nulls */
 #define EFFECTS 2               /* a slot's critical marks, its first sprites */
 #define DIGITS 6                /* then its digits */
 #define EVENTS 16               /* numbers a frame */
@@ -157,18 +159,12 @@ static int option(u32 id);
 #define ENEMY_SLOTS 0x18        /* sEnemy: uEnemy *[MONSTERS] */
 #define HIT_SPOT 0x20           /* the hit record: where it landed (the shapes' meeting point) */
 #define HIT_QUALITY 0x06        /* 0 a melee hit that bounced */
-#define HIT_OBJECT 0x10         /* what made it */
 #define HIT_FLAGS 0x30          /* bit 0: a shot */
 #define HIT_CRIT 0x4C           /* 2: a critical hit */
-#define HIT_OWNER_KIND 0x67     /* the owner of a shot or a kinsect */
-#define HIT_OWNER 0x68
 #define FRAME_HITZONE 0x4C      /* FUN_00be9c64's frame: the hitzone record (cut, impact, shot, ...) */
 #define FRAME_IMPACT 0x7C       /* 1: a melee hit took the impact value */
-#define HUNTER_STATUS 0xE30     /* uPlayer: its status, +0x33 its player number */
-#define PLAYER_NUMBER 0x2F      /* sGameControl: this console's player */
 #define CRIT_UP 2
-enum { BY_HUNTER, BY_MONSTER, BY_SHELL, BY_PALICO, BY_KINSECT = 7 };
-#define CAMERA_SLOT 0x1A8       /* sCamera's slots */
+#define CAMERA_SLOT 0x1A8      /* sCamera's slots */
 #define VIEW 0xB0               /* a slot's view matrix */
 #define PROJECTION 0xF0         /* its projection */
 #define CAMERA 0x1C             /* its camera object */
@@ -211,39 +207,19 @@ static void account(u32 em, s32 value)
             state->monster[i].accounted += value;
 }
 
-static int this_player(s32 player)
-{
-    u32 control = game_control;
-
-    return control != 0 && (s8)player == (s8)B(control, PLAYER_NUMBER);
-}
-
-static int this_players_hunter(u32 hunter)
-{
-    return hunter != 0 && W(hunter, HUNTER_STATUS) != 0 && this_player((s8)B(W(hunter, HUNTER_STATUS), 0x33));
-}
-
 enum { MINE, OTHERS, FELYNES };
 
-/* Whose a hit is, by its object kind: this player's, another's (or a monster's, or nobody's: MINE, every player sees
- * those), or a Felyne's, any player's (never shown) */
+/* Whose a hit is, by its object kind (hit_owner.h): this player's, another's (or a monster's, or nobody's: MINE, every
+ * player sees those), or a Felyne's, any player's (never shown) */
 static int whose(u32 hit, u32 hunter)
 {
-    switch (B(hit, HIT_OBJECT)) {
-    case BY_HUNTER:
-        return this_players_hunter(hunter) ? MINE : OTHERS;
-    case BY_KINSECT:
-        return this_players_hunter(W(hit, HIT_OWNER)) ? MINE : OTHERS;
-    case BY_PALICO:
+    switch (hit_owner(hit, hunter)) {
+    case HIT_OTHER_PLAYER:
+        return OTHERS;
+    case HIT_FELYNE:
         return FELYNES;
-    case BY_SHELL:
-        if (B(hit, HIT_OWNER_KIND) == BY_HUNTER)
-            return this_players_hunter(W(hit, HIT_OWNER)) ? MINE : OTHERS;
-        if (B(hit, HIT_OWNER_KIND) == BY_PALICO)
-            return FELYNES;
-        return MINE;            /* a monster's, or the map's: every player sees it */
     default:
-        return MINE;            /* a monster on a monster, or nobody's */
+        return MINE;            /* this player's, a monster's or nobody's (the map's): every player sees those */
     }
 }
 
