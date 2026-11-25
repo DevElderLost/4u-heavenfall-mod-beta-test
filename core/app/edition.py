@@ -13,7 +13,7 @@ from pathlib import Path
 from core.game.data.paths import CURATED_DIR
 
 EDITION_FILE = CURATED_DIR / "edition.json"
-PAGES = ("install", "options", "randomizer", "saves")    # the GUI's pages an edition may have (gui/qt/app.py)
+PAGES = ("install", "options", "randomizer", "saves", "debug")   # the GUI's pages an edition may have (gui/qt/app.py)
 PLATFORMS = ("emulator", "console")             # "console": a real 3DS (luma.py)
 TOOLS_LANGUAGES = ("es", "en")
 

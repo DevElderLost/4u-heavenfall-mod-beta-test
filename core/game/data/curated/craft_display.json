@@ -1,0 +1,6 @@
+{
+"description": "MH XX's weapons with parts drawn only in the Smithy's craft display, never on the hunter: per weapon class of the pack (equipment_pack.WEAPON_FOLDERS' values) and XX model, the mesh groups of those parts. The pack hides them in the model the look wears and writes a copy at the id the table of ids gives it (pack_ids.json, `preview`), drawing them, which only the Layered Gear screens' preview wears. Baki Combat Jutsu (dual blades 118): its emblem, group 1; on the hunter the weapon is the bare fists.",
+"weapons": {
+"sou": {"118": [1]}
+}
+}

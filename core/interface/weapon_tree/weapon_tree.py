@@ -15,6 +15,10 @@ The patch, on the update's executable (the version maps carry it to the base gam
 * the START menu's row Smithy View (`gated`) puts a gate in front of the two entries: with List the weapon class's
   branch goes to the forge's entry and Upgrade makes its own call, as the game does;
 * places the blocks weapon_tree and weapon_tree_data, and reserves the variable weapon_tree_state.
+
+The two blocks are the Smithy View's pack: the
+weapon class's branch and Upgrade's call open it (their stubs, or the gates' entries, load it while it is out), and
+every hook falls back to what the game did while it is out.
 """
 
 import json
@@ -190,9 +194,10 @@ def patch_weapon_tree(code: bytes, layout: Layout | None = None, message_base: i
                      layout.symbol(CODE, "weapon_tree_smithy_update"))
     entry, upgrade = ((layout.symbol("mod_options_stub", gate) for gate in ("gate_smithy_view", "gate_smithy_upgrade"))
                       if gated else (layout.symbol(CODE, own) for own in ("weapon_tree_entry", "weapon_tree_upgrade")))
-    layout.hook(out, ENTRY, entry, link=False, original=branch_word(ENTRY, FORGE_JOIN))
+    # the two ways into the tree open its pack (the gates' entries do it: blocks.BlockSpec.opens)
+    layout.hook(out, ENTRY, entry, link=False, original=branch_word(ENTRY, FORGE_JOIN), opens=not gated)
     layout.hook(out, SMITHY_END, layout.symbol(CODE, "weapon_tree_smithy_end"), calls=PANELS_RELEASE)
-    layout.hook(out, UPGRADE_PICK, upgrade, calls=UPGRADE_LIST, link=False)
+    layout.hook(out, UPGRADE_PICK, upgrade, calls=UPGRADE_LIST, link=False, opens=not gated)
     return bytes(out)
 
 

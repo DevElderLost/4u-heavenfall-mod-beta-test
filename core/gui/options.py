@@ -341,14 +341,6 @@ QUEST_SECTIONS: tuple[Section, ...] = (
                      "are never used.")),
         )),
     )),
-    Section(T("Depuración", "Debug"), (
-        Group(T("Pruebas", "Testing"), (
-            Option("debug_weak_monsters", T("Monstruos débiles", "Weak monsters"),
-                   T("Vida y ataque al mínimo en todos los monstruos, para probar misiones rápidamente.",
-                     "Minimum health and attack for every monster, to test quests quickly.")),
-        ), T("Opciones pensadas para probar el randomizer, no para jugar.",
-             "Options meant for testing the randomizer, not for playing.")),
-    )),
 )
 
 
@@ -807,13 +799,6 @@ INTERFACE_SECTIONS: tuple[Section, ...] = (
                         "veas.",
                         "⚠ EXPERIMENTAL: aspect ratios other than 5:3 are still being tested. Menus, prompts and "
                         "backgrounds may be out of place or stretched. Please report any problem you see.")),
-        Group(T("Depuración", "Debug"), (
-            Option("cheat_insta_kill", T("Muerte instantánea", "Insta kill"),
-                   T("El ataque del cazador se multiplica: cada golpe derriba a un monstruo al instante.",
-                     "The hunter's attack is multiplied: every hit brings a monster down at once."),
-                   emulator_only=True),
-        ), T("Para probar misiones, no para jugar. Solo funciona en el emulador.",
-             "For testing quests, not for playing. It only works in the emulator.")),
     )),
 )
 

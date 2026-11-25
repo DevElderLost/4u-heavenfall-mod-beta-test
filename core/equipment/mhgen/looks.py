@@ -208,6 +208,9 @@ class GenLooks:
     # (pack class, XX model) -> the model its look wears: the pack's, or MH4U's that it is identical to (no look of
     # MH4U wears it); the weapons of XX each weapon look stands for
     weapon_models: dict[tuple[str, int], int] = field(default_factory=dict)
+    # (STATE_WEAPONS key, a weapon look's model) -> the model the Layered Gear screens' preview wears for it: the copy
+    # that draws the parts MH XX shows only in its craft display (equipment_pack.DisplayParts)
+    preview_models: dict[tuple[str, int], int] = field(default_factory=dict)
 
     @property
     def empty(self) -> bool:
@@ -244,10 +247,12 @@ def _set_colour(catalog: GenCatalog, position: int, female: int, part: str) -> i
 
 def gen_looks(catalog: GenCatalog, plan: Iterable[PackModel],
               same: Mapping[tuple[str, int], tuple[int, ...]] | None = None,
-              taken: Mapping[str, Collection[int]] | None = None) -> GenLooks:
+              taken: Mapping[str, Collection[int]] | None = None,
+              previews: Mapping[tuple[str, int], int] | None = None) -> GenLooks:
     """The looks of the pack `plan`. `same`: (slot, MHGen model) -> the MH4U models ((male, female) for armor)
     identical to a model the pack left out. `taken`: weapon class key -> the MH4U models a look of MH4U wears; a weapon
-    identical to a model of MH4U that none wears is a look at that model (None: every MH4U model has its look)."""
+    identical to a model of MH4U that none wears is a look at that model (None: every MH4U model has its look).
+    `previews`: GenLooks.preview_models."""
     plan, same = list(plan), same or {}
     ported = {(p.slot, p.source): p.model for p in plan}
     pack_models = defaultdict(set)
@@ -297,7 +302,7 @@ def gen_looks(catalog: GenCatalog, plan: Iterable[PackModel],
                 listed.append(part)
         sets.append(GenSet(look, models, tuple(listed), model_of[look.key], colours_of[look.key]))
     weapons, weapon_prices, weapon_models = _weapon_looks(catalog, plan, same, taken)
-    return GenLooks(sets, weapons, catalog, {**prices, **weapon_prices}, weapon_models)
+    return GenLooks(sets, weapons, catalog, {**prices, **weapon_prices}, weapon_models, dict(previews or {}))
 
 
 def _weapon_looks(catalog: GenCatalog, plan: list[PackModel], same: Mapping[tuple[str, int], tuple[int, ...]],

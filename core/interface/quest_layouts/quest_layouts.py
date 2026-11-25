@@ -20,8 +20,8 @@ Update's executable only; the version maps carry it to the base games.
 import struct
 from dataclasses import dataclass
 
-from core.game.executable.blocks import QUEST_LAYOUTS_DATA_SIZE
-from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target
+from core.game.executable.blocks import PACK_SLOTS, QUEST_LAYOUTS_DATA_SIZE
+from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, pack_of
 
 STUB, CODE, DATA = "quest_layouts_stub", "quest_layouts_code", "quest_layouts_data"
 ENTRIES, PATH = 5, 24           # quest_layouts.c ENTRIES, PATH
@@ -43,7 +43,9 @@ FREE_INDICES = range(722, 1526)
 class QuestLayout:
     """A feature's entry: its frame function (an address of its code block), its group's slot in the GUI manager and
     its layout's path in core_quest.arc without the language (the entry's name is "<lang>\\" + it). An empty path is a
-    frame only (FRAME_ONLY: no layout, so no slot is loaded or freed; its index is 0)."""
+    frame only (FRAME_ONLY: no layout, so no slot is loaded or freed; its index is 0). A frame function in a pack
+    (code_space.pack_of) gets its pack's slot + 1 in the index's high half: quest_layouts.c skips the entry while the
+    pack is out."""
     frame: int
     index: int
     path: str
@@ -52,7 +54,10 @@ class QuestLayout:
         encoded = self.path.encode("ascii")
         if len(encoded) >= PATH or not self.frame:
             raise CodeSpaceError(f"{self.path}: a path of at most {PATH - 1} characters and a frame function")
-        return ENTRY.pack(self.frame, self.index, encoded)
+        if not 0 <= self.index <= 0xFFFF:
+            raise CodeSpaceError(f"{self.path}: index {self.index:#x} is no GUI slot")
+        pack = pack_of(self.frame & ~1)
+        return ENTRY.pack(self.frame, self.index | (PACK_SLOTS[pack] + 1 << 16 if pack else 0), encoded)
 
 
 def _word(code: bytes | bytearray, at: int) -> bytes:
@@ -76,7 +81,7 @@ def entries(code: bytes | bytearray, layout: Layout) -> list[QuestLayout]:
     for i in range(ENTRIES):
         frame, index, path = ENTRY.unpack_from(code, at + i * ENTRY.size)
         if frame:
-            found.append(QuestLayout(frame, index, path.split(b"\x00")[0].decode("ascii")))
+            found.append(QuestLayout(frame, index & 0xFFFF, path.split(b"\x00")[0].decode("ascii")))
     return found
 
 

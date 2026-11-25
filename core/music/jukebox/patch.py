@@ -1,6 +1,7 @@
-"""The jukebox's engine in the executable: the block `jukebox` (jukebox.c and its
-units, jukebox.h), its data block (each track id's request, the replaced places' requests, the limits, the defaults,
-the menu's messages and lists) and three changes to the game's code (the menu's own: menu_patch.py):
+"""The jukebox's engine in the executable: the town's block `jukebox` (jukebox.c
+and its units, jukebox.h), the resident block `jukebox_save` (the card's store and load and what they reach), the data
+block (each track id's request, the replaced places' requests, the limits, the defaults, the menu's messages and
+lists) and three changes to the game's code (the menu's own: menu_patch.py):
 
 * FUN_00304990 (the town's theme selector): its exit, `mov r0, r4` at PICK_EXIT, calls jukebox_pick_stub, which
   returns the request the selector gives (the playlist's song in place of a replaced place's request);
@@ -8,7 +9,8 @@ the menu's messages and lists) and three changes to the game's code (the menu's 
   jukebox_command_pick, which runs the jukebox's frame (jukebox_tick) and then that call;
 * FUN_0030ace0 (the resume list's lookup): its first three instructions become `push {r1, lr}; bl
   jukebox_resume_index; pop {r1, pc}`, so the lookup answers from jukebox_resume_index (the game's answer for the
-  game's requests).
+  game's requests). The block `jukebox` is the town's pack's: while it is out the call's stub falls back to the
+  resident jukebox_resume_game, that answer alone.
 
 Update's executable only; the version maps carry it to the base games. The inputs (the catalogue and the request of
 each track the build has, `queue.jukebox_files`) come as arguments, so nothing of the game is read here.
@@ -20,11 +22,12 @@ import struct
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from core.game.executable.blocks import JUKEBOX_DATA_SIZE
-from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
+from core.game.executable.blocks import JUKEBOX_DATA_SIZE, JUKEBOX_SAVE
+from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, encode_bl, load_layout
 from core.music.jukebox.catalogue import Catalogue
 
 CODE, DATA, STATE = "jukebox", "jukebox_data", "jukebox_state"
+SAVE_CODE = JUKEBOX_SAVE        # the resident block: the card file's hooks (save_patch.py)
 # The saved layout's room (jukebox.h): the limits may not pass it
 PLAYLISTS, SONGS, NAME_CHARS = 8, 40, 10
 PLACES = 16                     # each list of replaced requests (jukebox.h JUKEBOX_PLACES)
@@ -181,6 +184,7 @@ def patch_jukebox(code: bytes, catalogue: Catalogue, requests: Mapping[int, int]
     layout = layout or load_layout()
     out = bytearray(code)
     try:
+        layout.place(out, SAVE_CODE)
         layout.place(out, CODE)
         layout.place(out, DATA, data_block(catalogue, requests, messages, menu))
     except CodeSpaceError as error:
@@ -189,12 +193,17 @@ def patch_jukebox(code: bytes, catalogue: Catalogue, requests: Mapping[int, int]
     layout.hook(out, PICK_EXIT, layout.symbol(CODE, "jukebox_pick_stub"), original=struct.pack("<I", MOV_R0_R4))
     layout.hook(out, COMMAND_PICK, layout.symbol(CODE, "jukebox_command_pick"), calls=TOWN_THEME)
     struct.pack_into("<I", out, RESUME_LOOKUP - BASE_ADDRESS, PUSH_R1_LR)
-    layout.hook(out, RESUME_LOOKUP + 4, layout.symbol(CODE, "jukebox_resume_index"),
-                original=struct.pack("<I", RESUME_WORDS[1]))
+    # a call of the resident answer for the game's requests first (jukebox_resume_game), which the hook's stub keeps
+    # as its fallback while the town's pack is out
+    game_answer = layout.symbol(SAVE_CODE, "jukebox_resume_game")
+    if _word(out, RESUME_LOOKUP + 4) != RESUME_WORDS[1]:
+        raise CodeSpaceError("unexpected code at the resume list's lookup: already patched")
+    out[RESUME_LOOKUP + 4 - BASE_ADDRESS:RESUME_LOOKUP + 8 - BASE_ADDRESS] = encode_bl(RESUME_LOOKUP + 4, game_answer)
+    layout.hook(out, RESUME_LOOKUP + 4, layout.symbol(CODE, "jukebox_resume_index"), calls=game_answer)
     struct.pack_into("<I", out, RESUME_LOOKUP + 8 - BASE_ADDRESS, POP_R1_PC)
     return bytes(out)
 
 
 __all__ = ["CATEGORIES", "CODE", "COMMAND_PICK", "DATA", "JukeboxError", "MENU_TRACKS", "MESSAGES", "MenuLists",
            "NEVER_REPLACED", "PICK_EXIT", "RESUME_LOOKUP", "STATE", "TOWN_THEME", "TRACK_ROOM", "data_block",
-           "patch_jukebox", "supports_jukebox"]
+           "SAVE_CODE", "patch_jukebox", "supports_jukebox"]

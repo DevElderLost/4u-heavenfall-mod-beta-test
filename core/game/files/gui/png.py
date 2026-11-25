@@ -34,6 +34,40 @@ def _paeth(a: int, b: int, c: int) -> int:
     return a if pa <= pb and pa <= pc else b if pb <= pc else c
 
 
+def _unfiltered(kind: int, row: bytearray, prev: bytearray, bpp: int, stride: int) -> bytearray:
+    """A row of `stride` bytes with its filter undone (PNG's five: none, sub, up, average, Paeth), `prev` the row
+    above undone. Each filter has its own loop: one loop working out all five for every byte was most of a picture's
+    time. A row cut short (the data ends early) raises IndexError, as that loop did."""
+    if len(row) < stride:
+        raise IndexError(f"a PNG row of {len(row)} bytes, not {stride}")
+    if kind == 0:
+        return row
+    if kind == 1:
+        for i in range(bpp, stride):
+            row[i] = (row[i] + row[i - bpp]) & 0xFF
+    elif kind == 2:
+        return bytearray((a + b) & 0xFF for a, b in zip(row, prev))
+    elif kind == 3:
+        for i in range(stride):
+            row[i] = (row[i] + ((row[i - bpp] if i >= bpp else 0) + prev[i]) // 2) & 0xFF
+    elif kind == 4:
+        for i in range(min(bpp, stride)):
+            row[i] = (row[i] + prev[i]) & 0xFF        # Paeth with no left neighbours is the byte above
+        for i in range(bpp, stride):
+            row[i] = (row[i] + _paeth(row[i - bpp], prev[i], prev[i - bpp])) & 0xFF
+    else:
+        raise IndexError(f"PNG filter type {kind}")
+    return row
+
+
+def _opaque(rgb: bytearray, width: int) -> bytes:
+    """8-bit RGB samples as RGBA, alpha 255."""
+    out = bytearray(b"\xff" * (4 * width))
+    for channel in range(3):
+        out[channel::4] = rgb[channel::3]
+    return bytes(out)
+
+
 def _samples(row: bytes, depth: int, count: int) -> list[int]:
     """`count` samples of a row (1, 2, 4, 8 or 16 bits each, 16 bits keep their high byte)."""
     if depth == 8:
@@ -83,13 +117,11 @@ def read_png(data: bytes) -> tuple[int, int, bytes]:
     pixels = bytearray()
     for y in range(height):
         kind = raw[y * (stride + 1)]
-        row = bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
-        for i in range(stride):
-            left = row[i - bpp] if i >= bpp else 0
-            up_left = prev[i - bpp] if i >= bpp else 0
-            row[i] = (row[i] + (0, left, prev[i], (left + prev[i]) // 2,
-                                _paeth(left, prev[i], up_left))[kind]) & 0xFF
+        row = _unfiltered(kind, bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)]), prev, bpp, stride)
         prev = row
+        if key is None and depth == 8 and colour in (2, 6):   # the bytes are the pixels already (RGB: alpha added)
+            pixels += row if colour == 6 else _opaque(row, width)
+            continue
         if key is not None:  # a colour key compares full samples, before 16 bits are cut to 8
             full = (_samples(row, depth, width * channels) if depth < 16
                     else list(struct.unpack(f">{width * channels}H", row)))

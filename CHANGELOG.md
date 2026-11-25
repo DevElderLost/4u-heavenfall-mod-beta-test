@@ -2,6 +2,20 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
+## Unreleased
+
+### Layered Gear
+- Layered Gear leaves out repeated looks: armor that looks the same on your hunter, and weapons.
+
+### Fixes
+- On Old 3DS consoles, Gogmazios' quests no longer freeze the game.
+- Trying on a Layered Gear look marks only that look, not others sharing its pieces.
+- With an HD texture pack, item icons and the quest HUD stay sharp with the web installer too (emulator only).
+- Monster Hunter XX's Felyne costumes like Navirou's show their face, not a hollow head.
+- Felyne costumes built on their own frame, like Navirou's, move as in Monster Hunter XX.
+- The Baki Combat Jutsu look fights bare-handed; its emblem shows only in Layered Gear's preview.
+- Monster Hunter XX's shields, sheaths and second blades show no white glow either.
+
 ## 0.2.2
 
 ### Weapon tree

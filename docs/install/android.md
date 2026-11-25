@@ -25,6 +25,6 @@ On Android you make the mod in your browser with the web installer, and play it 
 - **To uninstall:** delete the mod's folder from `load/mods/`. To play Monster Hunter 4 Ultimate without the mod this is all it takes: your hunters are already in MH4U's save, and what only Heavenfall Beta has comes back when you make the mod again ([details](../back_to_mh4u.md)).
 - **To update or change your options:** delete that folder too, then make the mod again and move in the new folder: old files left behind would still be loaded.
 
-The web installer does not make HD copies of the textures the mod changes for an HD texture pack.
+With an HD texture pack, the game's own pictures keep their HD look; the mod's own marks (the weapon tree's marks, the item wheel, the item stars, the target hint, the damage numbers) show at normal resolution, since the web installer cannot add HD pictures for them.
 
 Problems? See [questions and problems](../faq.md).

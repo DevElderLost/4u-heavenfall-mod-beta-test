@@ -31,6 +31,7 @@ PAGE_INSTALL = T("Instalar", "Install")
 PAGE_OPTIONS = T("Opciones", "Options")
 PAGE_RANDOMIZER = T("Randomizer", "Randomizer")
 PAGE_SAVES = T("Partidas", "Saves")
+PAGE_DEBUG = T("Debug", "Debug")      # the main edition's page of developer options (debug_page.py)
 PLATFORM_EMULATOR = T("Emulador", "Emulator")
 PLATFORM_3DS = T("3DS", "3DS")
 
@@ -52,6 +53,7 @@ ALL_PAGES = {
     "options": ("options_page", "OptionsPage", PAGE_OPTIONS),
     "randomizer": ("randomizer_page", "RandomizerPage", PAGE_RANDOMIZER),
     "saves": ("saves_page", "SavesPage", PAGE_SAVES),
+    "debug": ("debug_page", "DebugPage", PAGE_DEBUG),
 }
 PAGES = {key: ALL_PAGES[key] for key in edition().pages}    # the edition's, in its order
 

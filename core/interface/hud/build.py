@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Protocol
 
 from core.game.files.arc import parse_arc, write_arc
-from core.interface.hud.hint import GLYPH_ARCS, add_glyph, add_hint
+from core.interface.hud.hint import add_hint
 from core.game.files.gui.lanl import LANL_TYPE_HASH, parse_lanl
 from core.game.files.gui.lyt import LYT_TYPE_HASH, parse_lyt
 from core.interface.hud.scale import NO_EDGE, Anchor, AnchorSpec, anchor_all, anchor_point, scale_hud
@@ -67,6 +67,9 @@ HUD_SCALED_NULLS: dict[str, dict[str, tuple[str, ...]]] = {
 # 128x128 frame started at the screen's top-left corner, so its top-right corner is at (72, 120).
 # Only together with the executable patch (code_patch.patch_hud): the code places the map icons.
 MAP_ARC = re.compile(r"m\d\d(a\d\d)?_map\d?\.arc")
+# The other copies of the quest atlas qst00_ID, which earlier versions drew the hint's glyph into before it had a
+# texture of its own (hint.py): an earlier run's copies are removed
+OLD_GLYPH_ARCS = ("core_result.arc", "v05a00_map.arc")
 MINIMAP_ANCHOR = (72.0, 120.0)
 # Also only with the executable patch, which fixes what the code places: the map icons (they only change size)
 # and the mount gauge (its monster face).
@@ -145,22 +148,12 @@ def scale_arc(raw: bytes, layouts: Mapping[str, AnchorSpec | Mapping[str, Anchor
     return write_arc(arc)
 
 
-def glyph_files(rom: GameFiles) -> Iterator[tuple[str, bytes]]:
-    """(RomFS path, new ARC) of the other copies of the hint's texture (hint.GLYPH_ARCS but core_quest)."""
-    for lang in LANGUAGES:
-        for arc_name in GLYPH_ARCS:
-            if arc_name != QUEST_ARC:
-                path = f"{lang}/data/{arc_name}"
-                yield path, add_glyph(rom.read(path))
-
-
 def hint_files(rom: GameFiles) -> Iterator[tuple[str, bytes]]:
-    """(RomFS path, new ARC) of the quest HUD of each language with only the target switch hint (hint.py), and
-    the other copies of its texture."""
+    """(RomFS path, new ARC) of the quest HUD of each language with only the target switch hint (hint.py) and its
+    texture."""
     for lang in LANGUAGES:
         path = f"{lang}/data/{QUEST_ARC}"
         yield path, add_hint(rom.read(path))
-    yield from glyph_files(rom)
 
 
 def hud_files(rom: GameFiles, factor: float,
@@ -169,15 +162,13 @@ def hud_files(rom: GameFiles, factor: float,
     """(RomFS path, new ARC) of every file of the HUD size mod, for the 5 languages, all from the base game's
     copies (`rom`: the mod runs the base game's code and ships its data).
     `with_code_patch` adds the minimap and the mount gauge: only together with code_patch.patch_hud in the
-    executable. `target_hint` adds the target switch hint to the item selector, which then shrinks with it, and
-    the other copies of its texture. `edge` keeps the HUD at the edges of a picture of another shape, at any `factor`.
+    executable. `target_hint` adds the target switch hint and its texture to the item selector, which then shrinks
+    with it. `edge` keeps the HUD at the edges of a picture of another shape, at any `factor`.
     At full size nothing needs that patch: the mount gauge moves, the map and the talk windows stay the game's (the
     executable moves the map, cheats/aspect_ratio.py)."""
     smaller = factor < 1
     map_paths = [p for p in rom.walk() if p.split("/")[0] in LANGUAGES
                  and MAP_ARC.fullmatch(p.split("/")[-1])] if with_code_patch and smaller else []
-    if target_hint:
-        yield from glyph_files(rom)
     for lang in LANGUAGES:
         for arc_name in HUD_LAYOUTS:
             path = f"{lang}/data/{arc_name}"
@@ -209,12 +200,12 @@ def find_update() -> Path | None:
 
 
 def hud_paths(mod_dir: Path) -> list[Path]:
-    """Every file the HUD size mod can leave in a mod folder (core ARCs, the hint's texture copies and the map
-    ARCs)."""
+    """Every file the HUD size mod can leave in a mod folder (core ARCs, the map ARCs, and the copies of the quest
+    atlas earlier versions drew the hint's glyph into: OLD_GLYPH_ARCS)."""
     paths = []
     for lang in LANGUAGES:
         folder = Path(mod_dir) / "romfs" / lang / "data"
-        paths += [folder / name for name in dict.fromkeys([*HUD_LAYOUTS, *GLYPH_ARCS])]
+        paths += [folder / name for name in dict.fromkeys([*HUD_LAYOUTS, *OLD_GLYPH_ARCS])]
         if folder.is_dir():
             paths += [p for p in folder.iterdir() if MAP_ARC.fullmatch(p.name)]
     return paths

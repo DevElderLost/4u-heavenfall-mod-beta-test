@@ -92,6 +92,21 @@ class AppState(QObject):
     def personal(self, values: dict) -> None:
         self._set("install_options", dict(values), key="personal")
 
+    # -- the main installer's Debug tab (core/app/debug_options.py): field -> bool, every one off until ticked; empty in
+    # an edition without the tab. Kept apart from `personal`: no preset and no installer option holds it
+    @property
+    def debug(self) -> dict:
+        from core.app.edition import edition
+        if "debug" not in edition().pages:
+            return {}
+        from core.app.debug_options import defaults
+        base = defaults()
+        return {**base, **{k: bool(v) for k, v in self.preferences.debug_options.items() if k in base}}
+
+    @debug.setter
+    def debug(self, values: dict) -> None:
+        self._set("debug_options", dict(values), key="debug")
+
     # -- the platform (the window's selector)
     @property
     def console(self) -> bool:

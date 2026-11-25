@@ -20,10 +20,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.game.files.arc import Arc, ArcEntry, parse_arc, write_arc
-from core.game.executable.code_space import Layout, load_layout
+from core.game.executable.code_space import CodeSpaceError, Layout, branch_word, load_layout
 from core.equipment.mhgen import convert, equipment_pack as pack, sound
-from core.equipment.mhgen.felyne_face import (base_face_samples, dress_bare_skin, fit_head, hide_additive,
-                                               hide_second_form, hide_sheathed_form)
+from core.equipment.mhgen.felyne_face import (base_face_samples, draw_in_group_zero, dress_bare_skin, fit_head,
+                                               hide_additive, hide_second_form, hide_sheathed_form)
 from core.equipment.mhgen.gear_data import FELYNE_WEAPON_SIZE, XX_FORMAT, GenGame
 from core.equipment.mhgen.felyne_skin import reweight_cloth
 from core.equipment.mhgen.tables import CODE_BASE, hair_flags, repoint
@@ -62,6 +62,10 @@ HEAD_CLOTH, HEAD_CLOTH_LITERALS = 0xFB832C, (0x6963F0, 0x6972C4, 0x6993FC)
 SOUND_PATHS, SOUND_PATH_LITERALS = 0xEFC4FC, (0x30F188,)
 SOUND_SLOT = 32                # a block of FELYNE_IDS - FIRST_MODEL strings of this size
 SOUND_PATH = "sound\\se\\otomo\\wp\\snd_otm_wp{:03d}"
+LOBBY_JOINTS = 0x697B00        # FUN_00697b00(manager, actor): str r4, [sp, #-4]!, the whole function replaced
+QUEST_JOINTS = 0x699D5C        # FUN_00699d5c(manager, actor, model, pair): push {r4-r9, lr}
+SCENE_JOINTS = 0x1A15E4        # FUN_001a0ab8: ldr r1, [sp, #8], its body before FUN_006997c4, r4 the actor
+JOINT_WORDS = {LOBBY_JOINTS: 0xE52D4004, QUEST_JOINTS: 0xE92D43F0, SCENE_JOINTS: 0xE59D1008}
 
 # The masks' bits: set shows the base model's part (FUN_001a0ab8; a clear bit hides it). The base's other head
 # groups are bits 0, 4, 5, 8, the body's 1, 2, 3, 6, 7, 9, 10: a converted piece hides them all.
@@ -263,7 +267,8 @@ def head_arc(source: bytes, source_shaders, target_shaders, model: FelyneModel,
     helms whose bit of HEAD_CLOTH is set. A helm that shows the base's eyes or ears (head_mask) gets every surface
     that lies on them sunk behind them (felyne_face.fit_head; `faces`: face_samples of the base Felyne): the two
     would share their depth and win some pixels in each frame. Without `faces` only the skin patch of a helm that
-    shows the eyes is hidden. `skin`, `forms`: as _armor_arc; a helm's bare copy of the head is such a patch."""
+    shows the eyes is hidden. `skin`, `forms`: as _armor_arc; a helm's bare copy of the head is such a patch. Last,
+    every mesh it draws goes to group 0, the one the game draws on a helm (felyne_face.draw_in_group_zero)."""
     arc = _armor_arc(source, source_shaders, target_shaders, model, True, skin, forms)
     mask = game_head_mask(parse_arc(source))
     samples = [p for bit, kind in ((HEAD_EYES, "eyes"), (HEAD_EARS, "ears")) if mask & bit and faces
@@ -271,6 +276,7 @@ def head_arc(source: bytes, source_shaders, target_shaders, model: FelyneModel,
     head = faces["head"] if mask & HEAD_FACE and faces and "head" in faces else ()
     fit_head(arc, target_shaders[1], samples, bool(mask & HEAD_EYES), head)
     hide_additive(arc, target_shaders[1])
+    draw_in_group_zero(arc)
     return arc
 
 
@@ -552,8 +558,8 @@ def moved_sound_table(code: bytes, weapons: Collection[int], paths: int) -> byte
 def patch_executable(code: bytes, needs: FelyneNeeds, layout: Layout | None = None) -> bytes:
     """`code` (the update's executable) with the per-model tables of `needs` (a Felyne model past 113): the head
     and body masks, the helm cloth bits and the weapons' sound paths moved to the extension with their readers
-    repointed. A second call adds its models to the tables the first moved (the ported monsters' sets, then layered
-    equipment's looks). Nothing to patch leaves `code` alone. Refuses another executable."""
+    repointed; with a body, the Felyne takes the body's skeleton (patch_joints). A second call adds its models to the
+    tables the first moved (ported sets, then Layered Gear). Nothing to patch leaves `code` alone; refuses another."""
     if not (needs.head_masks or needs.body_masks or needs.head_cloth or needs.weapons):
         return code
     layout = layout or load_layout()
@@ -590,4 +596,23 @@ def patch_executable(code: bytes, needs: FelyneNeeds, layout: Layout | None = No
             layout.place(out, "felyne_sound_paths", sound_paths(needs.weapons))
             layout.place(out, "felyne_sound_table", moved_sound_table(code, needs.weapons, paths), pointers=True)
             out = bytearray(repoint(bytes(out), SOUND_PATH_LITERALS, SOUND_PATHS, table))
+    if needs.body_masks:
+        patch_joints(out, layout)
     return bytes(out)
+
+
+def patch_joints(code: bytearray, layout: Layout) -> None:
+    """A Felyne takes its body piece's skeleton (felyne_joints.c): FUN_00697b00 becomes the block's lobby function, and
+    FUN_00699d5c's start and FUN_001a0ab8's body go
+    through its stubs. A second call finds it done; another executable is refused."""
+    lobby = layout.symbol("felyne_joints", "felyne_lobby_joints")
+    if code[LOBBY_JOINTS - CODE_BASE:LOBBY_JOINTS - CODE_BASE + 4] == branch_word(LOBBY_JOINTS, lobby):
+        return
+    if any(struct.unpack_from("<I", code, at - CODE_BASE)[0] != word for at, word in JOINT_WORDS.items()):
+        raise CodeSpaceError("unexpected code where a Felyne takes its body's joints: not the update's executable")
+    layout.place(code, "felyne_joints")
+    layout.place(code, "felyne_joints_stubs")
+    for at, target, link in ((LOBBY_JOINTS, lobby, False),
+                             (QUEST_JOINTS, layout.symbol("felyne_joints_stubs", "felyne_quest_joints_entry"), False),
+                             (SCENE_JOINTS, layout.symbol("felyne_joints_stubs", "felyne_scene_joints_stub"), True)):
+        layout.hook(code, at, target, original=struct.pack("<I", JOINT_WORDS[at]), link=link)

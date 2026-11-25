@@ -130,9 +130,13 @@ def word(code: bytes, address: int) -> int:
 
 
 def _moved(code: bytes, address: int) -> int | None:
-    """The offset a pool word points at when it is not the game's table (a table moved into the executable)."""
+    """The offset a pool word points at when it is not the game's table (a table moved into the executable, or into
+    the town's pack the run has an image of: the recipes, read with packs.read_at)."""
+    from core.game.executable.packs import read_at, pack_of     # not at import: blocks.py imports this module
     value = word(code, address)
-    return value - BASE if BASE <= value < BASE + len(code) else None
+    if BASE <= value < BASE + len(code):
+        return value - BASE
+    return value - BASE if pack_of(value) is not None and read_at(code, value - BASE, 1) else None
 
 
 def _used(code: bytes, offset: int, size: int, floor: int, end: int) -> int:
@@ -146,9 +150,11 @@ def _used(code: bytes, offset: int, size: int, floor: int, end: int) -> int:
 
 
 def _listed(code: bytes, offset: int) -> int:
-    """Records before the 0xFF that ends a create recipe table."""
+    """Records before the 0xFF that ends a create recipe table (of the executable, or of the town's pack's image)."""
+    from core.game.executable.packs import read_at     # not at import: blocks.py imports this module
     count = 0
-    while offset + (count + 1) * RECIPE_RECORD_SIZE <= len(code) and code[offset + count * RECIPE_RECORD_SIZE] != 0xFF:
+    while len(record := read_at(code, offset + count * RECIPE_RECORD_SIZE, RECIPE_RECORD_SIZE)) == RECIPE_RECORD_SIZE \
+            and record[0] != 0xFF:
         count += 1
     return count
 

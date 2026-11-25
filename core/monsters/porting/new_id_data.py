@@ -17,6 +17,9 @@ SAVE_IDS = 128                 # the ids the game's save keeps hunt, capture and
 NEW_IDS = ID_LIMIT - FIRST_NEW_ID
 NO_MONSTER = 0                 # id 0: the entry new ids get when they copy no monster
 C_DEFINES = (f"FIRST_NEW_ID={FIRST_NEW_ID}", f"ID_LIMIT={ID_LIMIT}")     # new_id.c's macros (BlockSpec.defines)
+# The product's new_id.c: its quest's monster list also has the packs' loader bring their packs in (pack_loader.c). A
+# probe's own layout (new_id.blocks) builds it without.
+LOADER_DEFINES = (*C_DEFINES, "PACK_LOADER=1")
 
 
 @dataclass(frozen=True)

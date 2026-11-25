@@ -37,21 +37,39 @@ def raw(value):
 
 class OptionsPage(Page):
     title = TITLE
+    note = T_NOTE
+    state_key = "personal"      # the AppState value this page owns (the Debug page's is "debug")
+
+    def sections(self):
+        """The tabs of the page's form."""
+        from core.gui.options import INSTALL_SECTIONS
+        return INSTALL_SECTIONS
+
+    def defaults(self) -> dict:
+        """The page's fields with their starting values."""
+        from core.app.presets import personal_defaults
+        return personal_defaults()
+
+    def stored(self) -> dict:
+        """The choices kept in the AppState."""
+        return self.state.personal
+
+    def store(self, values: dict) -> None:
+        """Keeps `values` (the page's fields, as saved) in the AppState."""
+        self.state.personal = values
 
     def __init__(self, state: AppState, finder: Discovery | None = None, runner: Jobs | None = None):
         super().__init__()
-        from core.app.presets import personal_defaults
-        from core.gui.options import INSTALL_SECTIONS
         self.state = state
         self.finder = finder or Discovery()
-        self._fields = set(personal_defaults())
+        self._fields = set(self.defaults())
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 28, 32, 28)
         layout.setSpacing(10)
-        layout.addWidget(label(TITLE, "title"))
-        layout.addWidget(label(T_NOTE, "muted"))
-        self.form = SettingsForm(INSTALL_SECTIONS)
-        self.form.set_values({**personal_defaults(), **state.personal})
+        layout.addWidget(label(self.title, "title"))
+        layout.addWidget(label(self.note, "muted"))
+        self.form = SettingsForm(self.sections())
+        self.form.set_values({**self.defaults(), **self.stored()})
         self.form.changed.connect(self._edited)
         layout.addWidget(self.form, 1)
         row = QHBoxLayout()
@@ -76,7 +94,7 @@ class OptionsPage(Page):
         self._update_button()
 
     def on_shown(self) -> None:
-        self.form.set_values({**self.form.values(), **self.state.personal})
+        self.form.set_values({**self.form.values(), **self.stored()})
         self._update_button()
 
     # -- the values
@@ -85,11 +103,11 @@ class OptionsPage(Page):
         return {field: raw(value) for field, value in self.form.values().items() if field in self._fields}
 
     def _edited(self, _field: str) -> None:
-        self.state.personal = self.personal_values()
+        self.store(self.personal_values())
 
     def _state_changed(self, key: str) -> None:
-        if key == "personal":
-            self.form.set_values(self.state.personal)
+        if key == self.state_key:
+            self.form.set_values(self.stored())
         if key in ("busy", "target", "sd_root", "console"):
             self._update_button()
 

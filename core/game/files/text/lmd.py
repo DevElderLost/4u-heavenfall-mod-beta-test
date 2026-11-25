@@ -143,12 +143,22 @@ class Lmd:
         return index
 
     def _add_label(self) -> int:
+        """A new label whose hash no other label has. The hashes are kept between calls (a file given hundreds of
+        messages gathered them anew each time: a tenth of the interface files' time), taken again whenever the label
+        list is not the one they were taken from (another list, or a length this method did not leave): labels are
+        only ever appended or given new nodes with their hash kept."""
         index = len(self.labels)
-        hashes = {h for h, _ in self.labels}
+        kept = self.__dict__.get("_label_hashes")
+        if kept is not None and kept[0] is self.labels and kept[1] == index:
+            hashes = kept[2]
+        else:
+            hashes = {h for h, _ in self.labels}
         label = zlib.crc32(f"{self.name}_layered_{index}".encode())
         while label in hashes:
             label = (label + 1) & 0xFFFFFFFF
         self.labels.append((label, DEFAULT_FLAG << 22 | len(self.nodes)))
+        hashes.add(label)
+        self.__dict__["_label_hashes"] = (self.labels, index + 1, hashes)
         return index
 
 

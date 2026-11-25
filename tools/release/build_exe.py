@@ -73,6 +73,8 @@ RESOURCES = ASSET_FOLDERS + (
     "install/title/certs.bin",      # the CIA's certificate chain (install/title/cia.py)
     # code_space.json: the code added to the executable, and the game versions' maps
     "game/executable/generated",
+    # the RAM manager's log's row numbers (diagnostics/memory_diag.py reads them; the Debug tab's option)
+    "diagnostics/memory_diag.h",
     # the ported monsters' recordings of what the game's code does with its files
     "monsters/alatreon/recordings.json",
     "monsters/glavenus/recordings_em080.json",
@@ -112,7 +114,9 @@ EXCLUDES = ("numpy", "pytest", "_pytest", "xdist", "execnet", "unicorn", "capsto
 # (tests/tools/release/test_packaging.py).
 TOOLS_ONLY = ("core.interface.game_gui.check", "core.interface.game_gui.edit", "core.interface.game_gui.fidelity",
               "core.interface.game_gui.gallery", "core.interface.game_gui.render",
-              "core.install.title.patchset")           # the release patch sets' writer (numpy): tools/release only
+              "core.install.title.patchset",           # the release patch sets' writer (numpy): tools/release only
+              "core.equipment.layered.alike")          # the Layered Gear looks' comparer (numpy, B115): its
+#                                                        generated file is tools/build/build_layered_alike.py's
 # The command line has no Qt.
 CLI_EXCLUDES = ("PySide6", "shiboken6")
 # The updater (tools/release/exe/heavenfall_update.py) is one file with the standard library and these modules of the

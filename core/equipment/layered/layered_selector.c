@@ -11,6 +11,11 @@
  *   Relics  -> [Weapons] [Armor] on menu 18 -> as the entry's, screens of the relics alone (layered_ui.relics)
  * B goes back a level, and from the entry to the Smithy's menu. The forge-style screens are layered_forge.c.
  *
+ * Two blocks: this file is the resident block layered_selector, whose
+ * hooks run in town, quest and online (the looks applied), and the stubs of the menus below stay in it; what those
+ * stubs call (layered_menu_names, layered_open, layered_update and the item box's three) is the town block
+ * layered_town (layered_menu.c, layered_forge.c), which only town runs and which alone reads layered_rules.
+ *
  * Hooks (ARM, below; the patcher points the game at them):
  *   layered_menu_count     0xA52920  "ldrb r0, [r1, r0]": the lines of a menu
  *   layered_menu_lines     0xA52C54  "ldr r0, =0xDF2814": the (file, message) table of the menus
@@ -37,9 +42,6 @@
 
 #include "layered.h"
 
-GAME u32 menu_cursor_init(u32 obj, void *cursor, u32 count, u32 rows, u32 disabled, u32 a_sound, u32 v_sound,
-                          u32 h_sound);                                /* FUN_009bc954 */
-GAME u32 menu_cursor_update(u32 obj, void *cursor, u32 extra);         /* FUN_009bc9b4: 1 A, 2 B */
 GAME u32 armor_model(u32 equipment, const u8 *record, u32 gender, u32 fallback);  /* FUN_002f4258 */
 GAME u32 weapon_model(u32 equipment, const u8 *record);                /* FUN_002f0fd4 */
 GAME void hunter_equip(u32 hunter, const u8 *record);                  /* FUN_00b0ab90: armor piece */
@@ -50,7 +52,6 @@ GAME void save_copy_out(u32 save, u8 *buffer, u32 size);               /* FUN_00
 
 /* The game's variables and tables, by their names in game/executable/blocks.py GAME_SYMBOLS (never a raw address: the link's
    relocations move them to another game version) */
-extern const u8 menu_line_texts[];
 #define GAME_STATE game_control                 /* +0x2B 2 in the lobby, +0x2F the local player's index */
 #define EQUIPMENT equipment_control             /* the equipment data object of the getters */
 #define LOADER ((u32)lobby_hunter_loader)       /* the lobby's hunter model loader */
@@ -66,18 +67,8 @@ extern const u8 menu_line_texts[];
 #define SELECT_SLOTS 3
 #define SELECT_INFO 0x190        /* the hunter select screen's player info of each slot */
 #define SLOT_SIZE 0x15204        /* a slot's buffer: the save data of its file, as read */
-#define STATE_ROW 0x21           /* row of the Smithy menu's cursor */
-#define WEAPON_MENU 6            /* and 7 */
 #define LEVEL_CLASSES 1
 _Static_assert(CLASSES_MENU == LEVEL_CLASSES, "layered_menu_drawn");
-#define CLASS_ROWS 7
-#define LINE_TEXTS menu_line_texts               /* per line (7: the cursor's copy): its first text pane */
-#define MENU_TEXTS 0xC           /* the facility menu's panes (FUN_00a528e0): r6 = obj + 0x98D0 holds (a, node) refs */
-#define DRAWN_MENU 0x1AC         /* + 0x98D0: obj + 0x9A7C, the menu drawn; + 1 its row */
-#define CURSOR_LINE 7
-#define NAME_SLOT 0              /* the text renderer's string slot the money uses too (FUN_00c0da68), shown by a
-                                    number node (2, 100): our E_makeshop message msg_counter (Common's 0 adds "z") */
-#define CAT_NAME 12              /* a Felyne's name at the start of its record: UTF-16, at most this many characters */
 
 struct debug { u16 saves, loads, marked, preloads; };   /* the variable layered_debug, read by the probes */
 _Static_assert(sizeof(struct debug) == 8, "layered_debug size (game/executable/blocks.py)");
@@ -315,6 +306,21 @@ int known_weapon(u32 index, u32 model)
     return 0;
 }
 
+/* The model the screens' preview hunter wears for the weapon look `model` of class `index`: the preview copy a record
+   of that model names, which draws the parts MH XX shows only in its Smithy's craft display (every other hunter wears
+   `model`, where those parts are hidden), else `model`. */
+static u32 preview_model(u32 index, u32 model)
+{
+    for (u32 c = 0; c < 2; c++) {
+        const struct catalog *k = &D->catalogs[c];
+        const struct weapon *w = (const struct weapon *)(layered_data + k->weapon_offset[index]);
+        for (u32 pos = 0; pos < k->weapon_count[index]; pos++)
+            if (w[pos].model == model && w[pos].preview)
+                return w[pos].preview;
+    }
+    return model;
+}
+
 /* `st` without the looks this build lacks. */
 static void keep_known(struct layered_state *st)
 {
@@ -526,7 +532,8 @@ ARM void layered_dye_refresh(void)
         hunter_dyes(PREVIEW_HUNTER);
 }
 
-/* The weapon getter's calls: a look of the weapon's own class (equipment type - 7) only. */
+/* The weapon getter's calls: a look of the weapon's own class (equipment type - 7) only; the screens' preview wears the
+   look's preview copy when it has one. */
 ARM u32 layered_weapon_model(u32 equipment, const u8 *record)
 {
     u32 model = weapon_model(equipment, record);
@@ -534,7 +541,7 @@ ARM u32 layered_weapon_model(u32 equipment, const u8 *record)
     const struct layered_state *s = looks_of((const u8 *)layered_preview.status, &other);
     u32 index = record[0] - 7u;
     if (s && index < 14 && s->weapon[index] && (checked(s, &other) || known_weapon(index, s->weapon[index])))
-        model = s->weapon[index];
+        model = s == &layered_preview.state ? preview_model(index, s->weapon[index]) : s->weapon[index];
     return model;
 }
 
@@ -667,297 +674,3 @@ u32 small_divide(u32 a, u32 b)
     return q;
 }
 
-/* ----- the entry list, the classes, the cats --------------------------------------------------------------- */
-
-static void open_cursor(u32 obj, u32 count, u32 rows, u32 index)
-{
-    struct cursor *c = &layered_ui.cursor;
-    menu_cursor_init(obj, c, count, rows, 0, SOUND_DECIDE, SOUND_CURSOR, SOUND_PAGE);
-    c->col = small_divide(index, rows);
-    c->row = index - c->col * rows;
-    c->index = index;
-    *(u8 *)(obj + OBJ_SHOWN) = 0xFE;
-}
-
-/* Menu 18 shows `count` lines of `messages`, the cursor on `row`. */
-static void show_lines(u32 obj, u32 level, const u16 *messages, u32 count, u32 row)
-{
-    struct ui *u = &layered_ui;
-    u->level = level;
-    u->count = count;
-    for (u32 i = 0; i < count; i++) {
-        u->lines[i][0] = MAKESHOP;
-        u->lines[i][1] = messages[i];
-    }
-    open_cursor(obj, count, count, row);
-}
-
-/* The entry's last line, Relics: below Felyne, which is there with the Felynes' models in the run. */
-static u32 relics_line(void)
-{
-    return felyne_looks_data.total ? 3 : 2;
-}
-
-/* Weapons, Armor, Felyne (with the Felynes' models in the run) and Relics; the normal screens from here. */
-static void show_entry(u32 obj, u32 row)
-{
-    u16 messages[4] = {D->msg_weapons, R->messages[MSG_ARMOR], felyne_looks_data.msg_felynes, 0};
-    u32 last = relics_line();
-    messages[last] = R->msg_relics;
-    layered_ui.relics = 0;
-    show_lines(obj, ENTRY, messages, last + 1, row);
-}
-
-/* Relics' Weapons and Armor: the screens from here list the relics alone (layered_forge.c, on_screen). */
-static void show_relics(u32 obj, u32 row)
-{
-    u16 messages[2] = {D->msg_weapons, R->messages[MSG_ARMOR]};
-    layered_ui.relics = 1;
-    show_lines(obj, RELICS, messages, 2, row);
-}
-
-/* The two active cats: blank lines, their names written once the menu is drawn (layered_menu_names). */
-static void show_cats(u32 obj, u32 row)
-{
-    u16 blank[FELYNE_MAX_ACTIVE] = {D->msg_blank, D->msg_blank};
-    show_lines(obj, CATS, blank, FELYNE_MAX_ACTIVE, row);
-}
-
-static void show_classes(u32 obj)
-{
-    layered_ui.level = CLASSES_MENU;
-    open_cursor(obj, CLASSES, CLASS_ROWS, layered_ui.class_index);
-}
-
-/* The menu of the level shown, at the cursor. */
-static u32 menu_shown(void)
-{
-    struct ui *u = &layered_ui;
-    return u->level == CLASSES_MENU ? WEAPON_MENU + u->cursor.col : LAYERED_MENU;
-}
-
-/* The Felyne line chosen: none active stays here, one opens his screen, two ask which. */
-static void open_felynes(u32 obj)
-{
-    const u8 *cats[FELYNE_MAX_ACTIVE];
-    u32 count = felyne_active(cats);
-    felyne_ui.cat = 0;
-    if (!count)
-        play(SOUND_ERROR);
-    else if (count == 1)
-        forge_open(obj, M_FELYNE);
-    else
-        show_cats(obj, 0);
-}
-
-static void choose(u32 obj, u32 index)
-{
-    struct ui *u = &layered_ui;
-    if (u->level == ENTRY || u->level == RELICS) {
-        if (index == 0)
-            show_classes(obj);
-        else if (index == 1)
-            forge_open(obj, M_ARMOR);
-        else if (index == relics_line())
-            show_relics(obj, 0);
-        else
-            open_felynes(obj);
-    } else if (u->level == CATS) {
-        felyne_ui.cat = index;
-        forge_open(obj, M_FELYNE);
-    } else {
-        u->class_index = index;
-        forge_open(obj, M_WEAPON);
-    }
-}
-
-static void back(u32 obj, u8 *state)
-{
-    struct ui *u = &layered_ui;
-    if (u->level == CATS) {
-        show_entry(obj, 2);
-    } else if (u->level == RELICS) {
-        show_entry(obj, relics_line());
-    } else if (u->level == CLASSES_MENU) {
-        if (u->relics)
-            show_relics(obj, 0);
-        else
-            show_entry(obj, 0);
-    } else {
-        if (u->from_box) {
-            u->box_state |= BOX_LEAVING;                /* the box's menu again (layered_box_frame, layered_box_down) */
-        } else {
-            state[0] = 1;  /* the Smithy's menu again, on our line */
-            facility_menu_set(obj, u->smithy_menu, u->smithy_row, 0xFF);
-        }
-        if (*(u32 *)(obj + OBJ_HUNTER))
-            hunter_reload(*(u32 *)(obj + OBJ_HUNTER), 0);   /* the real hunter wears the looks chosen */
-        layered_net_state_left();                           /* and the other players see them */
-        if (felyne_ui.dirty && felyne_looks_data.total)
-            felyne_refresh(obj);                            /* and the cats in the area theirs */
-    }
-}
-
-void forge_back_to_menu(u32 obj)
-{
-    struct ui *u = &layered_ui;
-    const u8 *cats[FELYNE_MAX_ACTIVE];
-    if (u->mode == M_WEAPON)
-        show_classes(obj);
-    else if (u->mode == M_FELYNE && felyne_active(cats) > 1)
-        show_cats(obj, felyne_ui.cat);
-    else if (u->relics)
-        show_relics(obj, 1);
-    else
-        show_entry(obj, u->mode == M_FELYNE ? 2 : 1);
-    /* The game shows ui401's groups again only on a change from no menu: open_cursor's redraw value would skip them. */
-    *(u8 *)(obj + OBJ_SHOWN) = NO_MENU;
-    facility_menu_set(obj, menu_shown(), u->cursor.row, 0xFF);
-}
-
-
-/* Facility menu line `line` shows a cat's name, by the text renderer's string slot and our message of that slot alone
-   (as the counter): a name is no message of the game's. */
-static void name_line(u32 menu, u32 line, const u8 *cat)
-{
-    struct ref *pane = (struct ref *)(menu + MENU_TEXTS) + LINE_TEXTS[line];
-    u16 name[CAT_NAME + 1];
-    u32 length = 0;
-    while (length < CAT_NAME && (cat[2 * length] || cat[2 * length + 1])) {
-        name[length] = cat[2 * length] | cat[2 * length + 1] << 8;
-        length++;
-    }
-    name[length] = 0;
-    text_slot(NAME_SLOT, name, length);
-    text_lobby(pane, MAKESHOP, D->msg_counter);
-    text_show(*(u32 *)(pane->node + 8), 1);
-    u8 *node = *(u8 **)(pane->node + 0x14), *dirty = *(u8 **)(node + 0xC);
-    if (dirty)
-        dirty[0x12] = 3;
-    else
-        pane_redraw(pane->group, (u32)node);
-}
-
-/* layered_menu_drawn: menu 18 drawn (r6 = obj + 0x98D0): on the cats' level each line and the cursor's copy show their
-   cat's name. */
-ARM void layered_menu_names(u32 menu)
-{
-    const u8 *cats[FELYNE_MAX_ACTIVE];
-    if (layered_ui.level != CATS)
-        return;
-    u32 count = felyne_active(cats), row = *(u8 *)(menu + DRAWN_MENU + 1);
-    for (u32 i = 0; i < count; i++)
-        name_line(menu, i, cats[i]);
-    if (row < count)
-        name_line(menu, CURSOR_LINE, cats[row]);
-}
-
-/* layered_smithy_open: the Smithy menu's Layered Gear line was chosen. */
-ARM void layered_open(u32 obj, u8 *state)
-{
-    struct ui *u = &layered_ui;
-    u->smithy_menu = *(u8 *)(obj + OBJ_MENU);
-    u->smithy_row = state[STATE_ROW];
-    u->from_box = 0;             /* the Smithy's screens sell, */
-    u->box_state = 0;            /* and nothing a box left behind stops their menu */
-    u->refused = 0;
-    felyne_ui.dirty = 0;
-    state[0] = LAYERED_STATE;
-    play(SOUND_DECIDE);
-    show_entry(obj, 0);
-    facility_menu_set(obj, LAYERED_MENU, 0, 0xFF);
-}
-
-/* The help line: of the screen's mode, or of the entry's levels. */
-u32 help_message(void)
-{
-    struct ui *u = &layered_ui;
-    const u8 *cats[FELYNE_MAX_ACTIVE];
-    if (u->level == FORGE)
-        return R->messages[u->mode == M_WEAPON ? MSG_HELP_WEAPONS : u->mode == M_ARMOR ? MSG_HELP_ARMOR : MSG_HELP_FELYNE];
-    if (u->refused)
-        return R->msg_none[u->refused - 1];
-    if (u->level == CATS)
-        return felyne_looks_data.msg_choose;
-    if (u->level == CLASSES_MENU || u->cursor.index == 0)
-        return R->messages[MSG_HELP_WEAPONS];
-    if (u->cursor.index == 1)
-        return R->messages[MSG_HELP_ARMOR];
-    if (u->cursor.index == relics_line())
-        return R->msg_help_relics;
-    return felyne_active(cats) ? R->messages[MSG_HELP_FELYNE] : felyne_looks_data.msg_none;
-}
-
-/* layered_smithy_update: every frame of the Smithy's state 3 (layered_box_frame: of the box's BOX_STATE, `state` the box
-   menu). */
-ARM void layered_update(u32 obj, u8 *state)
-{
-    struct ui *u = &layered_ui;
-    if (u->level == FORGE) {
-        forge_update(obj);
-        return;
-    }
-    facility_help(1, MAKESHOP, help_message());
-    u32 at = u->cursor.index;
-    u32 result = menu_cursor_update(obj, &u->cursor, 0);
-    if (result || u->cursor.index != at)
-        u->refused = 0;          /* a refusal's help lasts until the cursor moves (choose may refuse again) */
-    if (result == 2)
-        back(obj, state);
-    else if (result == 1)
-        choose(obj, u->cursor.index);
-    /* At a box, only leaving stops the menu (BOX_FRAME alone is the box's frame to bind again later); the Smithy never
-       reads the box's flags */
-    if (state[0] != (u->from_box ? BOX_STATE : LAYERED_STATE) || u->level == FORGE
-        || (u->from_box && u->box_state & (BOX_LEAVING | BOX_DOWN)))
-        return;
-    facility_menu_set(obj, menu_shown(), u->cursor.row, 0xFF);
-}
-
-/* ----- from the item box (layered_box.c) ----------------------------------------------------------------------- */
-
-#define FRAME_BOUND 0x50         /* the preview's frame widget (obj + OBJ_FRAME): 1 once FUN_0059e5d0 bound it */
-
-/* layered_box_open: the item box's Layered Gear line was chosen (FUN_00a46694 played the decide sound, FUN_00a9a38c hid
-   the box's menu); `menu` is the box menu, whose state byte the screens then run in. The facility menu is opened with
-   FUN_00a5d584, which binds its panes (scene + 0x98D0) as the Smithy's first state does: a box of an area whose Smithy
-   was never visited has them unbound. */
-ARM void layered_box_entry(u32 obj, u8 *menu)
-{
-    struct ui *u = &layered_ui;
-    u->from_box = 1;             /* equip only */
-    u->box_state = *(u8 *)(obj + OBJ_FRAME + FRAME_BOUND) ? BOX_FRAME : 0;
-    u->refused = 0;
-    felyne_ui.dirty = 0;
-    box_screens_open(obj);
-    menu[0] = BOX_STATE;
-    show_entry(obj, 0);
-    facility_menu_open(obj, LAYERED_MENU, 0, 0xFF);
-}
-
-/* layered_box_state: every frame of the box's BOX_STATE: the screens, and the facility menu drawn as the Smithy's own tail
-   draws it; 2 once the entry was left: the box takes the screens down (its FUN_00a9a38c: layered_box_down), then
-   rebuilds its menu, the cursor still on the line. Nothing once they are down (the box closed by force keeps the state). */
-ARM u32 layered_box_frame(u32 obj, u8 *menu)
-{
-    struct ui *u = &layered_ui;
-    if (u->box_state & BOX_DOWN)
-        return 0;
-    layered_update(obj, menu);
-    if (u->box_state & BOX_LEAVING)
-        return 2;
-    facility_menu_draw(obj);
-    return 0;
-}
-
-/* FUN_00a9a38c, the box's way out of a state, with BOX_STATE: B on the entry, or the box closed by force (a quest, the
-   network). The screens go, once. */
-ARM void layered_box_down(u32 obj, u8 *menu)
-{
-    struct ui *u = &layered_ui;
-    (void)menu;
-    if (!u->from_box || u->box_state & BOX_DOWN)
-        return;
-    u->box_state |= BOX_DOWN;
-    box_screens_close(obj);
-}

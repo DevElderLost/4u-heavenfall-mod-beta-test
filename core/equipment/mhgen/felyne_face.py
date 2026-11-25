@@ -190,9 +190,9 @@ def hide_skin_patch(arc: Arc, records: dict[int, str]) -> None:
     """Hide the skin patches (skin_patch_meshes) of the model in archive `arc` (a converted helm; `records`: MH4U's
     shader package's): a helm that shows the base head's skin needs no patch, XX's cream skin and copy of XX's head
     (hide_meshes). An archive without a skin patch stays."""
-    mrl = next((e for e in arc.entries if e.type_hash == convert.MRL), None)
     for entry in arc.entries:
-        if entry.type_hash == convert.MOD and mrl is not None:
+        mrl = material_list(arc, entry) if entry.type_hash == convert.MOD else None
+        if mrl is not None:
             patches = skin_patch_meshes(entry.data, mrl.data, records)
             if patches:
                 entry.data = hide_meshes(entry.data, patches)
@@ -267,16 +267,23 @@ def hide_apart(mod: bytes, meshes: Collection[int], what: str) -> bytes:
     return collapse_strips(hide_meshes(mod, floats), strips)
 
 
+def material_list(arc: Arc, mod: ArcEntry) -> ArcEntry | None:
+    """The material list (MRL) of model `mod` in archive `arc`: the one of its name (a weapon of two models, the dual
+    blades' blades, a sword and its shield or sheath, carries one each, B160), else the archive's first."""
+    mrls = [e for e in arc.entries if e.type_hash == convert.MRL]
+    return next((e for e in mrls if e.name == mod.name), mrls[0] if mrls else None)
+
+
 def hide_additive(arc: Arc, records: dict[int, str]) -> int:
-    """Hide the additive meshes (additive_meshes) of the model in archive `arc` (`records`: MH4U's shader package's;
-    hide_apart): an additive pass over a converted piece is a white veil and a halo at any strength of its colours,
-    masked or not. Returns how many meshes.
-    ValueError when a mesh that stays reads a vertex or a strip place of one that is hidden (hiding would damage it):
-    that happens in no piece of MH XX's gear."""
-    mrl = next((e for e in arc.entries if e.type_hash == convert.MRL), None)
+    """Hide the additive meshes (additive_meshes) of each model in archive `arc`, read in its own material list
+    (`records`: MH4U's shader package's; hide_apart): an additive pass over a converted piece is a white veil and a halo
+    at any strength of its colours, masked or not.
+    Returns how many meshes. ValueError when a mesh that stays reads a vertex or a strip place of one that is hidden
+    (hiding would damage it): that happens in no piece of MH XX's gear."""
     hidden = 0
     for entry in arc.entries:
-        if entry.type_hash != convert.MOD or mrl is None:
+        mrl = material_list(arc, entry) if entry.type_hash == convert.MOD else None
+        if mrl is None:
             continue
         shells = additive_meshes(entry.data, mrl.data, records)
         if shells:
@@ -354,16 +361,57 @@ def hide_sheathed_form(arc: Arc, records: dict[int, str]) -> list[int]:
     additive shells): the game switches a weapon's forms only for its own ids, so both were drawn at once, and the
     drawn form is the one kept. Returns the meshes.
     ValueError as hide_additive."""
-    mrl = next((e for e in arc.entries if e.type_hash == convert.MRL), None)
     hidden = []
     for entry in arc.entries:
         if entry.type_hash == convert.MOD:
+            mrl = material_list(arc, entry)
             shells = additive_meshes(entry.data, mrl.data, records) if mrl is not None else []
             meshes = sheathed_form_meshes(entry.data, shells)
             if meshes:
                 entry.data = hide_apart(entry.data, meshes, "sheathed form's")
                 hidden += meshes
     return hidden
+
+
+def display_meshes(mod: bytes, groups: Collection[int]) -> list[int]:
+    """The meshes of `mod` in mesh groups `groups`, the shadow's copy aside: a weapon's parts MH XX draws only in its
+    Smithy's craft display."""
+    table = struct.unpack_from("<I", mod, MOD_MESHES)[0]
+    out = []
+    for m in range(struct.unpack_from("<H", mod, MOD_COUNTS + 2)[0]):
+        kind, _, tag = struct.unpack_from("<3H", mod, table + MESH_SIZE * m)
+        if kind != SHADOW_KIND and tag & MESH_GROUP in groups:
+            out.append(m)
+    return out
+
+
+def hide_display_parts(arc: Arc, groups: Collection[int]) -> list[int]:
+    """Hide display_meshes of every model in archive `arc` (hide_apart): the copy of a weapon the hunter wears, on
+    whom MH XX never draws those parts. Returns the meshes. ValueError as hide_additive."""
+    hidden = []
+    for entry in arc.entries:
+        if entry.type_hash == convert.MOD and (meshes := display_meshes(entry.data, groups)):
+            entry.data = hide_apart(entry.data, meshes, "craft display's")
+            hidden += meshes
+    return hidden
+
+
+def draw_display_parts(arc: Arc, groups: Collection[int]) -> list[int]:
+    """Put display_meshes of every model in archive `arc` in group 0, the material's number kept: the copy of a weapon
+    the Layered Gear screens' preview wears, which draws them whatever groups MH4U's weapon code clears. Returns the
+    meshes."""
+    moved = []
+    for entry in arc.entries:
+        if entry.type_hash != convert.MOD:
+            continue
+        out = bytearray(entry.data)
+        table = struct.unpack_from("<I", out, MOD_MESHES)[0]
+        for mesh in display_meshes(entry.data, groups):
+            at = table + MESH_SIZE * mesh + 4
+            struct.pack_into("<H", out, at, struct.unpack_from("<H", out, at)[0] & ~MESH_GROUP)
+            moved.append(mesh)
+        entry.data = bytes(out)
+    return moved
 
 
 def hide_second_form(arc: Arc) -> list[int]:
@@ -378,6 +426,51 @@ def hide_second_form(arc: Arc) -> list[int]:
                 entry.data = hide_apart(entry.data, meshes, "second form's")
                 hidden += meshes
     return hidden
+
+
+def drawn_meshes(mod: bytes) -> list[int]:
+    """The meshes of MOD v0xE6 `mod` that draw on the picture: not the shadow's copy (SHADOW_KIND), with a triangle of
+    three different indices (collapse_strips leaves none) whose vertices are not all at one point (hide_meshes puts
+    them there; positions are read in the formats that hold them, FLOAT_POSITIONS)."""
+    mesh_count = struct.unpack_from("<H", mod, MOD_COUNTS + 2)[0]
+    table, vertices, indices = (struct.unpack_from("<I", mod, at)[0] for at in (MOD_MESHES, MOD_VERTICES, MOD_INDICES))
+    out = []
+    for mesh in range(mesh_count):
+        at = table + MESH_SIZE * mesh
+        if struct.unpack_from("<H", mod, at)[0] == SHADOW_KIND:
+            continue
+        stride = mod[at + 0x0A]
+        buffer, fmt, first, length = struct.unpack_from("<4I", mod, at + 0x10)
+        strip = struct.unpack_from(f"<{length}H", mod, indices + 2 * first)
+        corners = {i for k in range(length - 2) if len(set(strip[k:k + 3])) == 3 for i in strip[k:k + 3]}
+        if not corners:
+            continue
+        start = vertices + buffer
+        if fmt in FLOAT_POSITIONS and len({mod[start + stride * i:start + stride * i + 12] for i in corners}) < 2:
+            continue
+        out.append(mesh)
+    return out
+
+
+def draw_in_group_zero(arc: Arc) -> list[int]:
+    """Put every mesh the converted helm in archive `arc` draws (drawn_meshes) in group 0, its material's number kept:
+    the game draws group 0 of a Felyne's helm, not group 1, where F Navirou Costume's and F Isabelle Guise's faces rest.
+    A mesh drawing nothing keeps its group. Run it last:
+    the forms, patches and shells are told apart by their groups before. Returns the meshes moved."""
+    moved = []
+    for entry in arc.entries:
+        if entry.type_hash != convert.MOD:
+            continue
+        out = bytearray(entry.data)
+        table = struct.unpack_from("<I", out, MOD_MESHES)[0]
+        for mesh in drawn_meshes(entry.data):
+            at = table + MESH_SIZE * mesh + 4
+            tag = struct.unpack_from("<H", out, at)[0]
+            if tag & MESH_GROUP:
+                struct.pack_into("<H", out, at, tag & ~MESH_GROUP)
+                moved.append(mesh)
+        entry.data = bytes(out)
+    return moved
 
 
 # ----- the base model's eyes and ears, and the helm surfaces that lie on them ----------------------------------------
@@ -614,12 +707,12 @@ def fit_head(arc: Arc, records: dict[int, str], samples: Collection[Sample], ski
     the head skin (`head`, when its mask shows it) lifted off it (lift_off)."""
     if skin:
         hide_skin_patch(arc, records)
-    mrl = next((e for e in arc.entries if e.type_hash == convert.MRL), None)
     for entry in arc.entries:
         if entry.type_hash != convert.MOD:
             continue
         if samples:
             entry.data = clear_of(entry.data, samples)
         if head:
+            mrl = material_list(arc, entry)
             patches = skin_patch_meshes(entry.data, mrl.data, records) if mrl is not None else []
             entry.data = lift_off(entry.data, [*head, *samples], patches)

@@ -43,7 +43,25 @@ class BlockSpec:
     game functions are called with long_call.
     `units`: more C sources (paths under core/) compiled one by one and linked into the block with its
     source, each keeping its own static names.
-    `defines`: C macros (`NAME=value`) the source is compiled with, for the values a patcher's Python owns."""
+    `defines`: C macros (`NAME=value`) the source is compiled with, for the values a patcher's Python owns.
+    `values`: a data block whose format holds only numbers (ids, counts, prices, colours), never an address: the pack
+    check (packs.check) does not read its words as pointer slots (B135, "the second place").
+    `scene`: when the block's code runs or its data is read (no
+    default, the build refuses a block without one): RESIDENT (in the executable; `resident` says why), QUEST, TOWN,
+    SCREEN + a screen's name, PORT (the ported monsters' machinery) or a ported monster's key (his pack). The blocks
+    of a scene in PACKED_SCENES are its pack, out of the executable and loaded only when the scene needs them
+    ("As built: code manager step 2", "step 3"); their region
+    is that pack's (`region` stays "auto"). QUEST stays in the executable (no quest pack), and so does a screen of no
+    pack's slot.
+    `read_in`: a pack's block that words of the game (a patched game word: a table's pointer) name: the scenes those
+    words' readers run in, each of which its pack must cover (pack_covers); the build's check refuses such a word
+    without it.
+    `entries`: the labels of a pack's code block that blocks outside the pack may name: the build makes a resident
+    stub for each (block ENTRY_STUBS) and links the name to it. "label" falls back to returning 0 while the pack is
+    out; "label=symbol" to the game function GAME_SYMBOLS names, or to a resident code block's global label (a gate's
+    "off": the game's own call).
+    `opens`: those of `entries` that open a screen (a screen pack's, SCREEN + a name): their stub loads the pack first
+    when it is out (pack_loader.c pack_open)."""
     name: str
     feature: str
     source: str | None = None
@@ -53,12 +71,24 @@ class BlockSpec:
     thumb: bool = False
     units: tuple[str, ...] = ()
     defines: tuple[str, ...] = ()
+    values: bool = False
+    scene: str | None = None
+    resident: str = ""
+    read_in: tuple[str, ...] = ()
+    entries: tuple[str, ...] = ()
+    opens: tuple[str, ...] = ()
+
+    @property
+    def pack(self) -> str | None:
+        """The pack the block is built into (a name of PACK_SLOTS), or None: in the executable."""
+        return self.scene if self.scene in PACK_SLOTS else None
 
 
 @dataclass(frozen=True)
 class VariableSpec:
     """Memory in .bss, zero when the game starts. `debug` variables are only used by diagnostic builds:
-    they go after the others and may overlap each other."""
+    they go after the others and may overlap each other. `scene`: RESIDENT, or a pack's scene (BlockSpec.scene), whose
+    loader zeroes the variable each time it loads the pack (it stays in .bss: read while the pack is out, it is 0)."""
     name: str
     feature: str
     size: int
@@ -66,6 +96,77 @@ class VariableSpec:
     debug: bool = False
     region: str = "bss_tail"
     gap: bool = False       # placed first, in the gap its region's first aligned variable leaves (it must fit)
+    scene: str = "resident"
+
+
+# The scenes (BlockSpec.scene)
+RESIDENT = "resident"       # in the executable, every scene: BlockSpec.resident says why
+QUEST = "quest"             # a quest's: stays in the executable (no quest pack)
+TOWN = "town"               # the town's (aVillage, aEvent, aArena): the town's pack, loaded as a town area starts
+SCREEN = "screen:"          # + the screen's name: a screen's own pack, loaded as the screen opens (PACK_SLOTS)
+PORT = "port"               # the ported monsters' machinery, loaded with their packs
+DIAGNOSTIC = "a diagnostic build's only, never a player's"      # the reason a probe's or a test's block gives
+DIAGNOSTIC_SCENE = {"scene": RESIDENT, "resident": DIAGNOSTIC}  # BlockSpec(..., **DIAGNOSTIC_SCENE)
+
+
+def scene_error(spec: BlockSpec) -> str | None:
+    """What is wrong with `spec`'s scene declaration and what to write instead, or None."""
+    scene = spec.scene
+    if scene is None:
+        return (f"{spec.name}: no scene. Write scene=RESIDENT with resident=\"<why>\", QUEST, TOWN, "
+                f"SCREEN + \"<screen>\", PORT or a ported monster's key (docs/develop/code_space.md, \"The block's "
+                "scene\")")
+    if not is_scene(scene):
+        return (f"{spec.name}: scene {scene!r} is none of RESIDENT, QUEST, TOWN, SCREEN + a name, PORT or a "
+                "monster's key")
+    if scene == RESIDENT and not spec.resident.strip():
+        return f"{spec.name}: a resident block says why: resident=\"<what runs it in every scene>\""
+    if scene != RESIDENT and spec.resident:
+        return f"{spec.name}: resident=\"...\" is for scene=RESIDENT only (its scene is {scene!r})"
+    if spec.read_in and spec.pack is None:
+        return (f"{spec.name}: read_in is for a pack's block, and the block is in the executable (scene {scene!r}): "
+                "leave it out")
+    for other in spec.read_in:
+        if not is_scene(other) or other == RESIDENT:
+            return f"{spec.name}: read_in names {other!r}, which is no scene"
+        if other not in pack_covers(spec.pack):
+            return (f"{spec.name}: read_in names {other!r}, which pack {spec.pack} does not cover (it is loaded in "
+                    f"{', '.join(sorted(pack_covers(spec.pack)))}): the game reads those words while the pack may be "
+                    "out; keep the block resident")
+    if spec.entries and spec.pack is None:
+        return (f"{spec.name}: entries are a pack's labels, and the block is in the executable (scene {scene!r}): "
+                "leave them out")
+    if spec.entries and not spec.source:
+        return f"{spec.name}: entries are labels of a code block"
+    for entry in spec.entries:
+        label, _, fallback = entry.partition("=")
+        if not label or "=" in fallback or (_ and not fallback):
+            return f"{spec.name}: entry {entry!r} is \"label\" or \"label=game_symbol\""
+    labels = {entry.partition("=")[0] for entry in spec.entries}
+    for label in spec.opens:
+        if label not in labels:
+            return f"{spec.name}: opens names {label!r}, which is none of its entries"
+        if not scene.startswith(SCREEN):
+            return f"{spec.name}: opens is for a screen's pack (SCREEN + a name), and its scene is {scene!r}"
+    return None
+
+
+def is_scene(scene: str) -> bool:
+    """Whether `scene` is one BlockSpec.scene may name."""
+    return scene in (RESIDENT, QUEST, TOWN, PORT) or scene in PACK_SLOTS or \
+        scene.startswith(SCREEN) and len(scene) > len(SCREEN)
+
+
+def pack_side(pack: str) -> str:
+    """"town" for the town's and the screens' packs, "quest" for a quest's (the port machinery and the ported
+    monsters'): the two sides are never loaded together, so no reference crosses between them."""
+    return "town" if pack == TOWN or pack.startswith(SCREEN) else "quest"
+
+
+def pack_covers(pack: str) -> frozenset[str]:
+    """The scenes pack `pack` is loaded in: a quest's packs (the machinery and the ported monsters') from the quest's
+    load to the scene gate, the town's in the town, a screen's while it is open."""
+    return frozenset((pack,)) if pack_side(pack) == "town" else frozenset((QUEST, PORT, pack))
 
 
 # The ported monsters' new items (equipment/new_gear/new_items.py): packed after everything else, so a mod without them
@@ -176,8 +277,8 @@ WORLD_SHARPNESS_DATA_SIZE = 64
 # Item marks (interface/item_marks/item_marks.py): the hook stubs, the C (both ARM: the
 # stubs call the C), its data (struct marks_data) and its state in the extension's variables (struct marks_state).
 ITEM_MARKS = "item_marks"
-ITEM_MARKS_DATA_SIZE = 788
-ITEM_MARKS_STATE_SIZE = 3424
+ITEM_MARKS_DATA_SIZE = 828
+ITEM_MARKS_STATE_SIZE = 3428
 # The Smithy's weapon tree (interface/weapon_tree/weapon_tree.py): the C with its hooks,
 # its data (struct wt_data) and its state in the extension's variables (struct wt_state). Packed last, so it moves no
 # other block.
@@ -195,6 +296,8 @@ BOLTREAVER_PULL = "boltreaver_pull"
 # id's request) and its state in the extension's variables (struct jukebox_state: the saved block's copy and the
 # engine's). Packed after the product's other blocks, so it moves none of them.
 JUKEBOX = "jukebox"
+# Its resident part (the card file's store and load, which run in every scene)
+JUKEBOX_SAVE = "jukebox_save"
 # The jukebox's menu (music/jukebox/menu_patch.py): its unit of hook stubs, the
 # menu's part at the end of the data block (the page counter's place, the track names' first message, the categories,
 # the track list, the counter's way back on a wider picture) and its variable (jukebox.h struct jukebox_menu)
@@ -210,13 +313,14 @@ ACTION_CANCEL = "cheat_action_cancel"
 ACTION_CANCEL_DATA_SIZE = 8
 # Heavenfall Beta's sidecars (save/beta_sidecar.py): the four sites' stubs and
 # the C with the extras core; its state (struct state in beta_sidecar.c: the slots, the request, the log) and its two
-# card images are in the extension's variables. After the jukebox too.
+# card images are in the extension's variables, after every variable of the full mod (a full mod's file stops before
+# them) and before a probe's diagnostics. After the jukebox too.
 BETA_SIDECAR = "beta_sidecar"
 BETA_SIDECAR_STATE_SIZE = 0x1FC + 64 * 16
 BETA_SIDECAR_CARD_SIZE = 2 * 0x5000 + 16      # the two card images, and the read's sentinel (beta_sidecar.c read_file)
 # The Cheats group's gate on a 3DS title (interface/mod_settings/mod_options.py): what the title has read of the
 # launcher's flag file (mod_options.c struct cheats_allowed). Its variable goes
-# after the debug ones with the sidecars' (tools/build/build_code_space.py pack_variables): adding it moved no other.
+# after the debug ones, before the sidecars' (tools/build/build_code_space.py pack_variables): adding it moved no other.
 CHEATS_GATE = "cheats_gate"
 CHEATS_ALLOWED_SIZE = 12
 # The new map's fog cycle (maps/misty_peaks/fog_cycle.py), with the map
@@ -247,6 +351,91 @@ SYNC_DIAG_DATA_SIZE = 24
 SOUND_LATCH = "sound_latch"
 SOUND_LATCH_LOG_SIZE = 0x480 + 512 * 96 + 3 * (0x60 + 8 * 56 + 2 * 24 * 64 + 256 * 96)
 SOUND_LATCH_DATA_SIZE = 20
+# The RAM manager's probe log (diagnostics/memory_diag.py): one ring of
+# 4088 rows of 16 words after a 0x200-byte header (exactly 64 pages), the hooks' generated stubs (a 24-byte return
+# thunk and MEMORY_DIAG_STUBS stubs of MEMORY_DIAG_STUB_SIZE bytes) and its C. A diagnostics run's only: packed after
+# the rocket's sound latch, so a player's build carries none of it.
+MEMORY_DIAG = "memory_diagnostics"
+MEMORY_DIAG_LOG_SIZE = 0x200 + 4088 * 16 * 4
+MEMORY_DIAG_THUNK_SIZE = 24
+MEMORY_DIAG_STUB_SIZE = 48
+MEMORY_DIAG_STUBS = 32
+MEMORY_DIAG_STUBS_SIZE = MEMORY_DIAG_THUNK_SIZE + MEMORY_DIAG_STUBS * MEMORY_DIAG_STUB_SIZE
+# The heap sizes at boot (game/executable/memory_boot.py):
+# FUN_001047c0's hook stub, the C and its rows (memory_boot.c struct memory_row: the memory size, the packs' budget,
+# the nine heaps' sizes). Every build made from the executable places it, so its feature is packed before every other
+# block (PACKED_FIRST, tools/build/build_code_space.py): on the extension's first page, a build with nothing else in
+# the extension takes that one page.
+MEMORY_BOOT = "memory_boot"
+MEMORY_BOOT_ROWS, MEMORY_BOOT_HEAPS = 2, 9
+MEMORY_BOOT_ROWS_SIZE = MEMORY_BOOT_ROWS * 4 * (2 + MEMORY_BOOT_HEAPS)
+PACKED_FIRST = (MEMORY_BOOT,)
+# The packs (code_space.PACKS_START): each pack's slot, which
+# gives its fixed range (code_space.PACK_ROOM bytes a slot). A slot is never given to another pack and never
+# renumbered, so a pack's range never moves; a new pack takes a free slot. Each ported monster's blocks are his pack (a
+# Deviant's needs his base's: monsters/porting/proof_blocks.py), but for the few the study leaves resident ("P2 study
+# (S2)", 5).
+PACKS = "packs"         # the feature of the packs' machinery: the loader's table and the state bytes
+PACK_SLOTS = {
+    "alatreon": 0, "mizutsune": 1, "glavenus": 2, "great_maccao": 3, "maccao": 4, "valstrax": 5, "astalos": 6,
+    "boltreaver": 7, "hellblade": 8, "soulseer": 9, "nargacuga": 10, "silverwind": 11, "lagiacrus": 12,
+    # the ported monsters' machinery (scene PORT: MH Generations' effect player, the carried placement, the proof
+    # classes' vtables, Boltreaver's pull), which every ported monster's pack needs ("As built: code manager step 2")
+    "port": 13,
+    # the town's (scene TOWN: aVillage, aEvent, aArena) and the two screens' with a pack of their own, at most one of
+    # them in at a time beside the town's ("As built: code manager step 3")
+    "town": 14, "screen:smithy_view": 15, "screen:rare_exchange": 16,
+}
+# The scenes built as packs: the ported monsters', their machinery's, the town's and the screens'
+PACKED_SCENES = frozenset(PACK_SLOTS)
+# The resident blocks the game's hooks into a pack go through (code_space.Layout.hook makes an entry stub there for a
+# hook whose target is in the pack; a screen's opening hook takes two stubs' room), and their room in stubs
+HOOK_STUBS = {"port": ("port_hook_stubs", 16), "town": ("town_hook_stubs", 32),
+              "screen:smithy_view": ("smithy_view_hook_stubs", 8),
+              "screen:rare_exchange": ("rare_exchange_hook_stubs", 12)}
+# The save's functions, which run in the title, the town and a quest: a hook from them
+# into a pack is refused (code_space.Layout.hook), since the pack may be out while they save. (canonical entry, size)
+SAVE_FUNCTIONS = (
+    (0x2AB95C, 0x50), (0x2ABA04, 0x2A0), (0x2ABCAC, 0x64), (0x2ABEF8, 0x58), (0x2AD088, 0x5E8), (0x2AD6D4, 0x42C),
+    (0x2ADB70, 0x114), (0x2ADC98, 0x15C), (0x2ADEDC, 0x128), (0x2AE018, 0x90), (0x2AE0D0, 0x48), (0x2AE168, 0x648),
+    (0x2AE7B8, 0x104), (0x2AF114, 0xF4), (0x2AF280, 0xB4), (0x2AF698, 0x88),
+)
+# The resident block of the stubs the build makes for the packs' declared entries (BlockSpec.entries), one
+# PACK_STUB_SIZE stub each, in the order of BLOCKS and of each block's entries (tools/build/build_code_space.py)
+ENTRY_STUBS = "pack_entry_stubs"
+# The packs' variables beside the state bytes: the calls inside each pack from a thread other than the main one, a word
+# a slot (pack_guard.s raises and lowers it; the scene gate waits for it at 0), and the gate's own state
+PACK_BUSY = "pack_busy"
+SCENE_GATE_STATE_SIZE = 12
+# The port machinery's labels the resident blocks call (the packs' loader and the scene gate, pack_loader.c): their
+# stubs fall back to returning 0 while the machinery is out (nothing to release, nothing to end)
+MACHINERY_ENTRIES = ("proof_4u_end", "proof_shell_mgr_release_files")
+# The reasons some generated blocks stay resident (the study's table, "Code manager study (A)")
+NEW_ID_WHY = "new-id tables read by the game (quest board, guild card, quest load), the loader"
+NEW_MAP_RESIDENT = {
+    "new_map_sound": "town, event and quest",
+    "new_map_map_layouts": "map GUI (board and quest)",
+    "new_map_zone_layouts": "map GUI (board and quest)",
+    "new_map_map_textures": "map GUI (board and quest)",
+    "new_map_map_hashes": "map hashes (board and quest)",
+    "new_map_map_hash_pair": "map hashes (board and quest)",
+    "new_map_map_name_message": "map names on the quest board",
+}
+# The packs' formats (game/executable/pack_table.h; game/executable/packs.py builds them): an entry stub's bytes, the
+# loader's table (a head of two u16, a u8 pack per new monster id padded to a word, an entry per slot of PACK_SLOTS up
+# to the last: three u32, four u8 and the file's name) and one state byte per slot
+PACK_STUB_SIZE = 0x3C
+PACK_FILE_SIZE = 32
+PACK_ENTRY_SIZE = 16 + PACK_FILE_SIZE
+PACK_VARS_SIZE = 8      # after the entries, per slot: its variables' range (start, bytes), zeroed at each load
+PACK_GATE_SIZE = 4      # and last, the frames the scene gate waits at most (tuning.json memory.scene_gate_frames)
+PACK_TABLE_COUNT = max(PACK_SLOTS.values()) + 1
+PACK_STATE_BYTES = 64   # a state byte for every slot code_space's range has room for (code_space.PACK_SLOT_COUNT)
+
+
+def pack_table_size(ids: int) -> int:
+    """Bytes of the loader's table with `ids` new monster ids."""
+    return 4 + -(-ids // 4) * 4 + (PACK_ENTRY_SIZE + PACK_VARS_SIZE) * PACK_TABLE_COUNT + PACK_GATE_SIZE
 
 
 def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
@@ -258,9 +447,12 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.monsters.porting.ground_shadow import c_defines as shadow_defines
     from core.monsters.porting.hf_records import C_DEFINES as RECORDS_DEFINES, STUBS_SIZE as RECORDS_STUBS
     from core.monsters.porting.motion_places import C_DEFINES as PLACES_DEFINES, table_size as places_table_size
-    from core.monsters.porting.new_id_data import C_DEFINES as NEW_ID_DEFINES
+    from core.monsters.porting.new_id_data import C_DEFINES as NEW_ID_DEFINES, LOADER_DEFINES
     from core.monsters.porting.new_id_data import block_specs as new_id_blocks
-    from core.monsters.porting.proof_blocks import SHARED, monster_block_specs, shared_block_specs
+    from core.monsters.porting.new_id_data import NEW_IDS
+    from core.monsters.porting.proof_blocks import (
+        PORT_TABLE, SHARED, entries_size, monster_block_specs, resident_names, shared_block_specs,
+    )
     from core.monsters.porting.spec import BUBBLE_BIND_BLOCK, BUBBLE_FX_BLOCK, BUBBLE_FX_SIZE, BUILT
     from core.equipment.new_gear import gear_space as gear
     from core.equipment.tables import item_data
@@ -275,198 +467,273 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     from core.gameplay.tail_fall.tail_fall import ANIMATION_SIZE as TAIL_FALL_ANIMATION_SIZE
     from core.maps.new_map_data import block_specs as new_map_blocks
     from core.gameplay.tail_fall.tail_fall import DATA_SIZE as TAIL_FALL_DATA_SIZE
-    packed_last = (GAME_GUI, SHARED, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
+    packed_last = (GAME_GUI, SHARED, PACKS, *(spec.key for spec in BUILT[:2]), ITEMS, new_weapon_room.FEATURE, GEAR,
                    FELYNE, BUBBLEBLIGHT, *(spec.key for spec in BUILT[2:]), MOVE_WATCH, TAIL_FALL,
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
                    RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, JUKEBOX, BETA_SIDECAR, TRIO_DIAG,
-                   SYNC_DIAG, SOUND_LATCH)
-    return packed_last, (
+                   SYNC_DIAG, SOUND_LATCH, MEMORY_DIAG)
+    specs = (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
-    BlockSpec("ext_bootstrap", "extension", "game/executable/ext_bootstrap.s", region="text_tail"),
-    BlockSpec("minimap_wrapper", "hud_scale", "interface/hud/minimap_wrapper.s"),
+    BlockSpec("ext_bootstrap", "extension", "game/executable/ext_bootstrap.s", region="text_tail",
+              scene=RESIDENT, resident="the bootstrap"),
+    # The heap sizes at boot (game/executable/memory_boot.py): the hook's stub, the C and the rows the build fills
+    BlockSpec("memory_boot_hook", MEMORY_BOOT, "game/executable/memory_boot_hook.s", region="ext",
+              scene=RESIDENT, resident="the heap sizes at boot, before any scene"),
+    BlockSpec("memory_boot", MEMORY_BOOT, "game/executable/memory_boot.c", region="ext",
+              scene=RESIDENT, resident="the heap sizes at boot, before any scene"),
+    BlockSpec("memory_boot_rows", MEMORY_BOOT, size=MEMORY_BOOT_ROWS_SIZE, region="ext",
+              scene=RESIDENT, resident="the heap sizes at boot, before any scene"),
+    BlockSpec("minimap_wrapper", "hud_scale", "interface/hud/minimap_wrapper.s", scene=QUEST),
     # The minimap icons the placement functions do not project (the zoomed area view's zoom and offsets, the
     # Everwood's fixed points, scaled) and its two floats (scale, 64 (1 - scale)), which
     # code_patch.patch_minimap_icons fills
-    BlockSpec("minimap_zoom", "hud_scale", "interface/hud/minimap_zoom.c", region="ext"),
-    BlockSpec("minimap_zoom_data", "hud_scale", size=8, region="ext"),
+    BlockSpec("minimap_zoom", "hud_scale", "interface/hud/minimap_zoom.c", region="ext", scene=QUEST),
+    BlockSpec("minimap_zoom_data", "hud_scale", size=8, region="ext", scene=QUEST),
     # The talk windows at the HUD size only in a quest (each frame, after the GUI's pop-up update) and their data: the
     # quest game modes' bits and per window its name hash, its null's and the null's x, y and scale in a quest
     # (code_patch.patch_talk_size)
-    BlockSpec("talk_size", "hud_scale", "interface/hud/talk_size.c", region="ext"),
-    BlockSpec("talk_size_data", "hud_scale", size=4 + 6 * 20, region="ext"),
-    BlockSpec("target_button", "touchless_target", "interface/hud/target_button.s"),
-    BlockSpec("dpad_filter", "touchless_target", "interface/hud/dpad_filter.s"),
-    BlockSpec("face_loader", "target_face", "interface/hud/face_loader.s"),
-    BlockSpec("face_free", "target_face", "interface/hud/face_free.s"),
-    BlockSpec("face_show", "target_face", "interface/hud/face_show.s"),
-    BlockSpec("face_params", "target_face", size=16),  # float x, y, scale (code_patch.face_params), dead shade
-    BlockSpec("target_face", "target_face", "interface/hud/target_face.c", thumb=True),
-    BlockSpec("new_game_skip", "skip_intro", "gameplay/new_game_skip/new_game_skip.s"),
-    BlockSpec("new_game_data", "skip_intro", size=0x64),  # gameplay/new_game_skip/new_game_skip.py, new_game_data()
+    BlockSpec("talk_size", "hud_scale", "interface/hud/talk_size.c", region="ext",
+              scene=RESIDENT, resident="talk size (sMhMain's move)"),
+    BlockSpec("talk_size_data", "hud_scale", size=4 + 6 * 20, region="ext",
+              scene=RESIDENT, resident="talk size (sMhMain's move)"),
+    BlockSpec("target_button", "touchless_target", "interface/hud/target_button.s",
+              scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("dpad_filter", "touchless_target", "interface/hud/dpad_filter.s",
+              scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("face_loader", "target_face", "interface/hud/face_loader.s", scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("face_free", "target_face", "interface/hud/face_free.s", scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("face_show", "target_face", "interface/hud/face_show.s", scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("face_params", "target_face", size=16,
+              scene=RESIDENT, resident="text_tail page"),  # float x, y, scale (code_patch.face_params), dead shade
+    BlockSpec("target_face", "target_face", "interface/hud/target_face.c", thumb=True,
+              scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("new_game_skip", "skip_intro", "gameplay/new_game_skip/new_game_skip.s",
+              scene=RESIDENT, resident="text_tail page"),
+    BlockSpec("new_game_data", "skip_intro", size=0x64,
+              scene=RESIDENT, resident="text_tail page"),  # gameplay/new_game_skip/new_game_skip.py, new_game_data()
     # skip_caravan_tutorial runs new_game_skip and then writes the caravan tutorial's results. text_tail is full: in the
     # extension, like fast_text, so no older block moves.
-    BlockSpec("new_game_tutorial", "skip_caravan_tutorial", "gameplay/new_game_skip/new_game_tutorial.s", region="ext"),
-    BlockSpec("new_game_tutorial_data", "skip_caravan_tutorial", size=0x180, region="ext"),  # caravan_tutorial_data()
-    BlockSpec("cutscene_map_check", "intro_cutscenes", "gameplay/intro_cutscenes/cutscene_map_check.s"),
+    BlockSpec("new_game_tutorial", "skip_caravan_tutorial", "gameplay/new_game_skip/new_game_tutorial.s", region="ext",
+              scene=RESIDENT, resident="the title's new game"),
+    BlockSpec("new_game_tutorial_data", "skip_caravan_tutorial", size=0x180, region="ext",
+              scene=RESIDENT, resident="the title's new game"),  # caravan_tutorial_data()
+    BlockSpec("cutscene_map_check", "intro_cutscenes", "gameplay/intro_cutscenes/cutscene_map_check.s",
+              scene=RESIDENT, resident="text_tail page"),
     # In the extension, so the older blocks keep their places.
-    BlockSpec("fast_text", "fast_text", "interface/fast_text/fast_text.s", region="ext"),
-    BlockSpec("fast_gathering", "fast_gathering", "gameplay/fast_gathering/fast_gathering.s", region="ext"),
+    BlockSpec("fast_text", "fast_text", "interface/fast_text/fast_text.s", region="ext",
+              scene=RESIDENT, resident="texts in both scenes"),
+    BlockSpec("fast_gathering", "fast_gathering", "gameplay/fast_gathering/fast_gathering.s", region="ext",
+              scene=QUEST),
     # Holding A repeats it (gameplay/hold_a/hold_a.py): three entries, one for the hunter's
-    # input and one for each panel that takes items one at a time
-    BlockSpec("hold_a", "hold_a", "gameplay/hold_a/hold_a.c", region="ext"),
+    # input and one for each panel that takes items one at a time. Resident: the field's A and the quest's rewards run
+    # in a quest (B138)
+    BlockSpec("hold_a", "hold_a", "gameplay/hold_a/hold_a.c", region="ext",
+              scene=RESIDENT, resident="the hunter's A in town and quest, the quest's rewards and the claims (B138)"),
     # The system keyboard (interface/system_keyboard/system_keyboard.py): the poll
     # of the game's keyboard runs the 3DS system keyboard's applet
-    BlockSpec("system_keyboard", "system_keyboard", "interface/system_keyboard/system_keyboard.c", region="ext"),
+    BlockSpec("system_keyboard", "system_keyboard", "interface/system_keyboard/system_keyboard.c", region="ext",
+              scene=RESIDENT, resident="chat in both scenes"),
     # Select and Start follow the game's option START (gameplay/select_kick/select_kick.py): two entries, one for the
     # SDK's pad step and one for the Game Menu's per-frame logic
-    BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext"),
+    BlockSpec("select_kick", "select_kick", "gameplay/select_kick/select_kick.c", region="ext",
+              scene=RESIDENT, resident="town and quest"),
     # START skips a slain monster's death camera (gameplay/death_camera_skip/death_camera_skip.py): one entry, for the
     # camera manager's call of a camera sequence's frame
-    BlockSpec("death_camera_skip", "skip_death_camera", "gameplay/death_camera_skip/death_camera_skip.c", region="ext"),
+    BlockSpec("death_camera_skip", "skip_death_camera", "gameplay/death_camera_skip/death_camera_skip.c", region="ext",
+              scene=QUEST),
     # START does what the touch screen's Skip does (gameplay/intro_skip/intro_skip.py):
     # three entries, for the touch bar input's call of a button's frame and the event player's two calls of the sound
     # control
-    BlockSpec("intro_skip", "skip_monster_intro", "gameplay/intro_skip/intro_skip.c", region="ext"),
+    BlockSpec("intro_skip", "skip_monster_intro", "gameplay/intro_skip/intro_skip.c", region="ext", scene=QUEST),
     # The virtual map of monster_routes (monsters/routes/patch.py): its hooks, its
     # (species, real map) entries (patch.ENTRY bytes each, patch.MAX_ENTRIES, plus the end marker) and their
     # translations (patch.TABLE bytes each, patch.MAX_TABLES).
-    BlockSpec("virtual_map", "monster_routes", "monsters/routes/virtual_map.s", region="ext"),
-    BlockSpec("virtual_maps", "monster_routes", size=4 * 352 + 4, region="ext"),
-    BlockSpec("virtual_map_tables", "monster_routes", size=32 * 160, region="ext"),
-    # The Smithy's layered gear screens (layered_selector.c, layered_forge.c) and its catalogs (equipment/layered/
-    # layered_equipment.py, layered_data()), with the Felynes' looks (felyne_looks.c, felyne_looks_data:
-    # felyne_looks.py).
+    BlockSpec("virtual_map", "monster_routes", "monsters/routes/virtual_map.s", region="ext", scene=QUEST),
+    BlockSpec("virtual_maps", "monster_routes", size=4 * 352 + 4, region="ext", scene=QUEST),
+    BlockSpec("virtual_map_tables", "monster_routes", size=32 * 160, region="ext", scene=QUEST),
+    # Layered Gear's looks applied, which run in town, quest and online (layered_selector.c: the hooks, the render, the
+    # save; the units: the Felynes' looks felyne_looks.c, the online half layered_online.c, the switch, the Guild Card,
+    # the item box's stubs layered_box.c) and its catalogs (equipment/layered/layered_equipment.py, layered_data(),
+    # felyne_looks_data: felyne_looks.py). The screens only town runs are the block layered_town below.
     # 8-aligned: its size depends on its address mod 8 (alignment padding inside the C block).
     BlockSpec("layered_selector", "layered_equipment", "equipment/layered/layered_selector.c", region="ext", thumb=True,
-              align=8, units=("equipment/layered/layered_forge.c", "equipment/layered/felyne_looks.c",
-                     "equipment/layered/layered_online.c", "equipment/layered/layered_switch.c",
-                     "equipment/layered/layered_card.c", "equipment/layered/layered_box.c",
-                     "interface/screen_kit/screen_kit.c")),
-    BlockSpec("layered_data", "layered_equipment", size=0x9000, region="ext"),
+              align=8, units=("equipment/layered/felyne_looks.c", "equipment/layered/layered_online.c",
+                     "equipment/layered/layered_switch.c", "equipment/layered/layered_card.c",
+                     "equipment/layered/layered_box.c"),
+              scene=RESIDENT, resident="looks applied in town, quest and online"),
+    # The Smithy's and the item box's Layered Gear screens, which only town runs (layered_menu.c: the entry, the menus,
+    # the box's line; layered_forge.c: the forge-style screens; screen_kit.c). The one block that reads layered_rules
+    # (tests/equipment/layered/test_layered_town.py). It calls the resident block by address (LAYERED_TOWN: long
+    # calls), and the resident stubs call its seven entries (layered_menu.c, head), each an ARM function that does
+    # nothing while the town's pack is out.
+    # 8-aligned: its size depends on its address mod 8 (alignment padding inside the C block).
+    BlockSpec("layered_town", "layered_equipment", "equipment/layered/layered_menu.c", thumb=True,
+              align=8, defines=("LAYERED_TOWN=1",),
+              units=("equipment/layered/layered_forge.c", "interface/screen_kit/screen_kit.c"), scene=TOWN,
+              entries=("layered_menu_names", "layered_open", "layered_update", "layered_box_commands",
+                       "layered_box_entry", "layered_box_frame", "layered_box_down")),
+    BlockSpec("layered_data", "layered_equipment", size=0x9000, region="ext",
+              scene=RESIDENT, resident="looks applied in town, quest and online"),
     # The Wyporium's Rare Materials Exchange: its menu line and screens (gameplay/wyporium/rare_exchange.c), and its
     # rows and pools (gameplay/wyporium/exchange_data.py).
-    BlockSpec("rare_exchange", RARE_EXCHANGE, "gameplay/wyporium/rare_exchange.c", region="ext", thumb=True, align=8),
-    BlockSpec("rare_exchange_data", RARE_EXCHANGE, size=0x1000, region="ext"),
+    BlockSpec("rare_exchange", RARE_EXCHANGE, "gameplay/wyporium/rare_exchange.c", thumb=True, align=8,
+              scene=SCREEN + "rare_exchange"),
+    BlockSpec("rare_exchange_data", RARE_EXCHANGE, size=0x1000, scene=SCREEN + "rare_exchange"),
     # The Meownster Hunters' extra item: the hook's code and the two item ids with their count (meownster_scrap.py)
-    BlockSpec("meownster_scrap", MEOWNSTER_SCRAP, "gameplay/meownster_scrap/meownster_scrap.c", region="ext"),
-    BlockSpec("meownster_scrap_data", MEOWNSTER_SCRAP, size=8, region="ext"),
-    BlockSpec("felyne_looks_data", "layered_equipment", size=0x100, region="ext"),
+    BlockSpec("meownster_scrap", MEOWNSTER_SCRAP, "gameplay/meownster_scrap/meownster_scrap.c", align=8, scene=TOWN),
+    BlockSpec("meownster_scrap_data", MEOWNSTER_SCRAP, size=8, scene=TOWN),
+    BlockSpec("felyne_looks_data", "layered_equipment", size=0x100, region="ext",
+              scene=RESIDENT, resident="looks applied in town, quest and online"),
     # When each look appears and what it costs (equipment/layered/layered_rules.py): rules parallel to the catalogs of
     # layered_data, the Felyne rows, the recipes; 0x12000
     # since each look's zenny is a u32.
-    BlockSpec("layered_rules", "layered_equipment", size=0x12000, region="ext"),
+    BlockSpec("layered_rules", "layered_equipment", size=0x12000, scene=TOWN),
     # The descriptions of the ported monsters' new hunter gear (equipment/new_gear/gear_descriptions.py): the hook of
     # the two description readers and its
     # table (a word per Exp file, 35).
-    BlockSpec("gear_desc", "ported_gear_texts", "equipment/new_gear/gear_desc.s", region="ext"),
+    BlockSpec("gear_desc", "ported_gear_texts", "equipment/new_gear/gear_desc.s", region="ext",
+              scene=RESIDENT, resident="descriptions: town, quest, arena"),
     # MHGen's models (equipment/mhgen/tables.py, equipment/mhgen/equipment_pack.py): the gimmick donor hook and the
     # per-model tables moved to hold the pack's ids.
-    BlockSpec("gimmick_donor", "mhgen_models", "equipment/mhgen/gimmick_donor.s", region="ext"),
-    BlockSpec("sound_number", "mhgen_models", "equipment/mhgen/sound_number.s", region="ext"),
-    BlockSpec("gimmick_donor_table", "mhgen_models", size=14 * 256, region="ext"),
-    BlockSpec("cloth_tables", "mhgen_models", size=2 * 800, region="ext"),        # equipment_pack.CLOTH_IDS
-    BlockSpec("armor_sound_tables", "mhgen_models", size=8 * 800, region="ext"),  # tables.ARMOR_SOUND_IDS
-    BlockSpec("hair_tables", "mhgen_models", size=2 * 800 * 4, region="ext"),     # tables.HAIR_IDS
-    BlockSpec("gun_effects", "mhgen_models", size=3 * 256, region="ext"),         # tables.EFFECT_TABLES
-    BlockSpec("rod_effects", "mhgen_models", size=3 * 256, region="ext"),
+    BlockSpec("gimmick_donor", "mhgen_models", "equipment/mhgen/gimmick_donor.s", region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),
+    BlockSpec("sound_number", "mhgen_models", "equipment/mhgen/sound_number.s", region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),
+    BlockSpec("gimmick_donor_table", "mhgen_models", size=14 * 256, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),
+    BlockSpec("cloth_tables", "mhgen_models", size=2 * 800, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),        # equipment_pack.CLOTH_IDS
+    BlockSpec("armor_sound_tables", "mhgen_models", size=8 * 800, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),  # tables.ARMOR_SOUND_IDS
+    BlockSpec("hair_tables", "mhgen_models", size=2 * 800 * 4, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),     # tables.HAIR_IDS
+    BlockSpec("gun_effects", "mhgen_models", size=3 * 256, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),         # tables.EFFECT_TABLES
+    BlockSpec("rod_effects", "mhgen_models", size=3 * 256, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),
     # tables.HAIR_ROW_ROOM rows of 0x70 bytes, plus the bytes to reach the game's row grid
-    BlockSpec("hair_rows", "mhgen_models", size=224 * 0x70 + 0x70 - 4, region="ext"),
+    BlockSpec("hair_rows", "mhgen_models", size=224 * 0x70 + 0x70 - 4, region="ext",
+              scene=RESIDENT, resident="hunter models load in both scenes"),
     # MHGen's Felyne models at numbers of their own (equipment/mhgen/felyne_pack.py), FELYNE_IDS (336): the head and
     # body masks (FELYNE_IDS u16 each), the helm cloth bits (FELYNE_IDS
     # bytes) and the weapons' sound table (FELYNE_IDS pointers) moved
     # to hold the new numbers, and the new weapons' sound paths (SOUND_SLOT bytes per number from FIRST_MODEL to
     # FELYNE_IDS - 1)
-    BlockSpec("felyne_head_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext"),
-    BlockSpec("felyne_body_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext"),
-    BlockSpec("felyne_head_cloth", "felyne_models", size=FELYNE_IDS, region="ext"),
-    BlockSpec("felyne_sound_table", "felyne_models", size=4 * FELYNE_IDS, region="ext"),
-    BlockSpec("felyne_sound_paths", "felyne_models", size=(FELYNE_IDS - FIRST_MODEL) * SOUND_SLOT, region="ext"),
+    BlockSpec("felyne_head_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
+    BlockSpec("felyne_body_masks", "felyne_models", size=2 * FELYNE_IDS, region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
+    BlockSpec("felyne_head_cloth", "felyne_models", size=FELYNE_IDS, region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
+    BlockSpec("felyne_sound_table", "felyne_models", size=4 * FELYNE_IDS, region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
+    BlockSpec("felyne_sound_paths", "felyne_models", size=(FELYNE_IDS - FIRST_MODEL) * SOUND_SLOT, region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
+    # A Felyne takes its body piece's skeleton (felyne_pack.patch_joints): the lobby's C function, two hooks' stubs
+    BlockSpec("felyne_joints", "felyne_models", "equipment/mhgen/felyne_joints.c", region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
+    BlockSpec("felyne_joints_stubs", "felyne_models", "equipment/mhgen/felyne_joints.s", region="ext",
+              scene=RESIDENT, resident="Palico models load in both scenes"),
     # New quests with ids of their own (gameplay/quests/new_quests.py): the availability
     # hook, its (id, unlocking quest) pairs, and the Gathering Hall's load list and the save's quest list moved to hold
     # the new ids (NEW_QUEST_ROOM at most, the free bits of the save)
-    BlockSpec("quest_unlock", "new_quests", "gameplay/quests/quest_unlock.s", region="ext"),
-    BlockSpec("new_quest_unlocks", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
+    BlockSpec("quest_unlock", "new_quests", "gameplay/quests/quest_unlock.s", region="ext",
+              scene=RESIDENT, resident="save and quest bits: both scenes"),
+    BlockSpec("new_quest_unlocks", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext",
+              scene=RESIDENT, resident="save and quest bits: both scenes"),
     # the quests' special level: records of two u16 (quest id, level), the last zero (the SDK's quest_special_level)
-    BlockSpec("quest_special_levels", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext"),
-    BlockSpec("hall_quest_list", "new_quests", size=2 * (HALL_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
-    BlockSpec("save_quest_list", "new_quests", size=2 * (SAVE_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext"),
+    BlockSpec("quest_special_levels", "new_quests", size=4 * (NEW_QUEST_ROOM + 1), region="ext",
+              scene=RESIDENT, resident="save and quest bits: both scenes"),
+    # (the game's two words that name it are read by FUN_0069af48 and FUN_006b2280, under aVillage's move: read_in)
+    BlockSpec("hall_quest_list", "new_quests", size=2 * (HALL_LIST_LENGTH + NEW_QUEST_ROOM + 2), scene=TOWN,
+              read_in=(TOWN,)),
+    BlockSpec("save_quest_list", "new_quests", size=2 * (SAVE_LIST_LENGTH + NEW_QUEST_ROOM + 2), region="ext",
+              scene=RESIDENT, resident="save and quest bits: both scenes"),
     # the three instructions that address the save's cleared bits: positions 512-543 in one more word of the save data
-    BlockSpec("quest_bits", "new_quests", "gameplay/quests/quest_bits.s", region="ext"),
+    BlockSpec("quest_bits", "new_quests", "gameplay/quests/quest_bits.s", region="ext",
+              scene=RESIDENT, resident="save and quest bits: both scenes"),
     # Black and Crimson Fatalis and Alatreon at low health (gameplay/monster_phases/monster_phases.py): their speed,
     # their World music by phase and the slain theme at the quest's end; the options and requests the patcher fills in
     # (8 bytes)
-    BlockSpec("monster_phases", "monster_phases", "gameplay/monster_phases/monster_phases.s", region="ext"),
-    BlockSpec("monster_phase_options", "monster_phases", size=8, region="ext"),
+    BlockSpec("monster_phases", "monster_phases", "gameplay/monster_phases/monster_phases.s", region="ext",
+              scene=QUEST),
+    BlockSpec("monster_phase_options", "monster_phases", size=8, region="ext", scene=QUEST),
     # The monster stat table copied with the weak monsters' records past the game's 141 (monsters/stat_table.py): every
     # index a stat byte names, 32 bytes each
-    BlockSpec("stat_table", "stat_records", size=32 * 256, region="ext"),
+    BlockSpec("stat_table", "stat_records", size=32 * 256, region="ext",
+              scene=RESIDENT, resident="five game .data words"),
     # The quest list's key quest marks (interface/key_quests/executable/key_quests.py):
     # the row refresh's hook, the key quests' ids (u16 and an end mark) and the name hashes of the rows' star nulls (8
     # u32)
-    BlockSpec("key_quests", "key_quests", "interface/key_quests/executable/key_quests.s", region="ext"),
-    BlockSpec("key_quest_ids", "key_quests", size=2 * (KEY_QUEST_ROOM + 1), region="ext"),
-    BlockSpec("key_mark_hashes", "key_quests", size=32, region="ext"),
+    BlockSpec("key_quests", "key_quests", "interface/key_quests/executable/key_quests.s", align=8, scene=TOWN),
+    BlockSpec("key_quest_ids", "key_quests", size=2 * (KEY_QUEST_ROOM + 1), scene=TOWN),
+    BlockSpec("key_mark_hashes", "key_quests", size=32, scene=TOWN),
     # The Caravan's quest girl in a randomized game (interface/quest_counter/executable/quest_counter.py): the talk
     # function's hook
-    BlockSpec("quest_counter", "quest_counter", "interface/quest_counter/executable/quest_counter.s", region="ext"),
+    BlockSpec("quest_counter", "quest_counter", "interface/quest_counter/executable/quest_counter.s", align=8,
+              scene=TOWN),
     # Single-screen mode (interface/single_screen/executable/single_screen.py): the
     # draw order hook and its table of {name hash, priority offset} pairs, and the yes / no boxes moved to the top
     # screen while a prompt is open
     BlockSpec("single_screen_priority", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_priority.s",
-              region="ext"),
-    BlockSpec("single_screen_priorities", SINGLE_SCREEN, size=SINGLE_SCREEN_TABLE_SIZE, region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
+    BlockSpec("single_screen_priorities", SINGLE_SCREEN, size=SINGLE_SCREEN_TABLE_SIZE, region="ext",
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
     BlockSpec("single_screen_prompt", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_prompt.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the Canteen's pay buttons driven with left / right: the pay choice's cursor step takes the pad's left and
     # right as up and down
     BlockSpec("single_screen_pay", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_pay.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the touch-panel layout B on every save (interface/single_screen/executable/single_screen_layout.py): the
     # quest HUD's load of the saved panels asks
     # this block for the record, which writes layout B first when the record is not B
     BlockSpec("single_screen_panels", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_panels.c",
-              region="ext"),
+              region="ext", scene=QUEST),
     # ... and the creation's Aceptar / AtrÃƒÂ¡s buttons driven with left / right: the menu cursor's call on the main
     # pages takes the pad's left and right as down and up on
     # the buttons
     BlockSpec("single_screen_creation_pad", SINGLE_SCREEN,
-              "interface/single_screen/executable/single_screen_creation_pad.s", region="ext"),
+              "interface/single_screen/executable/single_screen_creation_pad.s", region="ext",
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the character creation's camera: the hook of
     # the goal target x and its table of {target x, eye z} per camera mode
     BlockSpec("single_screen_creation", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_creation.s",
-              region="ext"),
-    BlockSpec("single_screen_creation_camera", SINGLE_SCREEN, size=CREATION_CAMERA_SIZE, region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
+    BlockSpec("single_screen_creation_camera", SINGLE_SCREEN, size=CREATION_CAMERA_SIZE, region="ext",
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the name boards (ui802) shown only on the pages the curated creation_boards names: the hook of the
     # creation menu's page change, with the pages' mask
     BlockSpec("single_screen_board", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_board.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the name keyboard's virtual finger (interface/single_screen/executable/single_screen_keyboard.py): the
     # hook in the keyboard's input manager, with the curated
     # key names and start point
     BlockSpec("single_screen_keyboard", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_keyboard.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the World Map opened and driven with the pad
     # (interface/single_screen/executable/single_screen_world_map.py):
     # chained into the pad update's call to single_screen_prompt, with the curated buttons
     BlockSpec("single_screen_world_map", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_world_map.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and its "[X] Map" hint (interface/single_screen/executable/single_screen_map_hint.py): chained in front, it
     # calls the world map block and shows or hides
     # the hint's group (the curated name's hash)
     BlockSpec("single_screen_map_hint", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_map_hint.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the town minimap on the top screen (interface/single_screen/executable/single_screen_minimap.py): chained
     # in front of the hint, it turns the map on and off
     # with the curated button (L), moves the map's groups and shows its own hint
     BlockSpec("single_screen_minimap", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_minimap.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the minimap in a Gathering Hall: called by the minimap block every frame, it shows and hides the map with
     # the game's own functions in the
     # hub states where the game hides it (0x12, 0x14)
     BlockSpec("single_screen_minimap_hall", SINGLE_SCREEN,
-              "interface/single_screen/executable/single_screen_minimap_hall.c", region="ext"),
+              "interface/single_screen/executable/single_screen_minimap_hall.c", region="ext",
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the Palico menus' frames (interface/single_screen/executable/single_screen_frames.py): chained in front of
     # the minimap, it scales and moves the
     # frame null of each framed group by the curated scenes ... and the players' box
@@ -478,59 +745,73 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     BlockSpec("single_screen_frames", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_frames.c",
               region="ext",
               units=("interface/single_screen/executable/single_screen_players.c",
-                     "interface/single_screen/executable/single_screen_label.c")),
-    BlockSpec("single_screen_frame_table", SINGLE_SCREEN, size=SINGLE_SCREEN_FRAME_TABLE_SIZE, region="ext"),
-    BlockSpec("single_screen_label_table", SINGLE_SCREEN, size=SINGLE_SCREEN_LABEL_TABLE_SIZE, region="ext"),
+                     "interface/single_screen/executable/single_screen_label.c"),
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
+    BlockSpec("single_screen_frame_table", SINGLE_SCREEN, size=SINGLE_SCREEN_FRAME_TABLE_SIZE, region="ext",
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
+    BlockSpec("single_screen_label_table", SINGLE_SCREEN, size=SINGLE_SCREEN_LABEL_TABLE_SIZE, region="ext",
+              scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the guild card's groups on the top screen and its hint
     # (interface/single_screen/executable/single_screen_card_info.py): chained in front of the frames' block, it keeps
     # the card's groups on the top screen and
     # shows "[Y] Toggle Display" while the photo mode's Y acts
     BlockSpec("single_screen_card_info", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_card_info.s",
-              region="ext"),
+              region="ext", scene=RESIDENT, resident="every scene (title, town, quest)"),
     # ... and the Arena's team and weapon choice on the pad (interface/single_screen/executable/single_screen_arena.py):
     # a cursor between the weapon choice and the four buttons of
     # ui497, A pressing a button as a touch does, B closing the mode it opened; the button above each of the five weapon
     # sets is its table (5 bytes, padded)
-    BlockSpec("single_screen_arena", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_arena.c",
-              region="ext"),
-    BlockSpec("single_screen_arena_up", SINGLE_SCREEN, size=8, region="ext"),
+    BlockSpec("single_screen_arena", SINGLE_SCREEN, "interface/single_screen/executable/single_screen_arena.c", align=8,
+              scene=TOWN),
+    BlockSpec("single_screen_arena_up", SINGLE_SCREEN, size=8, scene=TOWN),
     # The game GUI engine: every frame, before the render, it applies the arrangement to every GUI manager with absolute
     # values
     # (wrapper nulls' places, priorities), and the draw's view test draws a group in the screen its place names
-    BlockSpec("game_gui_engine", GAME_GUI, "interface/game_gui/game_gui_engine.c", region="ext"),
-    BlockSpec("game_gui_table", GAME_GUI, size=GAME_GUI_TABLE_SIZE, region="ext"),
+    BlockSpec("game_gui_engine", GAME_GUI, "interface/game_gui/game_gui_engine.c", region="ext",
+              scene=RESIDENT, resident="the GUI engine's frame hook (sMhMain's move) in every scene"),
+    BlockSpec("game_gui_table", GAME_GUI, size=GAME_GUI_TABLE_SIZE, region="ext",
+              scene=RESIDENT, resident="the GUI engine's frame hook (sMhMain's move) in every scene"),
     # The item wheel (interface/radial_menu/radial_menu.py): the
     # stub that stands in for the call of FUN_00b3d160 in the hunter's input update and calls the wheel, the wheel's
     # logic in C, and its data (curated radial_menu.json, the default items)
-    BlockSpec("radial_stub", RADIAL_MENU, "interface/radial_menu/radial_stub.s", region="ext"),
+    BlockSpec("radial_stub", RADIAL_MENU, "interface/radial_menu/radial_stub.s", region="ext",
+              scene=RESIDENT, resident="stubs and the editor (options screen)"),
     # 8-aligned: its size depends on its address mod 8 (alignment padding inside the C block).
     BlockSpec("radial_wheel", RADIAL_MENU, "interface/radial_menu/radial_wheel.c", region="ext", thumb=True, align=8,
-              units=("interface/radial_menu/radial_draw.c", "interface/radial_menu/radial_craft.c")),
-    BlockSpec("radial_data", RADIAL_MENU, size=RADIAL_DATA_SIZE, region="ext"),
-    BlockSpec("radial_draw_data", RADIAL_MENU, size=RADIAL_DRAW_DATA_SIZE, region="ext"),
+              units=("interface/radial_menu/radial_draw.c", "interface/radial_menu/radial_craft.c"),
+              scene=RESIDENT, resident="the quest's shared hooks, and the editor's preview (options screen)"),
+    BlockSpec("radial_data", RADIAL_MENU, size=RADIAL_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the wheel's data"),
+    BlockSpec("radial_draw_data", RADIAL_MENU, size=RADIAL_DRAW_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="read by radial_wheel"),
     # The Radial Menu's screens, Edit Slots and Configuration (interface/radial_menu/radial_editor.c; docs/interface/
     # radial_menu.md, "Editor"): Mod Settings (mod_settings.c) opens them from the wheel's row, in ARM; their texts
-    BlockSpec("radial_editor", RADIAL_MENU, "interface/radial_menu/radial_editor.c", region="ext"),
-    BlockSpec("radial_editor_data", RADIAL_MENU, size=RADIAL_EDITOR_DATA_SIZE, region="ext"),
+    BlockSpec("radial_editor", RADIAL_MENU, "interface/radial_menu/radial_editor.c", region="ext",
+              scene=RESIDENT, resident="stubs and the editor (options screen)"),
+    BlockSpec("radial_editor_data", RADIAL_MENU, size=RADIAL_EDITOR_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="stubs and the editor (options screen)"),
     # The trigger ZR: the stub that stands in for the pad
     # update's raw read (FUN_005b8460 in FUN_005b8284) and then lets radial_wheel.c take ZR's bit from the raw words
-    BlockSpec("radial_pad_stub", RADIAL_MENU, "interface/radial_menu/radial_pad_stub.s", region="ext"),
+    BlockSpec("radial_pad_stub", RADIAL_MENU, "interface/radial_menu/radial_pad_stub.s", region="ext",
+              scene=RESIDENT, resident="stubs and the editor (options screen)"),
     # Bubbleblight (gameplay/bubbleblight/bubbleblight.py): the
     # hunter's code (hit, status, tick, resets), and the entry points of the effects task (bubble_changed) and the large
     # bubbles (bubble_large), each in a block of its own
-    BlockSpec("bubbleblight", BUBBLEBLIGHT, "gameplay/bubbleblight/bubbleblight.s", region="ext"),
-    BlockSpec("bubble_fx", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_fx.s", region="ext"),
-    BlockSpec("bubble_large", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_large.s", region="ext"),
+    BlockSpec("bubbleblight", BUBBLEBLIGHT, "gameplay/bubbleblight/bubbleblight.s", region="ext", scene=QUEST),
+    BlockSpec("bubble_fx", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_fx.s", region="ext",
+              scene=RESIDENT, resident="called by bubble_online"),
+    BlockSpec("bubble_large", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_large.s", region="ext", scene=QUEST),
     # ... and the party list's status icon, one more entry of the rotating icon B (bubble_icon: the mask and the cell
     # hooks; bubble_icon_table: B's table copied with the bubbles' entry, 28 entries of 8 bytes)
-    BlockSpec("bubble_icon", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_icon.s", region="ext"),
-    BlockSpec("bubble_icon_table", BUBBLEBLIGHT, size=28 * 8, region="ext"),
+    BlockSpec("bubble_icon", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_icon.s", region="ext", scene=QUEST),
+    BlockSpec("bubble_icon_table", BUBBLEBLIGHT, size=28 * 8, region="ext", scene=QUEST),
     # ... and the other hunters' bubbles online: the local hunter's state into free bits of its status word, which the
     # game sends; the others' word into the look and the icon
-    BlockSpec("bubble_online", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_online.c", region="ext"),
+    BlockSpec("bubble_online", BUBBLEBLIGHT, "gameplay/bubbleblight/bubble_online.c", region="ext",
+              scene=RESIDENT, resident="the network callback"),
     # ... and the effect class's destructor freeing only its own slot of the effect manager, so that no look leaves
     # the manager's array while it lives
-    BlockSpec("effect_slot", BUBBLEBLIGHT, "gameplay/bubbleblight/effect_slot.c", region="ext"),
+    BlockSpec("effect_slot", BUBBLEBLIGHT, "gameplay/bubbleblight/effect_slot.c", region="ext", scene=QUEST),
     # The ported MH Generations monsters (core/monsters/).
     # What they share (feature SHARED, in whenever one of them is on): MH Generations' effect player and its glue
     # (monsters/porting/mhgen_port.c), the ported monsters' records, the
@@ -538,24 +819,38 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # (monsters/porting/proof_blocks.py shared_block_specs, product.py, proof_hook.place), and the new monster ids
     # (monsters/porting/new_id.py): their code (monsters/porting/new_id.c), the
     # factory's cases, the stubs and the id tables extended to 200 ids
-    *(BlockSpec(name, SHARED, source, size=size, align=align, region="ext",
-                defines=shadow_defines() if source else ())     # the effect player's: the shadows' lead (curated)
+    # The effect player, its placement and vtables are the port machinery's pack (PORT); the port records stay
+    # resident (the new-id tables and the loader read them)
+    *(BlockSpec(name, SHARED, source, size=size, align=align, region="ext" if name == PORT_TABLE else "auto",
+                defines=shadow_defines() if source else (),     # the effect player's: the shadows' lead (curated)
+                entries=MACHINERY_ENTRIES if source else (),
+                **({"scene": RESIDENT, "resident": NEW_ID_WHY} if name == PORT_TABLE else {"scene": PORT}))
       for name, source, size, align in shared_block_specs()),
-    *(BlockSpec(name, SHARED, source, size=size, region="ext", defines=NEW_ID_DEFINES if source else ())
-      for name, source, size in new_id_blocks()),
+    *(BlockSpec(name, SHARED, source, size=size, region="ext", defines=LOADER_DEFINES if source else (),
+                scene=RESIDENT, resident=NEW_ID_WHY)
+      for name, source, size in new_id_blocks()),     # new_id.c with the packs' loader's call (pack_loader.c)
     # The ported monsters' pages of the hunting log: the stub that opens a page once its monster was hunted or captured
     # (gameplay/hunting_log/hunting_log.py)
-    BlockSpec("hunting_log_unlock", "hunting_log", size=52, region="ext"),     # hunting_log.UNLOCK_STUB bytes
+    BlockSpec("hunting_log_unlock", "hunting_log", size=52, region="ext",
+              scene=RESIDENT, resident="the hunting log's unlock (save data)"),     # hunting_log.UNLOCK_STUB bytes
     # The hunt records of the monster ids 128-255 in Heavenfall's own save file (core/monsters/porting/hf_records.py):
     # their code, and the stubs the patcher fills (the nine
     # functions' entries and the four hooks of the save)
-    BlockSpec("hf_records_code", SHARED, "monsters/porting/hf_records.c", region="ext", defines=RECORDS_DEFINES),
-    BlockSpec("hf_records_stubs", SHARED, size=RECORDS_STUBS, region="ext"),
+    BlockSpec("hf_records_code", SHARED, "monsters/porting/hf_records.c", region="ext", defines=RECORDS_DEFINES,
+              scene=RESIDENT,
+              resident="new-id tables read by the game (quest board, guild card, quest load), the loader"),
+    BlockSpec("hf_records_stubs", SHARED, size=RECORDS_STUBS, region="ext",
+              scene=RESIDENT,
+              resident="new-id tables read by the game (quest board, guild card, quest load), the loader"),
     # Motion list 9 of a ported monster's variant (core/monsters/porting/motion_places.py): the function uEnemy's
     # resource setup calls for each motion list place, and the run's bases'
     # variants blocks it reads
-    BlockSpec("motion_places_code", SHARED, "monsters/porting/motion_places.c", region="ext", defines=PLACES_DEFINES),
-    BlockSpec("motion_places_bases", SHARED, size=places_table_size(BUILT), region="ext"),
+    BlockSpec("motion_places_code", SHARED, "monsters/porting/motion_places.c", region="ext", defines=PLACES_DEFINES,
+              scene=RESIDENT,
+              resident="new-id tables read by the game (quest board, guild card, quest load), the loader"),
+    BlockSpec("motion_places_bases", SHARED, size=places_table_size(BUILT), region="ext",
+              scene=RESIDENT,
+              resident="new-id tables read by the game (quest board, guild card, quest load), the loader"),
     # Each one's own (feature his spec's key, for each of spec.BUILT, Mizutsune's for his probes;
     # proof_blocks.monster_block_specs): his class's code (Alatreon's monsters/alatreon/alatreon.c, Mizutsune's
     # monsters/mizutsune/mizutsune.c) and the data the patcher fills (product.py): his id, his vtable (97 slots), his
@@ -564,202 +859,324 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
     # as MH Generations' loaders leave them (one image in place per kind, and their rShells' addresses) and his
     # shell classes' vtables (monsters/porting/shell_data.py)
     # (a pack's leader and the small monsters he leads get the pack's numbers as macros: porting/called_small.py)
-    *(BlockSpec(name, spec.key, source, size=size, align=align, region="ext",
+    # They are his pack, out of the executable (PACK_SLOTS), but for the few proof_blocks.resident_names keeps; the
+    # game enters his pack through his base's resident entry stubs (spec.entries_block, game/executable/packs.py)
+    *(BlockSpec(name, spec.key, source, size=size, align=align,
+                region="ext" if name in resident_names(spec) else "auto",
                 units=spec.code_units if name == spec.code_block else (),
-                defines=pack_defines(spec.id) if name == spec.code_block else ())
+                defines=pack_defines(spec.id) if name == spec.code_block else (),
+                **({"scene": RESIDENT, "resident": "read by every monster's motion setup, or the next port's "
+                    "construct (proof_blocks.resident_names)"} if name in resident_names(spec)
+                   else {"scene": spec.key}))
       for spec in BUILT for name, source, size, align in monster_block_specs(spec)),
+    *(BlockSpec(spec.entries_block, spec.key, size=entries_size(spec, PACK_STUB_SIZE), region="ext",
+                scene=RESIDENT, resident="the game's entries into his pack (the stubs fall back while it is out)")
+      for spec in BUILT if not spec.is_variant),
+    # The packs' machinery: the loader's table (pack_table.h),
+    # filled by monsters/porting/product.py for the run's packs
+    BlockSpec("pack_table", PACKS, size=pack_table_size(NEW_IDS), region="ext",
+              scene=RESIDENT, resident="the packs' loader reads it at a quest's load and at the scene gate"),
+    # and the loader over it ("As built: P2 loader"; game/executable/pack_loader.py), resident with the ported
+    # monsters' shared blocks
+    BlockSpec("pack_loader", SHARED, "monsters/porting/pack_loader.c", region="ext",
+              defines=NEW_ID_DEFINES + (f"PORT_PACK_SLOT={PACK_SLOTS[PORT]}", f"TOWN_PACK_SLOT={PACK_SLOTS[TOWN]}"),
+              units=("monsters/porting/pack_guard.s",),
+              scene=RESIDENT, resident="the packs' loader and the scene gate: a quest's load and every area's start"),
+    # The stubs of the game's hooks into the port machinery's pack (code_space.Layout.hook writes one per hook whose
+    # target is in the pack: HOOK_STUBS), resident: the game reaches those sites in every scene
+    *(BlockSpec(block, PACKS, size=PACK_STUB_SIZE * room, region="ext",
+                scene=RESIDENT, resident="the game's hooks into a pack: they fall back to the game while it is out")
+      for block, room in HOOK_STUBS.values()),
     # Mizutsune's Bubbleblight on the hunter (gameplay/bubbleblight/bubble_fx.py): the paths of the two effect lists
     # that list 1's null words get. Feature the key of
     # the first monster that has Bubbleblight: packed with his blocks.
-    *(BlockSpec(BUBBLE_FX_BLOCK, spec.key, size=BUBBLE_FX_SIZE, region="ext")
+    *(BlockSpec(BUBBLE_FX_BLOCK, spec.key, size=BUBBLE_FX_SIZE, region="ext",
+                scene=RESIDENT, resident="the hunter's effect lists, read by bubble_fx (bubble_online)")
       for spec in [next((one for one in BUILT if one.bubbleblight), None)] if spec is not None),
     # ... and the large bubbles' bind in the hunter's code (gameplay/bubbleblight/bubble_bind.py): the entry the small
     # bubbles' code calls, the motion
     # remap and the reaction guard
-    *(BlockSpec(BUBBLE_BIND_BLOCK, spec.key, "gameplay/bubbleblight/bubble_bind.s", region="ext")
+    *(BlockSpec(BUBBLE_BIND_BLOCK, spec.key, "gameplay/bubbleblight/bubble_bind.s", region="ext", scene=QUEST)
       for spec in [next((one for one in BUILT if one.bubbleblight), None)] if spec is not None),
     # The ported monsters' new items (equipment/new_gear/new_items.py):
     # the item table copied with room for item_data.MAX_NEW_ITEMS records, the 17 icon tints, the code that gives a new
     # id an "ever obtained" bit and the u16 bit numbers it reads (one per new id), and the carve lists: the pointer
     # array copied with room for MAX_CARVE_TABLES windows of four, and the lists they point to
-    BlockSpec("item_table", ITEMS, size=item_data.TABLE_BYTES, region="ext"),
-    BlockSpec("item_colours", ITEMS, size=4 * len(item_data.COLOURS), region="ext"),
-    BlockSpec("item_obtained", ITEMS, "equipment/new_gear/item_obtained.s", region="ext"),
-    BlockSpec("item_obtained_bits", ITEMS, size=2 * item_data.MAX_NEW_ITEMS, region="ext"),
-    BlockSpec("carve_pointers", ITEMS, size=item_data.CARVE_POINTER_BYTES, region="ext"),
-    BlockSpec("carve_lists", ITEMS, size=item_data.CARVE_LIST_BYTES, region="ext"),
+    BlockSpec("item_table", ITEMS, size=item_data.TABLE_BYTES, region="ext", values=True,
+              scene=RESIDENT, resident="the item table: 130 game words over the whole game"),
+    BlockSpec("item_colours", ITEMS, size=4 * len(item_data.COLOURS), region="ext", values=True,
+              scene=RESIDENT, resident="the item table: 130 game words over the whole game"),
+    BlockSpec("item_obtained", ITEMS, "equipment/new_gear/item_obtained.s", region="ext",
+              scene=RESIDENT, resident="the item table: 130 game words over the whole game"),
+    BlockSpec("item_obtained_bits", ITEMS, size=2 * item_data.MAX_NEW_ITEMS, region="ext", values=True,
+              scene=RESIDENT, resident="the item table: 130 game words over the whole game"),
+    BlockSpec("carve_pointers", ITEMS, size=item_data.CARVE_POINTER_BYTES, region="ext", scene=QUEST),
+    BlockSpec("carve_lists", ITEMS, size=item_data.CARVE_LIST_BYTES, region="ext", values=True, scene=QUEST),
     # the part-break reward lists (equipment/new_gear/new_breaks.py): the pointer array copied with room for
     # MAX_BREAK_TABLES places of BREAK_TABLE_ENTRIES entries, and the lists they point to
-    BlockSpec("break_pointers", ITEMS, size=item_data.BREAK_POINTER_BYTES, region="ext"),
-    BlockSpec("break_lists", ITEMS, size=item_data.BREAK_LIST_BYTES, region="ext"),
+    BlockSpec("break_pointers", ITEMS, size=item_data.BREAK_POINTER_BYTES, region="ext", scene=QUEST),
+    BlockSpec("break_lists", ITEMS, size=item_data.BREAK_LIST_BYTES, region="ext", values=True, scene=QUEST),
     # What the ported monsters bring, packed after them: new hunter weapons (equipment/new_gear/new_weapons.py; docs/
     # equipment_data.md, "New weapons"): the hooks of the readers of the weapon tables, a row per equipment type,
     # the new stat and upgrade records (new_weapon_room.ROOM per class) and the new sharpness profiles
-    BlockSpec("new_weapon_code", new_weapon_room.FEATURE, "equipment/new_gear/new_weapons.s", region="ext"),
-    BlockSpec("new_weapon_rows", new_weapon_room.FEATURE, size=new_weapon_room.ROWS_BYTES, region="ext"),
-    BlockSpec("new_weapon_stats", new_weapon_room.FEATURE, size=new_weapon_room.STATS_BYTES, region="ext"),
-    BlockSpec("new_weapon_upgrades", new_weapon_room.FEATURE, size=new_weapon_room.UPGRADE_BYTES, region="ext"),
-    BlockSpec("new_sharpness", new_weapon_room.FEATURE, size=new_weapon_room.SHARPNESS_BYTES, region="ext"),
+    BlockSpec("new_weapon_code", new_weapon_room.FEATURE, "equipment/new_gear/new_weapons.s", region="ext",
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
+    BlockSpec("new_weapon_rows", new_weapon_room.FEATURE, size=new_weapon_room.ROWS_BYTES, region="ext",
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
+    BlockSpec("new_weapon_stats", new_weapon_room.FEATURE, size=new_weapon_room.STATS_BYTES, region="ext",
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
+    BlockSpec("new_weapon_upgrades", new_weapon_room.FEATURE, size=new_weapon_room.UPGRADE_BYTES, scene=TOWN),
+    BlockSpec("new_sharpness", new_weapon_room.FEATURE, size=new_weapon_room.SHARPNESS_BYTES, region="ext",
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
     # The save's marks of the new ids past a class's own bits (equipment/new_gear/weapon_marks.py; docs/equipment/
     # equipment_data.md, "The save"): the function that gives an id its bit, its table and the six accessors' stubs
     BlockSpec("weapon_marks_code", new_weapon_room.FEATURE, "equipment/new_gear/weapon_marks.c", region="ext",
-              defines=new_weapon_room.MARK_DEFINES),
-    BlockSpec("weapon_marks_table", new_weapon_room.FEATURE, size=new_weapon_room.MARK_TABLE_BYTES, region="ext"),
-    BlockSpec("weapon_marks_stubs", new_weapon_room.FEATURE, size=new_weapon_room.MARK_STUBS_BYTES, region="ext"),
+              defines=new_weapon_room.MARK_DEFINES,
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
+    BlockSpec("weapon_marks_table", new_weapon_room.FEATURE, size=new_weapon_room.MARK_TABLE_BYTES, region="ext",
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
+    BlockSpec("weapon_marks_stubs", new_weapon_room.FEATURE, size=new_weapon_room.MARK_STUBS_BYTES, region="ext",
+              scene=RESIDENT, resident="stats and hooks reached from town and quest"),
     # The ported monsters' hunter equipment (equipment/new_gear/new_armor.py, new_recipes.py): the armor lookup's and
     # the create recipes' hooks; the new armor records (gear.ARMOR_ROOM per part, parts in layout.ARMOR_PARTS order) and
     # each type's first new id and table base; the new create recipes (gear.*_RECIPE_ROOM) and the runs where they sit
     # in the game's lists
-    BlockSpec("new_armor", GEAR, "equipment/new_gear/new_armor.s", region="ext"),
-    BlockSpec("new_recipes", GEAR, "equipment/new_gear/new_recipes.s", region="ext"),
-    BlockSpec("gear_armor_new", GEAR, size=gear.ARMOR_NEW_BYTES, region="ext"),
-    BlockSpec("gear_armor_records", GEAR, size=gear.ARMOR_RECORDS_BYTES, region="ext"),
-    BlockSpec("gear_armor_runs", GEAR, size=gear.RUNS_BYTES, region="ext"),
-    BlockSpec("gear_weapon_runs", GEAR, size=gear.RUNS_BYTES, region="ext"),
-    BlockSpec("gear_armor_recipes", GEAR, size=gear.ARMOR_RECIPE_ROOM * gear.RECIPE_RECORD, region="ext"),
-    BlockSpec("gear_weapon_recipes", GEAR, size=gear.WEAPON_RECIPE_ROOM * gear.RECIPE_RECORD, region="ext"),
+    BlockSpec("new_armor", GEAR, "equipment/new_gear/new_armor.s", region="ext",
+              scene=RESIDENT, resident="armor records read in both scenes"),
+    BlockSpec("new_recipes", GEAR, "equipment/new_gear/new_recipes.s", align=8, scene=TOWN),
+    BlockSpec("gear_armor_new", GEAR, size=gear.ARMOR_NEW_BYTES, region="ext",
+              scene=RESIDENT, resident="armor records read in both scenes"),
+    BlockSpec("gear_armor_records", GEAR, size=gear.ARMOR_RECORDS_BYTES, region="ext",
+              scene=RESIDENT, resident="armor records read in both scenes"),
+    BlockSpec("gear_armor_runs", GEAR, size=gear.RUNS_BYTES, scene=TOWN),
+    BlockSpec("gear_weapon_runs", GEAR, size=gear.RUNS_BYTES, scene=TOWN),
+    BlockSpec("gear_armor_recipes", GEAR, size=gear.ARMOR_RECIPE_ROOM * gear.RECIPE_RECORD, scene=TOWN),
+    BlockSpec("gear_weapon_recipes", GEAR, size=gear.WEAPON_RECIPE_ROOM * gear.RECIPE_RECORD, scene=TOWN),
     # New Felyne gear (equipment/new_gear/new_felyne.py): the
     # bodies' and heads' stats and the body and weapon recipes, moved here with room for the new pieces
-    # (felyne_data.block_specs)
-    *(BlockSpec(name, FELYNE, size=size, region="ext") for name, size in felyne_blocks()),
+    # (felyne_data.block_specs). The recipes are the town's: the game's two words that name them are read by
+    # FUN_002f80c0, under the lobby's facilities (read_in)
+    *(BlockSpec(name, FELYNE, size=size,
+                **({"scene": TOWN, "read_in": (TOWN,)} if name.endswith("_recipes") else
+                   {"region": "ext", "scene": RESIDENT, "resident": "stats, marks and save: both scenes"}))
+      for name, size in felyne_blocks()),
     # The save's marks of the Felyne ids past the window (equipment/new_gear/felyne_marks.py; docs/equipment/
     # equipment_data.md, "What the save keeps"): the function that gives an id its bit, its table (the ids marked in
     # the hunters' equipment arrays) and the four places' stubs
     BlockSpec("felyne_marks_code", FELYNE, "equipment/new_gear/felyne_marks.c", region="ext",
-              defines=FELYNE_MARK_DEFINES),
-    BlockSpec("felyne_marks_table", FELYNE, size=FELYNE_MARK_TABLE_BYTES, region="ext"),
-    BlockSpec("felyne_marks_stubs", FELYNE, "equipment/new_gear/felyne_marks.s", region="ext"),
+              defines=FELYNE_MARK_DEFINES, scene=RESIDENT, resident="stats, marks and save: both scenes"),
+    BlockSpec("felyne_marks_table", FELYNE, size=FELYNE_MARK_TABLE_BYTES, region="ext",
+              scene=RESIDENT, resident="stats, marks and save: both scenes"),
+    BlockSpec("felyne_marks_stubs", FELYNE, "equipment/new_gear/felyne_marks.s", region="ext",
+              scene=RESIDENT, resident="stats, marks and save: both scenes"),
     # A Felyne wearing a new piece is written to the save file wearing a Derring piece, and the real one is put back at
     # load (gameplay/felyne_save/felyne_save.py): both
     # hooks and their table
-    BlockSpec("felyne_save", FELYNE, "gameplay/felyne_save/felyne_save.s", region="ext"),
+    BlockSpec("felyne_save", FELYNE, "gameplay/felyne_save/felyne_save.s", region="ext",
+              scene=RESIDENT, resident="stats, marks and save: both scenes"),
     # The area move watchdog of monster_routes and the ported monsters (monsters/routes/patch.py): the hook, and the
     # limit in frames it counts a move up to
-    BlockSpec("area_move_watch", MOVE_WATCH, "monsters/routes/area_move_watch.s", region="ext"),
-    BlockSpec("area_move_limit", MOVE_WATCH, size=4, region="ext"),
+    BlockSpec("area_move_watch", MOVE_WATCH, "monsters/routes/area_move_watch.s", region="ext", scene=QUEST),
+    BlockSpec("area_move_limit", MOVE_WATCH, size=4, region="ext", scene=QUEST),
     # A ported monster's severed tail (gameplay/tail_fall/tail_fall.py): the two hooks in the cut piece's update, the
     # monster's id with the motion's keys as floats, and the name
     # of the material animation that cools the piece
-    BlockSpec("tail_fall", TAIL_FALL, "gameplay/tail_fall/tail_fall.c", region="ext"),
-    BlockSpec("tail_fall_data", TAIL_FALL, size=TAIL_FALL_DATA_SIZE, region="ext"),
-    BlockSpec("tail_fall_animation", TAIL_FALL, size=TAIL_FALL_ANIMATION_SIZE, region="ext"),
+    BlockSpec("tail_fall", TAIL_FALL, "gameplay/tail_fall/tail_fall.c", region="ext", scene=QUEST),
+    BlockSpec("tail_fall_data", TAIL_FALL, size=TAIL_FALL_DATA_SIZE, region="ext", scene=QUEST),
+    BlockSpec("tail_fall_animation", TAIL_FALL, size=TAIL_FALL_ANIMATION_SIZE, region="ext", scene=QUEST),
     # The recording probe's wrapper of the frame's wait for the GPU (tools/ui/ui_probe.py, patch_frame_marks): it keeps
     # the variable gui_frame_marks
-    BlockSpec("gui_frame_marks_probe", GUI_FRAME_MARKS, "interface/game_gui/gui_frame_marks.s", region="ext"),
+    BlockSpec("gui_frame_marks_probe", GUI_FRAME_MARKS, "interface/game_gui/gui_frame_marks.s", region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     # The debug cheat insta kill (cheats/cheats.py): the hunter's attack
     # multiplied and capped, and its two words (multiplier, cap) from curated gui_presets.json
-    BlockSpec("insta_kill", INSTA_KILL, "cheats/insta_kill.c", region="ext"),
-    BlockSpec("insta_kill_data", INSTA_KILL, size=8, region="ext"),
+    BlockSpec("insta_kill", INSTA_KILL, "cheats/insta_kill.c", region="ext", scene=QUEST),
+    BlockSpec("insta_kill_data", INSTA_KILL, size=8, region="ext", scene=QUEST),
     # The Wyporium's trade table with the trades of MH XX's new materials (gameplay/wyporium/trades.py): the game's
     # rows, the new ones and the terminator, with
-    # room for one new row per material
-    BlockSpec(wyporium_trades.BLOCK, wyporium_trades.FEATURE, size=wyporium_trades.BLOCK_SIZE, region="ext"),
+    # room for one new row per material. The game's words that name it are read by the Wyporium (FUN_009b6d84,
+    # FUN_00a53160) and aVillage's loading (FUN_009dd4c8), all the town's (read_in)
+    BlockSpec(wyporium_trades.BLOCK, wyporium_trades.FEATURE, size=wyporium_trades.BLOCK_SIZE, scene=TOWN,
+              read_in=(TOWN,)),
     # Whether a row of the table is open (gameplay/wyporium/trade_rows.c): a new row opens with its rank, by the lists
     # of what opens each rank (trades.py, `rows_data`)
-    BlockSpec(wyporium_trades.CODE_BLOCK, wyporium_trades.FEATURE, "gameplay/wyporium/trade_rows.c", region="ext"),
-    BlockSpec(wyporium_trades.DATA_BLOCK, wyporium_trades.FEATURE, size=wyporium_trades.DATA_SIZE, region="ext"),
+    BlockSpec(wyporium_trades.CODE_BLOCK, wyporium_trades.FEATURE, "gameplay/wyporium/trade_rows.c", align=8,
+              scene=TOWN),
+    BlockSpec(wyporium_trades.DATA_BLOCK, wyporium_trades.FEATURE, size=wyporium_trades.DATA_SIZE, scene=TOWN),
     # The aspect ratios (cheats/aspect_ratio.py): the hooks' stubs, the logic, the factors
-    BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext"),
+    BlockSpec("mod_settings_stub", MOD_SETTINGS, "interface/mod_settings/mod_settings_stub.s", region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
     BlockSpec("mod_settings_code", MOD_SETTINGS, "interface/mod_settings/mod_settings.c", region="ext",
               units=("interface/mod_settings/aspect_list.c", "interface/mod_settings/mod_options.c",
                      "interface/mod_settings/option_list.c", "interface/appearance_peek/appearance_peek.c",
-                     "interface/screen_kit/screen_kit.c")),
-    BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext"),
-    BlockSpec("mod_options_stub", MOD_SETTINGS, "interface/mod_settings/mod_options_stub.s", region="ext"),
-    BlockSpec("mod_options_data", MOD_SETTINGS, size=MOD_OPTIONS_DATA_SIZE, region="ext"),
-    BlockSpec("mod_raw_table", MOD_SETTINGS, size=MOD_RAW_TABLE_SIZE, region="ext"),
+                     "interface/screen_kit/screen_kit.c"),
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
+    BlockSpec("mod_settings_data", MOD_SETTINGS, size=MOD_SETTINGS_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
+    BlockSpec("mod_options_stub", MOD_SETTINGS, "interface/mod_settings/mod_options_stub.s", region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
+    BlockSpec("mod_options_data", MOD_SETTINGS, size=MOD_OPTIONS_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
+    BlockSpec("mod_raw_table", MOD_SETTINGS, size=MOD_RAW_TABLE_SIZE, region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
     # Change Appearance at every item box: the town's stage lists with ui415 (box_appearance.py)
-    BlockSpec("box_appearance_lists", MOD_SETTINGS, size=BOX_APPEARANCE_LISTS_SIZE, region="ext"),
+    BlockSpec("box_appearance_lists", MOD_SETTINGS, size=BOX_APPEARANCE_LISTS_SIZE, region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
     # Holding L in Change Appearance hides the interface (interface/appearance_peek/appearance_peek.py): the cue's
     # names, word and priority
-    BlockSpec("appearance_peek_data", MOD_SETTINGS, size=APPEARANCE_PEEK_DATA_SIZE, region="ext"),
-    BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext"),
+    BlockSpec("appearance_peek_data", MOD_SETTINGS, size=APPEARANCE_PEEK_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
+    BlockSpec("aspect_list_data", MOD_SETTINGS, size=ASPECT_LIST_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the options' gates of every scene; settings screen opened from town and quest"),
     # The split title's RomFS (install/title/split_romfs.py): the mount, the game data's open and the lookup, and the
     # game's nn::fs::FileStream::TryInitialize with its first instruction (the lookup's hook takes it)
-    BlockSpec("split_romfs", SPLIT_ROMFS, "install/title/split_romfs.c", region="ext"),
-    BlockSpec("split_romfs_stub", SPLIT_ROMFS, "install/title/split_romfs_stub.s", region="ext"),
-    BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext"),
-    BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext"),
-    BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext"),
-    BlockSpec("aspect_anchors", ASPECT_RATIO, size=ASPECT_ANCHORS_SIZE, region="ext"),
-    BlockSpec("damage_numbers_stub", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers_stub.s", region="ext"),
-    BlockSpec("damage_numbers_code", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers.c", region="ext"),
-    BlockSpec("damage_numbers_data", DAMAGE_NUMBERS, size=DAMAGE_NUMBERS_DATA_SIZE, region="ext"),
+    BlockSpec("split_romfs", SPLIT_ROMFS, "install/title/split_romfs.c", region="ext",
+              scene=RESIDENT, resident="every file open"),
+    BlockSpec("split_romfs_stub", SPLIT_ROMFS, "install/title/split_romfs_stub.s", region="ext",
+              scene=RESIDENT, resident="every file open"),
+    BlockSpec("aspect_stub", ASPECT_RATIO, "cheats/aspect_stub.s", region="ext",
+              scene=RESIDENT, resident="every scene"),
+    BlockSpec("aspect_code", ASPECT_RATIO, "cheats/aspect_ratio.c", region="ext",
+              scene=RESIDENT, resident="every scene"),
+    BlockSpec("aspect_data", ASPECT_RATIO, size=ASPECT_DATA_SIZE, region="ext", scene=RESIDENT, resident="every scene"),
+    BlockSpec("aspect_anchors", ASPECT_RATIO, size=ASPECT_ANCHORS_SIZE, region="ext",
+              scene=RESIDENT, resident="every scene"),
+    BlockSpec("damage_numbers_stub", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers_stub.s", region="ext",
+              scene=RESIDENT, resident="entry stub"),
+    BlockSpec("damage_numbers_code", DAMAGE_NUMBERS, "interface/damage_numbers/damage_numbers.c", region="ext",
+              scene=QUEST),
+    BlockSpec("damage_numbers_data", DAMAGE_NUMBERS, size=DAMAGE_NUMBERS_DATA_SIZE, region="ext", scene=QUEST),
     # The C-stick turns the camera and the aims analogically: the entries for FUN_00b3cc64's question "is the C-stick
     # tilted", for the cameras' calls of FUN_00bfd028 and for the aim's hooks in FUN_00b2041c, and the curated tuning
     # (modern_camera.py data_block)
     BlockSpec(MODERN_CAMERA, MODERN_CAMERA, "gameplay/modern_camera/modern_camera.c", region="ext",
-              defines=(f"DATA_SIZE={MODERN_CAMERA_DATA_SIZE}", f"STATE_SIZE={MODERN_CAMERA_STATE_SIZE}")),
-    BlockSpec("modern_camera_data", MODERN_CAMERA, size=MODERN_CAMERA_DATA_SIZE, region="ext"),
-    BlockSpec("quest_layouts_stub", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts_stub.s", region="ext"),
-    BlockSpec("quest_layouts_code", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts.c", region="ext"),
-    BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext"),
-    BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext"),
-    BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext"),
-    BlockSpec("world_sharpness_code", WORLD_SHARPNESS, "interface/world_sharpness/world_sharpness.c", region="ext"),
-    BlockSpec("world_sharpness_data", WORLD_SHARPNESS, size=WORLD_SHARPNESS_DATA_SIZE, region="ext"),
-    BlockSpec("item_marks_stub", ITEM_MARKS, "interface/item_marks/item_marks_stub.s", region="ext"),
-    BlockSpec("item_marks_code", ITEM_MARKS, "interface/item_marks/item_marks.c", region="ext"),
-    BlockSpec("item_marks_data", ITEM_MARKS, size=ITEM_MARKS_DATA_SIZE, region="ext"),
+              defines=(f"DATA_SIZE={MODERN_CAMERA_DATA_SIZE}", f"STATE_SIZE={MODERN_CAMERA_STATE_SIZE}"),
+              scene=RESIDENT, resident="the camera in both scenes"),
+    BlockSpec("modern_camera_data", MODERN_CAMERA, size=MODERN_CAMERA_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the camera in both scenes"),
+    BlockSpec("quest_layouts_stub", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts_stub.s", region="ext",
+              scene=RESIDENT, resident="the GUI loader of every kind"),
+    BlockSpec("quest_layouts_code", QUEST_LAYOUTS, "interface/quest_layouts/quest_layouts.c", region="ext",
+              scene=RESIDENT, resident="the GUI loader of every kind"),
+    BlockSpec("quest_layouts_data", QUEST_LAYOUTS, size=QUEST_LAYOUTS_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the GUI loader of every kind"),
+    BlockSpec("horn_songs_code", HORN_SONGS, "interface/horn_songs/horn_songs.c", region="ext", scene=QUEST),
+    BlockSpec("horn_songs_data", HORN_SONGS, size=HORN_SONGS_DATA_SIZE, region="ext", scene=QUEST),
+    BlockSpec("world_sharpness_code", WORLD_SHARPNESS, "interface/world_sharpness/world_sharpness.c", region="ext",
+              scene=QUEST),
+    BlockSpec("world_sharpness_data", WORLD_SHARPNESS, size=WORLD_SHARPNESS_DATA_SIZE, region="ext", scene=QUEST),
+    BlockSpec("item_marks_stub", ITEM_MARKS, "interface/item_marks/item_marks_stub.s", region="ext",
+              scene=RESIDENT, resident="item icons in town and quest"),
+    BlockSpec("item_marks_code", ITEM_MARKS, "interface/item_marks/item_marks.c", region="ext",
+              scene=RESIDENT, resident="item icons in town and quest"),
+    BlockSpec("item_marks_data", ITEM_MARKS, size=ITEM_MARKS_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="item icons in town and quest"),
     # 8-aligned: a Thumb block's size depends on its address mod 8
-    BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", region="ext", thumb=True, align=8,
-              units=("interface/screen_kit/screen_kit.c",)),
-    BlockSpec("weapon_tree_data", WEAPON_TREE, size=WEAPON_TREE_DATA_SIZE, region="ext"),
+    # Its pack opens with the tree (the Forge's weapon class, Upgrade's box weapon: the gates' entries and the hooks'
+    # stubs load it); the Smithy's state jump table's word 7, which names weapon_tree_smithy_update, is read only in
+    # state 7, which only the pack's code sets (read_in)
+    BlockSpec("weapon_tree", WEAPON_TREE, "interface/weapon_tree/weapon_tree.c", thumb=True, align=8,
+              units=("interface/screen_kit/screen_kit.c",), scene=SCREEN + "smithy_view",
+              read_in=(SCREEN + "smithy_view",),
+              entries=("weapon_tree_entry=forge_join", "weapon_tree_upgrade=smithy_upgrade_game"),
+              opens=("weapon_tree_entry", "weapon_tree_upgrade")),
+    BlockSpec("weapon_tree_data", WEAPON_TREE, size=WEAPON_TREE_DATA_SIZE, scene=SCREEN + "smithy_view"),
     # The new map numbers 28 and 29 (maps/new_map.py): the sound bank's and map piece's switch stubs, the 20 map tables
     # grown to 30 entries and each new map's strings, lists and minimap records
-    *(BlockSpec(name, NEW_MAP, source, size=size, region="ext") for name, source, size in new_map_blocks()),
+    *(BlockSpec(name, NEW_MAP, source, size=size, region="ext",
+                **({"scene": RESIDENT, "resident": NEW_MAP_RESIDENT[name]} if name in NEW_MAP_RESIDENT else
+                   {"scene": QUEST}))
+      for name, source, size in new_map_blocks()),
     # The new map's fog cycle: ColorFog's slot 10 and its data (each area's distances, the loop, the veils' levels)
-    BlockSpec("misty_fog_cycle_code", NEW_MAP, "maps/misty_peaks/fog_cycle.c", region="ext"),
-    BlockSpec("misty_fog_cycle_data", NEW_MAP, size=FOG_CYCLE_DATA_SIZE, region="ext"),
+    BlockSpec("misty_fog_cycle_code", NEW_MAP, "maps/misty_peaks/fog_cycle.c", region="ext", scene=QUEST),
+    BlockSpec("misty_fog_cycle_data", NEW_MAP, size=FOG_CYCLE_DATA_SIZE, region="ext", scene=QUEST),
     # Boltreaver Astalos' pulling ball on the hunter: the hooks' code (its variable, boltreaver_pull_state, is the
     # extension's)
-    BlockSpec("boltreaver_pull", BOLTREAVER_PULL, "gameplay/boltreaver_pull/boltreaver_pull.c", region="ext"),
+    # (16-aligned in the pack: ld's long-branch veneers back into the game are aligned, so its size depends on its
+    # address modulo 16, which a pack's start, where it is first linked, has 0)
+    BlockSpec("boltreaver_pull", BOLTREAVER_PULL, "gameplay/boltreaver_pull/boltreaver_pull.c", align=16, scene=PORT),
     # The cheats Interruptible Flex and Whetstone Sharpening Cancel: the hunter's update's call of the action's frame,
     # and the two Mod Settings options' ids (action_cancel.py action_cancel_data)
-    BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext"),
-    BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext"),
-    # The jukebox: the engine with the card's and the menu's units and the selector's stub, and its data (patch.py
-    # data_block)
-    BlockSpec(JUKEBOX, JUKEBOX, "music/jukebox/jukebox.c", region="ext",
-              units=("music/jukebox/jukebox_save.c", "music/jukebox/jukebox_menu.c", "music/jukebox/jukebox.s",
-                     "music/jukebox/jukebox_save_stub.s") + JUKEBOX_MENU_UNITS,
+    BlockSpec("action_cancel", ACTION_CANCEL, "cheats/action_cancel/action_cancel.c", region="ext",
+              scene=RESIDENT, resident="the hunter (town and quest)"),
+    BlockSpec("action_cancel_data", ACTION_CANCEL, size=ACTION_CANCEL_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the hunter (town and quest)"),
+    # The jukebox, two blocks: `jukebox_save`,
+    # resident, holds the card's store and load hooks (jukebox_save_stub.s, jukebox_save.c: FUN_002adedc, the card
+    # builder, runs in the title, the town and a quest) and what they reach (jukebox_core.c: the defaults, the owner,
+    # the round's draw); `jukebox`, the town's, holds the engine with the menu's unit and the selector's stub (patch.py
+    # data_block is the data's). The town's block calls the resident one; the resident one calls nothing of it.
+    BlockSpec(JUKEBOX_SAVE, JUKEBOX, "music/jukebox/jukebox_save.c", region="ext",
+              units=("music/jukebox/jukebox_core.c", "music/jukebox/jukebox_save_stub.s"),
               defines=(f"JUKEBOX_DATA_SIZE={JUKEBOX_DATA_SIZE}", f"JUKEBOX_STATE_SIZE={JUKEBOX_STATE_SIZE}")
-              + JUKEBOX_MENU_DEFINES),
-    BlockSpec("jukebox_data", JUKEBOX, size=JUKEBOX_DATA_SIZE, region="ext"),
+              + JUKEBOX_MENU_DEFINES,
+              scene=RESIDENT, resident="the Jukebox's save hooks: the card's builder, in the title, town and quest"),
+    BlockSpec(JUKEBOX, JUKEBOX, "music/jukebox/jukebox.c", align=8,
+              units=("music/jukebox/jukebox_menu.c", "music/jukebox/jukebox.s") + JUKEBOX_MENU_UNITS,
+              defines=(f"JUKEBOX_DATA_SIZE={JUKEBOX_DATA_SIZE}", f"JUKEBOX_STATE_SIZE={JUKEBOX_STATE_SIZE}")
+              + JUKEBOX_MENU_DEFINES, scene=TOWN),
+    # its data: the resident jukebox_reset and the round's draw read its limits and defaults
+    BlockSpec("jukebox_data", JUKEBOX, size=JUKEBOX_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the resident jukebox_reset and the round's draw read it"),
     # Heavenfall Beta's sidecars: the stubs of the four sites, and the C linked with the extras core (save/c/extras.c)
     # and what an older Heavenfall left (save/c/heav.c)
-    BlockSpec("beta_sidecar_stubs", BETA_SIDECAR, "save/beta_sidecar.s", region="ext"),
+    BlockSpec("beta_sidecar_stubs", BETA_SIDECAR, "save/beta_sidecar.s", region="ext",
+              scene=RESIDENT, resident="Heavenfall Beta's save, in the title, town and quest"),
     BlockSpec("beta_sidecar_code", BETA_SIDECAR, "save/beta_sidecar.c", region="ext", thumb=True, align=8,
-              units=("save/c/extras.c", "save/c/heav.c")),
+              units=("save/c/extras.c", "save/c/heav.c"),
+              scene=RESIDENT, resident="Heavenfall Beta's save, in the title, town and quest"),
     # The debug fog control's code and data (a diagnostics file's only)
-    BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext"),
-    BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext"),
+    BlockSpec("misty_fog_debug_code", MISTY_FOG_DEBUG, "maps/misty_peaks/fog_debug.c", region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    BlockSpec("misty_fog_debug_data", MISTY_FOG_DEBUG, size=FOG_DEBUG_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     # Skip Quest End Timer and No Time Limit on Rewards Screen: the three hooks' stubs, the C, each cheat's option and
     # the countdown's speed (quest_timers.py timers_data)
-    BlockSpec("quest_timers_stub", QUEST_TIMERS, "cheats/quest_timers/quest_timers_stub.s", region="ext"),
-    BlockSpec("quest_timers", QUEST_TIMERS, "cheats/quest_timers/quest_timers.c", region="ext"),
-    BlockSpec("quest_timers_data", QUEST_TIMERS, size=QUEST_TIMERS_DATA_SIZE, region="ext"),
+    BlockSpec("quest_timers_stub", QUEST_TIMERS, "cheats/quest_timers/quest_timers_stub.s", region="ext", scene=QUEST),
+    BlockSpec("quest_timers", QUEST_TIMERS, "cheats/quest_timers/quest_timers.c", region="ext", scene=QUEST),
+    BlockSpec("quest_timers_data", QUEST_TIMERS, size=QUEST_TIMERS_DATA_SIZE, region="ext", scene=QUEST),
     # Capture Guru and Autotracker always on: the two hooks' stubs, the C and each cheat's option (map_skills.py
     # skills_data)
-    BlockSpec("map_skills_stub", MAP_SKILLS, "cheats/map_skills/map_skills_stub.s", region="ext"),
-    BlockSpec("map_skills", MAP_SKILLS, "cheats/map_skills/map_skills.c", region="ext"),
-    BlockSpec("map_skills_data", MAP_SKILLS, size=MAP_SKILLS_DATA_SIZE, region="ext"),
+    BlockSpec("map_skills_stub", MAP_SKILLS, "cheats/map_skills/map_skills_stub.s", region="ext", scene=QUEST),
+    BlockSpec("map_skills", MAP_SKILLS, "cheats/map_skills/map_skills.c", region="ext", scene=QUEST),
+    BlockSpec("map_skills_data", MAP_SKILLS, size=MAP_SKILLS_DATA_SIZE, region="ext", scene=QUEST),
     # The diagnostics block: the hook stubs, the C and the watch lists (a diagnostics file's only)
-    BlockSpec("trio_diag_stub", TRIO_DIAG, "diagnostics/trio_diag_stub.s", region="ext"),
+    BlockSpec("trio_diag_stub", TRIO_DIAG, "diagnostics/trio_diag_stub.s", region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     BlockSpec("trio_diag_code", TRIO_DIAG, "diagnostics/trio_diag.c", region="ext",
-              defines=(f"TRIO_LOG_SIZE={TRIO_DIAG_LOG_SIZE}",)),
-    BlockSpec("trio_diag_data", TRIO_DIAG, size=TRIO_DIAG_DATA_SIZE, region="ext"),
+              defines=(f"TRIO_LOG_SIZE={TRIO_DIAG_LOG_SIZE}",),
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    BlockSpec("trio_diag_data", TRIO_DIAG, size=TRIO_DIAG_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     # The online sync log's block, after the trio diagnostics (a diagnostics file's only)
-    BlockSpec("sync_diag_stub", SYNC_DIAG, "diagnostics/sync_diag_stub.s", region="ext"),
+    BlockSpec("sync_diag_stub", SYNC_DIAG, "diagnostics/sync_diag_stub.s", region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     BlockSpec("sync_diag_code", SYNC_DIAG, "diagnostics/sync_diag.c", region="ext",
-              defines=(f"SYNC_LOG_SIZE={SYNC_DIAG_LOG_SIZE}",)),
-    BlockSpec("sync_diag_data", SYNC_DIAG, size=SYNC_DIAG_DATA_SIZE, region="ext"),
+              defines=(f"SYNC_LOG_SIZE={SYNC_DIAG_LOG_SIZE}",),
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    BlockSpec("sync_diag_data", SYNC_DIAG, size=SYNC_DIAG_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     # The sound latch of the Felynes' rocket, after the online sync log (a diagnostics file's only)
-    BlockSpec("sound_latch_stub", SOUND_LATCH, "diagnostics/sound_latch_stub.s", region="ext"),
+    BlockSpec("sound_latch_stub", SOUND_LATCH, "diagnostics/sound_latch_stub.s", region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
     BlockSpec("sound_latch_code", SOUND_LATCH, "diagnostics/sound_latch.c", region="ext",
-              defines=(f"LATCH_LOG_SIZE={SOUND_LATCH_LOG_SIZE}",)),
-    BlockSpec("sound_latch_data", SOUND_LATCH, size=SOUND_LATCH_DATA_SIZE, region="ext"),
-)
+              defines=(f"LATCH_LOG_SIZE={SOUND_LATCH_LOG_SIZE}",),
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    BlockSpec("sound_latch_data", SOUND_LATCH, size=SOUND_LATCH_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    # The RAM manager's probe log, after the sound latch (a diagnostics run's only): the hooks' stubs and the C
+    BlockSpec("memory_diag_stubs", MEMORY_DIAG, size=MEMORY_DIAG_STUBS_SIZE, region="ext",
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    BlockSpec("memory_diag_code", MEMORY_DIAG, "diagnostics/memory_diag.c", region="ext",
+              defines=NEW_ID_DEFINES + (f"PORT_PACK_SLOT={PACK_SLOTS[PORT]}", f"MDIAG_LOG_SIZE={MEMORY_DIAG_LOG_SIZE}"),
+              scene=RESIDENT, resident="a diagnostic build's only, never a player's"),
+    )
+    # The stubs of the packs' declared entries (BlockSpec.entries), which the build fills: two stubs' room for an
+    # entry that opens its screen's pack (BlockSpec.opens)
+    entries = sum(len(spec.entries) + len(spec.opens) for spec in specs)
+    return packed_last, specs + ((BlockSpec(ENTRY_STUBS, PACKS, size=PACK_STUB_SIZE * entries, region="ext",
+                                            scene=RESIDENT, resident="the entries into the packs, which resident "
+                                            "blocks call (they fall back while the pack is out)"),) if entries else ())
 
 
 def __getattr__(name: str):
@@ -824,7 +1241,8 @@ VARIABLES = (
     VariableSpec("layered_card", "layered_equipment", 8),
     # The item box's Layered Gear line (layered_box.c struct box_line_state): the line of the box last opened, or none
     VariableSpec("layered_box", "layered_equipment", 4),
-    VariableSpec("exchange_ui", RARE_EXCHANGE, 72),           # rare_exchange.c: struct xui
+    # rare_exchange.c's struct xui, which only it uses: its pack's, zeroed each time the pack loads
+    VariableSpec("exchange_ui", RARE_EXCHANGE, 72, scene=SCREEN + "rare_exchange"),
     # The game GUI recorder's frame counters (u32 started, done): only the
     # recording probe writes them (tools/ui/ui_probe.py, block gui_frame_marks_probe), never the product. Not a debug
     # variable: the product's own telemetry writes the debug place (Alatreon's shell log); its room came from halving
@@ -905,6 +1323,13 @@ VARIABLES = (
                  region="ext_vars"),
     VariableSpec("hf_records_slots", "new monster id (core/monsters/porting/hf_records.py)", 0xC00, align=0x10,
                  region="ext_vars"),
+    # The packs' state bytes (game/executable/pack_table.h: 1 while a slot's pack is loaded, which the entry stubs
+    # read); monsters/porting/product.py reserves it. After the others (build_code_space.pack_variables' tail)
+    VariableSpec("pack_state", PACKS, PACK_STATE_BYTES, region="ext_vars"),
+    # ... the calls inside each slot's pack from the port machinery's guarded hooks (pack_guard.s; "As built: code
+    # manager step 2", risk 3) and the scene gate's state (pack_loader.c struct gate_state)
+    VariableSpec(PACK_BUSY, PACKS, 4 * PACK_STATE_BYTES, region="ext_vars"),
+    VariableSpec("scene_gate_state", PACKS, SCENE_GATE_STATE_SIZE, region="ext_vars"),
     # Damage Numbers' events, numbers and monsters (damage_numbers.c struct dmg_state); patch_damage_numbers reserves it
     VariableSpec("damage_numbers_state", DAMAGE_NUMBERS, DAMAGE_NUMBERS_STATE_SIZE, align=0x10, region="ext_vars"),
     # The modern camera's kept C-stick, each camera input's turn and the aim's (modern_camera.c struct
@@ -915,16 +1340,18 @@ VARIABLES = (
     # The item marks' noted icons, their stars and the rare effect (item_marks.c struct marks_state); patch_item_marks
     # reserves it
     VariableSpec("item_marks_state", ITEM_MARKS, ITEM_MARKS_STATE_SIZE, align=0x10, region="ext_vars"),
-    # The weapon tree's class, placing, cursor and window (weapon_tree.h struct wt_state); patch_weapon_tree reserves it
-    VariableSpec("weapon_tree_state", WEAPON_TREE, WEAPON_TREE_STATE_SIZE, align=0x10, region="ext_vars"),
+    # The weapon tree's class, placing, cursor and window (weapon_tree.h struct wt_state); patch_weapon_tree reserves
+    # it. Its pack's: zeroed each time the pack loads
+    VariableSpec("weapon_tree_state", WEAPON_TREE, WEAPON_TREE_STATE_SIZE, align=0x10, region="ext_vars",
+                 scene=SCREEN + "smithy_view"),
     # The pull's registration of the hunter and the ball's marks (boltreaver_pull.c struct pull_state: 4 + 4 owners of
     # 20 bytes); patch_boltreaver_pull reserves it
-    VariableSpec("boltreaver_pull_state", BOLTREAVER_PULL, 4 + 4 * 20, region="ext_vars"),
+    VariableSpec("boltreaver_pull_state", BOLTREAVER_PULL, 4 + 4 * 20, region="ext_vars", scene=PORT),
     # The jukebox's saved block and its engine (jukebox.h struct jukebox_state); patch_jukebox reserves it
     VariableSpec("jukebox_state", JUKEBOX, JUKEBOX_STATE_SIZE, region="ext_vars"),
     # The jukebox's menu: its screen, cursor and the strings its rows show (jukebox.h struct jukebox_menu);
-    # patch_jukebox_menu reserves it
-    VariableSpec("jukebox_menu", JUKEBOX, JUKEBOX_MENU_SIZE, region="ext_vars"),
+    # patch_jukebox_menu reserves it. The town pack's (jukebox_menu.c alone uses it): zeroed each time the pack loads
+    VariableSpec("jukebox_menu", JUKEBOX, JUKEBOX_MENU_SIZE, region="ext_vars", scene=TOWN),
     # Holding A in the Wyporium's Claim Items (hold_a.c hold_a_claim): the cell the last call's take emptied, which the
     # cursor leaves a call later; patch_hold_a reserves it
     VariableSpec("hold_a_claim_take", "hold_a", 4, region="ext_vars"),
@@ -962,11 +1389,14 @@ VARIABLES = (
     VariableSpec("sync_diag_log", SYNC_DIAG, SYNC_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
     # The sound latch's ring and latches (diagnostics/sound_latch.c struct latch_log), after the sync log's
     VariableSpec("sound_latch_log", SOUND_LATCH, SOUND_LATCH_LOG_SIZE, align=0x10, region="ext_vars"),
+    # The RAM manager's probe log's ring (diagnostics/memory_diag.c struct mdiag_log), after the sound latch's
+    VariableSpec("memory_diag_log", MEMORY_DIAG, MEMORY_DIAG_LOG_SIZE, align=0x10, region="ext_vars"),
 )
 
 # Game functions the sources call by name (addresses in the update's executable).
 GAME_SYMBOLS = {
     "clear_bss": 0x100024,        # called first by the executable's entry (0x100000)
+    "heap_table": 0xF2BB44,       # FUN_0010612c's nine heaps (0x18 bytes: name, index, flags, size; memory_boot.c)
     "panel_update": 0xB94854,     # FUN_00b94854, target camera panel update
     "group_show": 0xAE53E0,       # FUN_00ae53e0(group, visible)
     "group_show_body": 0xAE53E4,  # its second instruction (face_show.s runs the first itself)
@@ -1202,6 +1632,18 @@ GAME_SYMBOLS = {
     "quest_monster_flags": 0x6A74F8,   # FUN_006a74f8(quest, u8 flags[124]): the quest's monsters
     "enemy_data_load": 0x6894B8,       # FUN_006894b8(manager, id, variant): loads its etd/emd
     "monster_data_manager": 0xF32004,  # the variable holding sEnemy: the monsters' data, the spawn requests
+    # The packs' loader (monsters/porting/pack_loader.c; 4, and "As
+    # built: P2 loader"): nn::fs::FileStream (the stream {file | bit 0, u64 position, u64 size}), the game's panic and
+    # a monster's resource set
+    "file_stream_open": 0x10BAF8,      # FUN_0010baf8(stream, const u16 *path, mode 1): TryInitialize; <0 failure; the
+    #                                    split title hooks its entry (file_stream_open_body)
+    "file_stream_size": 0xCEED70,      # FUN_00ceed70(stream, u64 *size): <0 failure
+    "file_stream_read": 0x47BFB4,      # FUN_0047bfb4(stream, s32 *read, buffer, size): until size or 0; <0 failure
+    "file_stream_close": 0x10BBF8,     # FUN_0010bbf8(stream word 0 & ~1): the file's slot 12 (Finalize is inline)
+    "game_panic": 0x10B3C8,            # FUN_0010b3c8(state, format, ...): the text, its handler, *0 = 0xDEADBEEF
+    "game_panic_state": 0x10BD2D0,     # the panic's state its callers pass (the literal loaded at 0x693580)
+    "enemy_resource_set_load": 0x682CC8,   # FUN_00682cc8(manager, set, id): reads em_resources[id] (its one call:
+    #                                        FUN_0068fd94 at 0x68FE20)
     # New quests (gameplay/quests/quest_unlock.s)
     "quest_cleared": 0xC21FE0,         # FUN_00c21fe0(save, quest id): non-zero if cleared
     "story_flag": 0xC1C278,            # FUN_00c1c278(save, flag): non-zero if the story flag is set (layered ranks)
@@ -1245,6 +1687,7 @@ GAME_SYMBOLS |= {
     "felyne_head_case": 0x2F8A34,       # FUN_002f8a34(equipment, pair): the helm that opens and closes
     "felyne_effect": 0x69998C,          # FUN_0069998c(manager, actor, model, pair): a piece's effect by its real id
     "felyne_quest_effect": 0x699D5C,    # FUN_00699d5c(manager, actor, model, pair): the same in a quest
+    "felyne_quest_effect_resume": 0x699D60,   # its second instruction (felyne_joints.s)
     "felyne_scene_effect": 0x6997C4,    # FUN_006997c4(manager, model, pair, record): the same in a cutscene
     "felyne_scene_joints": 0x69A484,    # FUN_0069a484(manager, actor, pair, record): a suit's joints in a cutscene
     "felyne_main_record": 0xC2065C,     # FUN_00c2065c(save): the main cat's record
@@ -1309,6 +1752,19 @@ GAME_SYMBOLS |= {
     "proof_default_color": 0x104DF94,   # a zero color word; MH Generations 0xDAE8E4 (22 readers each)
     "sunit_add": 0x64608C,              # FUN_0064608c(sUnit, line, unit, u64 group): a unit onto a line (0x894E74)
     "sunit": 0x10572F8,                 # the variable holding sUnit (MH Generations 0xDB7EA0)
+    # The scene gate (monsters/porting/pack_loader.c scene_gate): the variable holding sMhArea (its area stack: +0x3818
+    # the count, +0x3820 eight slots; its
+    # move FUN_00642c64 asks each unstarted area's slot 0x18 whether it can start), aQuest's vtable and the town's
+    # areas' (aVillage, aEvent, aArena: "Code manager step 3")
+    "mh_area": 0x1057298,
+    # A New 3DS's packs ("As built: New 3DS without the manager"): the variable holding the system object (its +0x244C
+    # is FUN_001067a8's answer, 1 on a New 3DS) and the main loop FUN_00105acc(system), called once at 0x104700
+    "game_system": 0x105728C,
+    "game_main_loop": 0x105ACC,
+    "quest_area_vtable": 0xE655C8,
+    "village_area_vtable": 0xE6C170,
+    "event_area_vtable": 0xE650F4,
+    "arena_area_vtable": 0xE650BC,
     "mt_idivmod": 0x2FE210,             # __aeabi_idivmod (MH Generations 0x2F1DD8)
     "collision_ground": 0x2BA968,       # sCollision's ground query (MH Generations 0x2F8C38)
     "collision_manager": 0x10574FC,     # the variable holding sCollision (MH Generations 0xDB80A4)
@@ -1347,6 +1803,8 @@ GAME_SYMBOLS |= {
 GAME_SYMBOLS |= {
     "resource_manager": 0x10572EC,      # the variable holding sResource (0xDB7E90); its load is slot 14, not 12
     "effect_list_dti": 0x10E75F0,       # rEffectList's DTI (0xE31288; the static initializer names it)
+    "quest_info_tbl_dti": 0x10A02D0,    # rQuestInfoTbl's DTI (FUN_00d3bfb4 registers it): a ported monster's images
+                                        # entry's type (effect_player/entry_4u.c)
     "model_dti": 0x10E7530,             # rModel's DTI (0xE311E8)
     "mt_empty_string": 0xDF4FE0,        # the "" MtString::operator= loads (0xDE9A74; engine_pairs.json)
     "player_manager": 0xFB83E8,         # the variable holding sPlayer (0xDA5588; engine_pairs.json)
@@ -1899,6 +2357,9 @@ GAME_SYMBOLS |= {
     "sprite_vertices": 0xAE7098,        # FUN_00ae7098(sprite data + 0x10, context, state): its vertex record
     "result_scene_object": 0xEF32B4,    # the result scene (FUN_00accd24's first argument): + 4 the page, + 0x4A /
                                         # + 0x10A the cells of pages 1 and 2
+    "group_set_texture": 0xAE5320,      # FUN_00ae5320(group, slot, texture): below the group's capacity (+ 0x44's low
+                                        # byte), the old texture released, the new one stored and referenced
+    "texture_dti": 0x10E75D0,           # rTexture's type, as rLayout's load (FUN_00aed0cc) asks sResource for one
 }
 
 # The wheel's Auto-Combine (interface/radial_menu/radial_craft.c): the four steps of the game's combining (START menu's
@@ -2383,6 +2844,16 @@ GAME_SYMBOLS |= {
     "hit_sound": 0xBE815C,              # FUN_00be815c(sound, monster, hit, position): the sound of a hit on a monster
     "union_object_update": 0xB0762C,    # FUN_00b0762c(object): the Felynes' union attacks' objects' common move
     "rocket_vtable": 0xE62B60,          # uOtomoSkill_rocket's vtable: the Felynes' rocket (constructor FUN_003d1ce0)
+}
+
+# The RAM manager's probe log (diagnostics/memory_diag.c): the root heap's own object (an EXPH heap: +0xC its size,
+# +0x88 its free list) and the game's frames presented, a word that counts up (the PC port's frame counter)
+GAME_SYMBOLS |= {
+    "root_heap_object": 0x10BD718,      # the root heap's object
+    "frame_counter": 0x10571D4,         # the frames presented, one a frame
+    # the game's fs:USER session: FUN_00106670 gets it from srv ("fs:USER"), FUN_00107800 keeps it here (0x1057D88 +
+    # 0x10) and initializes it; the RAM log's file goes through it
+    "fs_user_session": 0x1057D98,
 }
 
 GAME_SYMBOLS["color_fog_build"] = 0xC29308   # FUN_00c29308: a uColorFog's slot 10, which builds the fog table

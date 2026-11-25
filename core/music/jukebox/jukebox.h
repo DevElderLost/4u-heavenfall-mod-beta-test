@@ -1,7 +1,9 @@
 /* The jukebox's contract: the block saved in the card file, the data block the
  * patcher fills (music/jukebox/patch.py data_block), the state in the extension's variables, and the calls the block's
- * three units share. jukebox.c is the engine (the pick, the tick, the order, the resume list, listening); jukebox_save.c
- * the card's store and load; jukebox_menu.c the house Felyne's menu.
+ * units share. Two blocks: the town's `jukebox` (jukebox.c the engine: the pick, the tick, the order, the resume list,
+ * listening; jukebox_menu.c the house Felyne's menu) and the resident `jukebox_save` (jukebox_save.c the card's store
+ * and load, which run in the title, the town and a quest; jukebox_core.c what they reach: the defaults, the owner, the
+ * round's draw, the playlist search). The town's block calls the resident one; the resident one never calls it.
  *
  * Build: tools/build/build_code_space.py (devkitARM), which places and links it.
  */
@@ -175,6 +177,17 @@ void jukebox_reset(void);               /* the defaults: nothing playing, no one
                                            data's options */
 void jukebox_owner(const u8 *hunter_id);        /* a copy of another hunter (or of none) is reset first */
 void jukebox_loaded(void);              /* after a load: with JUKEBOX_THIS_SESSION, nothing plays */
+
+/* The round's draw (jukebox_core.c, resident: jukebox_changed uses it) */
+int jukebox_random_below(int n);        /* a number below `n` (n >= 1) */
+void jukebox_draw_round(const struct jukebox_playlist *p, int first);       /* a new round of the playlist */
+
+/* The resume list's lookup for the game's requests (jukebox_core.c, resident: FUN_0030ace0's answer while the town's
+ * pack is out, the hook's fallback) */
+#define JUKEBOX_RESUME_SLOTS 0x178C     /* the sound manager's + 8 n: slot n's flag, + 4 its position (-1: none) */
+#define JUKEBOX_RESUME_ROOM 32          /* slots the mask covers (the game's list has 19) */
+int jukebox_resume_slot(int request);   /* the request's index in the resume list, or -1 */
+int jukebox_resume_game(u8 *manager, int request);  /* that index, its slot cleared first if a song's position held it */
 
 /* The hooks' entries (jukebox.s, patch.py) */
 int jukebox_pick(u8 *manager, int request);     /* FUN_00304990's exit: the request it returns */

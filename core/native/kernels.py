@@ -15,6 +15,8 @@ SIGNATURES = {
     "hf_to_canonical": "pqpqupppqppppqpqppq",
     "hf_coplanar_counts": "pqpqpqdddpqqpq",
     "hf_sink_meshes": "pqppqddpqq",
+    "hf_blowfish_ecb": "pppqq",
+    "hf_xor_stream": "pqqqq",
 }
 
 
@@ -50,6 +52,34 @@ def _int64s(values) -> array | None:
         return array("q", values)
     except (OverflowError, TypeError):
         return None
+
+
+def _uint32s(values) -> array | None:
+    try:
+        words = array("I", values)
+    except (OverflowError, TypeError):
+        return None
+    return words if words.itemsize == 4 else None
+
+
+def blowfish_ecb(p, s, data: bytes, decrypt: bool) -> bytes | None:
+    """save/crypt.py Blowfish._ecb with its P-array `p` and S-boxes `s` (four lists of 256 words)."""
+    if native.library() is None or len(data) % 8 or len(p) != 18 or len(s) != 4 or any(len(box) != 256 for box in s):
+        return None
+    p_words, s_words = _uint32s(p), _uint32s(chain.from_iterable(s))
+    if p_words is None or s_words is None:
+        return None
+    out = bytearray(data)
+    return bytes(out) if _call("hf_blowfish_ecb", _address(p_words), _address(s_words), _address(out), len(out),
+                               int(bool(decrypt))) else None
+
+
+def xor_stream(data: bytearray, seed: int, multiplier: int, modulus: int) -> bool:
+    """save/crypt.py _xor_stream on `data` in place: whether it was done (False: run the twin)."""
+    if native.library() is None or not isinstance(data, bytearray) or not all(
+            isinstance(value, int) and -2**62 < value < 2**62 for value in (seed, multiplier, modulus)):
+        return False
+    return _call("hf_xor_stream", _address(data), len(data), seed, multiplier, modulus)
 
 
 def blz_decompress(data: bytes) -> bytes | None:

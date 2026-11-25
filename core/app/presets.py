@@ -191,21 +191,30 @@ def _expand(personal: dict) -> dict:
     return values
 
 
-def install_settings(personal: dict) -> Settings:
+def _with_debug(settings: Settings, debug: dict | None) -> Settings:
+    """`settings` with the main installer's Debug tab choices (core/app/debug_options.py, which an edition without the
+    tab never loads); none: as they are."""
+    if not debug:
+        return settings
+    from core.app.debug_options import with_debug
+    return with_debug(settings, debug)
+
+
+def install_settings(personal: dict, debug: dict | None = None) -> Settings:
     """The mod without the randomizer: the common and install fixed fields, the installer options as the player
     set them (`personal`, keys of `personal_defaults()`; a missing one keeps the Settings default) and their links.
-    No seed."""
-    return Settings.from_dict({**section("in_game"), **_expand(personal), **section("common"),
-                               **section("install_fixed")})
+    `debug`: the Debug tab's choices (field -> bool), over all of it. No seed."""
+    return _with_debug(Settings.from_dict({**section("in_game"), **_expand(personal), **section("common"),
+                                           **section("install_fixed")}), debug)
 
 
-def randomizer_settings(chosen: dict, personal: dict, seed: str) -> Settings:
+def randomizer_settings(chosen: dict, personal: dict, seed: str, debug: dict | None = None) -> Settings:
     """A randomizer run: the randomizer defaults, over them the player's widgets (`chosen`, keys of
-    `randomizer_defaults()`), then the installer options (`personal`) and the fixed fields. A widget naming a fixed
-    field or an unknown one raises ValueError."""
+    `randomizer_defaults()`), then the installer options (`personal`) and the fixed fields, and last the Debug tab's
+    choices (`debug`). A widget naming a fixed field or an unknown one raises ValueError."""
     defaults = randomizer_defaults()
     unknown = set(chosen) - set(defaults)
     if unknown:
         raise ValueError(f"not randomizer widgets: {sorted(unknown)}")
-    return Settings.from_dict({**defaults, **chosen, **section("in_game"), **_expand(personal), **section("common"),
-                               **section("randomizer_fixed"), "seed": seed})
+    return _with_debug(Settings.from_dict({**defaults, **chosen, **section("in_game"), **_expand(personal),
+                                           **section("common"), **section("randomizer_fixed"), "seed": seed}), debug)

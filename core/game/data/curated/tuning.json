@@ -1,13 +1,43 @@
 {
  "description": "Every arbitrary probability and parameter of the randomizer. Each entry is {\"value\": ..., \"description\": ...}; edit the value, keep the description up to date. Loaded and checked by core/game/data/tuning.py.",
  "memory": {
-  "resource_to_root_mb": {
-   "value": 3,
-   "description": "Megabytes the game's Resource heap (models, textures, maps; 47 MB on an Old 3DS, 52 on a New 3DS) gives to its root heap, which the mod's added code and data take from, so a full mod boots on an Old 3DS (game/executable/memory_split.py). Every built executable gets it."
+  "boot_heaps": {
+   "value": {
+    "80": {
+     "global_kb": 640,
+     "command_cache_kb": 512,
+     "unit_area_kb": 6912,
+     "develop_kb": 4,
+     "root_margin_kb": 1024,
+     "resource_min_kb": 46080,
+     "resource_max_kb": 48128
+    },
+    "124": {
+     "global_kb": 768,
+     "command_cache_kb": 768,
+     "unit_area_kb": 7168,
+     "develop_kb": 100,
+     "root_margin_kb": 8192,
+     "resource_min_kb": 53248,
+     "resource_max_kb": 73728
+    }
+   },
+   "description": "The heap sizes at boot for each application memory size in MB (80 on an Old 3DS, 124 on a New 3DS; game/executable/memory_boot.py), in KB, whole 4 KB pages. Global, CommandCache, Unit/Area and Develop: those heaps' sizes (the game's: 768, 768, 7168, 100; their highest use over 186 save states, 'Measured: M1': Global 410 online, CommandCache 430, Unit/Area 6001 online and 5775 offline, Develop 0; on 80 MB M1's sizes: Global 0.625 MB, CommandCache 0.5, Unit/Area 6.75). root_margin_kb: what the root heap keeps free after the boot, above what the game takes from it then (the ported monsters' objects in a hunt, and what that measure may have missed). Resource (the game's 48128 on an Old 3DS, 53248 on a New 3DS) gets everything left, up to resource_max_kb; a build whose executable leaves it under resource_min_kb stops (on 80 MB: the size at which the 1.36 MB buffer Gogmazios' event unpacks on re-entry fits). The packs' budget is no number here: each build keeps its run's packs out of the root heap, uncommitted (on 80 MB the most its packs' loader commits at once, game/executable/pack_loader.py run_need; on 124 MB, where the packs' manager does not exist, every pack, read at boot and kept: resident_need). On 124 MB this row is all that stays of the manager: sizing the heaps at boot costs no loading time, and with the game's 52 MB of Resource some ported monsters' pairs and randomized quests would not fit. Every built executable gets them; any other memory size keeps the game's numbers."
   },
-  "old3ds_root_margin_kb": {
-   "value": 1024,
-   "description": "Kilobytes the Old 3DS root heap must keep free after the boot with the executable's extension at its largest; tests/game/executable/test_memory_split.py fails below it (the room the ported monsters' objects take in a hunt, and what the measure may have missed)."
+  "ext_margin_pages": {
+   "value": 8,
+   "description": "The extension's room for new code (game/executable/code_space.py EXT_SIZE): the 4 KB pages EXT_SIZE keeps over what the layout's blocks take. Each page costs a page of the Old 3DS heaps in every build that has the extension's variables (they start after EXT_SIZE). When the blocks outgrow EXT_SIZE, tools/build/build_code_space.py names the EXT_SIZE to write: the blocks' pages plus these."
+  },
+  "scene_gate_frames": {
+   "value": 600,
+   "description": "The frames (10 seconds at 60) the scene gate holds the loading screen after a quest at most while it waits for the quest's last units to be deleted and the network's calls into the ported monsters' machinery to end (core/monsters/porting/pack_loader.c scene_gate). Past it the gate lets the town start and keeps the packs loaded: no crash, only the memory stays taken until the next quest's load."
+  },
+  "ram_log": {
+   "value": {
+    "timer_frames": 150,
+    "rows_per_write": 128
+   },
+   "description": "The Debug tab's RAM log (diagnostics/memory_diag.c): timer_frames, a memory row every this many frames presented (150: 5 seconds at the game's 30), each followed by a write of the new rows to the SD card's file; rows_per_write, the most rows (64 bytes each) one write takes, so a write never holds the frame long (a quest load's hundred rows go in one). Whole numbers above 0."
   }
  },
  "interface": {

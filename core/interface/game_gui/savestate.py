@@ -33,11 +33,21 @@ class NotAState(LinkError):
 
 def load_state(path: Path) -> bytes:
     """The emulated memory of the save state `path`, decompressed."""
-    import zstandard
     raw = Path(path).read_bytes()
     if raw[:3] != b"CST":
         raise NotAState(f"{path}: not a Citra save state")
-    return zstandard.ZstdDecompressor().stream_reader(raw[HEADER:]).read()
+    return decompressed(raw)
+
+
+def decompressed(raw: bytes) -> bytes:
+    """The memory after a state's header: made in one buffer of the size its zstd frame records (a stream read gathers
+    chunks and joins them, twice the state's ~300 MB at once), streamed when the frame does not record it."""
+    import zstandard
+    frame = memoryview(raw)[HEADER:]
+    try:
+        return zstandard.ZstdDecompressor().decompress(frame)
+    except zstandard.ZstdError:     # no size in the frame's header
+        return zstandard.ZstdDecompressor().stream_reader(frame).read()
 
 
 class StateMemory:

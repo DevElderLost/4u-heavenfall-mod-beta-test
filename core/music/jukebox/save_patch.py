@@ -1,6 +1,6 @@
 """The jukebox's block in the card file: two changes to the
-game's code, on an executable patch_jukebox (patch.py) has patched, whose block `jukebox` holds the stubs
-(jukebox_save_stub.s) and the C (jukebox_save.c):
+game's code, on an executable patch_jukebox (patch.py) has patched, whose resident block `jukebox_save` holds the
+stubs (jukebox_save_stub.s) and the C (jukebox_save.c, jukebox_core.c):
 
 * FUN_002adedc (the card file's writer): its `mov r3, #1` at STORE_AT, after its last copy into the plain file and
   before its sum, becomes `bl jukebox_store_stub`, which writes the jukebox's block into the file's tail
@@ -18,7 +18,7 @@ import struct
 
 from core.game.executable.blocks import GAME_SYMBOLS
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
-from core.music.jukebox.patch import CODE
+from core.music.jukebox.patch import SAVE_CODE
 
 # FUN_002adedc (the card file's writer): `mov r3, #1` after its last copy (FUN_00c1ac78) and before the sum's call
 STORE_AT = 0x2ADFDC
@@ -41,17 +41,17 @@ def supports_jukebox_save(code: bytes) -> bool:
 
 def patch_jukebox_save(code: bytes, layout: Layout | None = None) -> bytes:
     """`code`, which patch_jukebox has patched, with the card file's two hooks. Refuses an executable where a site is
-    not the game's instruction (another version, or patched already) or that lacks the block jukebox."""
+    not the game's instruction (another version, or patched already) or that lacks the block jukebox_save."""
     if not supports_jukebox_save(code):
         raise CodeSpaceError("unexpected code at the card file's writer or reader: the jukebox needs the update's "
                              "executable, patched once")
     layout = layout or load_layout()
-    block = layout.block(CODE)
+    block = layout.block(SAVE_CODE)
     if bytes(code[block.address - BASE_ADDRESS:block.end - BASE_ADDRESS]) != block.data:
         raise CodeSpaceError("the jukebox's block is not in the executable: patch_jukebox comes first")
     out = bytearray(code)
-    layout.hook(out, STORE_AT, layout.symbol(CODE, "jukebox_store_stub"), original=struct.pack("<I", MOV_R3_1))
-    layout.hook(out, LOAD_AT, layout.symbol(CODE, "jukebox_load_stub"), calls=CARD_READ)
+    layout.hook(out, STORE_AT, layout.symbol(SAVE_CODE, "jukebox_store_stub"), original=struct.pack("<I", MOV_R3_1))
+    layout.hook(out, LOAD_AT, layout.symbol(SAVE_CODE, "jukebox_load_stub"), calls=CARD_READ)
     return bytes(out)
 
 

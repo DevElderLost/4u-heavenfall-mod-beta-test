@@ -10,8 +10,8 @@
  *     carries the signature: noted for the next frame (the render runs after the frame below).
  *   - item_marks_frame(), a frame-only entry of the quest's shared frame hook (interface/quest_layouts/: sMhMain::frame
  *     after every move, before the render):
- *       * each marked icon seen keeps one or two stars inside its square, coloured by the row Star Colour, sprites of
- *         the icon's own sheet made at run time and
+ *       * each marked icon seen keeps one or two stars inside its square, coloured by the row Star Colour, sprites
+ *         made at run time from the marks' own texture (bound into the group's last texture slot: marks_slot) and
  *         linked as the last children of the icon's parent null (the lists step from the first child: one after the
  *         icon would be taken for the next row), or as the group's last top panes for an icon that is a top pane;
  *         each frame they take the icon's place, size, alpha and visibility;
@@ -43,6 +43,7 @@ typedef unsigned char u8;
 #define TRACKED 96              /* marked icons with their stars */
 #define CELLS 48                /* the rewards grid: 8 x 6 */
 #define PAGES 2
+#define TEXTURE_PATH 40         /* item_marks.py TEXTURE_PATH */
 
 /* item_marks.py data_block */
 struct marks_data {
@@ -69,9 +70,10 @@ struct marks_data {
     u16 upgrade_id[MAX_UPGRADES];       /* sorted */
     u8 upgrade_level[MAX_UPGRADES];
     u16 rare_id[MAX_RARE];              /* sorted */
+    char texture[TEXTURE_PATH];         /* the marks' texture's path (art.py TEXTURE), NUL ended */
 };
 
-_Static_assert(sizeof(struct marks_data) == 788, "blocks.py ITEM_MARKS_DATA_SIZE, item_marks.py data_block");
+_Static_assert(sizeof(struct marks_data) == 828, "blocks.py ITEM_MARKS_DATA_SIZE, item_marks.py data_block");
 
 struct tracked {
     u32 group, hash;
@@ -92,20 +94,27 @@ struct marks_state {                    /* item_marks_state (blocks.py ITEM_MARK
     u32 rewards_group, rewards_hash;    /* the grid's group last found, and its hash then */
     struct cell_marks cell[CELLS];
     float phase;                        /* the rare effect's, 0-1 */
-    u32 refusals;                       /* sprites left unmade for want of room */
+    u32 refusals;                       /* sprites left unmade for want of room or of their texture */
     u32 lost;                           /* marked icons left out: table full */
     u32 made;                           /* sprites made */
+    u32 texture;                        /* the marks' texture last bound: only compared, never read */
 };
 
-_Static_assert(sizeof(struct marks_state) == 3424, "blocks.py ITEM_MARKS_STATE_SIZE");
+_Static_assert(sizeof(struct marks_state) == 3428, "blocks.py ITEM_MARKS_STATE_SIZE");
 
 extern const struct marks_data item_marks_data;
 extern struct marks_state item_marks_state;
 extern u32 gui_control, game_main, result_scene_object;
 extern int mod_option_value(int id);    /* mod_options.c */
 extern int mod_option_count(int id);
+extern u32 resource_manager;            /* the variable holding sResource */
+extern const u32 texture_dti[];         /* rTexture's type */
 void pane_redraw(u32 group, u32 pane);  /* FUN_00ae6bcc */
 void gui_group_changed(u32 group);       /* FUN_00ae65b0 */
+void group_set_texture(u32 group, u32 slot, u32 texture);  /* FUN_00ae5320: references the new, releases the old */
+void resource_release(u32 resource);    /* FUN_00be2768 */
+
+typedef u32 (*resource_get)(u32 manager, const u32 *type, const char *name, u32 flags);
 
 #define W(p, off) (*(volatile u32 *)((p) + (off)))
 #define F(p, off) (*(volatile float *)((p) + (off)))
@@ -123,9 +132,14 @@ void gui_group_changed(u32 group);       /* FUN_00ae65b0 */
 #define G_HASH 0x00
 #define G_PANES 0x08
 #define G_CONTEXT 0x14          /* the manager's + 0x104: its pools' addresses */
+#define G_TEXTURES 0x24         /* the group's texture slots: texture *[capacity] */
 #define G_FLAGS 0x44
+#define G_CAPACITY 0xFFu        /* G_FLAGS: how many texture slots (16 in the main manager) */
 #define G_SHOWN 0x400u
 #define G_CACHED 0x100u
+#define G_NO_TEXTURES 0x2000u   /* drawn without textures */
+#define RESOURCE_GET 0x38       /* sResource's vtable: a resource by its type and name, referenced */
+#define LOAD_SYNC 1             /* its load mode that reads before it returns (2: queued; B127) */
 #define G_INDEX_SHIFT 18
 #define MANAGER_OF_CONTEXT 0x104
 #define M_GROUPS 0x154
@@ -149,7 +163,9 @@ void gui_group_changed(u32 group);       /* FUN_00ae65b0 */
 #define KIND_TEXT 2
 #define NODE_DIRTY 0x12
 #define DIRTY 3
-#define S_X 0x10                /* a sprite's data */
+#define S_TEXTURE 0x04          /* a sprite's data: its texture's slot in the group (bit 31 clear), flags on top */
+#define TEXTURE_FLAGS 0xFF000000u
+#define S_X 0x10
 #define S_Y 0x14
 #define S_Z 0x18
 #define S_OWNER 0x1C            /* read by nobody: our stars' owner */
@@ -319,14 +335,46 @@ static void touch(u32 group, u32 pane)
         pane_redraw(group, pane);
 }
 
-/* A new sprite of the group: a copy of `icon`'s data with our name and owner, linked nowhere yet; 0 without room */
+/* The group's texture slot our sprites draw from, bound to the marks' texture (art.py TEXTURE), or -1. It is the
+ * group's last: the game's layouts fill theirs from 0 (at most 14 of 16) and no code of the game binds that one. An
+ * empty slot gets the texture by its path, as rLayout's load asks for one; the group keeps the reference and the game
+ * releases it with the group. A slot holding another texture, or a group drawn without textures, gets none. */
+static int marks_slot(u32 group)
+{
+    u32 flags = W(group, G_FLAGS), slots = W(group, G_TEXTURES), slot, held, texture;
+
+    if (flags & G_NO_TEXTURES || (flags & G_CAPACITY) == 0 || slots == 0)
+        return -1;
+    slot = (flags & G_CAPACITY) - 1;
+    held = W(slots, 4 * slot);
+    if (held != 0 && held == ST->texture)
+        return (int)slot;
+    texture = ((resource_get)W(W(resource_manager, 0), RESOURCE_GET))(resource_manager, texture_dti, D->texture, LOAD_SYNC);
+    if (texture == 0)
+        return -1;
+    if (held == 0)
+        group_set_texture(group, slot, texture);
+    resource_release(texture);                                  /* the get's own reference */
+    if (W(slots, 4 * slot) != texture)
+        return -1;
+    ST->texture = texture;
+    return (int)slot;
+}
+
+/* A new sprite of the group: a copy of `icon`'s data with our name and owner, drawing from the marks' texture, linked
+ * nowhere yet; 0 without room or without that texture */
 static u32 make_sprite(u32 group, u32 icon, u32 hash, u32 owner)
 {
     u32 context = W(group, G_CONTEXT), panes = W(context, 0), sprites = W(context, 4);
     u32 pane, data, slot, from = W(icon, P_DATA);
-    int i;
+    int texture, i;
 
     if (!pool_room(panes, D->pane_reserve) || !pool_room(sprites, D->sprite_reserve)) {
+        ST->refusals++;
+        return 0;
+    }
+    texture = marks_slot(group);
+    if (texture < 0) {
         ST->refusals++;
         return 0;
     }
@@ -335,6 +383,7 @@ static u32 make_sprite(u32 group, u32 icon, u32 hash, u32 owner)
     slot = W(data, S_FLAGS) & PRIMITIVE;
     for (i = 0; i < SPRITE_SIZE; i += 4)
         W(data, i) = W(from, i);
+    W(data, S_TEXTURE) = (W(from, S_TEXTURE) & TEXTURE_FLAGS) | (u32)texture;
     W(data, S_U) = W(from, S_U) & ~LOW_BITS;                    /* never taken for a marked icon */
     W(data, S_FLAGS) = slot | CENTRE_ORIGIN;                    /* hidden until placed */
     W(data, S_OWNER) = owner;

@@ -12,6 +12,10 @@ game's) and its menu is the facility menu's menu 9 (four lines; a request open) 
   them);
 * places the block rare_exchange (the code), and rare_exchange_data (exchange_data.py).
 
+The two blocks are the Exchange's pack: every hook
+opens it (the first of FUN_009b6d84's to run loads it while it is out) and falls back to the game's instruction while it
+stays out.
+
 The texts and panes are RomFS files (exchange_texts.py): the pipeline writes them.
 """
 
@@ -96,9 +100,12 @@ def patch_rare_exchange(code: bytes, layout: Layout | None = None, item_ids: Map
     put(CURSOR_FOUR, 5)
     put(CURSOR_THREE, 4)
     put(COMPARE, CMP_5)
-    layout.hook(out, STATE_DEFAULT, symbol("exchange_state"), link=False, original=branch_word(STATE_DEFAULT, TAIL))
-    layout.hook(out, BRIGHT, symbol("exchange_bright"), original=struct.pack("<I", BIC_R9_8))
-    layout.hook(out, MENU_A, symbol("exchange_menu_a"), calls=MENU_CURSOR)
-    layout.hook(out, HELP, symbol("exchange_help"), link=False, original=struct.pack("<I", CMP_0))
-    layout.hook(out, LEAVE, symbol("exchange_leave"), link=False, original=branch_word(LEAVE, LEAVE_DEFAULT))
+    # each hook opens the Exchange's pack: the first the Wyporium runs loads it
+    layout.hook(out, STATE_DEFAULT, symbol("exchange_state"), link=False, original=branch_word(STATE_DEFAULT, TAIL),
+                opens=True)
+    layout.hook(out, BRIGHT, symbol("exchange_bright"), original=struct.pack("<I", BIC_R9_8), opens=True)
+    layout.hook(out, MENU_A, symbol("exchange_menu_a"), calls=MENU_CURSOR, opens=True)
+    layout.hook(out, HELP, symbol("exchange_help"), link=False, original=struct.pack("<I", CMP_0), opens=True)
+    layout.hook(out, LEAVE, symbol("exchange_leave"), link=False, original=branch_word(LEAVE, LEAVE_DEFAULT),
+                opens=True)
     return bytes(out)

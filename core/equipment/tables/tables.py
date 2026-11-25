@@ -66,7 +66,13 @@ def verify_code(code: bytes) -> None:
 
 
 def _read(code: bytes, cls: type[Record], offset: int, size: int, count: int) -> list:
-    return [cls(offset + i * size, code[offset + i * size:offset + (i + 1) * size]) for i in range(count)]
+    """`count` records of `size` bytes from file offset `offset`: of the executable, or of the run's town pack's image
+    when the table moved there (packs.read_at: the Felyne recipes, the new upgrades)."""
+    from core.game.executable.packs import read_at     # not at import: the executable package imports this one
+    if offset + count * size <= len(code):
+        return [cls(offset + i * size, code[offset + i * size:offset + (i + 1) * size]) for i in range(count)]
+    data = read_at(code, offset, count * size)
+    return [cls(offset + i * size, data[i * size:(i + 1) * size]) for i in range(count)]
 
 
 @dataclass
@@ -113,9 +119,15 @@ class EquipmentTables:
             yield from table
 
     def write(self, code: bytes) -> bytes:
+        """`code` with every record written back; a record of a table in the town's pack goes into the run's image of
+        it (packs.write_at)."""
+        from core.game.executable.packs import write_at     # not at import: the executable package imports this one
         out = bytearray(code)
         for record in self.records():
             if record.offset < 0:   # stands for an id with no record (new_gear_read.UNWRITTEN)
                 continue
-            out[record.offset:record.offset + len(record.data)] = record.data
+            if record.offset + len(record.data) <= len(out):
+                out[record.offset:record.offset + len(record.data)] = record.data
+            else:
+                write_at(out, record.offset, bytes(record.data))
         return bytes(out)

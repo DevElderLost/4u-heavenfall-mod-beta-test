@@ -1,5 +1,8 @@
-/* Layered gear: what the units of the block layered_selector share (layered_selector.c, layered_forge.c, felyne_looks.c):
- * the variables, the data blocks and the game's calls more than one of them makes. */
+/* Layered gear: what the units of the blocks layered_selector (resident: the looks applied in town, quest and online;
+ * layered_selector.c, felyne_looks.c, layered_online.c, layered_switch.c, layered_card.c, layered_box.c) and layered_town
+ * (the screens, read by town only, the block layered_rules among their data: layered_menu.c, layered_forge.c, screen_kit.c)
+ * share: the variables, the data blocks and the game's calls more than one of them makes (docs/equipment/
+ * layered_equipment.md, "Two blocks"). */
 
 #ifndef LAYERED_H
 #define LAYERED_H
@@ -40,6 +43,8 @@ extern u8 lobby_hunter_loader[];
 #define BOX_STATE 0x14           /* the item box's (FUN_009c9ee0) state they run in from the box: the first past its own */
 #define LAYERED_MENU 18          /* the facility menu the block adds: its lines are layered_ui.lines */
 #define NO_MENU 0xFF             /* facility_menu_set: FUN_00a0a708 hides ui401's own groups */
+#define WEAPON_MENU 6            /* the game's weapon class menus: 6 and 7 */
+#define DRAWN_MENU 0x1AC         /* facility object + 0x98D0: obj + 0x9A7C, the menu drawn; + 1 its row */
 #define NO_ARMOR 0xFFFE          /* an armor value of layered_state that is no model: the part is drawn as armor id 0
                                     (equipment/layered/layered_equipment.py NO_ARMOR) */
 #define OBJ_HUNTER 0xB960        /* the facility object's real hunter, and the preview hunter */
@@ -159,7 +164,11 @@ _Static_assert(__builtin_offsetof(struct layered_state, weapon) == 0x16
 
 struct preview {                 /* the variable layered_preview */
     u32 status, part;            /* noted by the model stubs for layered_*_model */
-    u8 active, pad1;             /* the preview hunter wears `state` */
+    u8 active;                   /* the preview hunter wears `state` */
+    u8 tried_xx;                 /* bit per part (layered_state order) of the armor tried on: the look it came from is
+                                    XX's, or has no piece there (a whole set without it); clear: MH4U's own piece. With
+                                    the model it tells the look tried on, whose button alone has the eye
+                                    (layered_forge.c tried_by); it counts only while the part differs from what is worn */
     u16 pushed;                  /* 1: the model must be reloaded once the last load has ended */
     u32 loader;                  /* the quest preloader, noted by its stubs */
     struct layered_state state;  /* what the preview hunter wears: the looks worn and the try-ons, their colours */
@@ -218,7 +227,7 @@ u32 layered_cat_of_compact(const u8 *compact);
 /* The word of the other player's cat in the quest's snapshot, if `owner` (a player index) is that player; else 0. */
 u32 layered_quest_cat(u32 owner);
 /* The screens are left (layered_selector.c back()): tell the other players when the looks changed. */
-void layered_net_state_left(void);
+RESIDENT void layered_net_state_left(void);
 /* The hall hunter of lobby index `index` dressed again with the looks of now (layered_online.c): 1 done, or nothing to
    do (no hunter); 0 it is loading, try again later. */
 int layered_redress_index(u32 index);
@@ -232,7 +241,7 @@ int layered_card_hunter(const u8 *st);
 /* What the card's hunter wears: the own card's looks worn now, another card's from its block (built in `out`), or 0
    (its real gear). Layered Gear's switch is the caller's. */
 const struct layered_state *layered_card_looks(struct layered_state *out);
-/* The item box's screens (layered_box.c): what they need set up at a box, and taken down when they are left. */
+/* The item box's screens (layered_menu.c, the town block): what they need set up at a box, and taken down when they are left. */
 void box_screens_open(u32 obj);
 void box_screens_close(u32 obj);
 GAME void facility_menu_draw(u32 obj);                                 /* FUN_00a0a708 */
@@ -250,7 +259,7 @@ void layered_switch_latch(void);
 void layered_switch_frame(u32 town, u32 local);
 /* The preview hunter takes the colours of layered_preview.state again, at once (layered_selector.c; colours only, no
    model is loaded). The game puts every hunter's colours on again each frame anyway: this saves that frame. */
-void layered_dye_refresh(void);
+RESIDENT void layered_dye_refresh(void);
 
 /* ----- the block layered_data (equipment/layered/layered_equipment.py) ------------------------------------- */
 
@@ -258,7 +267,9 @@ void layered_dye_refresh(void);
 #define SET_RANK_SHIFT 1
 struct set { u16 male, female, message; u8 parts, flags; };
 struct parts { u16 models[5][2]; };                 /* an XX set's models per part */
-struct weapon { u16 model, name, id; u8 rank, pad; };
+/* `preview`: the model the screens' preview hunter wears for the look instead of `model` (0: `model`), a copy that draws
+   the parts MH XX shows only in its craft display (layered_selector.c preview_model) */
+struct weapon { u16 model, name, id; u8 rank, preview; };
 _Static_assert(sizeof(struct set) == 8 && sizeof(struct parts) == 20 && sizeof(struct weapon) == 8, "records");
 struct catalog {                 /* one game's looks (layered_equipment.py, CATALOG) */
     u32 sets_offset, parts_offset, weapon_offset[CLASSES];   /* parts_offset 0: a set has one model pair for all */
@@ -464,15 +475,29 @@ _Static_assert(sizeof(struct recipe) == 16 && sizeof(struct felyne_row) == 8, "r
 extern const u8 layered_rules[] __attribute__((aligned(4)));
 #define R ((const struct rules *)layered_rules)
 
-/* ----- layered_selector.c <-> layered_forge.c --------------------------------------------------------------- */
+/* ----- the item box's line: layered_box.c (resident) <-> layered_menu.c (town) ------------------------------------- */
+
+#define MENU_STATE 0             /* the box menu (scene + 0xE8B8): FUN_009c9ee0's state, */
+#define MENU_KIND 2              /* the box's kind (0 the 7-row frame, else the 4-row one), */
+#define MENU_LINE 6              /* the cursor's line, */
+#define MENU_COLUMN 9            /* the column the cursor is in (0 the lines, 1 a line's choices), */
+#define MENU_COUNT 0xA           /* the lines, */
+#define MENU_FRAME 0x1D54        /* the frame object FUN_00589bf0 sets up (+0: bit HELP_SHOWN, the help line drawn), */
+#define NO_LINE 0xFF
+#define BR (&D->screen.box_row)
+/* The line of this menu, or 0: set by its opener, and still the last of its lines. */
+RESIDENT const struct fg_box_line *box_line_of(const u8 *menu);
+RESIDENT u32 layered_box_is_line(const u8 *menu, u32 line);
+
+/* ----- layered_selector.c <-> layered_forge.c (the town block) ------------------------------------------------------ */
 
 /* A lobby hunter puts its pieces on again (as FUN_0065e31c does), so the getters run with the looks of now. */
-void hunter_reload(u32 hunter, const u8 *weapon);
+RESIDENT void hunter_reload(u32 hunter, const u8 *weapon);
 /* a / b for the small numbers here: the ARM11 has no divide instruction and no library is linked. */
-u32 small_divide(u32 a, u32 b);
-void layered_clear(void *at, u32 size);
+RESIDENT u32 small_divide(u32 a, u32 b);
+RESIDENT void layered_clear(void *at, u32 size);
 /* A byte copy, for addresses that need not be on a word (mem_copy needs them there). */
-void layered_copy(void *to, const void *from, u32 size);
+RESIDENT void layered_copy(void *to, const void *from, u32 size);
 /* The screens: `mode`'s opens in the Smithy's state 3 (1 if it did); every frame, and the key presses, while on FORGE. */
 int forge_open(u32 obj, u32 mode);
 void forge_update(u32 obj);

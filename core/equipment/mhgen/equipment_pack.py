@@ -15,14 +15,17 @@ import hashlib
 import json
 import re
 import struct
+import threading
+from collections import OrderedDict
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from core.game.data.paths import CURATED_DIR
+from core.game.executable.romfs import RomFS
 from core.game.files.arc import Arc, ArcEntry, parse_arc, write_arc
 from core.equipment.mhgen import convert
-from core.equipment.mhgen.felyne_face import hide_additive
+from core.equipment.mhgen.felyne_face import draw_display_parts, hide_additive, hide_display_parts
 from core.equipment.mhgen.sound import SOUND_TYPES, sound_renamer, weapon_sounds as own_weapon_sounds
 
 SHADER_PACKAGE = "system/ltshader/LtShaderPackage.lfx"  # both games' (convert.shader_records)
@@ -255,11 +258,14 @@ def format_ids(ids: Mapping[int, int]) -> str:
 class PackIds:
     """The table of ids (game/data/curated/pack_ids.json): `ids` is every (slot, source model) of the pack with the
     MH4U id it is written at, `xx_only` the same for the looks only MH XX has, which the pack carries only where
-    `armor_models` (armor model numbers) or `every_xx_only` say so."""
+    `armor_models` (armor model numbers) or `every_xx_only` say so. `previews`: (weapon class, source model) -> the id
+    of the copy of a weapon with parts shown only in the craft display that the Layered Gear screens' preview wears
+    (DisplayParts)."""
     ids: Mapping[tuple[str, int], int]
     xx_only: Mapping[tuple[str, int], int]
     armor_models: frozenset[int] = frozenset()
     every_xx_only: bool = False
+    previews: Mapping[tuple[str, int], int] = field(default_factory=dict)
 
     def in_pack(self, slot: str, source: int) -> bool:
         return (slot, source) in self.ids or self.every_xx_only or (slot in ARMOR_PARTS and source in self.armor_models)
@@ -277,10 +283,57 @@ class PackIds:
 
 def load_pack_ids(path=PACK_IDS_FILE) -> PackIds:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    sections = {name: {(slot, source): model for slot, row in data[name].items()
-                       for source, model in parse_ids(row).items()} for name in ("ids", "xx_only")}
+    sections = {name: {(slot, source): model for slot, row in data.get(name, {}).items()
+                       for source, model in parse_ids(row).items()} for name in ("ids", "xx_only", "preview")}
     return PackIds(sections["ids"], sections["xx_only"], frozenset(data["in_pack"]["armor_models"]),
-                   bool(data["in_pack"]["all"]))
+                   bool(data["in_pack"]["all"]), sections["preview"])
+
+
+# ----- weapons with parts shown only in the craft display ---------------------------------------------------------
+
+DISPLAY_FILE = CURATED_DIR / "craft_display.json"
+
+
+@dataclass(frozen=True)
+class DisplayParts:
+    """A pack weapon with parts MH XX draws only in its Smithy's craft display, never on the hunter (mesh `groups`): the
+    archive at `worn`, the look's
+    model, hides them; a copy at `preview`, which only the Layered Gear screens' preview hunter wears, draws them."""
+    slot: str
+    source: int
+    worn: int
+    preview: int
+    groups: tuple[int, ...]
+
+
+def load_display_groups(path=DISPLAY_FILE) -> dict[tuple[str, int], tuple[int, ...]]:
+    """(weapon class, source model) -> the mesh groups MH XX draws only in the craft display (curated)."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {(cls, int(source)): tuple(groups) for cls, models in data["weapons"].items()
+            for source, groups in models.items()}
+
+
+def plan_display(plan: "Sequence[PackModel]", m4: Signatures, ids: PackIds | None = None,
+                 groups: Mapping[tuple[str, int], tuple[int, ...]] | None = None) -> tuple[DisplayParts, ...]:
+    """The weapons of `plan` with parts shown only in the craft display (`groups`, default the curated ones), each with
+    its preview copy's id from the table of ids. Raises for one the table gives no id, or an id an MH4U file
+    (`m4`'s signatures), the plan or another copy uses, or one past the weapons' limit."""
+    ids = load_pack_ids() if ids is None else ids
+    groups = load_display_groups() if groups is None else groups
+    used = {(p.slot, p.model) for p in plan} | {(slot[0], model) for slot, models in m4.items() if len(slot) == 1
+                                                 for model in models}
+    out = []
+    for p in plan:
+        if (p.slot, p.source) not in groups:
+            continue
+        preview = ids.previews.get((p.slot, p.source))
+        # its sound number is its id, a byte below 0xFF (none: tables.NO_SOUND)
+        if preview is None or (p.slot, preview) in used or not 0 < preview < WEAPON_IDS - 1:
+            raise ValueError(f"{p.slot} {p.source} has parts shown only in the craft display and its preview copy has "
+                             f"no free id in the table of ids (pack_ids.json, preview): {preview}")
+        used.add((p.slot, preview))
+        out.append(DisplayParts(p.slot, p.source, p.model, preview, groups[(p.slot, p.source)]))
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -446,7 +499,30 @@ def signature(arc: Arc) -> tuple:
 
 
 def mh4u_signatures(m4) -> Signatures:
-    """The signature of every MH4U armor and weapon model (`m4`, a RomFS), DLC files in loc/data included."""
+    """The signature of every MH4U armor and weapon model (`m4`, a RomFS), DLC files in loc/data included. Kept for
+    the next call on the same game file (RomFS.identity: its path, size and time): reading and digesting each of its
+    models took seconds of every run of the same process (the GUI's, a test run's)."""
+    key = m4.identity if type(m4) is RomFS else None
+    with _signatures_lock:
+        kept = _signatures.get(key) if key is not None else None
+        if kept is not None:
+            _signatures.move_to_end(key)
+    if kept is None:
+        kept = _mh4u_signatures(m4)
+        if key is not None:
+            with _signatures_lock:
+                _signatures[key] = kept
+                while len(_signatures) > SIGNATURES_KEPT:
+                    _signatures.popitem(last=False)
+    return {slot: dict(models) for slot, models in kept.items()}
+
+
+SIGNATURES_KEPT = 2     # the MH4U game files whose signatures mh4u_signatures keeps
+_signatures: OrderedDict[tuple, Signatures] = OrderedDict()
+_signatures_lock = threading.Lock()
+
+
+def _mh4u_signatures(m4) -> Signatures:
     out: Signatures = {}
     classes = set(WEAPON_FOLDERS.values())
     for path in m4.walk():
@@ -485,15 +561,18 @@ def mhgen_signatures(gen, shaders, only: Collection[tuple[str, int]] | None = No
 
 
 def write_pack(data_dir, gen, m4, plan: list[PackModel], shaders, xx=None,
-               sources: dict[str, tuple[str, ...]] | None = None) -> dict[tuple[str, str, int], int]:
+               sources: dict[str, tuple[str, ...]] | None = None,
+               displays: Sequence[DisplayParts] = ()) -> dict[tuple[str, str, int], int]:
     """Write the archive of every model of `plan` into `data_dir` (romfs/data) and return the cloth bits the
     armor needs ((gender, part, model) -> bits, for moved_cloth_tables). The models of game "xx" are read from
     `xx` (MH XX's RomFS), the others from `gen`, which may be None when the plan has none of those; `shaders`: the
     shader records of MH Generations' package and MH4U's (None for Generations' without `gen`). `sources`, when
     given, receives for each archive made from `xx` its mod path (romfs/data/...) -> the files of `xx` it read, in
-    order (xx_sources)."""
+    order (xx_sources). A weapon of `displays` hides its parts shown only in the craft display, and its preview copy
+    is written beside it, drawing them."""
     folders = {cls: folder for folder, cls in WEAPON_FOLDERS.items()}
     xx_shaders = (convert.shader_records(xx.read(SHADER_PACKAGE)), shaders[1]) if xx is not None else None
+    display_of = {(d.slot, d.source): d for d in displays}
     cloth = {}
     for p in plan:
         if p.game == "xx":
@@ -521,11 +600,15 @@ def write_pack(data_dir, gen, m4, plan: list[PackModel], shaders, xx=None,
             data = source.read(read[0])
             if source.exists(own):
                 read.append(own)
-            arc = weapon_arc(data, *source_shaders, folder, p.source, sounds=sounds, new_model=p.model,
-                             own_sounds=parse_arc(source.read(own)) if len(read) > 1 else None,
-                             donor_used=(used := []))
-            target = mh4u_weapon_file(folder, p.model)
-            (data_dir / target.split("/")[-1]).write_bytes(write_arc(arc))
-            if sources is not None and p.game == "xx":
-                sources["romfs/" + target] = (*read, "mh4u:" + donor_file) if used else tuple(read)
+            display = display_of.get((p.slot, p.source))
+            for model in (p.model, display.preview) if display else (p.model,):
+                arc = weapon_arc(data, *source_shaders, folder, p.source, sounds=sounds, new_model=model,
+                                 own_sounds=parse_arc(source.read(own)) if len(read) > 1 else None,
+                                 donor_used=(used := []))
+                if display:
+                    (draw_display_parts if model == display.preview else hide_display_parts)(arc, display.groups)
+                target = mh4u_weapon_file(folder, model)
+                (data_dir / target.split("/")[-1]).write_bytes(write_arc(arc))
+                if sources is not None and p.game == "xx":
+                    sources["romfs/" + target] = (*read, "mh4u:" + donor_file) if used else tuple(read)
     return cloth

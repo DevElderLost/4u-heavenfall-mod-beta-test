@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import struct
 
-from core.game.executable.code_space import BASE_ADDRESS, CLEAN_SIZE, Layout, load_layout
+from core.game.executable.code_space import BASE_ADDRESS, CLEAN_SIZE, Layout, load_layout, pack_of
+from core.game.executable.packs import read_at
 from core.equipment.new_gear.gear_space import ARMOR_ROOM, RECIPE_RECORD
 from core.equipment.tables.layout import ARMOR_PARTS, SHARPNESS_RECORD_SIZE, WEAPON_CLASSES
 from core.equipment.new_gear.new_weapon_room import FIRST_TYPE, ROOM, ROW_SIZE
@@ -27,9 +28,12 @@ OLD_PROFILES = 119
 
 
 def _placed(code: bytes, layout: Layout, name: str) -> int | None:
-    """The file offset of block `name` when `code` holds it (the extension reaches its end), else None."""
+    """The file offset of block `name` when `code` holds it (the extension reaches its end), or when it is a block of
+    the town's pack the run has an image of (packs.read_at), else None."""
     block = layout.block(name)
     start = block.address - BASE_ADDRESS
+    if pack_of(block.address) is not None:
+        return start if len(read_at(code, start, len(block.data))) == len(block.data) else None
     return start if len(code) >= start + len(block.data) else None
 
 
@@ -81,9 +85,9 @@ def _weapons(tables, code: bytes, layout: Layout) -> None:
         view = UpgradeRecipe if wc.upgrade_materials == 4 else ShortUpgradeRecipe
         records = tables.upgrades[wc.key]
         records += [view(UNWRITTEN, bytes(usize)) for _ in range(wc.count - len(records))]
-        for k in range(count):
+        for k in range(count):      # (the upgrades are the town's pack's: read_at)
             at = upgrades - BASE_ADDRESS + k * usize
-            records.append(view(at, code[at:at + usize]))
+            records.append(view(at, read_at(code, at, usize)))
     block = _placed(code, layout, "new_sharpness")
     if block is not None:
         for k in range(_records(code, block, SHARPNESS_RECORD_SIZE, len(layout.block("new_sharpness").data)
@@ -113,15 +117,14 @@ def _recipes(tables, code: bytes, layout: Layout) -> None:
         runs = _placed(code, layout, runs_name)
         if runs is None or _placed(code, layout, records_name) is None:
             continue
-        at = runs
-        while at + 8 <= len(code):
-            _, length, address = struct.unpack_from("<HHI", code, at)
+        table = read_at(code, runs, len(layout.block(runs_name).data))     # (the town's pack's: read_at)
+        for at in range(0, len(table) - 7, 8):
+            _, length, address = struct.unpack_from("<HHI", table, at)
             if not length:
                 break
             for n in range(length):
                 start = address - BASE_ADDRESS + n * RECIPE_RECORD
-                target.append(CreateRecipe(start, code[start:start + RECIPE_RECORD]))
-            at += 8
+                target.append(CreateRecipe(start, read_at(code, start, RECIPE_RECORD)))
 
 
 class _Collector:

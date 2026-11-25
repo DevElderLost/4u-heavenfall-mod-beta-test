@@ -1,8 +1,8 @@
 """Item marks: a star on the icon of an upgraded consumable, everywhere, inside the
 icon's square, and the rare materials' highlight on the quest rewards screen. The options are the START menu's (Mod
 Settings > Interface > Item Icons: Show Upgrade Stars, Star Colour, Rare Rewards; the page's only: on, Yellow, on), so a
-mod with that page carries the code and a character's choice acts at once. The art is drawn into the icon sheet
-(art.py).
+mod with that page carries the code and a character's choice acts at once. The art is a texture of its own (art.py),
+which the C binds into the last texture slot of each group it adds marks to (item_marks.c marks_slot).
 
 These game functions change, in the update's executable (canonical; the version maps carry them to the base games):
 
@@ -57,6 +57,7 @@ MAX_UPGRADES, MAX_RARE = 64, 128    # item_marks.c
 HIDDEN = 0xFF                       # a twinkle's cell when it is not shown
 FRAMES_PER_SECOND = 30              # the frame's time unit (game_main + 0x5C: 1.0 a 30th of a second)
 ITEM_LIMIT = 0x1000                 # item_marks.c ITEM_LIMIT
+TEXTURE_PATH = 40                   # item_marks.c TEXTURE_PATH: the marks' texture's path, NUL ended
 
 
 class ItemMarksError(ValueError):
@@ -131,6 +132,10 @@ def data_block(marks: Marks | None = None, ported: bool = True) -> bytes:
     data += struct.pack(f"<{MAX_UPGRADES}H", *ids, *[0] * (MAX_UPGRADES - len(ids)))
     data += bytes([levels[i] for i in ids] + [0] * (MAX_UPGRADES - len(ids)))
     data += struct.pack(f"<{MAX_RARE}H", *rare, *[0] * (MAX_RARE - len(rare)))
+    path = art.TEXTURE.encode("ascii")
+    if len(path) >= TEXTURE_PATH:
+        raise ItemMarksError(f"art.TEXTURE is longer than item_marks.c TEXTURE_PATH ({TEXTURE_PATH})")
+    data += path.ljust(TEXTURE_PATH, b"\0")
     if len(data) != ITEM_MARKS_DATA_SIZE:
         raise ItemMarksError(f"item_marks_data holds {ITEM_MARKS_DATA_SIZE} bytes, made {len(data)}")
     return data

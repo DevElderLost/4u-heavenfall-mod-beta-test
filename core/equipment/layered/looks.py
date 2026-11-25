@@ -30,6 +30,8 @@ from core.randomizer.equipment.catalog import rank_of
 
 GENERATED_PATH = GENERATED_DIR / "layered_looks.json"
 CURATED_PATH = CURATED_DIR / "layered_looks.json"
+ALIKE_PATH = GENERATED_DIR / "layered_alike.json"
+SEXES = ("male", "female")      # the hunter's sex, as the game's data has it (0 male, 1 female); layered_alike.json's
 # Display order of the armor parts (the game's armor category menu), and their order in layered_state
 # (equipment type - 1: body, arms, waist, legs, head).
 NAME_PARTS = ("head", "body", "arms", "waist", "legs")
@@ -509,6 +511,19 @@ def _read(path) -> dict:
 
 def load_curated() -> dict:
     return _read(CURATED_PATH)
+
+
+def load_alike() -> dict:
+    """generated/layered_alike.json (tools/build/build_layered_alike.py, equipment/layered/alike.py): the armor looks
+    hidden from a sex, `hidden`: look key -> "male" / "female" -> {"kept": the look kept for it, ...}; the weapon looks
+    hidden, `weapons`: class -> {"hidden": look key -> {"kept", ...}}; the Felyne rows, `felyne` {"hidden": felyne_key
+    -> {"kept", ...}}."""
+    return _read(ALIKE_PATH) if ALIKE_PATH.is_file() else {"hidden": {}, "close": [], "weapons": {}, "felyne": {}}
+
+
+def felyne_key(number: int) -> str:
+    """A Felyne row's key in layered_alike.json: its model number (one row per number, its owned bit's)."""
+    return f"felyne-{number}"
 
 
 def generated_felyne_rows() -> list[dict]:

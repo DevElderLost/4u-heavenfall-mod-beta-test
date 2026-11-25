@@ -425,7 +425,12 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
                    "cheat_3d_mode",
                    "cheat_no_bloom_dof", "cheat_fps",
                    "cheat_fov", "cheat_net_fix", "cheat_insta_kill", "cheat_raw_unbloat",
-                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled", "hd_pack")
+                   "cheat_aspect_allowed", "cheat_aspect_ratio", "cheats_enabled", "hd_pack",
+                   "debug_sync_log", "debug_trio_diag", "debug_sound_latch", "debug_fog_control", "debug_ram_log")
+
+# The debug options that place executable bytes (core/app/debug_options.py holds their patches; the Debug tab, main
+# edition only). A run with none of them on carries none of their bytes.
+DEBUG_PATCH_FIELDS = ("debug_sync_log", "debug_trio_diag", "debug_sound_latch", "debug_fog_control", "debug_ram_log")
 
 # Options a real 3DS does not get: the GUI hides them on the 3DS platform
 # (gui/options.py, Option.emulator_only), a 3DS run takes their defaults (Settings.for_console) and the START menu's
@@ -435,7 +440,9 @@ PERSONAL_FIELDS = ("hud_scale", "new_monster_icons", "touchless_target", "single
 # moves layouts
 # between the screens, which only the emulator's single screen view needs.
 EMULATOR_ONLY = ("hud_scale", "touchless_target", "single_screen", "cheat_3d_mode", "cheat_no_bloom_dof", "cheat_fps",
-                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard", "hd_pack")
+                 "cheat_insta_kill", "cheat_aspect_allowed", "cheat_aspect_ratio", "system_keyboard", "hd_pack",
+                 "debug_sync_log", "debug_trio_diag", "debug_sound_latch")   # logs read from the emulator's memory
+# (the RAM manager log, debug_ram_log, goes to a 3DS too: there its rows go to a file on the SD card)
 
 # The value a gameplay setting takes when a settings file predates it, as saved by to_dict(): the one that gives
 # what the older version made. Only needed when that is not the field's default.
@@ -659,7 +666,7 @@ class Settings:
     glavenus: GlavenusMode = GlavenusMode.OFF
     # Great Maccao, from the player's MH XX ROM: three quests of his own on the Primal Forest, one per rank
     great_maccao: GreatMaccaoMode = GreatMaccaoMode.OFF
-    # Valstrax, from the player's MH XX ROM: two quests of his own on the Tower Summit (high rank and G rank)
+    # Valstrax, from MH XX: two quests on the Tower Summit, high and G rank (no GUI option: fixed on B161)
     valstrax: ValstraxMode = ValstraxMode.OFF
     # Astalos, from the player's MH XX ROM: three quests of his own on the Ancestral Steppe, one per rank (no option in
     # the GUI: fixed on once he is built)
@@ -675,8 +682,14 @@ class Settings:
     # the GUI: fixed on once he is built)
     lagiacrus: LagiacrusMode = LagiacrusMode.OFF
 
-    # Debug
+    # Debug (the main installer's Debug tab, core/app/debug_options.py: off by default, in no preset). Insta kill is
+    # `cheat_insta_kill` above. A patch's bytes are placed only when its field is on (DEBUG_PATCH_FIELDS)
     debug_weak_monsters: bool = False    # lowest health and attack index for every monster
+    debug_sync_log: bool = False         # the online sync log's ring in the executable (diagnostics/sync_diag.py)
+    debug_trio_diag: bool = False        # the trio diagnostics' rings (diagnostics/trio_diag.py); needs the sync log
+    debug_sound_latch: bool = False      # the Felynes' rocket sound latch (diagnostics/sound_latch.py)
+    debug_fog_control: bool = False      # Misty Peaks' debug fog control row in Mod Settings (maps/misty_peaks)
+    debug_ram_log: bool = False          # the RAM manager's probe log (diagnostics/memory_diag.py)
 
     # Fixes of a game in progress (core/app/fix.py): quests drawn again with another sub-seed; equipment and the
     # quests not rerolled stay the same
