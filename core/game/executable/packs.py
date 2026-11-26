@@ -52,19 +52,19 @@ def table_side(pack: str) -> int:
 
 # ---- the entry stub ----
 # Reached by the game's `bl` (a call: the fallback is the call's old target) or `b` (a branch: the fallback is the
-# replaced instruction, then a branch back after it). It changes no register and no flag: the state byte (0 or 1) picks
-# one of two words, which `ldr pc, [sp], #4` jumps to; the stack below sp holds the scratch.
+# replaced instruction, then a branch back after it). It changes no register and no flag: the state byte picks one of
+# two words, which `ldr pc, [sp, #-12]` jumps to (never a pop into the pc: a recompiler takes it for a return, B166).
 _STUB_CODE = (
-    0xE24DD004,     # sub sp, sp, #4            room for the target
     0xE92D0003,     # push {r0, r1}
-    0xE59F0018,     # ldr r0, [pc, #0x18]       the state byte's address (+0x28)
+    0xE59F001C,     # ldr r0, [pc, #0x1C]       the state byte's address (+0x28)
     0xE5D00000,     # ldrb r0, [r0]
     0xE2000001,     # and r0, r0, #1
-    0xE28F1010,     # add r1, pc, #0x10         the two targets (+0x2C)
+    0xE28F1014,     # add r1, pc, #0x14         the two targets (+0x2C)
     0xE7910100,     # ldr r0, [r1, r0, lsl #2]
-    0xE58D0008,     # str r0, [sp, #8]
+    0xE50D0004,     # str r0, [sp, #-4]         the target, below the saved pair
     0xE8BD0003,     # pop {r0, r1}
-    0xE49DF004,     # ldr pc, [sp], #4          (pop {pc})
+    0xE51DF00C,     # ldr pc, [sp, #-12]        the jump (a computed jump, not a return)
+    0xE320F000,     # nop                       never run: the words' offsets stay
 )
 STUB_STATE, STUB_FALLBACK, STUB_TARGET = 0x28, 0x2C, 0x30
 STUB_TRAMPOLINE = 0x34      # a branch's entry: the replaced instruction, then `b` back after the site
@@ -85,16 +85,32 @@ def _uses_pc(word: int) -> bool:
     return kind not in (0b110, 0b111)               # coprocessor transfers and svc are fine
 
 
+def _writes_lr(word: int) -> bool:
+    """`word`, an ARM instruction that is no branch, may write lr (a destination field of 14, a load of it, a blx), or
+    is unconditional (refused too): run before a stub's `bx lr`, it would send it elsewhere."""
+    kind = word >> 25 & 7
+    if word >> 28 == 0xF or word & 0x0FFFFFF0 == 0x012FFF30:
+        return True
+    if kind == 0b100:                                # block transfer: a load with lr in its list
+        return bool(word >> 20 & 1 and word & 0x4000)
+    if kind in (0b010, 0b011):                       # single transfer: a load into lr
+        return bool(word >> 20 & 1) and word >> 12 & 0xF == 14
+    multiply = kind == 0b000 and word & 0xF0 == 0x90 and not word & 0x01000000       # its Rd at bits 16-19
+    return kind in (0b000, 0b001) and (word >> 12 & 0xF == 14 or multiply and word >> 16 & 0xF == 14)
+
+
 _RETURN_ZERO = struct.pack("<2I", 0xE3A00000, 0xE12FFF1E)     # mov r0, #0; bx lr
 
 
 def entry_stub(at: int, state: int, target: int, fallback: int | None = None, *, site: int | None = None,
-               original: int | None = None, returns_zero: bool = False) -> bytes:
+               original: int | None = None, returns_zero: bool = False, called: bool = False) -> bytes:
     """The entry stub placed at `at` (STUB_SIZE bytes): with the byte at `state` set it goes to `target` (in a pack),
     else to `fallback` (a call's old target: a game function, or another resident entry), or, for a branch that
-    replaced the instruction `original` at `site`, runs that instruction and branches back to `site + 4`, or, with
-    `returns_zero` (a declared entry of a pack's that the game never called: BlockSpec.entries' "label"), returns 0.
-    A game address it holds and every branch it builds are noted in the run's session (the rebase moves them)."""
+    replaced the instruction `original` at `site`, runs that instruction and branches back to `site + 4` (`called`, a
+    `bl` at the site: returns there with `bx lr`, as a recompiler follows a call; such a stub moves no branch and no
+    write of lr), or, with `returns_zero` (a declared entry of a pack's that the game never called: BlockSpec.entries'
+    "label"), returns 0. A game address it holds and every branch it builds are noted in the run's session (the rebase
+    moves them)."""
     if returns_zero:
         if fallback is not None or original is not None:
             raise CodeSpaceError(f"entry stub at {at:#x}: a stub that returns 0 has no other fallback")
@@ -106,6 +122,9 @@ def entry_stub(at: int, state: int, target: int, fallback: int | None = None, *,
             raise CodeSpaceError(f"entry stub at {at:#x}: a replaced instruction needs its site")
         fallback = at + STUB_TRAMPOLINE
         branch = arm_branch_target(original, site)
+        if called and (branch is not None or _writes_lr(original)):
+            raise CodeSpaceError(f"entry stub at {at:#x}: the instruction {original:#010x} at {site:#x} branches or "
+                                 "writes lr, so it cannot move into a stub the site calls (hook it with link=False)")
         if branch is not None:          # a branch moved into the trampoline keeps its target, condition and link
             if original >> 28 == 0xF:
                 raise CodeSpaceError(f"entry stub at {at:#x}: the blx at {site:#x} cannot move")
@@ -114,7 +133,8 @@ def entry_stub(at: int, state: int, target: int, fallback: int | None = None, *,
             raise CodeSpaceError(f"entry stub at {at:#x}: the instruction {original:#010x} at {site:#x} uses the pc")
         else:
             first = struct.pack("<I", original)
-        trampoline = first + encode_branch(at + STUB_TRAMPOLINE + 4, site + 4)
+        back = struct.pack("<I", 0xE12FFF1E) if called else encode_branch(at + STUB_TRAMPOLINE + 4, site + 4)
+        trampoline = first + back
     else:
         trampoline = bytes(8)
         note_game_pointer(at + STUB_FALLBACK, fallback)
@@ -132,14 +152,16 @@ if OPEN_SIZE + STUB_SIZE > OPEN_SLOTS * PACK_STUB_SIZE:
 
 
 def opening_stub(at: int, opening: int, slot: int, state: int, target: int, fallback: int | None = None, *,
-                 site: int | None = None, original: int | None = None, returns_zero: bool = False) -> bytes:
+                 site: int | None = None, original: int | None = None, returns_zero: bool = False,
+                 called: bool = False) -> bytes:
     """The opening stub placed at `at` (OPEN_SLOTS * PACK_STUB_SIZE bytes, its tail zero): pack_opening (`opening`, its
     address) with the pack's `slot`, then `entry_stub` at `at + OPEN_SIZE` with the other arguments."""
     if not 0 <= slot < 0x100:
         raise CodeSpaceError(f"opening stub at {at:#x}: slot {slot} does not fit its mov")
     head = struct.pack("<2I", 0xE92D5000, 0xE3A0C000 | slot) + encode_branch(at + 8, opening, link=True) + \
         struct.pack("<I", 0xE8BD5000)
-    stub = entry_stub(at + OPEN_SIZE, state, target, fallback, site=site, original=original, returns_zero=returns_zero)
+    stub = entry_stub(at + OPEN_SIZE, state, target, fallback, site=site, original=original, returns_zero=returns_zero,
+                      called=called)
     return (head + stub).ljust(OPEN_SLOTS * PACK_STUB_SIZE, b"\0")
 
 
@@ -153,6 +175,38 @@ def stub_target(code: bytes, address: int | None) -> int | None:
     if struct.unpack_from("<I", code, start - BASE_ADDRESS)[0] != _STUB_CODE[0]:
         return None
     return struct.unpack_from("<I", code, start + STUB_TARGET - BASE_ADDRESS)[0]
+
+
+def stub_targets(code: bytes, layout: Layout | None = None) -> dict[int, int]:
+    """Every entry stub, opening stub (the entry stub inside it) and guarded stub of the executable `code`, as stub
+    address -> the pack address (with bit 0 for a Thumb function) it goes to while the pack is in: the words the game
+    and the resident blocks enter a pack by (the packs). An entry stub is found by
+    its ten words wherever it sits (the hook stubs' blocks, the declared entries' block, a ported monster's entries
+    block); a guarded stub only in the stubs' blocks (blocks.HOOK_STUBS, ENTRY_STUBS), in the slots that start as it
+    does and call pack_guarded."""
+    from core.game.executable.blocks import ENTRY_STUBS, HOOK_STUBS
+    layout = layout or load_layout()
+    found = {}
+    pattern = struct.pack(f"<{len(_STUB_CODE)}I", *_STUB_CODE)
+    offset = code.find(pattern)
+    while offset >= 0:
+        if offset % 4 == 0 and offset + STUB_SIZE <= len(code):
+            found[BASE_ADDRESS + offset] = struct.unpack_from("<I", code, offset + STUB_TARGET)[0]
+        offset = code.find(pattern, offset + 4)
+    if "pack_loader" in layout.blocks and "pack_guarded" in layout.block("pack_loader").symbols:
+        guard = layout.symbol("pack_loader", "pack_guarded")
+        for name in {block for block, _ in HOOK_STUBS.values()} | {ENTRY_STUBS}:
+            block = layout.blocks.get(name)
+            if block is None:
+                continue
+            for at in range(block.address, block.end - GUARD_SIZE + 1, PACK_STUB_SIZE):
+                start = at - BASE_ADDRESS
+                if start + GUARD_SIZE > len(code):
+                    break
+                first, second = struct.unpack_from("<2I", code, start)
+                if first == 0xE28FC000 and arm_branch_target(second, at + 4) == guard:
+                    found[at] = struct.unpack_from("<I", code, start + GUARD_TARGET)[0]
+    return found
 
 
 # ---- the guarded entry (risk 3: a call the network callback can make, from a thread that may not be the main one) ----

@@ -264,7 +264,8 @@ void dump_close(Dump *d) {
     memset(d, 0, sizeof *d);
 }
 
-static int read_exefs(Dump *d, TitleRead read, void *ctx, void *h) {
+/* The ExeFS files the reader keeps; with `code_only` (an update) its ".code" alone. */
+static int read_exefs(Dump *d, TitleRead read, void *ctx, void *h, int code_only) {
     static const char *const wanted[] = {".code", "icon", "banner", "logo"};
     uint8_t table[EXEFS_HEADER];
     uint32_t off = get_le32(d->header + 0x1A0), size = get_le32(d->header + 0x1A4);
@@ -279,7 +280,7 @@ static int read_exefs(Dump *d, TitleRead read, void *ctx, void *h) {
         int known = 0;
         memcpy(name, table + n * 16, 8);
         name[8] = 0;
-        for (k = 0; k < 4; k++) known |= !strcmp(name, wanted[k]);
+        for (k = 0; k < (code_only ? 1u : 4u); k++) known |= !strcmp(name, wanted[k]);
         if (!known) continue;
         f = &d->exefs[d->nexefs++];
         strcpy(f->name, name);
@@ -310,7 +311,7 @@ int dump_open(Dump *d, TitleRead read, void *ctx, void *handle) {
     if (read(ctx, handle, d->ncch_offset + NCCH_HEADER_SIZE, d->exheader, sizeof d->exheader)) return TITLE_E_IO;
     if ((rc = read_region(read, ctx, handle, d->ncch_offset, d->header, 0x190, &d->plain, &d->plain_len)) ||
         (rc = read_region(read, ctx, handle, d->ncch_offset, d->header, 0x198, &d->logo, &d->logo_len)) ||
-        (rc = read_exefs(d, read, ctx, handle)))
+        (rc = read_exefs(d, read, ctx, handle, 0)))
         goto fail;
 
     romfs_off = get_le32(d->header + 0x1B0);
@@ -358,6 +359,40 @@ fail:
     free(files);
     dump_close(d);
     return rc;
+}
+
+/* The region of MH4U's update of this title id; 0 for any other title. */
+static int known_update(uint64_t id, int *region) {
+    if (id == DUMP_ID_UPDATE_EUR) *region = REGION_EUR;
+    else if (id == DUMP_ID_UPDATE_USA) *region = REGION_USA;
+    else return 0;
+    return 1;
+}
+
+int dump_open_update(Dump *d, TitleRead read, void *ctx, void *handle) {
+    uint64_t cia_title = 0;
+    size_t k;
+    int rc;
+    if (!d || !read) return TITLE_E_ARG;
+    memset(d, 0, sizeof *d);
+    d->handle = handle;
+    rc = locate(read, ctx, handle, &d->ncch_offset, &cia_title);
+    if (rc == TITLE_E_ENCRYPTED) {           /* the title first: an encrypted copy of another game is not an update */
+        d->title_id = cia_title;
+        return known_update(cia_title, &d->region) ? rc : TITLE_E_NOT_UPDATE;
+    }
+    if (rc) return rc;
+    if (read(ctx, handle, d->ncch_offset, d->header, sizeof d->header)) return TITLE_E_IO;
+    if (memcmp(d->header + 0x100, "NCCH", 4)) return TITLE_E_FORMAT;
+    d->title_id = le64(d->header + 0x108);
+    if (!known_update(d->title_id, &d->region)) return TITLE_E_NOT_UPDATE;
+    if (!(d->header[0x18F] & NO_CRYPTO)) return TITLE_E_ENCRYPTED;
+    if (read(ctx, handle, d->ncch_offset + NCCH_HEADER_SIZE, d->exheader, sizeof d->exheader)) return TITLE_E_IO;
+    rc = read_exefs(d, read, ctx, handle, 1);
+    for (k = 0; !rc && k < d->nexefs; k++)
+        if (!strcmp(d->exefs[k].name, ".code")) return TITLE_OK;
+    dump_close(d);
+    return rc ? rc : TITLE_E_FORMAT;
 }
 
 static int by_path(const void *a, const void *b) {

@@ -1,6 +1,7 @@
 /* The player's decrypted MH4U dump, or MH XX's (GodMode9's output): a card image (.3ds, .cci: NCSD, partition 0), a CIA
  * (content 0) or a bare NCCH. Reads its header, exheader, regions, ExeFS files and lists every RomFS file as (path, absolute
- * offset, size), like core/game/executable/romfs.py RomFS.entries(). Portable C99, bytes only through TitleRead; the
+ * offset, size), like core/game/executable/romfs.py RomFS.entries(). MH4U's update (a format 4 set's code) is opened by
+ * dump_open_update, which reads its executable's place alone. Portable C99, bytes only through TitleRead; the
  * tests build it on the PC (tests/install/title/test_dump_c.py). */
 #ifndef DUMP_H
 #define DUMP_H
@@ -12,7 +13,10 @@
 #define DUMP_ID_EUR 0x0004000000126100ull   /* the base game, EUR */
 #define DUMP_ID_USA 0x0004000000126300ull   /* the base game, USA */
 #define DUMP_ID_XX 0x0004000000197100ull    /* MH XX (JPN): the second game of an XX set */
+#define DUMP_ID_UPDATE_EUR 0x0004000E00126100ull   /* MH4U's update, EUR: a format 4 set's code (patchset.h) */
+#define DUMP_ID_UPDATE_USA 0x0004000E00126300ull   /* MH4U's update, USA (v1.3.0: the recompiled game's) */
 #define DUMP_IDENTIFY_BYTES 0x200u
+#define DUMP_EXEFS_HASH 0x1C0u              /* the NCCH header's ExeFS superblock hash: an update's revision */
 #define DUMP_ROMFS_HASH 0x1E0u              /* the NCCH header's RomFS superblock hash: the game's revision */
 
 /* REGION_JPN is MH XX's: no set or pack is of it, so an XX dump is never taken for the MH4U a title is built from. */
@@ -29,7 +33,7 @@ typedef struct {
     uint64_t ncch_offset;     /* where the NCCH starts in the file */
     void *handle;             /* the dump's handle, as dump_open got it */
     uint64_t title_id;
-    int region;               /* REGION_EUR or REGION_USA; REGION_JPN for MH XX */
+    int region;               /* REGION_EUR or REGION_USA (an update: its region); REGION_JPN for MH XX */
     uint8_t header[NCCH_HEADER_SIZE];
     uint8_t exheader[EXHEADER_SIZE];
     uint8_t *plain, *logo;    /* the NCCH's regions, NULL when the game has none */
@@ -53,6 +57,14 @@ int dump_romfs_hash(TitleRead read, void *ctx, void *handle, uint8_t hash[32]);
 
 /* Everything above and the file list. On failure `d` holds nothing to free. */
 int dump_open(Dump *d, TitleRead read, void *ctx, void *handle);
+
+/* MH4U's update (a decrypted CIA: header, certificate chain, ticket, TMD, then its content, an NCCH; or that NCCH
+ * bare), as a format 4 set's code is read from it: its header (title id, region, the ExeFS superblock hash at
+ * DUMP_EXEFS_HASH), its exheader and its ExeFS ".code" (offset and stored size; no data read). No RomFS, regions or
+ * other ExeFS file: `files`, `plain`, `logo` stay NULL. TITLE_E_NOT_UPDATE for a container of another title (the base
+ * game, MH XX), TITLE_E_ENCRYPTED for the update not decrypted, TITLE_E_FORMAT for a file that is no container or an
+ * update without an executable, TITLE_E_IO. dump_close frees it; on failure `d` holds nothing to free. */
+int dump_open_update(Dump *d, TitleRead read, void *ctx, void *handle);
 void dump_close(Dump *d);
 
 /* The file with this path (exact, "/" separated), or NULL. Valid for a Dump after dump_open; builds an index on the first

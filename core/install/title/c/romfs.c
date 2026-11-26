@@ -59,6 +59,28 @@ int title_write_zeros(const TitleOut *out, uint64_t n) {
     return TITLE_OK;
 }
 
+const char *title_error_text(int rc) {
+    switch (rc) {
+    case TITLE_OK: return "done";
+    case TITLE_E_ARG: return "a bad argument or a call out of order";
+    case TITLE_E_MEM: return "out of memory";
+    case TITLE_E_IO: return "a file could not be read or written";
+    case TITLE_E_PATH: return "an empty, invalid or repeated path";
+    case TITLE_E_SIZE: return "the bytes made are not the size announced";
+    case TITLE_E_FORMAT: return "a file of the wrong shape, cut or damaged";
+    case TITLE_E_CANCEL: return "cancelled";
+    case TITLE_E_ENCRYPTED: return "the file is encrypted: it must be decrypted";
+    case TITLE_E_GAME: return "not the game, title or region this is made for";
+    case TITLE_E_NOPATCH: return "the executable cannot read an update";
+    case TITLE_E_HASH: return "bytes read or made are not the ones the patch set recorded";
+    case TITLE_E_DAMAGED: return "the game's files are damaged";
+    case TITLE_E_NO_UPDATE: return "this patch set needs the game's update, and none was given";
+    case TITLE_E_NOT_UPDATE: return "the file given as the update is not an update of MH4U";
+    case TITLE_E_OTHER_UPDATE: return "not the update this patch set was made with (another region or version)";
+    default: return "unknown error";
+    }
+}
+
 /* ---- hash store in memory ------------------------------------------------------------------------------------ */
 
 static int mem_append(void *ctx, const uint8_t *h, size_t n) {

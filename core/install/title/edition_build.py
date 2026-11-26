@@ -8,6 +8,7 @@ edition is the code's own.
 """
 
 import importlib.util
+import json
 import shutil
 import sys
 import tempfile
@@ -37,20 +38,30 @@ def edition_for(name: str) -> Edition:
     return edition()
 
 
-def _run_for(name: str):
-    """(run, install_settings, undo): the edition's run and the settings its presets give. For an overlay, its
-    presets are read while the settings are made and put back after."""
+def android_settings() -> dict:
+    """The installer options' values the edition's mod for Heavenfall for Android has instead of the edition's own
+    defaults (`curated/android_settings.json`, `settings`)."""
+    values = json.loads((ROOT / CURATED / "android_settings.json").read_text(encoding="utf-8"))["settings"]
+    if not isinstance(values, dict):
+        raise ValueError("android_settings.json: `settings` is not an object")
+    return values
+
+
+def _run_for(name: str, overrides: dict | None = None):
+    """(run, install_settings, undo): the edition's run and the settings its presets give, with `overrides` (installer
+    options' values) over the defaults. For an overlay, its presets are read while the settings are made and put back
+    after."""
     from core.app import presets
     overlay = overlay_folder(name)
     if overlay is None:
         from core.app.pipeline import run
-        return run, presets.install_settings(presets.personal_defaults()), lambda: None
+        return run, presets.install_settings({**presets.personal_defaults(), **(overrides or {})}), lambda: None
     saved = presets.PRESETS_PATH, presets.DEFAULTS_PATH
     curated = overlay / CURATED
     presets.PRESETS_PATH, presets.DEFAULTS_PATH = curated / "gui_presets.json", curated / "gui_defaults.json"
     presets.load_presets.cache_clear()
     try:
-        settings = presets.install_settings(presets.personal_defaults())
+        settings = presets.install_settings({**presets.personal_defaults(), **(overrides or {})})
     finally:
         presets.PRESETS_PATH, presets.DEFAULTS_PATH = saved
         presets.load_presets.cache_clear()
@@ -72,6 +83,22 @@ def make_edition_mod(rom: Path, mod: Path, name: str, xx_rom: Path | None = None
     run, settings, undo = _run_for(name)
     try:
         run(Path(rom), Path(mod), settings, title_build=True, xx_rom=xx_rom)
+    finally:
+        undo()
+    return current
+
+
+def make_android_mod(rom: Path, mod: Path, name: str, update: Path, xx_rom: Path | None = None) -> Edition:
+    """Run edition `name`'s own run for the recompiled game over the decrypted American base game `rom` into the folder
+    `mod`: the edition's emulator form (single screen as its defaults have it), built from the update's executable
+    `update` (a decrypted .cia or its NCCH, USA v1.3.0) with `recomp.json` and `mod.json` for the recompiler, the
+    installer options of `android_settings()` over the edition's defaults.
+    Not a title build: no sidecars, no gate, the settings are the emulator's own. `xx_rom`: MH XX's decrypted .3ds, for
+    the mod with its Layered Gear (the run then writes the provenance file, `mhxx_sources.txt`). Returns the edition."""
+    current = edition_for(name)
+    run, settings, undo = _run_for(name, android_settings())
+    try:
+        run(Path(rom), Path(mod), settings, code_path=Path(update), xx_rom=xx_rom, port=True)
     finally:
         undo()
     return current

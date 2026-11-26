@@ -45,6 +45,8 @@ KEYS = {
     "probe_save": "MH4U's save data folder (the title's `data` folder) each emulator of an online probe starts from",
     "beta_repo": "Heavenfall Beta's repository (tools/release/export_edition.py; default ../4u-heavenfall-mod-beta "
                  "beside the main checkout)",
+    "android_repo": "clone of Heavenfall for Android's repository (tools/release/export_android.py; default "
+                    "<work_dir>/external/heavenfall-recomp-android)",
 }
 
 # Files setup_local.py --extract derives from the ROMs, under <work_dir>/inputs.
@@ -78,6 +80,8 @@ class LocalConfig:
             return self.main / "work"
         if key == "ghidra_projects":
             return self.work_dir / "ghidra"
+        if key == "android_repo":
+            return self.work_dir / "external" / "heavenfall-recomp-android"
         if key == "emulator_dir" and os.environ.get("APPDATA"):
             return Path(os.environ["APPDATA"]) / "Azahar"
         return None

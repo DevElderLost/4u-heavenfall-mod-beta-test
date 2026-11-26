@@ -2,7 +2,13 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
-## Unreleased
+## 0.3.0
+
+### Android
+- A Heavenfall app for Android runs the game on the phone itself, with no emulator.
+- The app makes the mod from your own game, builds the game on the phone and starts it.
+- One button updates the app, the mod and only the part of the game that changed.
+- The app needs the American game and its 1.3.0 update; Monster Hunter XX adds its looks.
 
 ### Layered Gear
 - Layered Gear leaves out repeated looks: armor that looks the same on your hunter, and weapons.

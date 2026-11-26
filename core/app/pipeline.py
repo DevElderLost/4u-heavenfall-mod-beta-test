@@ -58,6 +58,7 @@ from core.interface.mod_settings.mod_options import (
 )
 from core.interface.mod_settings.menu_files import menu_page_files
 from core.game.executable.memory_boot import check_rows_current, patch_memory_boot
+from core.game.executable import port_manifest
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
 from core.game.executable.rebase import feature_gaps
@@ -254,7 +255,7 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
 def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | None = None,
         code_path: Path | None = None, stage: Callable[[str], None] | None = None, record: RunRecord | None = None,
         xx_rom: Path | None = None, console: bool = False, probe: Probe | None = None,
-        title_build: bool = False) -> RunResult:
+        title_build: bool = False, port: bool = False) -> RunResult:
     """`game` is the player's base game (European or American). The executable is his own: the game's, or
     `code_path`'s (a code.bin or game file of any version with a map, for developers and tests). It is laid out as the
     canonical one, every patcher works on that image, and the patched image is carried back onto his bytes
@@ -270,7 +271,9 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     (Settings.for_console: no single-screen mode) and the START menu's rows a console allows, the Cheats group always,
     shown and on only once the launcher's flag file allows it (mod_options.py patch_mod_options); its executable reads
     the game from the game data title and the mod's files from its own RomFS first (install/title/split_romfs.py), and
-    its exheader may open the game data title. `probe`: a developer probe's own patch, after the mod's (Probe). A module
+    its exheader may open the game data title. `port`: the mod is for a recompiled game, built from an update it runs
+    (`code_path`: USA v1.3.0 or EUR v1.1.0), with the file naming our code for the recompiler
+    (game/executable/port_manifest.py). `probe`: a developer probe's own patch, after the mod's (Probe). A module
     whose switch is off in `settings` has every field of it at the game's own value (presets.apply_modules) and no row
     in the START menu's page. Layered Gear's new items are defined in every run, its module on or off, so the
     executable is written even with every module off."""
@@ -293,6 +296,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     # The player's executable (the game's, or code_path's) as the canonical one: an unknown one fails before any work
     player = open_code(code_path or game, game)
     code = player.image
+    if port and (title_build or player.version.key not in port_manifest.TITLES):
+        port_manifest.title("the installed title" if title_build else player.version.key)    # raises: not one it runs
     # the installed title reads the game from the game data title: its build refuses an executable that cannot
     if title_build and not (player.exheader is not None and supports_split_romfs(code)):
         raise ValueError("the installed title's build needs the game ROM and its executable's RomFS mount")
@@ -437,6 +442,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange or intro
             or jukebox_plan is not None or with_sidecar or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
+        port_manifest.remove(output_dir)
     else:
         with session.recording(notes):
             patched = added.code if added else code
@@ -513,6 +519,10 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
         built = player.carry(patched, notes, probe.layout if probe is not None else None)
         result.executable_path = write_exefs(output_dir, player.original, built.code,
                                              title_exheader(player.exheader) if title_build else player.exheader)
+        if port:
+            port_manifest.write(output_dir, built.code, player.original, player.version.key, images=built.packs)
+        else:
+            port_manifest.remove(output_dir)    # an earlier run's: it names that run's code
         result.game_version = player.version.key
         result.packs = built.packs
         result.pack_paths = code_packs.write_files(output_dir, built.packs)    # read from `rom:` (`mod:` in a title)

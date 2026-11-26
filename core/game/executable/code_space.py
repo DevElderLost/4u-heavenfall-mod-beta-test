@@ -12,7 +12,7 @@ of being corrupted.
 import hashlib
 import json
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
@@ -200,13 +200,15 @@ class Reloc:
 @dataclass(frozen=True)
 class Block:
     """Code or data placed in a "code" region; `symbols` are its labels, as offsets from `address`; `relocs`, the
-    words that point into the game (tools/build/build_code_space.py keeps them from the link)."""
+    words that point into the game (tools/build/build_code_space.py keeps them from the link); `entries`, the labels
+    that start code, each with its instruction set ("arm" or "thumb"), for a recompiler of the game."""
     name: str
     region: str
     address: int
     data: bytes
     symbols: dict[str, int]
     relocs: tuple[Reloc, ...] = ()
+    entries: dict[str, str] = field(default_factory=dict)
 
     @property
     def end(self) -> int:
@@ -387,8 +389,9 @@ class Layout:
         """The resident stub of a hook at `at` into a pack's `target`, written in the first free slot of the pack's
         stubs' block (blocks.HOOK_STUBS; two slots for an opening stub, `opens`): its fallback is the call's old target
         (`calls`, or the `bl` the site holds) or the replaced instruction (`original`, or the one the site holds) and a
-        branch back. A call the hook turns into a branch (`calls` with `link` False: the target returns past the site
-        itself) falls back to the call moved into the stub and a branch back (B139). Refused for a pack without a
+        way back (`bx lr` from a site's `bl`, a branch from its `b`: B166). A call the hook turns into a branch (`calls`
+        with `link` False: the target returns past the site itself) falls back to the call moved into the stub and a
+        branch back (B139). Refused for a pack without a
         stubs' block, for a site in the save's functions (blocks.SAVE_FUNCTIONS), for a guarded site that is no call
         and for an opening stub outside a screen's pack. Returns the stub's address."""
         from core.game.executable import packs      # (it imports this module)
@@ -432,7 +435,7 @@ class Layout:
                 kind = {"fallback": old_call}
             else:
                 word = original if original is not None else bytes(code[offset:offset + 4])
-                kind = {"site": at, "original": struct.unpack("<I", word)[0]}
+                kind = {"site": at, "original": struct.unpack("<I", word)[0], "called": link}
             if opens:
                 data = packs.opening_stub(stub, self.symbol("pack_loader", "pack_opening"), PACK_SLOTS[pack], state,
                                           target, **kind)
@@ -455,7 +458,8 @@ class Layout:
                         for r in REGIONS.values()},
             "blocks": {b.name: {"region": b.region, "address": f"{b.address:#x}", "size": len(b.data),
                                 "code": b.data.hex(), "symbols": b.symbols,
-                                "relocs": [[r.offset, r.kind, r.symbol] for r in b.relocs]}
+                                "relocs": [[r.offset, r.kind, r.symbol] for r in b.relocs],
+                                "entries": b.entries}
                        for b in sorted(self.blocks.values(), key=lambda b: b.address)},
             "variables": {v.name: {"region": v.region, "address": f"{v.address:#x}", "size": v.size,
                                    "debug": v.debug}
@@ -465,7 +469,8 @@ class Layout:
     @classmethod
     def from_json(cls, data: dict) -> "Layout":
         blocks = {name: Block(name, b["region"], int(b["address"], 16), bytes.fromhex(b["code"]),
-                              dict(b["symbols"]), tuple(Reloc(*r) for r in b.get("relocs", ())))
+                              dict(b["symbols"]), tuple(Reloc(*r) for r in b.get("relocs", ())),
+                              dict(b.get("entries", {})))
                   for name, b in data["blocks"].items()}
         variables = {name: Variable(name, v["region"], int(v["address"], 16), v["size"], v["debug"])
                      for name, v in data["variables"].items()}

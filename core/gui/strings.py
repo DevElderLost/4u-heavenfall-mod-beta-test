@@ -135,6 +135,10 @@ FIX_ERRORS = {
                        "ha restaurado nada.",
                        "Backup {name} contains a mod for game {built}, but this destination is for {title}. "
                        "Nothing was restored."),
+    "port_code": T("La carpeta tiene un mod para el port de PC, hecho desde la actualización del juego: hace falta "
+                   "el ejecutable de esa actualización. No se ha cambiado nada.",
+                   "The folder holds a mod for the PC port, built from the game's update: that update's executable "
+                   "is needed. Nothing was changed."),
 }
 ERROR_NO_GAME = T("Carga primero la partida (su settings_<semilla>.json).",
                   "Load the game first (its settings_<seed>.json file).")

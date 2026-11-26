@@ -18,13 +18,14 @@ Heavenfall Beta moves the menus of the bottom screen to the top screen, locks on
 |---|---|
 | **Windows** (Azahar or Citra) | [The Windows program](docs/install/windows.md) |
 | **Linux or macOS** (Azahar or Citra) | [The program from a script](docs/install/linux.md), or the web installer |
-| **Android** (Azahar) | [The web installer](docs/install/android.md) |
+| **Android** (no emulator; American game) | [The Heavenfall app](docs/install/android.md#the-heavenfall-app) |
+| **Android** (Azahar) | [The web installer](docs/install/android.md#azahar-and-the-web-installer) |
 | **Steam Deck** (Azahar) | [The web installer or the Linux script](docs/install/steam_deck.md) |
 | **A real 3DS or New 3DS** (custom firmware) | [The Heavenfall Launcher app](docs/install/3ds.md) |
 
-On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks and the Jukebox XX's songs. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
+On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional, except for the Android app, which needs the American game and its 1.3.0 update). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks and the Jukebox XX's songs. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
 
-> **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
+> **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** or the Heavenfall app on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
 
 ## What the mod adds
 
