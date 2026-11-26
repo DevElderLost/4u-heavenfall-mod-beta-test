@@ -6,6 +6,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 
 ### Layered Gear
 - Layered Gear leaves out repeated looks: armor that looks the same on your hunter, and weapons.
+- Weapon looks you can only get by upgrading appear in Layered Gear as soon as their rank opens.
 
 ### Cheats
 - Cheats can multiply the damage your hits deal to monsters, from 1.1x to 10x.

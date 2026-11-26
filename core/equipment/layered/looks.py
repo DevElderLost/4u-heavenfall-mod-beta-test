@@ -444,12 +444,12 @@ def looks_to_json(armor: list[ArmorLook], weapons: dict[str, list[WeaponLook]]) 
 
 
 def with_forge(armor: list[ArmorLook], weapons: dict[str, list[WeaponLook]], tables) -> tuple[list, dict]:
-    """The looks with the forge's rule of MH4U (forge_rule) for `tables`, the game's clean equipment tables."""
+    """The looks with the forge's rule of MH4U (forge_rule) for `tables`, the game's clean equipment tables; a weapon
+    look named after an upgrade-only weapon, always (`ForgeRules.weapon_look`)."""
     rules = ForgeRules(tables)
     armor = [replace(look, forge=conditions_list(c for part, index in look.members
                                                  for c in rules.armor(part, index))) for look in armor]
-    weapons = {key: [replace(look, forge=conditions_list(c for index in look.members
-                                                         for c in rules.weapon(key, index))) for look in looks]
+    weapons = {key: [replace(look, forge=rules.weapon_look(key, look.weapon, look.members)) for look in looks]
                for key, looks in weapons.items()}
     return armor, weapons
 
