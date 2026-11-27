@@ -689,7 +689,7 @@ class Settings:
     debug_trio_diag: bool = False        # the trio diagnostics' rings (diagnostics/trio_diag.py); needs the sync log
     debug_sound_latch: bool = False      # the Felynes' rocket sound latch (diagnostics/sound_latch.py)
     debug_fog_control: bool = False      # Misty Peaks' debug fog control row in Mod Settings (maps/misty_peaks)
-    debug_ram_log: bool = False          # the RAM manager's probe log (diagnostics/memory_diag.py)
+    debug_ram_log: bool = False          # the RAM manager's log, a Debug tab option (diagnostics/memory_diag.py)
 
     # Fixes of a game in progress (core/app/fix.py): quests drawn again with another sub-seed; equipment and the
     # quests not rerolled stay the same

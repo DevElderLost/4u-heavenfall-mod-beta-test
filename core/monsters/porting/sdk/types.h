@@ -1,4 +1,4 @@
-/* Types and helpers shared by the Alatreon port's engine headers (enemy_4u.h, enemy_gen.h). */
+/* Types and helpers shared by the port's engine headers (enemy_4u.h, enemy_gen.h). */
 #ifndef ALATREON_TYPES_H
 #define ALATREON_TYPES_H
 

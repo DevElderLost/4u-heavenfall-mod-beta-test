@@ -6863,9 +6863,9 @@
   },
   "guard_point": {
    "region": "ext",
-   "address": "0x119c114",
+   "address": "0x1197f6c",
    "size": 152,
-   "code": "7110efe6040051e3f0412de90240a0e11d00001a7260ffe60b0056e31c0056131900001a68309fe50070d3e5ff0057e31500000a0050a0e10700a0e1c798ffeb000050e31000000a0700a0e1bf98ffeb000050e30c00000a303e95e5000053e30900000a3130d3e50e0053e30600001a0500a0e18ba3edeb000050e30200000a0b0056e30640a0031b40a0130400a0e1f081bde8c4c11901",
+   "code": "7110efe6040051e3f0412de90240a0e11d00001a7260ffe60b0056e31c0056131900001a68309fe50070d3e5ff0057e31500000a0050a0e10700a0e131a9ffeb000050e31000000a0700a0e129a9ffeb000050e30c00000a303e95e5000053e30900000a3130d3e50e0053e30600001a0500a0e1f5b3edeb000050e30200000a0b0056e30640a0031b40a0130400a0e1f081bde81c801901",
    "symbols": {
     "guard_point_action": 0
    },
@@ -6882,9 +6882,9 @@
   },
   "guard_point_stub": {
    "region": "ext",
-   "address": "0x119c1ac",
+   "address": "0x1198004",
    "size": 24,
-   "code": "0f502de9d7ffffeb08008de50f50bde8f05f2de94b01e6ea",
+   "code": "0f502de9d7ffffeb08008de50f50bde8f05f2de9b511e6ea",
    "symbols": {
     "_start": 0,
     "guard_point_hook": 0
@@ -6903,7 +6903,7 @@
   },
   "guard_point_data": {
    "region": "ext",
-   "address": "0x119c1c4",
+   "address": "0x119801c",
    "size": 4,
    "code": "00000000",
    "symbols": {},

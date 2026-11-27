@@ -1,8 +1,8 @@
 /* The installed title's NCCH (CXI): ExeFS image, retitled exheader and the container; byte-identical to
  * core/install/title/ncch.py. Not encrypted (NoCrypto flag), not signed (zero signature). The RomFS is a
  * RomfsImage already prepared (romfs_prepare): the header carries its hash region's SHA-256. Without an exheader the
- * NCCH is a CFA (ncch.py `Cfa`, an add-on content title's: the game data of ): its header
- * and the RomFS at 0x1000, nothing else. */
+ * NCCH is a CFA, an add-on content title's, as the split title's game data is (ncch.py `Cfa`): its header and the
+ * RomFS at 0x1000, nothing else. */
 #ifndef NCCH_H
 #define NCCH_H
 

@@ -981,7 +981,7 @@ class InstallPage(Page):
         except jobs.NoTarget:
             from core.app.presets import install_settings
             settings = install_settings(self.state.personal, self.state.debug)
-            xx =self.state.xx_rom_for(settings)
+            xx = self.state.xx_rom_for(settings)
             request = jobs.InstallRequest(Path(self.state.rom_path), settings, "install", True, Path(folder),
                                           rom_title(self.state), xx_rom=Path(xx) if xx else None)
         self._start("export", request, Path(folder))

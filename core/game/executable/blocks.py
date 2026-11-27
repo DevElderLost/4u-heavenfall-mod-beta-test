@@ -315,8 +315,8 @@ ACTION_CANCEL_DATA_SIZE = 8
 # the other cheats, after the item wheel
 DAMAGE_MULTIPLIERS = "cheat_damage"
 DAMAGE_MULTIPLIERS_DATA_SIZE = 4
-# The cheat Charge Blade Guard Point (cheats/guard_point/guard_point.py): packed last, so that it
-# moves no other block
+# The cheat Charge Blade Guard Point (cheats/guard_point/guard_point.py): after every other
+# product block, so that it moves none, and before a probe's diagnostics, which no product places
 GUARD_POINT = "cheat_guard_point"
 GUARD_POINT_DATA_SIZE = 4
 # Heavenfall Beta's sidecars (save/beta_sidecar.py): the four sites' stubs and
@@ -480,8 +480,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    GUI_FRAME_MARKS, INSTA_KILL, wyporium_trades.FEATURE, RARE_EXCHANGE, MEOWNSTER_SCRAP, MODERN_CAMERA,
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
                    RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, DAMAGE_MULTIPLIERS, JUKEBOX, BETA_SIDECAR,
-                   TRIO_DIAG,
-                   SYNC_DIAG, SOUND_LATCH, MEMORY_DIAG, GUARD_POINT)
+                   GUARD_POINT, TRIO_DIAG, SYNC_DIAG, SOUND_LATCH, MEMORY_DIAG)
     specs = (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).

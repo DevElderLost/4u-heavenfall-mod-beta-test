@@ -1,4 +1,4 @@
-/* MH4U's monster engine, as the Alatreon port's C code sees it.
+/* MH4U's monster engine, as a ported monster's C code sees it.
  *
  * Offsets are of the update's executable. Engine functions are resolved by name when the block is
  * linked (game/executable/blocks.py, GAME_SYMBOLS), so a source only declares what it calls. The port's
@@ -346,8 +346,8 @@ static const float vec3_zero_4u[4];
 
 /* hook: the product (src/alatreon.c: his classes and his shell files; src/mhgen_port.c, the shared block: the effect
  * player and the port's shell framework) launches his kinds as his own classes on the port's sShell, with MH Generations' setup parameters
- * (em050/shells.c, MH4U's side), registered with it (proof/hook_4u.c). The probes (src/probe_class.c, with the
- * player or not) carry no shell files and keep the stand-ins below, which their telemetry counts: it renames them
+ * (em050/shells.c, MH4U's side), registered with it (proof/hook_4u.c). A test build of the class (src/probe_class.c,
+ * with the player or not) carries no shell files and keep the stand-ins below, which their telemetry counts: it renames them
  * (its #define of shell_launch_4u_001), which is what tells their build apart. */
 #if defined(PROOF_PLAYER) && !defined(shell_launch_4u_001)
 #define SHELLS_ON_PORT 1
@@ -822,7 +822,7 @@ static inline void shell_launch_01_from(uShell *shell, u32 kind, u32 n, const fl
 #define enemy_act_script_now(self) FIELD(u32, enemy_em(self), EM_ACT_SCRIPT)
 #define enemy_hold_timer(self) FIELD(float, enemy_em(self), EM_HOLD_TIMER)
 /* MH Generations' unit angle (this+0xC9C), which its unit step keeps with mVec's: MH4U's facing angle stands in
- * (an Arena probe checks 10/0xAF's slide) */
+ * (10/0xAF's slide, checked in the Arena) */
 #define enemy_unit_angle_y(self) enemy_angle_y(self)
 /* Fields only MH Generations' layer has: its flags, and Hyper, which MH4U has no monster in */
 #define enemy_gen_unit_flags(self) (*((void)(self), &(u32){0}))

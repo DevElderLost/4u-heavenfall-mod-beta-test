@@ -1,8 +1,8 @@
 # Builds Heavenfall Beta for Windows (HeavenfallBeta-windows.zip) and the 3DS launcher (HeavenfallBeta-3ds.cia and .3dsx, with the console patch sets and their shared file), checks the patch sets for Heavenfall for Android, and attaches them all to the GitHub release of the tag.
-# Push a tag to release (docs/develop/development.md, "Publishing a release"):  git tag v0.2.0 && git push origin v0.2.0
+# Push a tag to release (docs/develop/development.md, "Publishing a release"):  git tag v0.3.0 && git push origin v0.3.0
 # Run by hand (Actions > Release > Run workflow) to only build: the zip is then an artifact of the run.
 # The builds run with a read-only token that is not kept on disk; only the job `attach`, which runs no package or build
-# tool, can write the release, and it does so only after both builds succeeded.
+# tool, can write the release, and it does so only after every build and check succeeded.
 name: Release
 
 on:

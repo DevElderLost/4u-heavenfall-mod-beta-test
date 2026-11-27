@@ -13,7 +13,7 @@ from pathlib import Path
 from core.game.data.paths import CURATED_DIR
 
 EDITION_FILE = CURATED_DIR / "edition.json"
-ANDROID_APP_FILE = CURATED_DIR / "android_app.json"     # the full mod's only: no edition carries it
+ANDROID_APP_FILE = CURATED_DIR / "android_app.json"     # the Android app's own data, apart from every edition
 PAGES = ("install", "options", "randomizer", "saves", "debug")   # the GUI's pages an edition may have (gui/qt/app.py)
 PLATFORMS = ("emulator", "console")             # "console": a real 3DS (luma.py)
 TOOLS_LANGUAGES = ("es", "en")

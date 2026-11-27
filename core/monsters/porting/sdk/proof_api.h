@@ -1297,7 +1297,7 @@ void gen_part_reward(u32 id, u32 sub, u32 bit, u32 zero, u32 x);   /* 0x8A5DA4 *
 /* A ported monster's record: what the shared code (the player, the
  * shell framework) needs of him, by his id. The product fills one per ported monster in mhgen_port_monsters
  * (product.port_table, proof_blocks.PORT_RECORD: keep both in step); the includer of src/player.c defines
- * proof_port_of and proof_port_at (src/port_table.c for the product, src/probe_fx.c for the probes). */
+ * proof_port_of and proof_port_at (src/port_table.c for the product, src/probe_fx.c for a test build). */
 /* A row of MH Generations' kind table (0xCA2B2C; sdk/shell_api.h KIND_*): the class's DTI (sShell's create builds
  * the shell through its slot 2), its setup parameter's DTI (create compares its id with the parameter's) and the
  * rShell's file id (sShell's register loads it) */
@@ -1336,7 +1336,7 @@ struct proof_port {
     void *const *shell_roots;
     u32 shell_first, shell_count;
     /* 1: his images are the entry of his archive his id names (entry_4u.c; the product), and pel_c, pel_u, psl_roots,
-     * tied_roots and shell_roots are 0; 0: those five (a probe's images in the executable) */
+     * tied_roots and shell_roots are 0; 0: those five (a test build's images in the executable) */
     u32 images;
 };
 const struct proof_port *proof_port_of(void *monster);   /* his record, or 0: not a ported monster */
