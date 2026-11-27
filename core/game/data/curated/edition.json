@@ -30,5 +30,13 @@
     "patch_usa": "HeavenfallBeta-3ds-USA.hfpatch",
     "patch_eur_xx": "HeavenfallBeta-3ds-EUR-XX.hfpatch",
     "patch_usa_xx": "HeavenfallBeta-3ds-USA-XX.hfpatch"
+  },
+  "android_release": {
+    "patch_usa": "HeavenfallBeta-android-USA.hfpatch",
+    "patch_usa_xx": "HeavenfallBeta-android-USA-XX.hfpatch",
+    "release_file": "HeavenfallBeta-android-release.json",
+    "game_title": "0004000000126300",
+    "update_title": "0004000E00126300",
+    "public": true
   }
 }

@@ -19,28 +19,17 @@
  *   layered_box_out     0xA9A398  "bx lr", FUN_00a9a38c's default, the box's way out of a state (back to its menu, or
  *                       closed by force): BOX_STATE's takes the screens down (layered_box_down)
  *   layered_box_menu    0x9FD8C8  "bl FUN_00a55a20", the box menu's commands: then the line's panes and help
+ *
+ * Two blocks: this file is resident (a unit of layered_selector): the
+ * stubs, which stay where the game's hooks point, the line's place and the line count's store. The line's panes and
+ * help (layered_box_commands) and the screens' setup and teardown (box_screens_open, box_screens_close) are layered_menu.c,
+ * in the town block layered_town: layered_box_menu and the stubs below call it, and layered_box_entry, layered_box_frame
+ * and layered_box_down.
  */
 
 #include "layered.h"
 
 GAME void box_frame_setup(u32 frame, u32 box);       /* FUN_00589bf0 */
-GAME void box_menu_update(u32 scene, u8 *menu);      /* FUN_00a55a20: the box menu's commands */
-
-#define MENU_STATE 0             /* the box menu (scene + 0xE8B8): FUN_009c9ee0's state, */
-#define MENU_KIND 2              /* the box's kind (0 the 7-row frame, else the 4-row one), */
-#define MENU_LINE 6              /* the cursor's line, */
-#define MENU_COLUMN 9            /* the column the cursor is in (0 the lines, 1 a line's choices), */
-#define MENU_COUNT 0xA           /* the lines, */
-#define MENU_FRAME 0x1D54        /* the frame object FUN_00589bf0 sets up (+0: bit HELP_SHOWN, the help line drawn), */
-#define MENU_QUEUE 0x1D64        /* and the commands of the frame: a byte each, then their words from + 8, */
-#define MENU_QUEUED 0x1D8C       /* how many */
-#define QUEUE_ROOM 8
-#define CMD_SHOW 2               /* the menu and its frame shown (FUN_00588414) */
-#define CMD_CURSOR 3             /* the cursor on its line and the line's help (FUN_00a920d0); word 1: the lines' column */
-#define HELP_SHOWN 0x10
-#define HELP_LINE 1              /* facility_help's kind of the box's help */
-#define NO_LINE 0xFF
-#define BR (&D->screen.box_row)
 
 struct box_line_state { u8 line, pad[3]; };   /* the variable layered_box */
 _Static_assert(sizeof(struct box_line_state) == 4, "layered_box size (game/executable/blocks.py)");
@@ -56,7 +45,7 @@ static const struct fg_box_line *place_of(u32 kind, u32 line)
 }
 
 /* The line of this menu, or 0: set by its opener, and still the last of its lines. */
-static const struct fg_box_line *line_of(const u8 *menu)
+const struct fg_box_line *box_line_of(const u8 *menu)
 {
     u32 line = layered_box.line;
     if (line == NO_LINE || menu[MENU_COUNT] != line + 1)
@@ -66,7 +55,7 @@ static const struct fg_box_line *line_of(const u8 *menu)
 
 ARM u32 layered_box_is_line(const u8 *menu, u32 line)
 {
-    return line_of(menu) && line == layered_box.line;
+    return box_line_of(menu) && line == layered_box.line;
 }
 
 /* FUN_009ec82c, after the line count's store: our line after the game's, where the layout has a place for it. */
@@ -82,133 +71,18 @@ ARM void layered_box_opened(u32 frame, u32 box)
     }
 }
 
-/* ----- the line's panes ---------------------------------------------------------------------------------------- */
-
-static void sprite_shown(u32 group, u32 hash, u32 shown)
-{
-    struct ref r;
-    u32 *sprite = kit_sprite(&r, group, hash);
-    if (!sprite || !(sprite[SP_FLAGS] & SP_SHOWN) == !shown)
-        return;
-    sprite[SP_FLAGS] ^= SP_SHOWN;
-    kit_sprite_changed(&r);
-}
-
-/* A text on or off; `message` (not 0) written first: the game's rows keep the one the box's build gave them. */
-static void text_shown(u32 group, u32 hash, u32 shown, u32 message)
-{
-    struct ref r;
-    u32 *text = kit_text(&r, group, hash);
-    if (!text)
-        return;
-    if (shown && message)
-        text_lobby(&r, MAKESHOP, message);
-    text_show((u32)text, shown);
-    kit_text_changed(&r);
-}
-
-/* A row: its plate pair in `plates`, its text in `texts`. */
-static void row_shown(u32 plates, u32 texts, const u32 *panes, u32 shown, u32 message)
-{
-    sprite_shown(plates, panes[0], shown);
-    sprite_shown(plates, panes[1], shown);
-    text_shown(texts, panes[2], shown, message);
-}
-
-/* The panes as the menu wants them: our row at the line, the game's row there hidden under it, our taller frame in place
-   of the game's when the line is one past it; with no line, the game's alone. Hidden panes of the frame the box does
-   not show cost nothing: their null is hidden. */
-static void panes_for(const u8 *menu)
-{
-    const struct fg_box_line *at = line_of(menu);
-    u32 frames = kit_group(BR->groups[0]), plates = kit_group(BR->groups[1]), texts = kit_group(BR->groups[2]);
-    if (!frames || !plates || !texts)
-        return;
-    for (u32 kind = 0; kind < 2; kind++) {
-        u32 ours = at && at->kind == kind && at->own_frame;
-        for (u32 i = 0; i < 3; i++) {
-            sprite_shown(frames, BR->frames[kind][0][i], !ours);
-            sprite_shown(frames, BR->frames[kind][1][i], ours);
-        }
-    }
-    for (u32 row = 0; row < BOX_GAME_ROWS; row++)
-        row_shown(plates, texts, BR->rows[row], !at || at->line != row, 0);
-    for (u32 i = 0; i < BOX_PLACES; i++)
-        row_shown(plates, texts, BR->lines[i].panes, &BR->lines[i] == at, BR->msg_entry);
-}
-
-/* FUN_009fd87c's box menu: the game's commands of this frame (the queue stays until FUN_00a46694 clears it next frame),
-   then the line's: its panes when the menu was shown, its help when the cursor came to it. */
-ARM void layered_box_menu(u32 scene, u8 *menu)
-{
-    u32 queued = *(u32 *)(menu + MENU_QUEUED), shown = 0, cursor = 0;
-    box_menu_update(scene, menu);
-    if (queued > QUEUE_ROOM)
-        queued = QUEUE_ROOM;
-    for (u32 i = 0; i < queued; i++) {
-        u32 command = menu[MENU_QUEUE + i];
-        shown |= command == CMD_SHOW;
-        cursor |= command == CMD_CURSOR && *(u32 *)(menu + MENU_QUEUE + 8 + 4 * i) == 1;
-    }
-    if (shown)
-        panes_for(menu);
-    if (cursor && !menu[MENU_COLUMN] && layered_box_is_line(menu, menu[MENU_LINE]) && menu[MENU_FRAME] & HELP_SHOWN)
-        facility_help(HELP_LINE, MAKESHOP, D->msg_desc);
-}
-
-/* ----- the screens at a box -------------------------------------------------------------------------------------- */
-
-GAME void facility_gui_open(u32 scene);              /* FUN_009bb2b0 */
-GAME void facility_gui_close(u32 scene);             /* FUN_009bb1ac */
-GAME void preview_target_make(u32 scene);            /* FUN_009c32a0 */
-GAME void preview_target_drop(u32 scene);            /* FUN_009c3180 */
-GAME void preview_frame_bind(u32 frame);             /* FUN_0059e5d0 */
-GAME void forge_hide(u32 obj);                       /* FUN_00a1c640 */
-GAME void viewport_close(u32 viewport);              /* FUN_00c00ec8 */
-extern u32 camera_control;
-
-#define LOBBY_HUNTERS 0x123C     /* lobby_hunter_loader: the lobby's hunters, one per player index */
-#define GAME_PLAYER 0x2F         /* the game manager: the local player's index */
-#define OBJ_TARGET_WORK 0x1894C  /* the scene: the work area FUN_009e6bb8 clears before FUN_009c32a0 */
-#define TARGET_WORK_SIZE 0x1E4
-
-/* What the Smithy's entry (FUN_009ad484) sets up that the screens use, without its blacksmith (its FUN_009bcb90 plays the
-   talking NPC's motion, which a box has not): the real hunter, the Smithy's GUI (FUN_009bb2b0: ui401's, ui402's and
-   ui407's panes, and ten text objects that box_screens_close frees), the preview's camera target (FUN_009c32a0 makes it
-   when there is none). The box's own code never uses the Smithy's work area (scene + 0xB708) nor the target's. */
-void box_screens_open(u32 obj)
-{
-    *(u32 *)(obj + OBJ_HUNTER) = *(u32 *)(lobby_hunter_loader + LOBBY_HUNTERS + 4 * game_control[GAME_PLAYER]);
-    facility_gui_open(obj);
-    layered_clear((u8 *)obj + OBJ_TARGET_WORK, TARGET_WORK_SIZE);
-    preview_target_make(obj);
-}
-
-/* All of it taken down, in the order proved at the house's, the Hall's and a village's boxes: the screens and the game's
-   panels, the preview's frame and view, the facility menu, the camera target (FUN_009c3180 leaves the preview hunter's
-   pointer behind), the Smithy's GUI, and the box's frame bound again if it was (FUN_009bb1ac closes it). */
-void box_screens_close(u32 obj)
-{
-    forge_shut(obj);
-    forge_hide(obj);
-    preview_frame_close(obj + OBJ_FRAME);
-    viewport_close(camera_control);
-    facility_menu_set(obj, NO_MENU, 0, 0xFF);
-    facility_menu_draw(obj);
-    preview_target_drop(obj);
-    *(u32 *)(obj + OBJ_PREVIEW) = 0;
-    facility_gui_close(obj);
-    if (layered_ui.box_state & BOX_FRAME)
-        preview_frame_bind(obj + OBJ_FRAME);
-}
-
 /* ----- the hooks ------------------------------------------------------------------------------------------------ */
 
 __asm__(
     "   .section .text.layered_hooks, \"ax\", %progbits\n"
     "   .arm\n"
     "   .global layered_box_other, layered_box_key, layered_box_pick, layered_box_open, layered_box_state\n"
-    "   .global layered_box_out\n"
+    "   .global layered_box_out, layered_box_menu\n"
+    /* FUN_009fd87c's call of the box menu's commands (r0 the scene, r1 the menu): on to the town block's, with the game's
+       return address (it is a call: r12 is free) */
+    "layered_box_menu:\n"
+    "   ldr     r12, =layered_box_commands\n"
+    "   bx      r12\n"
     /* FUN_00a9a38c's default (its `bx lr`): r0 the scene, r1 the menu, r2 its state; ours takes the screens down */
     "layered_box_out:\n"
     "   cmp     r2, #" STR(BOX_STATE) "\n"

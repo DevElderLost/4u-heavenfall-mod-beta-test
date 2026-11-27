@@ -11,6 +11,10 @@
     ],
     "description": "Each ratio: its name, its width and height, in the order the program lists them."
   },
+  "cheat_ratio": {
+    "value": {"name": "18:9", "width": 18, "height": 9},
+    "description": "The ratio of the Cheats group's row (cheats/aspect_ratio.py CHEAT_ROW): in no list, neither the installer's nor the game's; the row on, every hook takes it as a ratio chosen in the game's list. Its name is not one of the ratios'."
+  },
   "anchors": {
     "description": "Where the interface goes on a wider picture (interface/hud/anchors.py). A root group goes to the side of the 400 wide frame it lies on. follow_nulls: root groups the game moves by writing their first nulls, not their translate, which go by where those nulls are in play. corners: root groups that keep to a corner or an edge of the picture in both directions, from where the game's 400 x 240 frame has them (the talk windows and the chat log); this wins over keep_centred. edge_margin: a box this close to both sides crosses the whole frame and stays. half_margin: a box may pass the middle by this much and still lie in its half. dead_zone: a box across the middle whose centre is this close to it stays. keep_centred: root groups that stay (patterns). sides: root groups whose side this says, because the code places them. keep_width: panes that cross the frame but are no backdrop (patterns). stretch_groups: root groups that are a ground made of several sprites, which grow together (patterns). sub_views: a sub-view (the forge's preview) follows the frame around it.",
     "edge_margin": 2,

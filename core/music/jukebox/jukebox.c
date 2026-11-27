@@ -13,7 +13,8 @@
  *     no loop that reached its last second moves the playlist on when its record frees. In Dundorma's box (manager +
  *     0x1835) it sends the ambience's way out (str_map 0x33) once when the pick takes Dundorma's theme over.
  *   - jukebox_resume_index, FUN_0030ace0 (the resume list's lookup) replaced: the game's answer for the game's
- *     requests; for the song playing, the index of the place's request it replaced, so the game saves and seeks its
+ *     requests (jukebox_core.c's jukebox_resume_game, resident: the hook's fallback while the town's pack is out);
+ *     for the song playing, the index of the place's request it replaced, so the game saves and seeks its
  *     position as a village theme's. A slot that held a jukebox song's position is cleared before another song or the
  *     place's own request uses it.
  *
@@ -24,7 +25,7 @@
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, ARM; jukebox.ld).
  */
-#include "jukebox.h"
+#include "jukebox_lists.h"
 
 /* the game's functions and variables (blocks.py GAME_SYMBOLS) */
 extern u32 sound_driver;                        /* the variable holding the sound driver */
@@ -50,26 +51,17 @@ int town_theme(u8 *manager, int which);         /* FUN_00304990 */
 #define STOPPING 0xD
 #define LOBBY_QUEUE 6
 #define BOX_FLAG 0x1835                 /* u8: Dundorma's box entered (FUN_00304080) */
-#define RESUME_SLOTS 0x178C             /* + 8 n: slot n's flag, + 4 its position (-1: none) */
-#define RESUME_ROOM 32                  /* slots the mask covers (the game's list has 19) */
+#define RESUME_SLOTS JUKEBOX_RESUME_SLOTS       /* + 8 n: slot n's flag, + 4 its position (-1: none) */
+#define RESUME_ROOM JUKEBOX_RESUME_ROOM
 #define DUNDORMA_THEME 0x32
 #define BOX_WAY_OUT 0x33                /* str_map's request on leaving the box */
 /* the sound driver */
-#define DRIVER_CLOCK 0x933C             /* u32: milliseconds */
 #define VOICE_SERIAL 0x30               /* a stream voice's start serial */
 #define REQUEST_STREAM 0x60             /* a request's stream record: +8 samples, +0x10 rate, +0x1C loop end */
 #define STREAM_SAMPLES 0x08
 #define STREAM_RATE 0x10
 #define STREAM_LOOP_END 0x1C
 #define ANY_SET -1
-
-#define S (&jukebox_state)
-#define D (&jukebox_data)
-
-static int clamp(int value, int low, int high)
-{
-    return value < low ? low : value > high ? high : value;
-}
 
 static int in_queue(u32 handle, u32 request)
 {
@@ -101,34 +93,8 @@ static int ours(int request)
     return request >= D->first_request && request <= D->last_request;
 }
 
-/* FUN_0030ace0's own answer: the request's index in the resume list, or -1 */
-static int resume_slot(int request)
-{
-    for (int i = 0; i < RESUME_ROOM && resume_list[i] != 0xFFFF; i++)
-        if ((u32)resume_list[i] == (u32)request)
-            return i;
-    return -1;
-}
-
-static int list_count(void)
-{
-    return clamp(D->limits.playlists, 0, JUKEBOX_PLAYLISTS);
-}
-
-static int song_room(void)
-{
-    return clamp(D->limits.songs, 0, JUKEBOX_SONGS);
-}
-
-static struct jukebox_playlist *playlist(int list)
-{
-    return list >= 0 && list < list_count() ? &S->save.playlists[list] : 0;
-}
-
-static int songs_in(const struct jukebox_playlist *p)
-{
-    return p->count < song_room() ? p->count : song_room();
-}
+/* FUN_0030ace0's own answer: the request's index in the resume list, or -1 (jukebox_core.c, resident) */
+#define resume_slot jukebox_resume_slot
 
 static int loops(void)
 {
@@ -138,66 +104,6 @@ static int loops(void)
 static int fade_seconds(void)
 {
     return clamp(S->save.options.fade, D->limits.fade_min, D->limits.fade_max);
-}
-
-/* a number below `n` (n >= 1): xorshift32, seeded from the sound driver's clock */
-static int random_below(int n)
-{
-    u32 x = S->random;
-    if (x == 0)
-        x = (sound_driver ? W(sound_driver, DRIVER_CLOCK) : 0) ^ (S->generation * 0x9E3779B9u) ^ 0x2545F491u;
-    if (x == 0)
-        x = 1;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    S->random = x;
-    return (int)(((unsigned long long)x * (u32)n) >> 32);
-}
-
-/* a new round of playlist `p`: in its order or shuffled; `first` (a track id) plays first when the playlist has it,
-   else a shuffled round of two or more songs never starts with the song the last round ended on */
-static void draw_round(const struct jukebox_playlist *p, int first)
-{
-    int n = songs_in(p), at = -1;
-    for (int i = 0; i < n; i++)
-        S->order[i] = (u8)i;
-    if (p->order == JUKEBOX_SHUFFLE)
-        for (int i = n - 1; i > 0; i--) {
-            int j = random_below(i + 1);
-            u8 swap = S->order[i];
-            S->order[i] = S->order[j];
-            S->order[j] = swap;
-        }
-    for (int i = 0; i < n && at < 0; i++)
-        if (p->songs[S->order[i]] == first)
-            at = i;
-    S->round_count = (u8)n;
-    S->position = 0;
-    if (at >= 0 && p->order != JUKEBOX_SHUFFLE) {
-        S->position = (u8)at;
-    } else {
-        int swap_with = at;
-        if (at < 0 && p->order == JUKEBOX_SHUFFLE && n >= 2 && p->songs[S->order[0]] == S->last_track)
-            swap_with = 1 + random_below(n - 1);
-        if (swap_with > 0) {
-            u8 swap = S->order[0];
-            S->order[0] = S->order[swap_with];
-            S->order[swap_with] = swap;
-        }
-    }
-}
-
-static void new_song(void)
-{
-    S->passes = 0;
-    S->seen = 0;
-    S->generation++;
-}
-
-static int single(void)
-{
-    return S->save.options.active == JUKEBOX_SINGLE;
 }
 
 /* the one song in the loaded queue (`handle`), or 0 */
@@ -225,7 +131,7 @@ static int settle(u32 handle)
     if (!p || !handle)
         return 0;
     if (S->round_list != active) {
-        draw_round(p, JUKEBOX_NO_SONG);
+        jukebox_draw_round(p, JUKEBOX_NO_SONG);
         S->round_list = (u8)active;
         S->current = 0;
     }
@@ -249,7 +155,7 @@ static int settle(u32 handle)
         }
         if (S->current_track != JUKEBOX_NO_SONG)
             S->last_track = S->current_track;
-        draw_round(p, JUKEBOX_NO_SONG);
+        jukebox_draw_round(p, JUKEBOX_NO_SONG);
     }
     return 0;
 }
@@ -267,7 +173,7 @@ static void move_on(void)
     S->last_track = S->current_track;
     S->position++;
     if (S->position >= S->round_count && p)
-        draw_round(p, JUKEBOX_NO_SONG);
+        jukebox_draw_round(p, JUKEBOX_NO_SONG);
     S->current = 0;
     S->current_track = JUKEBOX_NO_SONG;
     new_song();
@@ -374,14 +280,8 @@ static void clear_slot(u8 *manager, int slot)
 
 int jukebox_resume_index(u8 *manager, int request)
 {
-    if (!ours(request)) {
-        int slot = resume_slot(request);
-        if (slot >= 0 && (S->resume_slots >> slot & 1)) {
-            clear_slot(manager, slot);
-            S->resume_slots &= ~(1u << slot);
-        }
-        return slot;
-    }
+    if (!ours(request))
+        return jukebox_resume_game(manager, request);
     int slot = S->place_index;
     if (request != S->current || slot < 0)
         return -1;
@@ -410,15 +310,6 @@ static void edited(int list)
 const struct jukebox_playlist *jukebox_playlist(int list)
 {
     return playlist(list);
-}
-
-int jukebox_find_song(int list, int track)
-{
-    struct jukebox_playlist *p = playlist(list);
-    for (int i = 0; p && i < songs_in(p); i++)
-        if (p->songs[i] == track)
-            return i;
-    return -1;
 }
 
 int jukebox_add_song(int list, int track)
@@ -576,65 +467,4 @@ int jukebox_listen(int track)
 void jukebox_listen_stop(void)
 {
     S->listen = 0;
-}
-
-void jukebox_changed(void)
-{
-    int active = S->save.options.active;
-    struct jukebox_playlist *p = single() ? 0 : playlist(active - 1);
-    if (!p) {
-        S->round_list = 0;
-        S->current = 0;
-        S->current_track = JUKEBOX_NO_SONG;
-        new_song();
-        return;
-    }
-    int keep = S->round_list == active && S->current ? S->current_track : JUKEBOX_NO_SONG;
-    if (keep != JUKEBOX_NO_SONG && jukebox_find_song(active - 1, keep) < 0)
-        keep = JUKEBOX_NO_SONG;
-    draw_round(p, keep);
-    S->round_list = (u8)active;
-    if (keep == JUKEBOX_NO_SONG) {
-        S->current = 0;
-        S->current_track = JUKEBOX_NO_SONG;
-        new_song();
-    }
-}
-
-void jukebox_reset(void)
-{
-    volatile u8 *bytes = (u8 *)&S->save;        /* volatile: no memset call (no library is linked) */
-    for (u32 i = 0; i < sizeof S->save; i++)
-        bytes[i] = 0;
-    S->save.magic = JUKEBOX_MAGIC;
-    S->save.version = JUKEBOX_VERSION;
-    S->save.options.active = 0;
-    S->save.options.keep = D->defaults.keep;
-    S->save.options.halls = D->defaults.halls;
-    S->save.options.loops = D->defaults.loops;
-    S->save.options.fade = D->defaults.fade;
-    S->save.options.song = JUKEBOX_NO_SONG;
-    S->listen = 0;
-    jukebox_changed();
-}
-
-void jukebox_owner(const u8 *hunter_id)
-{
-    int same = S->owned;
-    for (int i = 0; i < 8; i++)
-        if (S->owner[i] != hunter_id[i])
-            same = 0;
-    if (same)
-        return;
-    jukebox_reset();
-    for (int i = 0; i < 8; i++)
-        S->owner[i] = hunter_id[i];
-    S->owned = 1;
-}
-
-void jukebox_loaded(void)
-{
-    if (S->save.options.keep != JUKEBOX_ALWAYS)
-        S->save.options.active = 0;
-    jukebox_changed();
 }

@@ -127,7 +127,10 @@ def parse_arc(buf: bytes) -> Arc:
 class StreamCache:
     """zlib streams of the entries written lately, by their data's digest. Nine in ten entries a run writes were
     written before (the same textures in many archives, the same files run after run), and compressing them was half
-    of a run. The oldest streams leave once the cache holds more than `budget` bytes of them."""
+    of a run. The oldest streams leave once the cache holds more than `budget` bytes of them.
+
+    `backing`, when set, is asked before compressing and given what was compressed: `get(digest)` -> the stream or
+    None, `put(digest, stream)` (the tests keep the streams between their processes: tests/support/arc_streams.py)."""
 
     STORED_KEYS = 100_000      # how many stored streams are remembered by the digest of their data (entry_stream)
 
@@ -135,6 +138,7 @@ class StreamCache:
         self.budget = budget
         self.size = 0
         self.hits = 0
+        self.backing = None
         self.streams: OrderedDict[bytes, bytes] = OrderedDict()
         self.by_stored: OrderedDict[bytes, bytes] = OrderedDict()      # digest of a stored stream -> its data's digest
 
@@ -149,12 +153,20 @@ class StreamCache:
             self.streams.move_to_end(key)
             self.hits += 1
             return key, stream
-        stream = zlib.compress(data)
+        backing = self.backing
+        stream = backing.get(key) if backing is not None else None
+        if stream is None:
+            stream = zlib.compress(data)
+            if backing is not None:
+                backing.put(key, stream)
+        self._keep(key, stream)
+        return key, stream
+
+    def _keep(self, key: bytes, stream: bytes) -> None:
         self.streams[key] = stream
         self.size += len(stream)
         while self.size > self.budget and self.streams:
             self.size -= len(self.streams.popitem(last=False)[1])
-        return key, stream
 
     def entry_stream(self, entry: ArcEntry) -> bytes:
         """zlib's stream of the entry's data. An entry whose data is still what its archive stored is found by that
@@ -169,6 +181,12 @@ class StreamCache:
             self.streams.move_to_end(key)
             self.hits += 1
             return stream
+        if key is not None and self.backing is not None:     # its data's digest known: no decompressing to find it
+            stream = self.backing.get(key)
+            if stream is not None:
+                self._keep(key, stream)
+                self.hits += 1
+                return stream
         key, stream = self._stream(entry.data)
         self.by_stored[stored_key] = key
         if len(self.by_stored) > self.STORED_KEYS:

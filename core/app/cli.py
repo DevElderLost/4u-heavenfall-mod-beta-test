@@ -61,6 +61,9 @@ def main(argv=None) -> int:
     parser.add_argument("--code", type=Path,
                         help="advanced: the executable to build from (a code.bin or game file of any version with a "
                              "map); taken from --rom by default")
+    parser.add_argument("--port", action="store_true",
+                        help="advanced: a mod for a recompiled game, built from the update it runs (--code: USA v1.3.0 "
+                             "or EUR v1.1.0), with recomp.json for its recompiler")
     parser.add_argument("--single-screen", action=argparse.BooleanOptionalAction,
                         help="the touch screen's menus on the top screen, for the emulator's single screen view")
     parser.add_argument("--lock-on", dest="touchless_target", action=argparse.BooleanOptionalAction,
@@ -107,6 +110,8 @@ def main(argv=None) -> int:
         return update_installed()
     if args.rom is None or args.out is None:
         parser.error("the following arguments are required: --rom, --out")
+    if args.port and args.code is None:
+        parser.error("--port needs --code (the update the recompiled game runs)")
 
     if args.keys is not None:
         from core.game.executable import crypto
@@ -127,7 +132,7 @@ def main(argv=None) -> int:
         chosen["cheat_aspect_allowed"] = True
     settings = presets.install_settings({**defaults, **chosen})
     try:
-        result = run(args.rom, args.out, settings, code_path=args.code, xx_rom=args.xx_rom)
+        result = run(args.rom, args.out, settings, code_path=args.code, xx_rom=args.xx_rom, port=args.port)
     except (UnsupportedVersion, RebaseError, ValueError) as error:     # not a game the mod can be built for
         print(f"Refused: {error}", file=sys.stderr)
         return 1

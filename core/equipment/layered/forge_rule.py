@@ -8,6 +8,9 @@ A look is offered when any piece wearing its models is. A piece is, in the forge
 * with neither a recipe nor a parent: once it has been had itself (its own bit), so that a relic look appears when the
   piece does.
 
+One exception, ours: a weapon look named after an upgrade-only weapon (no recipe, a parent: Amber Slash, from the Elite
+Switch Axe) is always offered, whatever else wears its model (`ForgeRules.weapon_look`).
+
 A condition is a short text in the generated look lists and a u16 word in the executable (`word`):
 "always", "i<item>" (the first material seen), "i<item>m" / "i<item>f" (seen, and the piece is for that gender only) and
 "g<bit>" (the gear bit, `FUN_00c1fe40`). The generated file keeps them as texts.
@@ -131,3 +134,15 @@ class ForgeRules:
         found = self._from_recipes(cls, piece, MALE | FEMALE)
         found |= {f"g{gear_bit(self._type[cls], parent)}" for parent in self._parents[cls].get(piece, ())}
         return found or {f"g{gear_bit(self._type[cls], piece)}"}
+
+    def upgrade_only(self, cls: str, piece: int) -> bool:
+        """Whether only the Upgrade screen reaches the weapon: no create recipe, a parent in the tree. A look named
+        after such a weapon appears always (`weapon_look`)."""
+        return not self._recipes.get((self._type[cls], piece)) and bool(self._parents[cls].get(piece))
+
+    def weapon_look(self, cls: str, named: int, members: Iterable[int]) -> tuple[str, ...]:
+        """The conditions of a weapon look: "always" when the weapon it is named after (`named`) is upgrade-only, else
+        the conditions of every weapon wearing it (`members`)."""
+        if self.upgrade_only(cls, named):
+            return (ALWAYS,)
+        return conditions_list(c for piece in members for c in self.weapon(cls, piece))

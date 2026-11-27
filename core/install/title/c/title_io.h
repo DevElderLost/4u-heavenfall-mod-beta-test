@@ -19,8 +19,14 @@ enum {
     TITLE_E_GAME = -9,    /* a game, title or region this does not build for */
     TITLE_E_NOPATCH = -10, /* an update was asked for but the executable does not read one */
     TITLE_E_HASH = -11,   /* bytes produced or read do not hash to what the patch set recorded */
-    TITLE_E_DAMAGED = -12 /* the dump's RomFS is not what its own hash levels say: a damaged copy (no route helps) */
+    TITLE_E_DAMAGED = -12, /* the dump's RomFS is not what its own hash levels say: a damaged copy (no route helps) */
+    TITLE_E_NO_UPDATE = -13,  /* a set for the recompiled game (format 4) bound without the update of its code */
+    TITLE_E_NOT_UPDATE = -14, /* the file given as the update is not an update of MH4U (the base game, another title) */
+    TITLE_E_OTHER_UPDATE = -15 /* an update of MH4U, not the one the set was made with (another region or revision) */
 };
+
+/* An English sentence for a TITLE_* code (a log's or a caller's message); "unknown error" for any other value. */
+const char *title_error_text(int rc);
 
 /* Writes n bytes; returns 0 on success. A stream: the writer never needs to seek. */
 typedef int (*TitleWrite)(void *ctx, const void *buf, size_t n);

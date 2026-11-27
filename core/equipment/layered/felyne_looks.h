@@ -7,6 +7,13 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
+/* The town block (layered_town) calls the resident code by address, as it calls the game's: a long call. */
+#ifdef LAYERED_TOWN
+#define RESIDENT __attribute__((long_call))
+#else
+#define RESIDENT
+#endif
+
 enum { FELYNE_HEAD, FELYNE_BODY, FELYNE_WEAPON, FELYNE_PARTS };
 #define FELYNE_MAX_ACTIVE 2
 #define FELYNE_NUMBER_BITS 10
@@ -44,11 +51,11 @@ _Static_assert(__builtin_offsetof(struct felyne_ui, shown) == 16, "felyne_show_n
 extern struct felyne_ui felyne_ui;
 
 /* The active cats' records (at most FELYNE_MAX_ACTIVE), and how many. */
-u32 felyne_active(const u8 **cats);
+RESIDENT u32 felyne_active(const u8 **cats);
 /* The numbers the chosen cat's look word holds (3 x FELYNE_NUMBER_BITS, none for what this build lacks), and writing
    them; 0 and nothing when the cat is gone. */
-u32 felyne_numbers(void);
-void felyne_set_numbers(u32 numbers);
+RESIDENT u32 felyne_numbers(void);
+RESIDENT void felyne_set_numbers(u32 numbers);
 /* The online half (layered_online.c): the word the main cat sends (0 none), whether a received word is wholly known, and a
    remote cat's record taking its owner's word. */
 u32 felyne_online_word(void);
@@ -57,12 +64,12 @@ void felyne_redress(u32 town);
 int felyne_word_known(u32 word);
 void felyne_give_word(u8 *record, u32 word);
 /* The cats in the town take their looks (leaving the screens, when felyne_ui.dirty). */
-void felyne_refresh(u32 obj);
+RESIDENT void felyne_refresh(u32 obj);
 /* The screen's Felyne preview: the chosen cat wearing `numbers`. */
-void felyne_preview_open(u32 obj, u32 numbers);
-int felyne_preview_loaded(u32 obj);
-void felyne_preview_look(u32 obj, u32 numbers);
-void felyne_preview_controls(u32 obj);
-void felyne_preview_end(u32 obj);
+RESIDENT void felyne_preview_open(u32 obj, u32 numbers);
+RESIDENT int felyne_preview_loaded(u32 obj);
+RESIDENT void felyne_preview_look(u32 obj, u32 numbers);
+RESIDENT void felyne_preview_controls(u32 obj);
+RESIDENT void felyne_preview_end(u32 obj);
 
 #endif

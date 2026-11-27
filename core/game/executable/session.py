@@ -4,7 +4,8 @@ The patchers write into a canonical image: the player's executable laid out as t
 result back onto the player's own executable, every word that holds a position must be translated, not copied:
 a branch (its offset depends on where it and its target sit) and a pointer to the game's code or data. Our
 prelinked blocks carry their relocations in code_space.json; anything else a patcher builds is noted here while a
-`recording()` is active. Outside one (tools, most tests) the notes are dropped.
+`recording()` is active. Outside one (tools, most tests) the notes are dropped. The run's pack images live here too
+(`Session.packs`): a block of a pack can be placed only inside a recording.
 """
 
 from collections.abc import Iterator
@@ -19,11 +20,14 @@ class Session:
     patcher wrote that hold a canonical address of the game's code or data; `placed` are the blocks written, by name
     and address (their own relocations are in the layout); `version_words` are words in a hole of the player's
     version that the patcher knows the version's own place of: canonical address -> {version key: (the version's
-    address, its original word there, the word written)}."""
+    address, its original word there, the word written)}; `packs` are the run's pack images, by pack name: the blocks
+    of a pack go there, not into the executable (code_space.Layout.place), and the rebase carries them as it carries the
+    executable."""
     branches: dict[int, int] = field(default_factory=dict)
     pointers: set[int] = field(default_factory=set)
     placed: dict[str, int] = field(default_factory=dict)
     version_words: dict[int, dict[str, tuple[int, int, int]]] = field(default_factory=dict)
+    packs: dict[str, bytearray] = field(default_factory=dict)
 
 
 _current: ContextVar[Session | None] = ContextVar("exefs_session", default=None)

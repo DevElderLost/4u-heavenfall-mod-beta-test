@@ -43,6 +43,7 @@ original bytes: only the decoded fields are ever written, so everything else
 """
 
 import struct
+import sys
 import zlib
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -87,6 +88,7 @@ FONT_SIZE_AT = 0x18  # text only
 SPACING_AT = 0x20    # text only
 TEXT_FLAGS_AT = 0x70  # text only: bits 0-1 alignment, bits 4-7 origin, bits 24-27 outline layers
 HEADER = struct.Struct("<4sIIIIIIIIIII")
+_LITTLE_WORDS = sys.byteorder == "little" and struct.calcsize("I") == 4    # memoryview's "I" is the file's "<I"
 
 
 def name_hash(name: str) -> int:
@@ -274,6 +276,15 @@ class Layout:
             found = sum(1 for p in self.panes if p.kind == kind)
             if found != count:
                 raise LytFormatError(f"header announces {count} {kind.name.lower()} panes, found {found}")
+
+    def _words(self, data: bytearray) -> memoryview | None:
+        """`data` (this layout's bytes, or what they become) as little-endian words, when every record sits on a word:
+        the first does (every record's size is a multiple of 4). Only the file's whole words: the records end before
+        the names, so a last part of under 4 bytes holds none of theirs. None otherwise, or on a machine whose words
+        are not little-endian 32 bits: the loops over every pane use struct then."""
+        if _LITTLE_WORDS and self.panes and self.panes[0].offset % 4 == 0:
+            return memoryview(data)[:len(data) & ~3].cast("I")
+        return None
 
     def _string(self, offset: int) -> str:
         end = self.data.find(b"\x00", offset)
@@ -560,11 +571,17 @@ class Layout:
         else:
             after = parent if first else list(parent.walk())[-1]
         insert_at = after.offset + RECORD_SIZES[after.kind]
-        text_offsets = [struct.unpack_from("<I", self.data, p.offset + 0x0C)[0]
-                        for p in self.panes if p.kind == PaneKind.TEXT]
+        view = self._words(self.data)
+        if view is not None:
+            with view:
+                text_offsets = [view[(p.offset + 0x0C) >> 2] for p in self.panes if p.kind is PaneKind.TEXT]
+                name_offsets = [view[(p.offset + 4) >> 2] for p in self.panes]
+        else:
+            text_offsets = [struct.unpack_from("<I", self.data, p.offset + 0x0C)[0]
+                            for p in self.panes if p.kind == PaneKind.TEXT]
+            name_offsets = [struct.unpack_from("<I", self.data, p.offset + 4)[0] for p in self.panes]
         boundary = min(text_offsets, default=self.tail_offset)  # the names end where the texts start
         panes_end = self.panes[-1].offset + RECORD_SIZES[self.panes[-1].kind]
-        name_offsets = [struct.unpack_from("<I", self.data, p.offset + 4)[0] for p in self.panes]
         names_in_place = all(not o or panes_end <= o < boundary for o in name_offsets)
         if not panes_end <= boundary <= self.tail_offset or not names_in_place:
             raise LytFormatError("unexpected order of the pane table, names and texts")
@@ -593,14 +610,28 @@ class Layout:
             chain.append(pane)
             pane = pane.parent
         chain_set = set(chain)
-        for pane in self.panes:
-            at = pane.offset + (size if pane.offset >= insert_at else 0)
-            if struct.unpack_from("<I", data, at + 4)[0]:
-                struct.pack_into("<I", data, at + 4, moved(struct.unpack_from("<I", data, at + 4)[0]))
-            if pane.kind == PaneKind.TEXT:
-                struct.pack_into("<I", data, at + 0x0C, moved(struct.unpack_from("<I", data, at + 0x0C)[0]))
-            if pane in chain_set:
-                struct.pack_into("<I", data, at + 8, struct.unpack_from("<I", data, at + 8)[0] + size)
+        view = self._words(data)
+        if view is not None:        # the same as below, a word at a time (most of a layout's insert time went there)
+            named, texts, tail = size, size + len(encoded), self.tail_offset
+            with view:
+                for pane in self.panes:
+                    at = (pane.offset + size if pane.offset >= insert_at else pane.offset) >> 2
+                    for word in (at + 1, at + 3) if pane.kind is PaneKind.TEXT else (at + 1,):
+                        offset = view[word]
+                        if offset >= panes_end:     # moved(offset), a name's or a text's (0, none: below)
+                            view[word] = offset + (named if offset < boundary else texts) + \
+                                (len(text) if offset >= tail else 0)
+                    if pane in chain_set:
+                        view[at + 2] += size
+        else:
+            for pane in self.panes:
+                at = pane.offset + (size if pane.offset >= insert_at else 0)
+                if struct.unpack_from("<I", data, at + 4)[0]:
+                    struct.pack_into("<I", data, at + 4, moved(struct.unpack_from("<I", data, at + 4)[0]))
+                if pane.kind == PaneKind.TEXT:
+                    struct.pack_into("<I", data, at + 0x0C, moved(struct.unpack_from("<I", data, at + 0x0C)[0]))
+                if pane in chain_set:
+                    struct.pack_into("<I", data, at + 8, struct.unpack_from("<I", data, at + 8)[0] + size)
         for i in range(len(self.textures)):
             at = self.texture_table + 8 * i + 4
             struct.pack_into("<I", data, at, moved(struct.unpack_from("<I", data, at)[0]))

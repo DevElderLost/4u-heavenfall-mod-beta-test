@@ -12,12 +12,12 @@ of being corrupted.
 import hashlib
 import json
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
 from core.game.executable import session
-from core.game.executable.blocks import GAME_SYMBOLS
+from core.game.executable.blocks import GAME_SYMBOLS, PACK_SLOTS
 
 BASE_ADDRESS = 0x100000  # virtual address of code.bin's first byte
 LAYOUT_PATH = Path(__file__).with_name("generated") / "code_space.json"
@@ -25,82 +25,16 @@ LAYOUT_PATH = Path(__file__).with_name("generated") / "code_space.json"
 CLEAN_SIZE = 0xF82000
 BSS_END = 0x111D128
 # The extension: new pages after the last .bss page. EXT_SIZE is the
-# most it may take; a build takes only the pages up to its last block in it (Layout.extend). 284 KB since
-# Alatreon (204 KB with his effect player and shell files) joined layered equipment and MHGen's models (80 KB) in
-# one layout, 320 KB for his shells' code, 384 KB with Mizutsune's class for his probes, and pages more for the ported
-# monsters' items (the item table's copy, 41,300 bytes), hunter gear
-# and Felyne gear.
+# most it may take; a build takes only the pages up to its last block in it (Layout.extend), but one that uses the
+# extension's variables (ext_vars, right after EXT_SIZE) takes every page before them, so each page of EXT_SIZE costs
+# the Old 3DS heaps a page.
 EXT_START = 0x111E000
-# 0x84000 + the ported monsters' items, weapons, armor and recipes, Felyne gear, break lists, + Bubbleblight (a page),
-# + Glavenus' class and data (41 pages), + single-screen menus (4 pages)
-# + the game GUI engine and its table (11 pages)
-# + the frames table grown to 16 scenes, 16 sets and 160 names (a page) + the ported monsters' severed tail fall (a
-# page: gameplay/tail_fall/tail_fall.py, joined with the game GUI
-# engine) + hold A (a page: gameplay/hold_a/hold_a.py)
-# + Great Maccao's class and data (18 pages)
-# + the layered gear rules block (4 pages, Forge-style screens)
-# + the layered gear prices: the block (blocks.py, layered_rules) grew from 0x7000 to 0xB400 for the recipe table and
-#   its index per look (44,634 bytes with XX's models and the four ported monsters, 548 recipes), and 8 pages of the
-#   extension are kept free for it and the free camera
-# + the new-item table grown to ids 0xA00 for the rare materials of XX's monsters (2 pages: layered/xx_materials.py)
-# + the Wyporium's longer trade table (2 pages: gameplay/wyporium/trades.py)
-# + the Rare Materials Exchange (4 pages: gameplay/wyporium/rare_exchange.py)
-# (these MH XX pages: 0x2B000 in all)
-# + the aspect ratio's anchors (4 pages)
-# + Mod Settings and the list of aspect ratios (4 pages)
-# (these: 0x7000 in all)
-# + the id tables extended to 200 monster ids, 76 new ids (4 pages: monsters/porting/new_id_data.py, ID_LIMIT)
-# + Maccao's class and data (8 pages)
-# + Valstrax's class and data with MH XX's shell base 56 (39 pages)
-# + the item wheel, its picture and its Radial Menu screens, packed last (2 pages)
-# + Great Maccao's pack beside Layered Gear's colours (1 page)
-# + Layered Gear's Relics and the split title's two RomFS beside Valstrax and the pack (1 page for both)
-# + each layered look's zenny a u32, for the relics priced by their monster (2 pages: the block layered_rules to
-#   0x12000)
-# + the new map numbers 28 and 29: the 20 map tables grown to 30 entries and each map's strings, lists and minimap
-#   records (3 pages)
-# + the random start's table of the map numbers grown too (1 page)
-# + the new map's fog cycle beside the debug fog control (1 page)
-# + the modern camera giving the C-stick's question the game's answer and a skipped intro's music stopped by its
-#   voices (1 page)
-# + Mod Settings' lists of every size, their frames' name hashes (1 page)
-# + the rooms for the next ports: Felyne model numbers, armor ids, create recipes, break and carve tables (2 pages)
-# + the new weapons' room from 40 to 80 ids per class and the save's marks of the ids past a class's bits (7 pages:
-#   equipment/new_gear/new_weapon_room.py, weapon_marks.py)
-# + Astalos' class and data with MH XX's shell bases 14 and 15 (55 pages)
-# + Boltreaver Astalos' blocks, his shell classes, MH XX's shell base 50 and the variants' blocks (43 pages)
-# + Hellblade Glavenus' blocks: his images, shell 01, own data and the variant's data blocks (23 pages)
-# + Soulseer Mizutsune's blocks: his images, shells, his class on base 26, own data and the variant's data blocks (32
-#   pages); his own shell 01 and slot 113's table (1 page:
-#   "SG3: the finish")
-# + the virtual maps' translations from 128 to 160, so more foreign areas get a patrol case (1 page)
-# + the Smithy's weapon tree: its code and its data, packed last (2 pages), and its
-#   window "upgrade or craft", its discovery by known materials and the status view's page (1 page)
-# + the item wheel, its picture and its Radial Menu screens, packed last of the product's blocks (2 pages after the
-#   weapon tree's)
-# + Alatreon's icicle ground marker and the ported monsters' XX turn cut (1 page)
-# + the diagnostics block, packed after everything (1 page)
-# + Boltreaver Astalos' pull on the hunter, limited to the ball (1 page)
-# + the jukebox: its engine, its card's and menu's units and its data (4 pages)
-# + the rooms for Nargacuga and Silverwind Nargacuga: armor ids 44 to 51, armor recipes 192 to 240, weapon recipes 240
-#   to 288, carve windows 50 to 60, break lists 2,048 to 2,560 bytes (2 pages)
-# + Nargacuga's class and data, his shells' and Silverwind Nargacuga's blocks (38 pages)
-# + Silverwind Nargacuga's shells on bases 45 and 46: the two bases' code, his sp_45 and sp_46 images and four vtables
-#   (6 pages)
-# + the item marks: their stubs, their C and its data (2 pages)
-# + the Felyne room 26 -> 39 (moved stats and recipes, the marks' table, C and stubs: 1 page)
-# + Lagiacrus' class and data and his shells' blocks: his C, his glue, his images, his five shell images and nine
-#   vtables with bases 25 and 26 (35 pages)
-# + the monster stat table with the weak monsters' records past the game's (1 page)
-# + Layered Gear's item box line and its screens there (1 page)
-# + the rocket's sound latch, a probe's only, packed after the sync log (2 pages with Layered Gear's item box line
-#   before it)
-# + Heavenfall Beta's sidecars: the four sites' stubs and the C with the extras core, packed after the jukebox (3
-#   pages)
-# + what an older Heavenfall left (save/c/heav.c in the sidecars' block), the strips and the title's sweep (2 pages)
-# + main merged in (Lagiacrus, his Felyne room and stat table, the honing glow, the town minimap, Change
-#   Appearance at every box: 0x257000 in main) with the save system's pages above (5), and one page of room
-EXT_SIZE = 0x25D000
+# The pages the layout's blocks take (the resident ones, a probe's diagnostics packed last; the ported monsters', the
+# port machinery's, the town's and the screens' blocks are in packs) and tuning.json memory.ext_margin_pages for new
+# code. When the blocks outgrow it,
+# tools/build/build_code_space.py names the size to write and what to rebuild (the version maps' identity runs end
+# at the extension's variables' end). Its history:
+EXT_SIZE = 0x86000
 PAGE = 0x1000                   # the extension grows by whole pages (the exheader counts .data in pages)
 # The extension's variables: pages after the extension, in
 # the file as zeros (zero at boot) and left read-write, since the bootstrap's range stops before them. A build that
@@ -111,18 +45,29 @@ PAGE = 0x1000                   # the extension grows by whole pages (the exhead
 # for the jukebox's saved block, its engine and its menu. 162 more for the online
 # sync log's ring (640 KB; a diagnostics file's only). 32 more for the rocket's
 # sound latch (132 KB; a diagnostics file's only).
+# 64 more for the RAM manager's probe log (256 KB; a diagnostics run's
+# only).
 # Eleven more for Heavenfall Beta's sidecars, their state and two card images, in the tail stage before the
 # diagnostics.
-EXT_VARS_SIZE = 235 * PAGE
+EXT_VARS_SIZE = 299 * PAGE
 EXTENDED_SIZE = EXT_START + EXT_SIZE + EXT_VARS_SIZE - BASE_ADDRESS     # the most an extended code.bin takes
 # The executable's entry starts with `bl clear_bss`; the extension's bootstrap takes its place.
 ENTRY_HOOK = 0x100000
+# The packs: blocks kept out of the executable, each pack a file
+# the loader reads at a quest load into its own fixed range of the heap region, above the root heap and below the
+# main thread's stack ("P2 study (S2)", 1). A pack's range is its slot's (blocks.PACK_SLOTS): PACK_ROOM bytes from
+# PACKS_START + slot * PACK_ROOM, so no pack moves when another one changes, and a pack may grow to PACK_ROOM.
+PACKS_START, PACKS_END = 0x0C000000, 0x0E000000
+PACK_ROOM = 0x80000
+PACK_SLOT_COUNT = (PACKS_END - PACKS_START) // PACK_ROOM     # 64
 
 
 @dataclass(frozen=True)
 class Region:
     """Free space: `kind` "code" is executable and stored in code.bin (zeros in the update's file);
-    "bss" is read-write memory the game never uses (zero at start, not in the file): variables only.
+    "bss" is read-write memory the game never uses (zero at start, not in the file): variables only;
+    "pack" is one pack's range (`pack` its name): code and data kept out of the executable, in the run's pack image
+    (Layout.place, session.Session.packs) and loaded at run time.
     `original_sha256`: a "code" region reclaimed from dead game code holds the game's bytes, not zeros;
     this is their hash, and Layout.place zeroes the region when it still holds exactly them.
     `extension`: the region is not in the update's code.bin; placing a block there, or reserving a variable there,
@@ -133,10 +78,24 @@ class Region:
     kind: str
     original_sha256: str | None = None
     extension: bool = False
+    pack: str | None = None
 
     @property
     def size(self) -> int:
         return self.end - self.start
+
+
+def pack_region_name(pack: str) -> str:
+    """The region of pack `pack` (a name of blocks.PACK_SLOTS; a screen's "screen:<name>" gives pack_screen_<name>)."""
+    return f"pack_{pack.replace(':', '_')}"
+
+
+def _pack_regions() -> tuple[Region, ...]:
+    slots = sorted(PACK_SLOTS.items(), key=lambda item: item[1])
+    if len({slot for _, slot in slots}) != len(slots) or any(not 0 <= slot < PACK_SLOT_COUNT for _, slot in slots):
+        raise ValueError(f"blocks.PACK_SLOTS: each pack needs a slot of its own, 0 to {PACK_SLOT_COUNT - 1}")
+    return tuple(Region(pack_region_name(name), PACKS_START + slot * PACK_ROOM, PACKS_START + (slot + 1) * PACK_ROOM,
+                        "pack", pack=name) for name, slot in slots)
 
 
 REGIONS = {region.name: region for region in (
@@ -148,8 +107,19 @@ REGIONS = {region.name: region for region in (
     Region("bss_tail", BSS_END, EXT_START, "bss"),
     # Pages after the extension, read-write: variables only (a patcher that uses one calls Layout.reserve).
     Region("ext_vars", EXT_START + EXT_SIZE, EXT_START + EXT_SIZE + EXT_VARS_SIZE, "bss", extension=True),
+    # One range per pack, in the heap region, never in the executable's file.
+    *_pack_regions(),
 )}
 EXT_VARS_START = REGIONS["ext_vars"].start
+PACK_REGIONS = {region.pack: region for region in REGIONS.values() if region.kind == "pack"}
+
+
+def pack_of(address: int) -> str | None:
+    """The pack whose range holds `address`, or None."""
+    if not PACKS_START <= address < PACKS_END:
+        return None
+    region = next((r for r in PACK_REGIONS.values() if r.start <= address < r.end), None)
+    return region.pack if region else None
 
 
 class CodeSpaceError(ValueError):
@@ -230,13 +200,15 @@ class Reloc:
 @dataclass(frozen=True)
 class Block:
     """Code or data placed in a "code" region; `symbols` are its labels, as offsets from `address`; `relocs`, the
-    words that point into the game (tools/build/build_code_space.py keeps them from the link)."""
+    words that point into the game (tools/build/build_code_space.py keeps them from the link); `entries`, the labels
+    that start code, each with its instruction set ("arm" or "thumb"), for a recompiler of the game."""
     name: str
     region: str
     address: int
     data: bytes
     symbols: dict[str, int]
     relocs: tuple[Reloc, ...] = ()
+    entries: dict[str, str] = field(default_factory=dict)
 
     @property
     def end(self) -> int:
@@ -297,6 +269,9 @@ class Layout:
         if len(data) != len(block.data):
             raise CodeSpaceError(f"{name}: {len(data)} bytes for a block of {len(block.data)}")
         region = REGIONS[block.region]
+        if region.kind == "pack":
+            self._place_in_pack(region, block, data, pointers)
+            return
         start, end = block.address - BASE_ADDRESS, block.end - BASE_ADDRESS
         if region.extension:
             self.extend(code, block.end)
@@ -310,6 +285,38 @@ class Layout:
         session.note_place(name, block.address)
         if pointers:
             note_game_pointers(block.address, data)
+
+    def _place_in_pack(self, region: Region, block: Block, data: bytes, pointers: bool) -> None:
+        """A block of a pack into the run's image of that pack (`session.Session.packs`): the pack is no part of the
+        executable, so outside a recording it has nowhere to go."""
+        notes = session.current()
+        if notes is None:
+            raise CodeSpaceError(f"{block.name} is in pack {region.pack}: place it inside session.recording(), which "
+                                 "holds the run's pack images")
+        image = notes.packs.setdefault(region.pack, bytearray(self.pack_size(region.pack)))
+        start, end = block.address - region.start, block.end - region.start
+        if end > len(image):
+            raise CodeSpaceError(f"{block.name} ends past pack {region.pack}'s image: not this layout's pack")
+        if any(image[start:end]):
+            raise CodeSpaceError(f"no free space for {block.name} at {block.address:#x}: already placed")
+        image[start:end] = data
+        session.note_place(block.name, block.address)
+        if pointers:
+            note_game_pointers(block.address, data)
+
+    def pack_blocks(self, pack: str) -> list[Block]:
+        """The blocks of pack `pack`, by address."""
+        region = pack_region_name(pack)
+        return sorted((b for b in self.blocks.values() if b.region == region), key=lambda b: b.address)
+
+    def pack_size(self, pack: str) -> int:
+        """Bytes of pack `pack`'s image (and file): its range up to its last block, in whole pages; 0 for a pack with
+        no block in this layout."""
+        return -(-self.used(pack_region_name(pack)) // PAGE) * PAGE
+
+    def packs(self) -> list[str]:
+        """The packs with blocks in this layout, by slot."""
+        return [pack for pack in PACK_REGIONS if self.used(pack_region_name(pack))]
 
     def reserve(self, code: bytearray, *names: str) -> None:
         """The variables `names` are used: grow `code` so that the file holds those in the extension's variables
@@ -355,16 +362,87 @@ class Layout:
         struct.pack_into("<I", code, at, min(BASE_ADDRESS + len(code), EXT_VARS_START))
 
     def hook(self, code: bytearray, at: int, target: str | int, *, original: bytes | None = None,
-             calls: int | None = None, link: bool = True, cond: int = COND_ALWAYS) -> None:
+             calls: int | None = None, link: bool = True, cond: int = COND_ALWAYS, guard: bool = False,
+             opens: bool = False) -> None:
         """Replace the instruction at `at` with `b`/`bl` to block `target` (or an address). The current
-        instruction must be `original`, or a `bl` to `calls`."""
+        instruction must be `original`, or a `bl` to `calls`. A target in a pack goes through a resident entry stub
+        (hook_stub): the hook branches there, and the stub into the pack while it is in, else to what the game did.
+        `guard`: the site is one the network callback can reach, maybe off the main thread (docs/develop/
+        memory_manager.md, "As built: code manager step 2", risk 3): its stub counts the call (packs.guarded_stub).
+        `opens`: the hook opens a screen whose pack it enters (blocks.SCREEN): its stub loads the pack first when it is
+        out (packs.opening_stub; "As built: code manager step 3")."""
         offset = at - BASE_ADDRESS
         if original is not None and bytes(code[offset:offset + 4]) != original or \
                 calls is not None and bl_target(code, at) != calls:
             raise CodeSpaceError(f"unexpected instruction at {at:#x}: already patched, or not the update's "
                                  "executable")
         address = target if isinstance(target, int) else self.address(target)
+        if pack_of(address & ~1) is not None:
+            address = self.hook_stub(code, at, address, original=original, calls=calls, guard=guard, link=link,
+                                     opens=opens)
+        elif opens:
+            raise CodeSpaceError(f"the hook at {at:#x} opens a screen, and its target {address:#x} is in no pack")
         code[offset:offset + 4] = encode_branch(at, address, link=link, cond=cond)
+
+    def hook_stub(self, code: bytearray, at: int, target: int, *, original: bytes | None = None,
+                  calls: int | None = None, guard: bool = False, link: bool = True, opens: bool = False) -> int:
+        """The resident stub of a hook at `at` into a pack's `target`, written in the first free slot of the pack's
+        stubs' block (blocks.HOOK_STUBS; two slots for an opening stub, `opens`): its fallback is the call's old target
+        (`calls`, or the `bl` the site holds) or the replaced instruction (`original`, or the one the site holds) and a
+        way back (`bx lr` from a site's `bl`, a branch from its `b`: B166). A call the hook turns into a branch (`calls`
+        with `link` False: the target returns past the site itself) falls back to the call moved into the stub and a
+        branch back (B139). Refused for a pack without a
+        stubs' block, for a site in the save's functions (blocks.SAVE_FUNCTIONS), for a guarded site that is no call
+        and for an opening stub outside a screen's pack. Returns the stub's address."""
+        from core.game.executable import packs      # (it imports this module)
+        from core.game.executable.blocks import (
+            HOOK_STUBS, PACK_BUSY, PACK_SLOTS, PACK_STUB_SIZE, SAVE_FUNCTIONS, SCREEN,
+        )
+        pack = pack_of(target & ~1)
+        if any(start <= at < start + size for start, size in SAVE_FUNCTIONS):
+            raise CodeSpaceError(f"a hook at {at:#x} into pack {pack}: the site is in the save's functions "
+                                 "(blocks.SAVE_FUNCTIONS), which run in the title, the town and a quest while the pack "
+                                 "may be out. Hook a resident block there instead (scene=RESIDENT)")
+        if pack not in HOOK_STUBS:
+            raise CodeSpaceError(f"a hook at {at:#x} into pack {pack}, which has no stubs' block: declare one in "
+                                 "game/executable/blocks.py HOOK_STUBS")
+        if opens and (guard or not pack.startswith(SCREEN)):
+            raise CodeSpaceError(f"the hook at {at:#x} opens pack {pack}: only a screen's pack opens with its screen "
+                                 "(blocks.SCREEN), on the main thread (no guard)")
+        name, room = HOOK_STUBS[pack]
+        block = self.block(name)
+        if REGIONS[block.region].extension:
+            self.extend(code, block.end)
+        start = block.address - BASE_ADDRESS
+        need = packs.OPEN_SLOTS if opens else 1
+        slot = next((k for k in range(room - need + 1) if not any(code[start + k * PACK_STUB_SIZE:
+                                                                       start + (k + need) * PACK_STUB_SIZE])), None)
+        if slot is None:
+            raise CodeSpaceError(f"{name}: no free stub for the hook at {at:#x} (raise its room in blocks.HOOK_STUBS)")
+        stub = block.address + slot * PACK_STUB_SIZE
+        state = self.address(packs.STATE) + PACK_SLOTS[pack]
+        offset = at - BASE_ADDRESS
+        old_call = calls if calls is not None else (bl_target(code, at) if original is None else None)
+        if old_call is not None and not link and not guard:     # B139: the call moves into the stub's trampoline
+            original, old_call = bytes(code[offset:offset + 4]), None
+        if guard:
+            if old_call is None:
+                raise CodeSpaceError(f"the guarded hook at {at:#x} is no call: only a call's stub counts its calls")
+            data = packs.guarded_stub(stub, self.symbol("pack_loader", "pack_guarded"), state,
+                                      self.address(PACK_BUSY) + 4 * PACK_SLOTS[pack], target, old_call)
+        else:
+            if old_call is not None:
+                kind = {"fallback": old_call}
+            else:
+                word = original if original is not None else bytes(code[offset:offset + 4])
+                kind = {"site": at, "original": struct.unpack("<I", word)[0], "called": link}
+            if opens:
+                data = packs.opening_stub(stub, self.symbol("pack_loader", "pack_opening"), PACK_SLOTS[pack], state,
+                                          target, **kind)
+            else:
+                data = packs.entry_stub(stub, state, target, **kind)
+        code[start + slot * PACK_STUB_SIZE:start + slot * PACK_STUB_SIZE + len(data)] = data
+        return stub
 
     def used(self, region: str) -> int:
         """Bytes of `region` taken by blocks or variables (debug variables included)."""
@@ -380,7 +458,8 @@ class Layout:
                         for r in REGIONS.values()},
             "blocks": {b.name: {"region": b.region, "address": f"{b.address:#x}", "size": len(b.data),
                                 "code": b.data.hex(), "symbols": b.symbols,
-                                "relocs": [[r.offset, r.kind, r.symbol] for r in b.relocs]}
+                                "relocs": [[r.offset, r.kind, r.symbol] for r in b.relocs],
+                                "entries": b.entries}
                        for b in sorted(self.blocks.values(), key=lambda b: b.address)},
             "variables": {v.name: {"region": v.region, "address": f"{v.address:#x}", "size": v.size,
                                    "debug": v.debug}
@@ -390,7 +469,8 @@ class Layout:
     @classmethod
     def from_json(cls, data: dict) -> "Layout":
         blocks = {name: Block(name, b["region"], int(b["address"], 16), bytes.fromhex(b["code"]),
-                              dict(b["symbols"]), tuple(Reloc(*r) for r in b.get("relocs", ())))
+                              dict(b["symbols"]), tuple(Reloc(*r) for r in b.get("relocs", ())),
+                              dict(b.get("entries", {})))
                   for name, b in data["blocks"].items()}
         variables = {name: Variable(name, v["region"], int(v["address"], 16), v["size"], v["debug"])
                      for name, v in data["variables"].items()}

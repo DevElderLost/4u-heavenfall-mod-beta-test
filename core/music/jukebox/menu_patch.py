@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import struct
 
+from core.game.executable import packs
 from core.game.executable.blocks import JUKEBOX_DATA_SIZE, JUKEBOX_MENU_DATA_SIZE
 from core.game.executable.code_space import BASE_ADDRESS, CodeSpaceError, Layout, bl_target, load_layout
 from core.music.jukebox.patch import CODE, COMMAND_PICK, DATA, supports_jukebox
@@ -66,7 +67,9 @@ def patch_jukebox_menu(code: bytes, layout: Layout | None = None, counter: tuple
     fitted pixels: build.counter_way). Refuses an executable without the jukebox's engine, one where a site is not the
     game's instruction, or one patched already."""
     layout = layout or load_layout()
-    if supports_jukebox(code) or bl_target(code, COMMAND_PICK) != layout.symbol(CODE, "jukebox_command_pick"):
+    called = bl_target(code, COMMAND_PICK)      # the engine's entry, or its stub (the block is the town's pack's)
+    if supports_jukebox(code) or \
+            layout.symbol(CODE, "jukebox_command_pick") not in (called, packs.stub_target(code, called)):
         raise CodeSpaceError("the jukebox's menu needs an executable patch_jukebox has patched")
     if not supports_jukebox_menu(code):
         raise CodeSpaceError("unexpected code at the house Felyne's menu: already patched, or not the update's "

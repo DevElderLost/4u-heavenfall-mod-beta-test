@@ -2,6 +2,33 @@
 
 What Heavenfall Beta gives you. The program's own changes are under "The program".
 
+## 0.3.0
+
+### Android
+- A Heavenfall app for Android runs the game on the phone itself, with no emulator.
+- The app makes the mod from your own game, builds the game on the phone and starts it.
+- One button updates the app, the mod and only the part of the game that changed.
+- The app needs the American game and its 1.3.0 update; Monster Hunter XX adds its looks.
+
+### Layered Gear
+- Layered Gear leaves out repeated looks: armor that looks the same on your hunter, and weapons.
+- Weapon looks you can only get by upgrading appear in Layered Gear as soon as their rank opens.
+
+### Cheats
+- Cheats can multiply your hits' damage to monsters, 1.1x to 10x; online, only monsters your console runs.
+- Cheats can cut the damage your hunter takes, down to 0.05x.
+- Cheats can give the Charge Blade's morph from guarding a guard point, as after an attack.
+- With other aspect ratios allowed, cheats can fit the game to an 18:9 picture (emulator only).
+
+### Fixes
+- On Old 3DS consoles, Gogmazios' quests no longer freeze the game.
+- Trying on a Layered Gear look marks only that look, not others sharing its pieces.
+- With an HD texture pack, item icons and the quest HUD stay sharp with the web installer too (emulator only).
+- Monster Hunter XX's Felyne costumes like Navirou's show their face, not a hollow head.
+- Felyne costumes built on their own frame, like Navirou's, move as in Monster Hunter XX.
+- The Baki Combat Jutsu look fights bare-handed; its emblem shows only in Layered Gear's preview.
+- Monster Hunter XX's shields, sheaths and second blades show no white glow either.
+
 ## 0.2.2
 
 ### Weapon tree

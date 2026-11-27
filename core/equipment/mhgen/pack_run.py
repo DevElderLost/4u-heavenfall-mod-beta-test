@@ -10,7 +10,7 @@ sizes and modification times (cached_pack).
 import hashlib
 import json
 import os
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -19,17 +19,18 @@ from core.app.edition import edition, migrate_legacy_user_folder
 from core.game.executable.romfs import RomFS
 from core.randomizer.equipment.models import ExtraModels
 from core.equipment.mhgen import convert, equipment_pack as pack, looks, tables
-from core.equipment.mhgen.equipment_pack import PackModel
+from core.equipment.mhgen.equipment_pack import DisplayParts, PackModel
 from core.equipment.mhgen.gear_data import XX_FORMAT
 from core.equipment.layered.looks import load_looks
 from core.equipment.mhgen.looks import CLASS_KEYS, PART_KEYS, GenCatalog, GenLooks
 from core.equipment.mhgen.tables import ExecutableNeeds
 
-CACHE_VERSION = 12  # raise it when the plan, the needs or the catalog change for the same games (7: the pack from
+CACHE_VERSION = 13  # raise it when the plan, the needs or the catalog change for the same games (7: the pack from
                    # XX's files, with the table of ids and the model's game kept; 8: the catalog from XX, named by
                    # looks_names.json, whose bytes are part of the key; 9: every XX-only look in the pack;
                    # 10: a pack piece with no sound of its own is silent; 11: the catalog keeps XX's forge prices;
-                   # 12: and XX's default colours of the pieces)
+                   # 12: and XX's default colours of the pieces; 13: the weapons with parts shown only in the craft
+                   # display and their preview copies)
 RESIDENT = "loc/arc/resident.arc"  # MHGen's, with the weapons' pwl and the armor series (XX's: XX_FORMAT.resident)
 MANIFEST = "mhgen_pack_files.txt"  # in the mod folder: the archives the pack wrote into romfs/data
 DATA_DIR = Path("romfs") / "data"
@@ -41,6 +42,14 @@ class PreparedPack:
     needs: ExecutableNeeds
     catalog: GenCatalog = GenCatalog((), ())  # XX's armor series and weapons that have names (looks.read_catalog)
     same: dict = field(default_factory=dict)  # equipment_pack.identical_models
+    # the run's looks when they are not all of the catalog's (layered/repeats.pack_without_repeats); never cached
+    kept_looks: GenLooks | None = field(default=None, compare=False)
+    # the weapons of the plan with parts shown only in the craft display, with their preview copies' ids
+    displays: tuple[DisplayParts, ...] = ()
+
+    def preview_models(self) -> dict[tuple[str, int], int]:
+        """(weapon class key, the look's model) -> the model the Layered Gear screens' preview wears for it."""
+        return {(CLASS_KEYS[d.slot], d.worn): d.preview for d in self.displays}
 
     def extra_models(self) -> ExtraModels:
         """The looks the pack adds, for the model shuffle: a pack armor model is a set named after MHGen's id."""
@@ -55,10 +64,14 @@ class PreparedPack:
 
     def gen_looks(self) -> GenLooks:
         """The pack's looks for layered equipment, with XX's weapons identical to a model of MH4U no look of MH4U
-        wears."""
+        wears; a run's pack, those it keeps
+        (`kept_looks`)."""
+        if self.kept_looks is not None:
+            return self.kept_looks
         mh4u = load_looks().weapons
         return looks.gen_looks(self.catalog, self.plan, self.same,
-                               {key: {look.model for look in class_looks} for key, class_looks in mh4u.items()})
+                               {key: {look.model for look in class_looks} for key, class_looks in mh4u.items()},
+                               self.preview_models())
 
     def to_json(self) -> dict:
         needs = self.needs
@@ -71,7 +84,8 @@ class PreparedPack:
                 "hair_shown": [[*key, list(value)] for key, value in needs.hair_shown.items()],
                 "armor_sounds": [[*key, value] for key, value in needs.armor_sounds.items()],
                 "catalog": self.catalog.to_json(),
-                "same": [[*key, *value] for key, value in self.same.items()]}
+                "same": [[*key, *value] for key, value in self.same.items()],
+                "displays": [[d.slot, d.source, d.worn, d.preview, list(d.groups)] for d in self.displays]}
 
     @classmethod
     def from_json(cls, data: dict) -> "PreparedPack":
@@ -84,7 +98,9 @@ class PreparedPack:
                                 hair_shown={(g, m): tuple(shown) for g, m, shown in data["hair_shown"]},
                                 armor_sounds={(g, part, m): s for g, part, m, s in data["armor_sounds"]})
         return cls(tuple(PackModel(*p) for p in data["plan"]), needs, GenCatalog.from_json(data["catalog"]),
-                   {(slot, source): tuple(models) for slot, source, *models in data["same"]})
+                   {(slot, source): tuple(models) for slot, source, *models in data["same"]},
+                   displays=tuple(DisplayParts(slot, source, worn, preview, tuple(groups))
+                                  for slot, source, worn, preview, groups in data["displays"]))
 
 
 def _shaders(gen, m4):
@@ -93,11 +109,13 @@ def _shaders(gen, m4):
             convert.shader_records(m4.read(pack.SHADER_PACKAGE)))
 
 
-def prepare_pack(xx, m4, ids: pack.PackIds | None = None, names: Mapping | None = None) -> PreparedPack:
+def prepare_pack(xx, m4, ids: pack.PackIds | None = None, names: Mapping | None = None,
+                 display_groups: Mapping[tuple[str, int], tuple[int, ...]] | None = None) -> PreparedPack:
     """The pack of MH XX's romfs `xx` for MH4U's `m4` (RomFS): its plan (the table of ids, equipment_pack.plan_pack),
     without the weapons whose moving parts MH4U cannot play, what the executable needs for it, the models the plan
-    left out as identical and the catalog of the looks (`names`: looks.load_names() by default). `ids`: another table
-    of ids than the curated one."""
+    left out as identical, the catalog of the looks (`names`: looks.load_names() by default) and the weapons with parts
+    shown only in the craft display (`display_groups`: the curated ones by default; equipment_pack.plan_display).
+    `ids`: another table of ids than the curated one."""
     shaders = _shaders(xx, m4)
     m4_signatures = pack.mh4u_signatures(m4)
     signatures = pack.mhgen_signatures(xx, shaders)
@@ -112,10 +130,11 @@ def prepare_pack(xx, m4, ids: pack.PackIds | None = None, names: Mapping | None 
                 if flags := pack.cloth_flags(p.slot, source):  # conversion keeps the cloth files
                     cloth[(gender, p.slot, p.model)] = flags
     sounds = tables.mhgen_armor_sounds(resident, XX_FORMAT.series_size, XX_FORMAT.series_shift)
-    needs = tables.executable_needs(plan, records, m4_signatures, tables.mhgen_hair_flags(xx), cloth,
-                                    tables.hair_groups(m4), sounds)
+    displays = pack.plan_display(plan, m4_signatures, ids, display_groups)
+    needs = tables.display_needs(tables.executable_needs(plan, records, m4_signatures, tables.mhgen_hair_flags(xx),
+                                                         cloth, tables.hair_groups(m4), sounds), displays)
     same = pack.identical_models(signatures, m4_signatures, plan)
-    return PreparedPack(tuple(plan), needs, looks.read_catalog(xx, names), same)
+    return PreparedPack(tuple(plan), needs, looks.read_catalog(xx, names), same, displays=displays)
 
 
 def default_cache_dir() -> Path:
@@ -164,15 +183,16 @@ def remove_pack_files(mod_dir: Path) -> None:
     (mod_dir / MANIFEST).unlink(missing_ok=True)
 
 
-def plan_file_names(plan) -> list[str]:
+def plan_file_names(plan, displays: Sequence[DisplayParts] = ()) -> list[str]:
     """The names of the archives a plan's models are written to (romfs/data): two for an armor model, one for a
-    weapon's."""
+    weapon's, and one for each preview copy of `displays`."""
     folders = {cls: folder for folder, cls in pack.WEAPON_FOLDERS.items()}
     names = []
     for p in plan:
         files = ([pack.mh4u_armor_file(g, p.slot, p.model) for g in pack.GENDERS] if p.slot in pack.ARMOR_PARTS
                  else [pack.mh4u_weapon_file(folders[p.slot], p.model)])
         names += [file.split("/")[-1] for file in files]
+    names += [pack.mh4u_weapon_file(folders[d.slot], d.preview).split("/")[-1] for d in displays]
     return names
 
 
@@ -184,8 +204,8 @@ def write_pack_files(mod_dir: Path, gen, m4, prepared: PreparedPack, xx=None, so
     remove_pack_files(mod_dir)
     data_dir = mod_dir / DATA_DIR
     data_dir.mkdir(parents=True, exist_ok=True)
-    names = plan_file_names(prepared.plan)
+    names = plan_file_names(prepared.plan, prepared.displays)
     # LF on every system: the web page's mod is the program's, byte for byte
     (mod_dir / MANIFEST).write_bytes("".join(f"{name}\n" for name in names).encode("utf-8"))
-    pack.write_pack(data_dir, gen, m4, list(prepared.plan), _shaders(gen, m4), xx, sources)
+    pack.write_pack(data_dir, gen, m4, list(prepared.plan), _shaders(gen, m4), xx, sources, prepared.displays)
     return names

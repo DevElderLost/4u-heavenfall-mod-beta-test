@@ -28,6 +28,9 @@ FS_ACCESS_SIZE = 7
 # copy (0x630) is 0 in retail and stays.
 EXTDATA_ID = 0x230
 FS_CATEGORY_SYSTEM_APPLICATION = 0x1
+# libctru exheader.h FSACCESS_SDMC_RW: the SD card's archive (9), which needs one bit of 0x8E (3dbrew "Filesystem
+# services", Archives); the game's own access descriptor allows it (0x8088), its access info asks for none
+FS_SDMC_RW = 0x80
 EMPTY = 0xFFFFFFFF
 SVC_PREFIX, SVC_PREFIX_MASK = 0xF0000000, 0xF8000000  # 0b11110: SVCs 24 * index + bit (bits 0-23)
 # Each MH4U version's (game/executable/versions.py keys) .text, .rodata and .data sizes and .bss, as their exheaders

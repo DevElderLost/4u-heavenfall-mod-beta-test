@@ -94,8 +94,10 @@ our code). New code needs room in the executable:
 * Most new code lives in the **extension**: new pages added after the end of the original program
   (`game/executable/code_space.py`, `Layout.extend`). A small start-up block (`ext_bootstrap.s`) makes those pages executable
   when the game boots; the header (`game/executable/exheader.py`) is made larger to load them.
-* `game/executable/memory_split.py` moves a little memory from one of the game's heaps to another at boot, so the larger
-  program still boots with the emulator's New 3DS mode off.
+* `game/executable/memory_boot.py` sets the game's heap sizes at boot (`memory_boot.c`, hooked where the game splits
+  its memory). The game's resource heap gets all the memory the larger program leaves free, up to its own size, once the
+  small heaps (`memory.boot_heaps` in `tuning.json`) and a margin are kept. The build stops if that would leave the
+  resource heap under its minimum. A console memory size without its own sizes keeps the game's.
 
 ## Single-screen mode
 

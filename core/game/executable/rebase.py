@@ -16,15 +16,17 @@ import array
 import bisect
 import struct
 import sys
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 
 from core.monsters.porting.new_id_data import FIRST_NEW_ID, ID_TABLES
 from core.game.executable.blocks import MOD_SETTINGS_PANE_HASHES
 from core.game.executable.canonical import (
     BASE, arm_branch, arm_branch_target, thumb_branch, thumb_branch_target, to_canonical,
 )
-from core.game.executable.code_space import ABS32, CALL, REGIONS, Layout
+from core.game.executable.code_space import (
+    ABS32, CALL, PACK_REGIONS, PACKS_START, REGIONS, Layout, is_game_address, pack_of,
+)
 from core.game.executable.session import Session
 from core.game.executable.versions import VersionMap
 
@@ -91,12 +93,14 @@ EXEMPT: tuple[Exempt, ...] = (
 @dataclass
 class Rebased:
     """The player's executable with the patches (`code`), and the version addresses of the branches (odd: a Thumb
-    pair at the address minus one) and pointers whose values were translated, as `VersionMap`'s slots."""
+    pair at the address minus one) and pointers whose values were translated, as `VersionMap`'s slots; `packs`, the
+    run's pack images for his version (`Session.packs`: a pack stays at its range, its words into the game move)."""
     code: bytes
     branch_slots: tuple[int, ...]
     pointer_slots: tuple[int, ...]
     carried: int                # changed words carried
     version_words: tuple[int, ...] = ()     # version addresses of the words written from `Session.version_words`
+    packs: dict[str, bytes] = field(default_factory=dict)
 
 
 def _word(code: bytes | bytearray, at: int) -> int:
@@ -200,10 +204,14 @@ class _Leaks:
 
     def __init__(self, vmap: VersionMap, original: bytes, patched: bytes | bytearray, symbols: Mapping[str, int],
                  exemptions: _Exemptions, place: _Places, game_code: tuple[tuple[int, int], ...] = (),
-                 free: tuple[tuple[int, int], ...] = ()):
+                 free: tuple[tuple[int, int], ...] = (), read: Callable[[int], int | None] | None = None):
         self._vmap, self._original, self._patched = vmap, original, patched
+        # the word at an address: `patched`'s, or (`read`) a pack image's too
+        self._read = read or (lambda at: _word(patched, at) if BASE <= at <= BASE + len(patched) - 4 else None)
         self._exemptions, self._place, self._code, self._free = exemptions, place, game_code, free
-        self._end = max(run.end for run in vmap.runs)
+        # the game's image and our extension: the packs' identity runs (far above it) would make every number up to
+        # their end a candidate pointer (B144)
+        self._end = max(run.end for run in vmap.runs if run.start < PACKS_START)
         self._symbols = {value & ~1 for value in symbols.values()}
         self._held: set[int] | None = None          # built when first needed
         self._slots: set[int] | None = None
@@ -234,8 +242,7 @@ class _Leaks:
         if code or value in self._symbols or here in self._slots:
             likely = True
         elif self._game_held(w):
-            end = BASE + len(self._patched) - 3
-            near = [_word(self._patched, at + k) for k in (-8, -4, 4, 8) if BASE <= at + k < end]
+            near = [x for x in (self._read(at + k) for k in (-8, -4, 4, 8)) if x is not None]
             held = [self._game_held(x) for x in near]
             likely = any(all(held[i:i + 2]) for i in range(len(held) - 1)) if len(held) == 4 else sum(held) >= 2
         else:
@@ -258,7 +265,8 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
     if symbols is None:
         from core.game.executable.blocks import GAME_SYMBOLS as symbols
     if vmap.is_canonical:
-        return Rebased(bytes(patched), (), (), len(changed_words(original, patched)))
+        return Rebased(bytes(patched), (), (), len(changed_words(original, patched)),
+                       packs={name: bytes(image) for name, image in notes.packs.items()})
     base = to_canonical(original, vmap) if canonical is None else canonical
     if len(base) != len(original):
         raise RebaseError(f"{vmap.key}: the canonical image has {len(base):#x} bytes, the executable "
@@ -288,6 +296,28 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
 
     changed = changed_words(base, patched)
     handled: set[int] = set()
+    # The packs' images: a pack's word stays at its address, its
+    # value is translated as an executable's is
+    images = {name: bytearray(image) for name, image in notes.packs.items()}
+
+    def image_of(at: int) -> tuple[str, int] | None:
+        pack = pack_of(at)
+        return (pack, at - PACK_REGIONS[pack].start) if pack in images else None
+
+    def read(at: int) -> int | None:
+        """The canonical word at `at`: the patched executable's, or a pack's as the patchers left it."""
+        found = image_of(at)
+        if found is not None:
+            image = notes.packs[found[0]]
+            return struct.unpack_from("<I", image, found[1])[0] if found[1] <= len(image) - 4 else None
+        return _word(patched, at) if BASE <= at <= BASE + len(patched) - 4 else None
+
+    def put_any(at: int, here: int, value: int) -> None:
+        found = image_of(at)
+        if found is not None:
+            struct.pack_into("<I", images[found[0]], found[1], value)
+        else:
+            put(here, value)
 
     # Our linked blocks: the words that point into the game, from the link (code_space.json)
     linked: dict[int, int] = {}             # address -> the linked word, for every word of a placed block
@@ -297,18 +327,20 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
         block = layout.block(name)
         if block.address != at:
             raise RebaseError(f"{vmap.key}: block {name} placed at {at:#x}, the layout has it at {block.address:#x}")
+        in_pack = REGIONS[block.region].kind == "pack"
         for k in range(0, len(block.data) - 3, 4):
             linked[at + k] = struct.unpack_from("<I", block.data, k)[0]
         for reloc in block.relocs:
             a = at + reloc.offset
-            w = _word(patched, a)
+            w = read(a)
             if w != linked.get(a):
                 continue                    # Python wrote over it after placing: checked as any word below
             if reloc.symbol not in symbols:
                 raise RebaseError(f"{vmap.key}: block {name}'s relocation at +{reloc.offset:#x} names "
                                   f"{reloc.symbol!r}, which is no game symbol")
             symbol = symbols[reloc.symbol]
-            here = to_version(a, f"block {name}'s word at")      # our free regions: the block stays where it is
+            # our free regions and the packs: the block stays where it is
+            here = a if in_pack else to_version(a, f"block {name}'s word at")
             if reloc.kind == CALL:
                 target = arm_branch_target(w, a)
                 if target is None:
@@ -318,14 +350,16 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
                 if value is None:
                     raise RebaseError(f"{vmap.key}: block {name}'s call to {reloc.symbol} does not reach "
                                       f"{moved:#x}")
-                branch_slots.append(here)
+                slots = branch_slots
             elif reloc.kind == ABS32:
                 value = (w + to_version(symbol & ~1, f"{name}'s word naming {reloc.symbol}:") - (symbol & ~1)) \
                     & 0xFFFFFFFF
-                pointer_slots.append(here)
+                slots = pointer_slots
             else:
                 raise RebaseError(f"{vmap.key}: block {name}: unknown relocation kind {reloc.kind!r}")
-            put(here, value)
+            if not in_pack:                 # the slots are the executable's
+                slots.append(here)
+            put_any(a, here, value)
             handled.add(a)
 
     # The branches Python wrote, re-encoded for their place and target with their condition and link bits
@@ -378,6 +412,27 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
                 raise RebaseError(f"{vmap.key}: leak: {leak}")
         put(here, w)
 
+    # The packs' words Python wrote (no branch from a pack reaches the game: too far), and the leak detector on the
+    # others; the pack is placed at its own range in every version
+    pack_leaks = _Leaks(vmap, original, patched, symbols, _Exemptions(exempt, layout), place, game_code, free, read)
+    for at in sorted(at for at in notes.pointers if image_of(at) is not None and at not in handled):
+        put_any(at, at, translate(read(at), f"the game address {read(at):#x} written at {at:#x}:"))
+        handled.add(at)
+    for at, target in notes.branches.items():
+        if image_of(at) is not None:
+            if is_game_address(target & ~1):
+                raise RebaseError(f"{vmap.key}: the branch at {place(at)} in a pack goes into the game ({target:#x})")
+            handled.add(at)
+    for name, image in notes.packs.items():
+        start = PACK_REGIONS[name].start
+        for k in range(0, len(image) - 3, 4):
+            at = start + k
+            w = struct.unpack_from("<I", image, k)[0]
+            if w and at not in handled and linked.get(at) != w:
+                leak = pack_leaks.check(at, at, w)
+                if leak:
+                    raise RebaseError(f"{vmap.key}: leak: {leak}")
+
     for at, first, second, decoded in thumb:
         here = to_version(at, "a Thumb branch at")
         if to_version(at + 2, "a Thumb branch at") != here + 2:
@@ -405,7 +460,7 @@ def rebase(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes:
         put(here, new)
         version_words.append(here)
     return Rebased(bytes(out), tuple(sorted(set(branch_slots))), tuple(sorted(set(pointer_slots))), len(changed),
-                   tuple(version_words))
+                   tuple(version_words), {name: bytes(image) for name, image in images.items()})
 
 
 def from_canonical(patched: bytes | bytearray, original: bytes, vmap: VersionMap, notes: Session,

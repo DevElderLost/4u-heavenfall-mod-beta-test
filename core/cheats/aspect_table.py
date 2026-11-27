@@ -52,6 +52,18 @@ def ratio_text(ratio: Ratio) -> str:
     return "aspect_" + ratio.name.replace(":", "_")
 
 
+def _ratio(entry: object, taken: tuple[str, ...]) -> Ratio:
+    """A ratio of the curated file: a name of its own (not one of `taken`, never OFF) and whole sides above 0."""
+    entry = entry if isinstance(entry, dict) else {}
+    name, width, height = (entry.get(key) for key in ("name", "width", "height"))
+    if not isinstance(name, str) or not name or name == OFF or name in taken:
+        raise AspectTableError(f"aspect_ratio.json: {name!r} cannot name a ratio: each has a name of its own, "
+                               f"never {OFF!r}")
+    if not all(isinstance(side, int) and not isinstance(side, bool) and side > 0 for side in (width, height)):
+        raise AspectTableError(f"aspect_ratio.json: {name}: width and height must be whole numbers above 0")
+    return Ratio(name, width, height)
+
+
 def load_ratios(path: Path = SETTINGS_FILE) -> tuple[Ratio, ...]:
     """The curated ratios, in the program's order. Refuses no ratios, a name repeated or named OFF, and a width or
     height that is not a whole number above 0."""
@@ -59,13 +71,17 @@ def load_ratios(path: Path = SETTINGS_FILE) -> tuple[Ratio, ...]:
     entries = raw.get("value") if isinstance(raw, dict) else None
     if not isinstance(entries, list) or not entries:
         raise AspectTableError("aspect_ratio.json: ratios must list at least one ratio")
-    ratios = []
+    ratios: list[Ratio] = []
     for entry in entries:
-        name, width, height = (entry.get(key) for key in ("name", "width", "height"))
-        if not isinstance(name, str) or not name or name == OFF or name in (ratio.name for ratio in ratios):
-            raise AspectTableError(f"aspect_ratio.json: {name!r} cannot name a ratio: each has a name of its own, "
-                                   f"never {OFF!r}")
-        if not all(isinstance(side, int) and not isinstance(side, bool) and side > 0 for side in (width, height)):
-            raise AspectTableError(f"aspect_ratio.json: {name}: width and height must be whole numbers above 0")
-        ratios.append(Ratio(name, width, height))
+        ratios.append(_ratio(entry, tuple(ratio.name for ratio in ratios)))
     return tuple(ratios)
+
+
+def cheat_ratio(path: Path = SETTINGS_FILE) -> Ratio:
+    """The ratio of the Cheats group's row (curated `cheat_ratio`; aspect_ratio.py CHEAT_ROW): in no list. Refuses a
+    file without it, and a name the list (or the game's own shape) already has."""
+    raw = json.loads(Path(path).read_text(encoding="utf-8")).get("cheat_ratio")
+    if not isinstance(raw, dict) or "value" not in raw:
+        raise AspectTableError("aspect_ratio.json: cheat_ratio must name the Cheats group's ratio")
+    taken = (GAME_RATIO.name, *(ratio.name for ratio in load_ratios(path)))
+    return _ratio(raw["value"], taken)

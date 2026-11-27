@@ -1,0 +1,431 @@
+{
+ "limits": {"model_percent": 20.0, "texture_percent": 1.0, "close_percent": 20.0},
+ "hidden": {
+  "gen-7.7-1.1-1.1-1.1-1.1": {
+   "male": {"kept": "1-1", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "1-1", "models": {"arms": 0.0, "body": 0.0, "head": 0.835, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-315.315-159.159-197.197-81.81-223.223": {
+   "male": {"kept": "159-159", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "159-159", "models": {"arms": 0.0, "body": 0.0, "head": 3.348, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-316.316-572.572-198.198-98.98-224.224": {
+   "male": {"kept": "160-160", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "160-160", "models": {"arms": 0.0, "body": 0.0, "head": 4.099, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-317.317-573.573-223.223-103.103-245.245": {
+   "male": {"kept": "161-161", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "161-161", "models": {"arms": 0.0, "body": 0.0, "head": 3.349, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-318.318-577.577-224.224-115.115-246.246": {
+   "male": {"kept": "162-162", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "162-162", "models": {"arms": 0.0, "body": 0.0, "head": 4.101, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-619.619-230.230-230.230-230.230-230.230": {
+   "male": {"kept": "230-230", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "230-230", "models": {"arms": 0.0, "body": 0.0, "head": 1.506, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-27.27-66.66-27.27-27.27-27.27": {
+   "male": {"kept": "27-27", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "27-27", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-28.28-67.67-28.28-28.28-28.28": {
+   "male": {"kept": "28-28", "models": {"arms": 0.0, "body": 0.408, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "28-28", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-250.250-571.571-157.157-157.157-157.157": {"male": {"kept": "157-157", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-34.34-19.19-19.19-19.19-19.19": {
+   "male": {"kept": "19-19", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "19-19", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-119.119-115.115-117.117-117.117-117.117": {"male": {"kept": "117-117", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-118.118-116.116-118.118-118.118-118.118": {"male": {"kept": "118-118", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-129.129-129.129-129.129-129.129-103.103": {"male": {"kept": "129-129", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-242.242-638.638-242.242-242.242": {
+   "male": {"kept": "242-242", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0}},
+   "female": {"kept": "242-242", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0}}
+  },
+  "gen-319.319-580.580-245.245-116.116-248.248": {
+   "male": {"kept": "163-163", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "163-163", "models": {"arms": 0.0, "body": 0.0, "head": 3.348, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-567.567-583.583-246.246-119.119-249.249": {
+   "male": {"kept": "164-164", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "164-164", "models": {"arms": 0.0, "body": 0.0, "head": 4.099, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-569.569-584.584-248.248-128.128-315.315": {
+   "male": {"kept": "165-165", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "165-165", "models": {"arms": 0.0, "body": 0.0, "head": 0.686, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-570.570-166.166-166.166-166.166-166.166": {
+   "male": {"kept": "166-166", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "166-166", "models": {"arms": 0.0, "body": 0.0, "head": 1.192, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-71.71-98.98-66.66-60.60-67.67": {
+   "male": {"kept": "78-78", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "78-78", "models": {"arms": 1.669, "body": 0.096, "head": 0.026, "legs": 0.0, "waist": 8.758}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-583.583-171.171-171.171-171.171-171.171": {
+   "male": {"kept": "171-171", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "171-171", "models": {"arms": 0.0, "body": 0.0, "head": 1.879, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-584.584-172.172-172.172-172.172-172.172": {
+   "male": {"kept": "172-172", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "172-172", "models": {"arms": 0.0, "body": 0.0, "head": 0.887, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-133.133-198.198-133.133-133.133-133.133": {"male": {"kept": "133-133", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-588.588-636.636-317.317-242.242-317.317": {
+   "male": {"kept": "225-225", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "225-225", "models": {"arms": 0.0, "body": 0.0, "head": 0.669, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-589.589-637.637-318.318-246.246-318.318": {
+   "male": {"kept": "226-226", "models": {"arms": 0.0, "body": 0.0, "head": 14.043, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "226-226", "models": {"arms": 0.0, "body": 0.0, "head": 1.396, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-136.136-223.223-136.136-136.136-136.136": {
+   "male": {"kept": "136-136", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "136-136", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-137.137-137.137-137.137-67.67-137.137": {
+   "male": {"kept": "137-137", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "137-137", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-80.80-103.103-67.67-61.61-79.79": {
+   "male": {"kept": "83-83", "models": {"arms": 0.0, "body": 0.0, "head": 9.661, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "83-83", "models": {"arms": 0.6, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-197.197-98.98-98.98": {
+   "male": {"kept": "128-128", "models": {"arms": 3.321, "body": 0.0, "legs": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "legs": 0.0}},
+   "female": {"kept": "128-128", "models": {"arms": 2.959, "body": 0.0, "legs": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "legs": 0.0}}
+  },
+  "gen-62.62-39.39-39.39-39.39-39.39": {
+   "male": {"kept": "39-39", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "39-39", "models": {"arms": 0.0, "body": 0.0, "head": 0.35, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-40.40-40.40-34.34-40.40-66.66": {
+   "male": {"kept": "40-40", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "40-40", "models": {"arms": 0.389, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-245.245-246.246-116.116-70.70-123.123": {"male": {"kept": "141-141", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-351.351-351.351-351.351-321.321-351.351": {
+   "male": {"kept": "351-351", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "351-351", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-98.98-114.114-89.89-89.89-89.89": {
+   "male": {"kept": "89-89", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "89-89", "models": {"arms": 0.0, "body": 3.181, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-153.153-567.567-153.153-153.153-153.153": {
+   "male": {"kept": "153-153", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "153-153", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-154.154-154.154-154.154-80.80-154.154": {
+   "male": {"kept": "154-154", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "154-154", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-216.216-589.589-216.216-216.216-216.216": {"male": {"kept": "216-216", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-587.587-625.625-316.316-224.224-316.316": {"male": {"kept": "220-220", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-70.70-59.59-59.59-59.59-59.59": {
+   "male": {"kept": "59-59", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "59-59", "models": {"arms": 0.0, "body": 0.0, "head": 0.967, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-625.625-244.244-244.244-244.244-244.244": {
+   "male": {"kept": "244-244", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "244-244", "models": {"arms": 0.0, "body": 0.0, "head": 0.999, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-705.705-457.457-457.457-457.457-457.457": {
+   "male": {"kept": "457-457", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "457-457", "models": {"arms": 0.0, "body": 0.0, "head": 1.117, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-128.128-126.126-126.126-63.63-126.126": {
+   "male": {"kept": "126-126", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "126-126", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-127.127-123.123-127.127-66.66-127.127": {
+   "male": {"kept": "127-127", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "127-127", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-114.114-112.112-112.112-112.112-112.112": {
+   "male": {"kept": "112-112", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "112-112", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-711.711-564.564-564.564-566.566-569.569": {"male": {"kept": "564-564", "models": {"arms": 0.0, "body": 0.0, "head": 1.612, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-20.20-20.20-7.7-20.20-20.20": {
+   "male": {"kept": "12-12", "models": {"arms": 0.0, "body": 0.0, "head": 1.482, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "12-12", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-21.21-13.13-13.13-13.13-13.13": {
+   "male": {"kept": "13-13", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "13-13", "models": {"arms": 0.0, "body": 0.0, "head": 1.439, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-60.60-21.21-20.20-21.21-21.21": {
+   "male": {"kept": "22-22", "models": {"arms": 1.122, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "22-22", "models": {"arms": 0.823, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-123.123-119.119-81.81-62.62-81.81": {
+   "male": {"kept": "125-125", "models": {"arms": 1.516, "body": 0.0, "head": 9.918, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "125-125", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-120.120-120.120-120.120-120.120-80.80": {
+   "male": {"kept": "120-120", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "120-120", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 1.178, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-121.121-121.121-79.79-121.121-121.121": {
+   "male": {"kept": "121-121", "models": {"arms": 0.725, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "121-121", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-63.63-51.51-51.51-51.51-51.51": {
+   "male": {"kept": "51-51", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "51-51", "models": {"arms": 0.0, "body": 0.0, "head": 0.696, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-586.586-585.585-315.315-197.197-203.203": {"male": {"kept": "203-203", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-689.689-274.274-567.567-274.274-274.274": {
+   "male": {"kept": "274-274", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "274-274", "models": {"arms": 0.131, "body": 0.0, "head": 1.316, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-694.694-641.641-275.275-249.249-275.275": {
+   "male": {"kept": "275-275", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "275-275", "models": {"arms": 0.0, "body": 0.0, "head": 0.776, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-704.704-456.456-456.456-456.456-456.456": {
+   "male": {"kept": "456-456", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "456-456", "models": {"arms": 0.0, "body": 0.0, "head": 1.253, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-61.61-37.37-37.37-37.37-37.37": {
+   "male": {"kept": "37-37", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "37-37", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-206.206-588.588-206.206-223.223-206.206": {
+   "male": {"kept": "206-206", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "206-206", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-248.248-248.248-119.119-71.71-197.197": {
+   "male": {"kept": "149-149", "models": {"arms": 0.0, "body": 0.146, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "149-149", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-249.249-315.315-123.123-79.79-198.198": {
+   "male": {"kept": "150-150", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "150-150", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-706.706-700.700-521.521-521.521-521.521": {
+   "male": {"kept": "521-521", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "521-521", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-522.522-701.701-522.522-522.522-522.522": {
+   "male": {"kept": "522-522", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "522-522", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-707.707-702.702-523.523-523.523-523.523": {
+   "male": {"kept": "523-523", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "523-523", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-708.708-703.703-524.524-524.524-524.524": {
+   "male": {"kept": "524-524", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "524-524", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-643.643-265.265-265.265-265.265-265.265": {
+   "male": {"kept": "265-265", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "265-265", "models": {"arms": 0.0, "body": 0.0, "head": 0.527, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-644.644-266.266-266.266-266.266-266.266": {
+   "male": {"kept": "266-266", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "266-266", "models": {"arms": 0.0, "body": 0.0, "head": 0.428, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-636.636-247.247-247.247-247.247-247.247": {
+   "male": {"kept": "247-247", "models": {"arms": 0.0, "body": 0.0, "head": 4.018, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "247-247", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-703.703-313.313-313.313-318.318-313.313": {
+   "male": {"kept": "313-313", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "313-313", "models": {"arms": 0.0, "body": 0.0, "head": 1.232, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-712.712-565.565-565.565-565.565-565.565": {
+   "male": {"kept": "565-565", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "565-565", "models": {"arms": 0.0, "body": 0.0, "head": 3.458, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-699.699": {"male": {"kept": "319-319", "models": {"body": 1.065}, "textures": {"body": 0.0}}, "female": {"kept": "319-319", "models": {"body": 0.289}, "textures": {"body": 0.0}}},
+  "gen-749.749-358.358-358.358-577.577-358.358": {
+   "male": {"kept": "358-358", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "358-358", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-756.756-412.412-412.412-412.412-412.412": {
+   "male": {"kept": "412-412", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "412-412", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-757.757-413.413-413.413-413.413-413.413": {
+   "male": {"kept": "413-413", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "413-413", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-755.755-402.402-402.402-402.402-402.402": {
+   "male": {"kept": "402-402", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "402-402", "models": {"arms": 0.0, "body": 0.0, "head": 1.402, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-739.739-729.729-619.619-570.570-328.328": {
+   "male": {"kept": "328-328", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "328-328", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-763.763-534.534-534.534-534.534-534.534": {
+   "male": {"kept": "534-534", "models": {"arms": 0.0, "body": 0.0, "head": 0.317, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "534-534", "models": {"arms": 0.0, "body": 0.0, "head": 0.955, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-750.750-360.360-360.360-578.578-360.360": {
+   "male": {"kept": "360-360", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "360-360", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-762.762-531.531-531.531-531.531-531.531": {
+   "male": {"kept": "531-531", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "531-531", "models": {"arms": 0.0, "body": 0.0, "head": 0.126, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-473.473-473.473-473.473-641.641-473.473": {
+   "male": {"kept": "473-473", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "473-473", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-454.454-454.454-454.454-639.639-454.454": {
+   "male": {"kept": "454-454", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "454-454", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-455.455-455.455-455.455-640.640-455.455": {
+   "male": {"kept": "455-455", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "455-455", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-367.367-367.367-367.367-582.582-367.367": {
+   "male": {"kept": "367-367", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "367-367", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-347.347-347.347-347.347-573.573-347.347": {
+   "male": {"kept": "347-347", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "347-347", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-742.742-730.730-625.625-571.571-334.334": {
+   "male": {"kept": "334-334", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "334-334", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-451.451-451.451-451.451-638.638-640.640": {
+   "male": {"kept": "451-451", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "451-451", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-408.408-408.408-408.408-620.620-408.408": {
+   "male": {"kept": "408-408", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "408-408", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-409.409-750.750-409.409-625.625-409.409": {
+   "male": {"kept": "409-409", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}},
+   "female": {"kept": "409-409", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}
+  },
+  "gen-35.35-35.35-21.21-35.35-35.35": {"female": {"kept": "35-35", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-350.350-707.707-350.350-319.319-350.350": {"female": {"kept": "350-350", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-223.223-224.224-114.114-68.68-115.115": {"female": {"kept": "138-138", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-204.204-586.586-204.204-204.204-204.204": {"female": {"kept": "204-204", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-566.566-566.566-572.572-566.566": {"female": {"kept": "582-566", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0}}},
+  "gen-747.747-344.344-344.344-344.344-344.344": {"female": {"kept": "344-344", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}},
+  "gen-748.748-732.732-636.636-572.572-577.577": {"female": {"kept": "345-345", "models": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}, "textures": {"arms": 0.0, "body": 0.0, "head": 0.0, "legs": 0.0, "waist": 0.0}}}
+ },
+ "close": [],
+ "weapons": {
+  "great_sword": {
+   "hidden": {
+    "great_sword-gen177": {"kept": "great_sword-44", "models": {"weapon": 3.941}, "textures": {"weapon": 0.0}},
+    "great_sword-gen172": {"kept": "great_sword-16", "models": {"weapon": 19.359}, "textures": {"weapon": 0.0}},
+    "great_sword-gen180": {"kept": "great_sword-100", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "great_sword-gen176": {"kept": "great_sword-37", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "sword_and_shield": {"hidden": {}, "close": []},
+  "hammer": {
+   "hidden": {
+    "hammer-gen96": {"kept": "hammer-4", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "hammer-gen177": {"kept": "hammer-27", "models": {"weapon": 0.081}, "textures": {"weapon": 0.0}},
+    "hammer-gen155": {"kept": "hammer-6", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "hammer-gen95": {"kept": "hammer-3", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "hammer-gen193": {"kept": "hammer-24", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "hammer-gen181": {"kept": "hammer-100", "models": {"weapon": 1.604}, "textures": {"weapon": 0.0}},
+    "hammer-gen182": {"kept": "hammer-111", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "lance": {
+   "hidden": {
+    "lance-gen99": {"kept": "lance-2", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "lance-gen124": {"kept": "lance-3", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "lance-gen166": {"kept": "lance-83", "models": {"weapon": 2.028}, "textures": {"weapon": 0.0}},
+    "lance-gen167": {"kept": "lance-87", "models": {"weapon": 2.3}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "light_bowgun": {
+   "hidden": {"light_bowgun-gen134": {"kept": "light_bowgun-26", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}, "light_bowgun-gen100": {"kept": "light_bowgun-20", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}},
+   "close": []
+  },
+  "heavy_bowgun": {
+   "hidden": {
+    "heavy_bowgun-gen88": {"kept": "heavy_bowgun-1", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "heavy_bowgun-gen128": {"kept": "heavy_bowgun-59", "models": {"weapon": 0.248}, "textures": {"weapon": 0.0}},
+    "heavy_bowgun-gen125": {"kept": "heavy_bowgun-15", "models": {"weapon": 0.378}, "textures": {"weapon": 0.0}},
+    "heavy_bowgun-gen120": {"kept": "heavy_bowgun-4", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "long_sword": {
+   "hidden": {"long_sword-gen145": {"kept": "long_sword-22", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}, "long_sword-gen171": {"kept": "long_sword-84", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}},
+   "close": []
+  },
+  "switch_axe": {
+   "hidden": {"switch_axe-gen142": {"kept": "switch_axe-34", "models": {"weapon": 0.493}, "textures": {"weapon": 0.0}}, "switch_axe-gen148": {"kept": "switch_axe-42", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}},
+   "close": []
+  },
+  "gunlance": {
+   "hidden": {
+    "gunlance-gen131": {"kept": "gunlance-33", "models": {"weapon": 2.917}, "textures": {"weapon": 0.0}},
+    "gunlance-gen158": {"kept": "gunlance-99", "models": {"weapon": 0.559}, "textures": {"weapon": 0.0}},
+    "gunlance-gen76": {"kept": "gunlance-1", "models": {"weapon": 2.199}, "textures": {"weapon": 0.0}},
+    "gunlance-gen157": {"kept": "gunlance-96", "models": {"weapon": 1.188}, "textures": {"weapon": 0.0}},
+    "gunlance-gen78": {"kept": "gunlance-24", "models": {"weapon": 2.718}, "textures": {"weapon": 0.0}},
+    "gunlance-gen145": {"kept": "gunlance-45", "models": {"weapon": 0.096}, "textures": {"weapon": 0.0}},
+    "gunlance-gen147": {"kept": "gunlance-46", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "gunlance-gen141": {"kept": "gunlance-40", "models": {"weapon": 0.058}, "textures": {"weapon": 0.0}},
+    "gunlance-gen152": {"kept": "gunlance-87", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "bow": {
+   "hidden": {
+    "bow-gen150": {"kept": "bow-105", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "bow-gen122": {"kept": "bow-78", "models": {"weapon": 2.915}, "textures": {"weapon": 0.0}},
+    "bow-gen166": {"kept": "bow-106", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "bow-gen164": {"kept": "bow-20", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "dual_blades": {
+   "hidden": {
+    "dual_blades-gen84": {"kept": "dual_blades-19", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "dual_blades-gen81": {"kept": "dual_blades-9", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "dual_blades-gen134": {"kept": "dual_blades-44", "models": {"weapon": 2.865}, "textures": {"weapon": 0.0}},
+    "dual_blades-gen165": {"kept": "dual_blades-92", "models": {"weapon": 2.886}, "textures": {"weapon": 0.0}},
+    "dual_blades-gen97": {"kept": "dual_blades-25", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "hunting_horn": {
+   "hidden": {
+    "hunting_horn-gen112": {"kept": "hunting_horn-25", "models": {"weapon": 3.841}, "textures": {"weapon": 0.0}},
+    "hunting_horn-gen64": {"kept": "hunting_horn-13", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "hunting_horn-gen145": {"kept": "hunting_horn-9", "models": {"weapon": 3.299}, "textures": {"weapon": 0.0}},
+    "hunting_horn-gen159": {"kept": "hunting_horn-27", "models": {"weapon": 8.003}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "insect_glaive": {
+   "hidden": {
+    "insect_glaive-gen106": {"kept": "insect_glaive-20", "models": {"weapon": 9.185}, "textures": {"weapon": 0.0}},
+    "insect_glaive-gen105": {"kept": "insect_glaive-17", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "insect_glaive-gen13": {"kept": "insect_glaive-4", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}},
+    "insect_glaive-gen109": {"kept": "insect_glaive-16", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}
+   },
+   "close": []
+  },
+  "charge_blade": {"hidden": {"charge_blade-gen111": {"kept": "charge_blade-14", "models": {"weapon": 0.0}, "textures": {"weapon": 0.0}}}, "close": []}
+ },
+ "felyne": {"hidden": {}, "close": []}
+}

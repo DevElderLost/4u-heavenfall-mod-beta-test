@@ -1,6 +1,8 @@
 /* The shape of the emulator's picture (cheats/aspect_ratio.py): what the hooks of
  * aspect_stub.s ask. The ratio is read each time, so a choice in the game's list (interface/mod_settings/aspect_list.c)
- * shows at once: the byte of the character's save zone, else the installer's.
+ * shows at once: the byte of the character's save zone, else the installer's. While the Cheats group's row of the
+ * extra ratio is on (its value in mod_options_state, which mod_options.c writes each frame; 0 in a mod without the
+ * row), that ratio, which no list has, is the one in use.
  *
  * Build: tools/build/build_code_space.py (arm-none-eabi-gcc, linked with aspect_ratio.ld where it places the block).
  */
@@ -9,7 +11,8 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
-#define MAX_RATIOS 8
+#define MAX_RATIOS 8            /* aspect_ratio.py MAX_RATIOS: the list's and, after them, the Cheats group's */
+#define NO_OPTION 0xFF          /* no row of the extra ratio */
 #define SAVE_DATA 0x5C          /* the save object's data starts here */
 #define ZONE_WORDS 12           /* the save zone's size (curated mod_settings.json) */
 #define ZONE_VERSION 4          /* its u16 */
@@ -49,12 +52,16 @@ struct aspect_data {            /* aspect_ratio.py aspect_data */
     u32 zone_at;                /* the save zone in the save data */
     u32 magic;                  /* what marks it written */
     u8 fallback;                /* the installer's ratio, by place: what the files were fitted to */
-    u8 count;
+    u8 count;                   /* the list's ratios; the Cheats group's is the one after them */
     u16 version;                /* the zone's */
     float edge_margin, half_margin, dead_zone; /* interface/hud/anchors.py AnchorRules */
     float sub_view_margin;      /* a sub-view this close to the frame's side goes to it, with its frame */
     struct ratio ratios[MAX_RATIOS];
+    u8 cheat_option;            /* mod_options.py OPTION_IDS of the Cheats group's row of the extra ratio */
+    u8 unused[3];
 };
+
+_Static_assert(sizeof(struct aspect_data) == 128, "blocks.py ASPECT_DATA_SIZE");
 
 struct anchor {                 /* interface/hud/anchors.py anchor_table */
     unsigned hash;              /* the root group's name */
@@ -77,6 +84,7 @@ extern const struct anchors aspect_anchors;
 extern struct rect aspect_state;
 extern float aspect_way;        /* what game_gui_engine.c adds to a place at the side: the way past the installer's */
 extern u32 save_control;        /* the variable holding the save object */
+extern const volatile u8 mod_options_state[];   /* interface/mod_settings/mod_options.c: values[] first, a byte each */
 
 /* The save zone of the character in play, 0 without a save */
 static u8 *save_zone(void)
@@ -133,9 +141,23 @@ void aspect_choose(int place)
     zone[ZONE_ASPECT] = place + 1;
 }
 
+/* The Cheats group's row of the extra ratio is on */
+static int cheat_on(void)
+{
+    u32 id = aspect_data.cheat_option;
+
+    return id != NO_OPTION && mod_options_state[id] != 0;
+}
+
+/* The row the game's list marks: the ratio in use, none while the Cheats group's is (it is in no list) */
+int aspect_marked(void)
+{
+    return cheat_on() ? -1 : aspect_selected();
+}
+
 static const struct ratio *in_use(void)
 {
-    return &aspect_data.ratios[aspect_selected()];
+    return &aspect_data.ratios[cheat_on() ? aspect_data.count : aspect_selected()];
 }
 
 static const struct ratio *installed(void)

@@ -20,6 +20,7 @@ class Preferences:
     platform: str = "emulator"  # emulator | console (real 3DS, not available yet)
     mode: str = "randomize"     # randomize | fix (a game in progress, core/app/fix.py)
     install_options: dict = field(default_factory=dict)  # the Install page's choices
+    debug_options: dict = field(default_factory=dict)  # the Debug tab's choices (main edition only; all off at first)
     install_target: str = "auto"  # "auto" or the mod folder to install into
     sd_root: str = ""           # the 3DS SD card's root (Luma3DS form)
     randomizer_settings: dict = field(default_factory=dict)  # the Randomizer page's settings

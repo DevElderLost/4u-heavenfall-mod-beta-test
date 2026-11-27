@@ -153,6 +153,9 @@ class ReadyPicture:
     # The texels (x, y, width, height) it covers in a game texture the mod draws into; None: the whole of a texture
     # of the mod's own
     region: tuple[int, int, int, int] | None = None
+    # A texture of the mod's own drawn beside a game texture (the item marks over the icon sheet's icons): written
+    # only for an archive whose copy of that texture the pack has a picture of, at that picture's scale
+    beside: str | None = None
 
 
 @dataclass(frozen=True)
@@ -166,7 +169,8 @@ class ReadyList:
 def ready_list(path: Path = READY_PICTURES) -> ReadyList:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     pictures = [ReadyPicture(entry["texture"], CORE_DIR / entry["picture"],
-                             tuple(entry["region"]) if "region" in entry else None) for entry in data["pictures"]]
+                             tuple(entry["region"]) if "region" in entry else None, entry.get("beside"))
+                for entry in data["pictures"]]
     return ReadyList(pictures, data["default_scale"], data["no_hd_source"])
 
 
@@ -250,6 +254,9 @@ class ModTextures:
     """The textures of a build's archives the game's do not hold as they are."""
     changed: list[tuple[str, bytes, bytes]]   # (name, the game's TEX file, the mod's), each different pair once
     new: list[tuple[str, bytes]]              # (name, the mod's TEX file) of textures the game's archive has not
+    # For each new texture (its TEX file), the game's TEX files of the same archive asked for by short name
+    # (mod_textures' `beside`): the textures a ready picture is drawn beside
+    neighbours: dict[bytes, dict[str, bytes]] = field(default_factory=dict)
 
 
 def short_name(name: str) -> str:
@@ -258,15 +265,17 @@ def short_name(name: str) -> str:
 
 
 def mod_textures(romfs_dir: Path, game: GameFiles, progress: Callable[[int, int], None] | None = None,
-                 new_archives: bool = False) -> ModTextures:
+                 new_archives: bool = False, beside: Iterable[str] = ()) -> ModTextures:
     """What the mod's archives change or add, once however many archives hold a copy. Archives the game does not have
-    are read only with `new_archives` (the install needs none of them: our textures live in the game's archives)."""
+    are read only with `new_archives` (the install needs none of them: our textures live in the game's archives).
+    `beside`: short names of game textures to note, for each new texture, as its archive holds them."""
     romfs_dir = Path(romfs_dir)
-    known = set(game.walk())
+    known, beside = set(game.walk()), set(beside)
     arcs = sorted(path for path in romfs_dir.rglob("*.arc")
                   if new_archives or path.relative_to(romfs_dir).as_posix() in known)
     changed: dict[tuple[bytes, bytes], str] = {}
     new: dict[bytes, str] = {}
+    neighbours: dict[bytes, dict[str, bytes]] = {}
     for done, path in enumerate(arcs):
         if progress:
             progress(done, len(arcs))
@@ -275,14 +284,17 @@ def mod_textures(romfs_dir: Path, game: GameFiles, progress: Callable[[int, int]
             continue
         relative = path.relative_to(romfs_dir).as_posix()
         theirs = parse_arc(game.read(relative)).entries if relative in known else []
+        games = {short_name(e.name): e.data for e in theirs if e.type_hash == TEX_TYPE_HASH and short_name(e.name)
+                 in beside}
         for entry in theirs:
             mine = ours.pop(entry.name, None) if entry.type_hash == TEX_TYPE_HASH else None
             if mine is not None and mine.data != entry.data:
                 changed.setdefault((entry.data, mine.data), entry.name)
         for name, entry in ours.items():   # what is left: names the game's archive has not
             new.setdefault(entry.data, name)
+            neighbours.setdefault(entry.data, games)
     return ModTextures([(name, base, mod) for (base, mod), name in changed.items()],
-                       [(name, data) for data, name in new.items()])
+                       [(name, data) for data, name in new.items()], neighbours)
 
 
 def _changed_blocks(before: bytes, after: bytes, width: int, height: int) -> list[tuple[int, int]]:
@@ -400,10 +412,27 @@ def _adapt_texture(base_bytes: bytes, mod_bytes: bytes, pictures: dict[int, Path
     return _write(target, picture_width, picture_height, bytes(picture))
 
 
+def _picture_of(game_bytes: bytes | None, pictures: dict[int, Path], new_naming: bool,
+                hashes: dict[bytes, int | None]) -> tuple[Path, int] | None:
+    """The pack's picture of the game texture `game_bytes` (a TEX file) and how many times bigger it is drawn; None
+    when there is no such texture or the pack has no picture of it. `hashes` keeps the names already worked out."""
+    if game_bytes is None:
+        return None
+    tex = parse_tex(game_bytes)
+    if game_bytes not in hashes:
+        hashes[game_bytes] = texture_hash(tex, new_naming) if tex.format in EMULATOR_FORMAT else None
+    path = pictures.get(hashes[game_bytes]) if hashes[game_bytes] is not None else None
+    if path is None:
+        return None
+    with path.open("rb") as file:
+        width = struct.unpack(">I", file.read(PNG_SIZE_AT + 4)[PNG_SIZE_AT:])[0]
+    return path, max(1, round(width / tex.width))
+
+
 def _write_ready(mod_bytes: bytes, ready: ReadyPicture, pictures: dict[int, Path], scale: int, new_naming: bool,
-                 upside_down: bool, generated: Path) -> Path | None:
+                 upside_down: bool, generated: Path, sources: Iterable[Path] = ()) -> Path | None:
     """The ready-made picture of a texture of the mod's own, written at the pack's `scale`; None when the pack has its
-    own picture of it or the format has no name."""
+    own picture of it or the format has no name. `sources`: pictures of the pack it depends on (its scale's)."""
     mod = parse_tex(mod_bytes)
     if mod.format not in EMULATOR_FORMAT:
         return None
@@ -411,7 +440,7 @@ def _write_ready(mod_bytes: bytes, ready: ReadyPicture, pictures: dict[int, Path
     if mod_hash in pictures:
         return None
     target = generated / file_name(mod, mod_hash)
-    if _is_current(target, [ready.path]):
+    if _is_current(target, [ready.path, *sources]):
         return target
     picture_width, picture_height = read_png(ready.path.read_bytes())[:2]
     if (picture_width % mod.width or picture_height % mod.height
@@ -451,12 +480,13 @@ def adapt_pack(mods_dir: Path, romfs_dir: Path, open_game: Callable[[], GameFile
         pictures = _pack_pictures(folder)
         if pictures:
             listed = ready_list()
+            chosen = listed.pictures if ready is None else list(ready)
             ready_of: dict[str, list[ReadyPicture]] = {}
-            for picture in listed.pictures if ready is None else ready:
+            for picture in chosen:
                 ready_of.setdefault(picture.texture, []).append(picture)
             new_naming, upside_down = _read_options(folder)
-            textures = mod_textures(romfs_dir, open_game(), progress)
-            scale = None
+            textures = mod_textures(romfs_dir, open_game(), progress, beside={p.beside for p in chosen if p.beside})
+            scale, hashes = None, {}
             work = [(name, base, mod) for name, base, mod in textures.changed]
             work += [(name, None, mod) for name, mod in textures.new
                      if any(p.region is None for p in ready_of.get(short_name(name), ()))]
@@ -469,10 +499,16 @@ def adapt_pack(mods_dir: Path, romfs_dir: Path, open_game: Callable[[], GameFile
                         regions = [p for p in listed_here if p.region is not None]
                         copy = _adapt_texture(base, mod, pictures, new_naming, upside_down, generated, regions)
                     else:
-                        if scale is None:
-                            scale = _pack_scale(pictures, listed.default_scale)
                         whole = next(p for p in listed_here if p.region is None)
-                        copy = _write_ready(mod, whole, pictures, scale, new_naming, upside_down, generated)
+                        if whole.beside:            # only with the pack's picture of that texture, at its scale
+                            found = _picture_of(textures.neighbours.get(mod, {}).get(whole.beside), pictures,
+                                                new_naming, hashes)
+                            copy = None if found is None else _write_ready(
+                                mod, whole, pictures, found[1], new_naming, upside_down, generated, [found[0]])
+                        else:
+                            if scale is None:
+                                scale = _pack_scale(pictures, listed.default_scale)
+                            copy = _write_ready(mod, whole, pictures, scale, new_naming, upside_down, generated)
                 except READ_ERRORS as error:
                     log.warning("HD texture pack: %s was left out: %s", short_name(name), error)
                     continue

@@ -15,6 +15,7 @@ from core.game.executable.containers import INVALID_ROMFS, MEDIA_UNIT, NO_ROMFS,
 from core.game.executable.extract import read_exactly, read_ncch
 
 NONE = 0xFFFFFFFF
+TABLES_KEPT = 4     # the game files whose tables (and file index) a new RomFS of the same file takes instead of reading
 
 # The parsed header and tables of the RomFS of each game file already opened (the build opens the same game several
 # times). Of an encrypted file every open decrypts them again, and the tables are megabytes: without this each
@@ -42,24 +43,40 @@ def _align(value: int, alignment: int) -> int:
     return (value + alignment - 1) // alignment * alignment
 
 
+_kept: OrderedDict[tuple, dict] = OrderedDict()     # identity -> a RomFS's tables
+_kept_lock = threading.Lock()
+
+
+def clear_kept() -> None:
+    with _kept_lock:
+        _kept.clear()
+
+
 class RomFS:
     def __init__(self, path: Path):
+        """The RomFS of the game file `path`. Its tables (and the index of its files, once made) are kept for the next
+        RomFS of the same file, the same size and time (`identity`): a run makes one per step, and reading them (and
+        indexing thousands of files) again each time was a second or more of every run."""
         self.path = Path(path)
-        key = _tables_key(self.path)
-        with _TABLES_LOCK:
-            state = _TABLES.get(key) if key else None
-            if state is not None:
-                _TABLES.move_to_end(key)
-        if state is None:
-            state = self._read_tables()
-            if key:
-                with _TABLES_LOCK:
-                    _TABLES[key] = state
-                    while len(_TABLES) > TABLES_KEPT:
-                        _TABLES.popitem(last=False)
-        self._state = state
-        self.title_id, self.level3, self.data_offset = state["title_id"], state["level3"], state["data_offset"]
-        self.dirs, self.files = state["dirs"], state["files"]
+        status = os.stat(self.path)
+        self.identity = (os.path.abspath(self.path), status.st_size, status.st_mtime_ns)
+        with _kept_lock:
+            kept = _kept.get(self.identity)
+            if kept is not None:
+                _kept.move_to_end(self.identity)
+        if kept is None:
+            kept = self._read_tables()
+            with _kept_lock:
+                _kept[self.identity] = kept
+                while len(_kept) > TABLES_KEPT:
+                    _kept.popitem(last=False)
+        self._tables = kept
+        self.title_id, self.level3, self.data_offset = kept["title_id"], kept["level3"], kept["data_offset"]
+        self.dirs, self.files = kept["dirs"], kept["files"]
+
+    @property
+    def _index(self) -> dict[str, int] | None:
+        return self._tables.get("index")
 
     def _read_tables(self) -> dict:
         with open_container(self.path) as f:
@@ -84,8 +101,7 @@ class RomFS:
             dirs = read_exactly(f, dir_meta_size, "the RomFS")
             f.seek(level3 + file_meta_offset)
             files = read_exactly(f, file_meta_size, "the RomFS")
-        return {"title_id": title_id, "level3": level3, "data_offset": data_offset, "dirs": dirs, "files": files,
-                "index": None}
+        return {"title_id": title_id, "level3": level3, "data_offset": data_offset, "dirs": dirs, "files": files}
 
     @staticmethod
     def _name(table: bytes, at: int, length: int) -> str:
@@ -106,12 +122,12 @@ class RomFS:
     def _find(self, path: str) -> int | None:
         """The metadata offset of a file. The index of every file is built on the first lookup: scanning a folder
         per lookup made reading the thousands of files of a big folder take a quarter of a minute."""
-        index = self._state["index"]
+        index = self._tables.get("index")
         if index is None:
             index = {}
             for name, offset in self._walk_entries(0, ""):
                 index.setdefault(name, offset)
-            self._state["index"] = index          # shared with the other RomFS of this file
+            self._tables["index"] = index
         return index.get("/".join(p for p in path.replace("\\", "/").split("/") if p))
 
     def _walk_entries(self, dir_offset: int, prefix: str):

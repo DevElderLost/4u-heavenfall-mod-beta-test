@@ -270,7 +270,8 @@ def resolve_target(state: AppState, discovery: Discovery) -> Path | None:
 def resolve_request(state: AppState, discovery: Discovery, kind: str = "install") -> jobs.InstallRequest:
     """The request for the player's current choices (raises jobs.NoTarget)."""
     from core.app.presets import install_settings
-    return jobs.request_from_state(state, install_settings(state.personal), kind, emulators=discovery.emulators)
+    return jobs.request_from_state(state, install_settings(state.personal, state.debug), kind,
+                                   emulators=discovery.emulators)
 
 
 def confirm_request(parent: QWidget, request: jobs.InstallRequest) -> jobs.InstallRequest | None:
@@ -979,7 +980,7 @@ class InstallPage(Page):
             request = dataclasses.replace(resolve_request(self.state, self.finder), console=True)
         except jobs.NoTarget:
             from core.app.presets import install_settings
-            settings = install_settings(self.state.personal)
+            settings = install_settings(self.state.personal, self.state.debug)
             xx = self.state.xx_rom_for(settings)
             request = jobs.InstallRequest(Path(self.state.rom_path), settings, "install", True, Path(folder),
                                           rom_title(self.state), xx_rom=Path(xx) if xx else None)

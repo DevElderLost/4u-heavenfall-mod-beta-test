@@ -1,5 +1,5 @@
 /* The forge-style screens of layered gear: a unit of the
- * block layered_selector, run from layered_update in the Smithy's state 3.
+ * block layered_town (town only, the one reader of layered_rules), run from layered_update in the Smithy's state 3.
  *
  * One screen for armor, weapons of one class and Felynes: the model and the game's materials box on the left; on the
  * right a rank row, a game row and a list of looks with their buttons. The panes are five hidden root groups of ui401
@@ -510,14 +510,50 @@ static int worn(const struct look *l, u32 button)
     return armor_is(&layered_state, l, button);
 }
 
-/* Does the model wear what the look's button covers, tried on? Not on weapons: there the model follows the cursor. */
+/* A part the model tries on: what it wears there is not what is worn. */
+static int tried_on(u32 part)
+{
+    return P->state.armor[part][0] != layered_state.armor[part][0] || P->state.armor[part][1] != layered_state.armor[part][1];
+}
+
+/* The look a try-on takes a part from, as struct preview's tried_xx keeps it: XX's, or none of its pieces (a whole set
+   without that part), sets the part's bit; MH4U's own piece clears it. */
+static u32 tried_bit(const struct look *l, u32 part)
+{
+    return l->catalog || !(l->on.set->parts >> part & 1);
+}
+
+static void tried_from(const struct look *l, u32 button)
+{
+    u32 parts = parts_of(l, button);
+    for (u32 part = 0; part < ARMOR_PARTS; part++)
+        if (parts >> part & 1)
+            P->tried_xx = (P->tried_xx & ~(1u << part)) | tried_bit(l, part) << part;
+}
+
+/* Was it this look that the model tried on, on each part of the button it has a piece on? Within a catalog no two looks
+   wear the same models on a part (layered_equipment.py check_part_models) and no look but Nothing wears NO_ARMOR, so with
+   the model the bit tells the look; a look of the other catalog on the same models, or Nothing where a whole set left
+   the part bare, is not it. A part that is what is worn is no try-on, whichever look gave it. */
+static int tried_by(const struct look *l, u32 button)
+{
+    u32 parts = parts_of(l, button);
+    for (u32 part = 0; part < ARMOR_PARTS; part++)
+        if (parts >> part & 1 && l->on.set->parts >> part & 1 && tried_on(part) &&
+            (P->tried_xx >> part & 1) != tried_bit(l, part))
+            return 0;
+    return 1;
+}
+
+/* Does the model wear what the look's button covers, tried on from this look? Not on weapons: there the model follows
+   the cursor. */
 static int on_model(const struct look *l, u32 button)
 {
     if (U->mode == M_WEAPON)
         return 0;
     if (U->mode == M_FELYNE)
         return cat_set(P->on.cat_numbers, l, button, 1, 0) == P->on.cat_numbers;
-    return armor_is(&P->state, l, button);
+    return armor_is(&P->state, l, button) && tried_by(l, button);
 }
 
 /* The look's button goes on or off what is worn, and what the model wears follows. */
@@ -1091,12 +1127,6 @@ static u32 target_parts(u32 target)
     return parts;
 }
 
-/* A part the model tries on: what it wears there is not what is worn. */
-static int tried_on(u32 part)
-{
-    return P->state.armor[part][0] != layered_state.armor[part][0] || P->state.armor[part][1] != layered_state.armor[part][1];
-}
-
 /* RGBA as a dye: RGB565, black kept apart from the look's own colour. */
 static u32 dye_of(const u8 *rgba)
 {
@@ -1528,7 +1558,8 @@ static void preview_controls(u32 obj)
     camera_control_set(camera_control, camera_controls(camera_control, buttons, preview_stick(obj)));
 }
 
-/* Y, armor and Felynes: the look goes on the model, or, when the model wears it and it is not what is worn, off it. */
+/* Y, armor and Felynes: the look goes on the model, or, when the model wears it from this look and it is not what is
+   worn, off it. The same models tried on from another look stay, and become this look's (its eye). */
 static void try_on(const struct look *l)
 {
     struct preview *p = P;
@@ -1536,7 +1567,7 @@ static void try_on(const struct look *l)
     if (U->mode == M_FELYNE) {
         u32 on = cat_set(p->on.cat_numbers, l, button, 1, 0);
         p->on.cat_numbers = on == p->on.cat_numbers ? cat_set(on, l, button, 0, felyne_numbers()) : on;
-    } else if (armor_is(&p->state, l, button)) {
+    } else if (armor_is(&p->state, l, button) && tried_by(l, button)) {
         u32 parts = parts_of(l, button);
         for (u32 part = 0; part < ARMOR_PARTS; part++)
             if (parts >> part & 1) {
@@ -1546,6 +1577,7 @@ static void try_on(const struct look *l)
             }
     } else {
         armor_set(&p->state, l, button, 1);
+        tried_from(l, button);
     }
     p->pushed = 1;
 }
@@ -1594,12 +1626,14 @@ static void preview_hover(void)
 static void model_wears(const struct look *l, u32 button)
 {
     struct preview *p = P;
-    if (U->mode == M_WEAPON)
+    if (U->mode == M_WEAPON) {
         p->state.weapon[class_of()] = l->on.weapon->model;
-    else if (U->mode == M_FELYNE)
+    } else if (U->mode == M_FELYNE) {
         p->on.cat_numbers = cat_set(p->on.cat_numbers, l, button, 1, 0);
-    else
+    } else {
         armor_set(&p->state, l, button, 1);
+        tried_from(l, button);
+    }
     p->pushed = 1;
 }
 

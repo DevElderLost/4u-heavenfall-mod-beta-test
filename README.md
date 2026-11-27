@@ -18,13 +18,14 @@ Heavenfall Beta moves the menus of the bottom screen to the top screen, locks on
 |---|---|
 | **Windows** (Azahar or Citra) | [The Windows program](docs/install/windows.md) |
 | **Linux or macOS** (Azahar or Citra) | [The program from a script](docs/install/linux.md), or the web installer |
-| **Android** (Azahar) | [The web installer](docs/install/android.md) |
+| **Android** (no emulator; American game) | [The Heavenfall app](docs/install/android.md#the-heavenfall-app) |
+| **Android** (Azahar) | [The web installer](docs/install/android.md#azahar-and-the-web-installer) |
 | **Steam Deck** (Azahar) | [The web installer or the Linux script](docs/install/steam_deck.md) |
 | **A real 3DS or New 3DS** (custom firmware) | [The Heavenfall Launcher app](docs/install/3ds.md) |
 
-On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks and the Jukebox XX's songs. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
+On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimate** (European or American; the update is optional, except for the Android app, which needs the American game and its 1.3.0 update). **Your own decrypted copy of Monster Hunter XX** (Japanese) is optional: with it, Layered Gear also has XX's looks and the Jukebox XX's songs. You can dump your games from a cartridge or a 3DS with custom firmware ([how to dump your games](https://3ds.hacks.guide/dumping-titles-and-game-cartridges.html)).
 
-> **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
+> **Status:** Beta. It works with **Azahar** and **Citra** on PC, with **Azahar** or the Heavenfall app on Android, and on a real 3DS through the launcher (without Single Screen Mode, which is for emulators only). It has not been tried on a real Steam Deck yet.
 
 ## What the mod adds
 
@@ -42,7 +43,7 @@ On every platform you need **your own decrypted copy of Monster Hunter 4 Ultimat
 - **A smaller HUD**, from 90% to 60%.
 - **Layered Gear** at the Smithy: wear the look of any armor, weapon or Felyne gear over your own, with Monster Hunter XX's looks too, and the Wyporium's Rare Materials Exchange. Every item box puts on the looks you own, and your Guild Card shows them. Mod Settings can hide it for a character.
 - **Display options**: 3D, glow and blur off, frame rate, field of view and more.
-- **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
+- **Cheats**, off unless you tick **Enable cheats** when installing (on a 3DS: the launcher's More > Cheats): damage multipliers (dealt and taken), faster gathering, Capture Guru and Autotracker always on, quicker flex, sharpening and quest end, and more. Never play in multiplayer with cheats without telling the other hunters.
 
 **Your save stays MH4U's.** The game still reads and writes MH4U's own save files, and once it has saved with room on the SD card they hold nothing MH4U does not know; what only Heavenfall Beta has (Layered Gear, your settings, the Jukebox) is kept in files of its own beside them. There is nothing to do: you can play MH4U in between, and saves made with the earlier Beta carry on, with the original kept as a backup. [Playing MH4U without the mod](docs/back_to_mh4u.md) takes a few clicks, on a 3DS too.
 

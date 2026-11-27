@@ -22,7 +22,7 @@ executable_needs() reads all of it from the games (cacheable with the plan); pat
 import re
 import struct
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from core.game.files.arc import Arc, parse_arc
 from core.game.executable.code_space import COND_HI, Layout, load_layout
@@ -202,6 +202,17 @@ def executable_needs(plan, records: dict[str, list[bytes]], m4: pack.Signatures,
                     if groups is not None:
                         shown[(g, p.model)] = shown_hair(hair[(g, p.source)], groups, g)
     return ExecutableNeeds(donors, effects, hair_donors, dict(cloth), shown, armor_sounds)
+
+
+def display_needs(needs: ExecutableNeeds, displays) -> ExecutableNeeds:
+    """`needs` with the preview copy of each weapon of `displays` (equipment_pack.DisplayParts) given that weapon's
+    gimmick donor and effect bytes: the copy is the same weapon at another id, its sounds in its own archive."""
+    donors, effects = dict(needs.donors), dict(needs.effects)
+    for d in displays:
+        donors[(d.slot, d.preview)] = needs.donors[(d.slot, d.worn)]
+        if (d.slot, d.worn) in needs.effects:
+            effects[(d.slot, d.preview)] = needs.effects[(d.slot, d.worn)]
+    return replace(needs, donors=donors, effects=effects)
 
 
 def donor_table(donors: dict[tuple[str, int], int]) -> bytes:

@@ -17,7 +17,9 @@ condition reads the save):
   record's conditions;
 * a look a ported monster's gear wears (Mizutsune, Glavenus, Alatreon, Great Maccao), joined by model: the forge rule of
   that gear, as the game's tables have it in this run (its recipe's first material when gated, its parents' bits), in
-  place of "always" (not for a Felyne row of the game's own, which keeps its own rule). A look of the same monster that
+  place of "always" (not for a Felyne row of the game's own, which keeps its own rule); a weapon look of XX whose first
+  ported piece (by rarity, then id, as a look is named) is upgrade-only, always (forge_rule.ForgeRules.weapon_look).
+  A look of the same monster that
   no piece of his wears (Hellblade is Glavenus', Soulseer Mizutsune's; the sets of his the port does not use) appears
   when his looks of the same rank do: the union of their ported rules, else the next ranks'
   (xx_prices.equivalent_forge).
@@ -60,7 +62,7 @@ from collections.abc import Collection, Mapping
 from dataclasses import dataclass, field
 
 from core.equipment.layered.felyne_looks import GAME_MH4U, NO_LOOKS, FelyneLooks, FelyneRow, felyne_rows
-from core.equipment.layered.forge_rule import ALWAYS_WORD, ForgeRules, condition_word
+from core.equipment.layered.forge_rule import ALWAYS, ALWAYS_WORD, ForgeRules, condition_word
 from core.equipment.layered.look_order import ORDER_POSITION, ORDER_RELIC, list_facts, run_orders
 from core.equipment.layered.looks import NOTHING_KEY, STATE_WEAPONS, Looks, load_curated, load_looks
 from core.equipment.layered.prices import load_prices, shown_ranks
@@ -413,6 +415,7 @@ def _ported(tables, looks: Looks, gen, rows: list[FelyneRow]) -> dict[tuple, set
         return found
     rules = ForgeRules(tables)
     catalogs = [looks.weapons] + ([gen.weapons] if gen is not None else [])
+    first: dict[tuple, tuple[int, int, str]] = {}       # an XX look -> (rarity, id, class) of the piece naming it
     for cls, i in weapons:
         model = tables.weapons[cls.key][i]["model"]
         if model and model != FALLBACK_MODEL:
@@ -420,7 +423,14 @@ def _ported(tables, looks: Looks, gen, rows: list[FelyneRow]) -> dict[tuple, set
             for catalog, by_class in enumerate(catalogs):
                 for position, look in enumerate(by_class[cls.key]):
                     if look.model == model:
-                        found["weapon", catalog, c, position] |= rules.weapon(cls.key, i)
+                        at = "weapon", catalog, c, position
+                        found[at] |= rules.weapon(cls.key, i)
+                        if catalog == 1:
+                            first[at] = min(first.get(at, (999, i, cls.key)),
+                                            (tables.weapons[cls.key][i]["rarity_index"], i, cls.key))
+    for at, (_, i, key) in first.items():
+        if rules.upgrade_only(key, i):
+            found[at] = {ALWAYS}
     for part, i in armor:
         record = tables.armor[part.key][i]
         pair = record["model_m"], record["model_f"]

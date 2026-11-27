@@ -13,7 +13,8 @@ from pathlib import Path
 from core.game.data.paths import CURATED_DIR
 
 EDITION_FILE = CURATED_DIR / "edition.json"
-PAGES = ("install", "options", "randomizer", "saves")    # the GUI's pages an edition may have (gui/qt/app.py)
+ANDROID_APP_FILE = CURATED_DIR / "android_app.json"     # the Android app's own data, apart from every edition
+PAGES = ("install", "options", "randomizer", "saves", "debug")   # the GUI's pages an edition may have (gui/qt/app.py)
 PLATFORMS = ("emulator", "console")             # "console": a real 3DS (luma.py)
 TOOLS_LANGUAGES = ("es", "en")
 
@@ -103,6 +104,72 @@ def _console_release(values: dict | None, path: Path) -> ConsoleRelease | None:
 
 
 @dataclass(frozen=True)
+class AndroidRelease:
+    """The files of the edition's GitHub release that Heavenfall for Android reads: the patch set of the American game
+    without MH XX and with it, the release's own copy of its
+    releases/latest answer, and the titles of the game and of its update (the set's executable and exheader come from
+    the update). The release's shared file is the console release's. `public`: the edition's repository can be read by
+    the app, so the app's editions table lists it."""
+    patch_usa: str
+    patch_usa_xx: str
+    release_file: str
+    game_title: str
+    update_title: str
+    public: bool
+
+    def patch(self, xx: bool = False) -> str:
+        return self.patch_usa_xx if xx else self.patch_usa
+
+    def patches(self) -> tuple[str, ...]:
+        """Every patch set's name: plain, then with MH XX."""
+        return (self.patch_usa, self.patch_usa_xx)
+
+
+_ANDROID_KEYS = ("patch_usa", "patch_usa_xx", "release_file", "game_title", "update_title", "public")
+UPDATE_APPLICATION = "0004000E"                 # a title id's high word for an application's update
+
+
+def _hex_title(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 16 and all(c in "0123456789abcdefABCDEF" for c in value)
+
+
+def _android_release(values: dict | None, path: Path) -> AndroidRelease | None:
+    if values is None:
+        return None
+    names = [values.get(key) for key in _ANDROID_KEYS[:3]]
+    game, update = values.get("game_title"), values.get("update_title")
+    if set(values) != set(_ANDROID_KEYS) or len(set(names)) != len(names) or not all(
+            isinstance(n, str) and n and "/" not in n for n in names) or not isinstance(values["public"], bool):
+        raise ValueError(f"{path}: bad android_release (exactly {', '.join(_ANDROID_KEYS)}: three different file "
+                         "names and a true or false public)")
+    if not (_hex_title(game) and _hex_title(update) and game.startswith(APPLICATION)
+            and update.upper() == UPDATE_APPLICATION + game[8:].upper()):
+        raise ValueError(f"{path}: bad android_release titles (the game's, 00040000..., and its update's, "
+                         "0004000E... with the same low word)")
+    return AndroidRelease(*names, game, update, values["public"])
+
+
+@dataclass(frozen=True)
+class AndroidApp:
+    """The app itself: its repository and the files of its GitHub release that it
+    updates itself from."""
+    repository: str
+    apk: str
+    release_file: str
+
+
+def load_android_app(path: Path = ANDROID_APP_FILE) -> AndroidApp:
+    values = json.loads(Path(path).read_text(encoding="utf-8"))
+    values.pop("description", None)
+    if set(values) != {"repository", "apk", "release_file"} or not all(
+            isinstance(v, str) and v for v in values.values()) or values["repository"].count("/") != 1 or any(
+            "/" in values[key] for key in ("apk", "release_file")) or values["apk"] == values["release_file"]:
+        raise ValueError(f"{path}: bad android app (exactly repository 'owner/name', apk and release_file: two "
+                         "different file names)")
+    return AndroidApp(**values)
+
+
+@dataclass(frozen=True)
 class Edition:
     name: str                   # the product in the GUI's sentences ("<name> installed.")
     window_title: str
@@ -126,6 +193,7 @@ class Edition:
     own_save: bool = False      # the game plays on Heavenfall's own save; the program brings hunters in
     console_title: ConsoleTitle | None = None       # required with the "console" platform
     console_release: ConsoleRelease | None = None   # the release files the 3DS app downloads (launcher)
+    android_release: AndroidRelease | None = None   # the ones Heavenfall for Android downloads (with console_release)
 
     @property
     def xx_offered(self) -> bool:
@@ -149,7 +217,8 @@ def load_edition(path: Path = EDITION_FILE) -> Edition:
                                                   "legacy_build_markers") if key in values}
     console = _console_title(values.pop("console_title", None), path)
     release = _console_release(values.pop("console_release", None), path)
-    edition = Edition(**{**values, **lists}, console_title=console, console_release=release)
+    android = _android_release(values.pop("android_release", None), path)
+    edition = Edition(**{**values, **lists}, console_title=console, console_release=release, android_release=android)
     unknown = [key for key in edition.pages if key not in PAGES] + \
         [key for key in edition.platforms if key not in PLATFORMS]
     if unknown or not edition.pages or not edition.platforms or edition.tools_language not in TOOLS_LANGUAGES:
@@ -158,6 +227,12 @@ def load_edition(path: Path = EDITION_FILE) -> Edition:
         raise ValueError(f"{path}: the console platform needs console_title")
     if release is not None and console is None:
         raise ValueError(f"{path}: console_release needs console_title (the titles the launcher installs)")
+    if android is not None:
+        if release is None:
+            raise ValueError(f"{path}: android_release needs console_release (its shared file is the release's)")
+        taken = {*release.patches(), release.release_file, release.shared_file, release.app_cia, release.app_3dsx}
+        if taken & {*android.patches(), android.release_file}:
+            raise ValueError(f"{path}: android_release names a file console_release names (one release holds both)")
     return edition
 
 

@@ -21,12 +21,27 @@ typedef unsigned int u32;
 #define TOP_SCREEN 0
 #define RESOURCE_GET 0x38       /* sResource's vtable: the load of a resource by its type and name */
 #define HANDLE_NAME 8           /* a file handle: its name */
+#define LOAD_SYNC 1             /* sResource's load mode that reads before it returns (2: queued; B127) */
 
 struct quest_layout {
     u32 frame;                  /* void (*)(void), 0: an empty entry */
-    u32 index;                  /* its group's slot in the GUI manager */
+    u32 index;                  /* its group's slot in the GUI manager (low half); the high half, its frame's pack's
+                                 * slot + 1 (0: resident): the entry is skipped while that pack is out (its state byte,
+                                 * game/executable/pack_table.h) */
     char path[PATH];            /* its layout in core_quest.arc, without the language */
 };
+
+#define INDEX(entry) ((entry)->index & 0xFFFF)
+
+extern unsigned char pack_state[];  /* the packs' state bytes (blocks.py VARIABLES): bit 0 set while in */
+
+/* the entry's frame can run: resident, or its pack is in */
+static int present(const struct quest_layout *entry)
+{
+    u32 pack = entry->index >> 16;
+
+    return entry->frame != 0 && (pack == 0 || pack_state[pack - 1] & 1);
+}
 
 struct quest_layouts {          /* the block quest_layouts_data (quest_layouts.py data_block) */
     struct quest_layout entry[ENTRIES];
@@ -54,7 +69,7 @@ void quest_frame(void)
     int i;
 
     for (i = 0; i < ENTRIES; i++)
-        if (quest_layouts_data.entry[i].frame != 0)
+        if (present(&quest_layouts_data.entry[i]))
             ((frame_function)quest_layouts_data.entry[i].frame)();
 }
 
@@ -67,7 +82,7 @@ void quest_unload(u32 gui)
         return;
     for (i = 0; i < ENTRIES; i++)
         if (quest_layouts_data.entry[i].frame != 0 && quest_layouts_data.entry[i].path[0] != 0)
-            free_group(manager, quest_layouts_data.entry[i].index);
+            free_group(manager, INDEX(&quest_layouts_data.entry[i]));
 }
 
 /* `loader` the file loader, `handle` the variable of FUN_00c1017c's frame its loads go through, `language` its own */
@@ -81,15 +96,15 @@ void quest_load(u32 gui, u32 loader, u32 *handle, u32 language)
         u32 manager, layout;
         const char *name;
 
-        if (entry->frame == 0 || entry->path[0] == 0)
+        if (!present(entry) || entry->path[0] == 0)
             continue;
         load_file(loader, handle, entry->path, language, 0);
         manager = resource_manager;
         name = *handle != 0 ? (const char *)(*handle + HANDLE_NAME) : empty_name;
-        layout = ((resource_get)W(W(manager, 0), RESOURCE_GET))(manager, layout_dti, name, 1);
+        layout = ((resource_get)W(W(manager, 0), RESOURCE_GET))(manager, layout_dti, name, LOAD_SYNC);
         if (layout == 0)
             continue;
-        create_groups(gui, TOP_SCREEN, entry->index, layout);
+        create_groups(gui, TOP_SCREEN, INDEX(entry), layout);
         resource_release(layout);
     }
 }

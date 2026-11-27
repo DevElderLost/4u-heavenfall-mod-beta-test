@@ -74,11 +74,19 @@ OPTION_IDS = {
     "upgrade_stars": 36, "rare_rewards": 37, "upgrade_stars_colour": 38,
     "honing_glow": 39,
     "town_map": 40,
+    # More of the Cheats group: the extra aspect ratio (cheats/aspect_ratio.c) and the damage multipliers
+    # (cheats/damage_multipliers/)
+    "cheat_aspect_18_9": 41, "cheat_damage_dealt": 42, "cheat_damage_taken": 43,
+    # ... and the Charge Blade's guard point (cheats/guard_point/)
+    "cheat_cb_guard_point": 44,
 }
 # The rows of a feature the installer chooses, which mean nothing without it: the row, the feature's Settings field
+# (or property)
 FEATURE_ROWS = {"layered_looks": "layered_equipment",  # Layered Gear's switch (equipment/layered/layered_switch.c)
                 # the town minimap's start (interface/single_screen/executable/single_screen_minimap_hall.c)
-                "town_map": "single_screen"}
+                "town_map": "single_screen",
+                # the extra aspect ratio needs the aspect ratio's hooks (Settings.aspect_on: the installer's switch)
+                "cheat_aspect_18_9": "aspect_on"}
 CHEATS_ALLOWED = "cheats_allowed"   # the gate's variable (mod_options.c struct cheats_allowed)
 GATE_SIZE = 12                  # struct cheats_gate: two words of gated options, the retry's frames, a pad
 MAX_OPTIONS = 52                # the room (mod_options.c MOD_OPTIONS; mod_options_state.values): zone bytes 10-35
@@ -348,10 +356,18 @@ def _cheat_supports() -> dict[str, Any]:
     """The check of each cheat's hooks (core/cheats/), by the option key of its row. The modules import this one for
     the number of rows, so they are loaded when asked for."""
     from core.cheats.action_cancel.action_cancel import FLEX_OPTION, WHETSTONE_OPTION, supports_action_cancel
+    from core.cheats.aspect_ratio import CHEAT_ROW as ASPECT_ROW, supports_aspect_ratio
+    from core.cheats.damage_multipliers.damage_multipliers import (
+        CHEATS as DAMAGE_MULTIPLIERS, supports_damage_multipliers,
+    )
+    from core.cheats.guard_point.guard_point import CHEATS as GUARD_POINT, supports_guard_point
     from core.cheats.map_skills.map_skills import CHEATS as MAP_SKILLS, supports_map_skills
     from core.cheats.quest_timers.quest_timers import CHEATS as QUEST_TIMERS, supports_quest_timers
     return {**dict.fromkeys((FLEX_OPTION, WHETSTONE_OPTION), supports_action_cancel),
-            **dict.fromkeys(MAP_SKILLS, supports_map_skills), **dict.fromkeys(QUEST_TIMERS, supports_quest_timers)}
+            **dict.fromkeys(MAP_SKILLS, supports_map_skills), **dict.fromkeys(QUEST_TIMERS, supports_quest_timers),
+            **dict.fromkeys(DAMAGE_MULTIPLIERS, supports_damage_multipliers),
+            **dict.fromkeys(GUARD_POINT, supports_guard_point),
+            ASPECT_ROW: lambda code: supports_aspect_ratio(code, menu=False)}
 
 
 def supports_mod_options(code: bytes) -> bool:
@@ -446,12 +462,16 @@ def patch_mod_options(code: bytes, settings: Any, available: list[str], layout: 
 
 def patch_cheats_options(code: bytes, available: list[str], layout: Layout) -> bytes:
     """`code` with the hooks of the Cheats group's rows in `available` (a mod without `cheats_enabled` has none of them
-    there): each cheat reads its row's number in OPTION_IDS (core/cheats/gates.py)."""
+    there): each cheat reads its row's number in OPTION_IDS (core/cheats/gates.py). The extra aspect ratio's row has
+    no hook here: the aspect ratio's code reads it (cheats/aspect_ratio.py CHEAT_ROW)."""
     from core.cheats.action_cancel.action_cancel import FLEX_OPTION, NO_OPTION, WHETSTONE_OPTION, patch_action_cancel
+    from core.cheats.damage_multipliers.damage_multipliers import patch_damage_multipliers
+    from core.cheats.guard_point.guard_point import patch_guard_point
     from core.cheats.map_skills.map_skills import patch_map_skills
     from core.cheats.quest_timers.quest_timers import patch_quest_timers
     chosen = {key: OPTION_IDS[key] for key in available if key in OPTION_IDS}
     out = patch_map_skills(patch_quest_timers(code, chosen, layout), chosen, layout)
+    out = patch_guard_point(patch_damage_multipliers(out, chosen, layout), chosen, layout)
     if FLEX_OPTION in chosen or WHETSTONE_OPTION in chosen:
         out = patch_action_cancel(out, layout, (chosen.get(FLEX_OPTION, NO_OPTION),
                                                 chosen.get(WHETSTONE_OPTION, NO_OPTION)))

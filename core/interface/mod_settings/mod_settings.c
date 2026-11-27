@@ -39,7 +39,7 @@ typedef short s16;
 #define ACTION 0x14             /* mod_settings.py ACTION */
 #define KIND 0x2F               /* mod_settings.py KIND */
 #define MAX_LISTS 14            /* mod_settings.py MAX_LISTS */
-#define MAX_TABLE 72            /* mod_settings.py MAX_TABLE */
+#define MAX_TABLE 80            /* mod_settings.py MAX_TABLE */
 #define SUBLIST_ROWS 5          /* mod_settings.py SUBLIST_ROWS: the game's own lines of its small list */
 #define PAGE_LIST_ROWS 10       /* mod_settings.py LIST_PAGE_ROWS: a page of a small list */
 #define BIG_GAME_ROWS 8         /* the game's own lines of its big list; ui020 has two more (ten_rows.py) */
@@ -162,10 +162,10 @@ struct mod_settings_data {      /* the curated table (mod_settings.py settings_d
                                    (mod_options.c mod_cheats_allowed): 0 but in a 3DS title, which has the gate */
     u8 pad;
 };
-_Static_assert(__builtin_offsetof(struct mod_settings_data, cheats_rows) == 946, "mod_settings.py settings_data");
-_Static_assert(sizeof(struct mod_settings_data) == 948, "blocks.py MOD_SETTINGS_DATA_SIZE");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 820, "blocks.py MOD_SETTINGS_PANE_HASHES");
-_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 936, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, cheats_rows) == 1026, "mod_settings.py settings_data");
+_Static_assert(sizeof(struct mod_settings_data) == 1028, "blocks.py MOD_SETTINGS_DATA_SIZE");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, panes) == 900, "blocks.py MOD_SETTINGS_PANE_HASHES");
+_Static_assert(__builtin_offsetof(struct mod_settings_data, raise) == 1016, "blocks.py MOD_SETTINGS_PANE_HASHES");
 
 enum { LEVEL_LIST, LEVEL_SCREEN };
 

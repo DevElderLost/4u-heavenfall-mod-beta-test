@@ -21,6 +21,8 @@ American; the program does it for the player):
     romfs/<lang>/data/*.arc        the single-screen layouts, the smaller HUD, the Smithy's and the Wyporium's texts,
                                    the weapon tree's panes
     romfs/...                      with MH XX: the models of XX's looks
+    romfs/packs/<pack>.bin         the code the executable keeps out of memory until a scene needs it (only when a
+                                   feature has a pack)
     exefs/code.bin, exheader.bin   the whole executable with the patches: written for the canonical executable and
                                    carried onto the player's own version (docs/how_it_works.md, "The executable"); the
                                    exheader is his game's, extended when a patch uses the executable's extension
@@ -35,6 +37,7 @@ from pathlib import Path
 
 from core.equipment.layered import felyne_looks
 from core.equipment.layered.layered_equipment import patch_layered_equipment, supports_layered_equipment
+from core.equipment.layered.repeats import pack_without_repeats
 from core.equipment.layered.texts import layered_text_files, remove_layered_text_files
 from core.equipment.layered.xx_materials import add_materials, load_materials
 from core.equipment.mhgen import felyne_pack
@@ -47,14 +50,15 @@ from core.equipment.new_gear.new_texts import CommonTexts
 from core.game.executable.romfs import RomFS
 from core.game.executable.code_bin import is_container
 from core.game.executable.containers import kept_reads
-from core.game.executable import session, titles
+from core.game.executable import pack_loader, packs as code_packs, session, titles
 from core.cheats.cheats import patch_cheats, supports_cheats, wants_cheats
 from core.game.files.text.common_texts import remove_common_text_files
 from core.interface.mod_settings.mod_options import (
     OPTION_IDS, available_options, patch_mod_options, supports_mod_options,
 )
 from core.interface.mod_settings.menu_files import menu_page_files
-from core.game.executable.memory_split import patch_memory_split, resource_to_root_mb
+from core.game.executable.memory_boot import check_rows_current, patch_memory_boot
+from core.game.executable import port_manifest
 from core.game.executable.output import remove_exefs, write_exefs
 from core.game.executable.player_code import open_code
 from core.game.executable.rebase import feature_gaps
@@ -84,7 +88,7 @@ from core.interface.weapon_tree.tree_layout import weapon_tree_files
 from core.interface.weapon_tree.tree_texts import message_base as tree_message_base
 from core.interface.weapon_tree.weapon_tree import patch_weapon_tree
 from core.interface.world_sharpness.world_sharpness import patch_world_sharpness
-from core.interface.item_marks.art import sheet_files as item_marks_sheet_files
+from core.interface.item_marks.art import texture_files as item_marks_texture_files
 from core.interface.mod_settings.box_appearance import lobby_files, patch_stage_lists, supports_stage_lists
 from core.interface.appearance_peek.appearance_peek import (
     patch_appearance_peek, peek_files, peek_message, supports_appearance_peek,
@@ -124,6 +128,8 @@ class RunResult:
     interface_patched: bool = False  # the executable carries the interface patches
     notices: list[str] = field(default_factory=list)  # features left out (no ROM, or not on this game version)
     game_version: str | None = None  # the version the executable was built from (game/executable/versions.py key)
+    packs: dict[str, bytes] = field(default_factory=dict)  # the code packs of the player's version (pack -> image)
+    pack_paths: list[Path] = field(default_factory=list)  # their files in the mod's RomFS (packs.write_files)
     checksum: None = None  # nothing is randomized: there is no code to compare
     settings_path: Path | None = None  # settings_<seed>.json
     # the mod folder's name: the game's region (game/executable/titles.py)
@@ -171,7 +177,7 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
     Exchange's, the Smithy's weapon tree's (`weapon_tree`: its messages and its panes in the facility menu's layout),
     Damage Numbers', the Hunting Horn's songs' and the item wheel's layouts (`damage_numbers`, `horn_songs`,
     `radial_wheel`: its picture in core_quest and, with `menu_texts`, Edit Slots' in core_common), the
-    single-screen mode's RomFS files, the item marks' stars in the icon sheet (`item_marks`), Change Appearance's
+    single-screen mode's RomFS files, the item marks' texture (`item_marks`), Change Appearance's
     layout in the lobby's ARC (`box_appearance`), its L cue and word (`appearance_peek`), and with the game's
     files always the font's (its blank characters, away from its glyphs). They may change the same ARCs, so each is
     made on the previous
@@ -226,8 +232,8 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
         made = single_screen_romfs(rom, {**hud, **names, **texts, **own}, edge if anchored else None)
         screens, offsets, engine_table, engine_groups = made.files, made.offsets, made.engine_table, made.engine_groups
     written = {**hud, **names, **texts, **own, **screens}
-    if item_marks and rom is not None:      # the stars and halo in each language's icon sheet, on the others' copies
-        written |= dict(item_marks_sheet_files(rom.read, written))
+    if item_marks and rom is not None:      # the stars' own texture in each core_common, on the others' copies
+        written |= dict(item_marks_texture_files(rom.read, written))
     if rom is not None:     # always: the font's blank characters away from its glyphs (interface/font/blank_glyphs.py)
         written |= font_files(lambda path: written.get(path) or rom.read(path))
     # after all of them: the backdrops of the files as they are, and the table of each layout's final places
@@ -249,7 +255,7 @@ def write_interface_files(result: RunResult, rom: RomFS | None, settings: Settin
 def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | None = None,
         code_path: Path | None = None, stage: Callable[[str], None] | None = None, record: RunRecord | None = None,
         xx_rom: Path | None = None, console: bool = False, probe: Probe | None = None,
-        title_build: bool = False) -> RunResult:
+        title_build: bool = False, port: bool = False) -> RunResult:
     """`game` is the player's base game (European or American). The executable is his own: the game's, or
     `code_path`'s (a code.bin or game file of any version with a map, for developers and tests). It is laid out as the
     canonical one, every patcher works on that image, and the patched image is carried back onto his bytes
@@ -265,7 +271,9 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     (Settings.for_console: no single-screen mode) and the START menu's rows a console allows, the Cheats group always,
     shown and on only once the launcher's flag file allows it (mod_options.py patch_mod_options); its executable reads
     the game from the game data title and the mod's files from its own RomFS first (install/title/split_romfs.py), and
-    its exheader may open the game data title. `probe`: a developer probe's own patch, after the mod's (Probe). A module
+    its exheader may open the game data title. `port`: the mod is for a recompiled game, built from an update it runs
+    (`code_path`: USA v1.3.0 or EUR v1.1.0), with the file naming our code for the recompiler
+    (game/executable/port_manifest.py). `probe`: a developer probe's own patch, after the mod's (Probe). A module
     whose switch is off in `settings` has every field of it at the game's own value (presets.apply_modules) and no row
     in the START menu's page. Layered Gear's new items are defined in every run, its module on or off, so the
     executable is written even with every module off."""
@@ -288,6 +296,8 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     # The player's executable (the game's, or code_path's) as the canonical one: an unknown one fails before any work
     player = open_code(code_path or game, game)
     code = player.image
+    if port and (title_build or player.version.key not in port_manifest.TITLES):
+        port_manifest.title("the installed title" if title_build else player.version.key)    # raises: not one it runs
     # the installed title reads the game from the game data title: its build refuses an executable that cannot
     if title_build and not (player.exheader is not None and supports_split_romfs(code)):
         raise ValueError("the installed title's build needs the game ROM and its executable's RomFS mount")
@@ -312,7 +322,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     damage = in_menu and "damage_numbers" in menu_options     # its layout and its page's option
     horn = in_menu and "horn_songs" in menu_options           # the Hunting Horn's songs: the same, on by default
     world_sharpness = in_menu and "world_sharpness" in menu_options     # the World-style sharpness gauge: only code
-    item_marks = in_menu and any(key in menu_options for key in ITEM_MARKS_OPTIONS)   # code and the icon sheet's art
+    item_marks = in_menu and any(key in menu_options for key in ITEM_MARKS_OPTIONS)   # code and its texture
     # Change Appearance at every item box: its layout in the lobby's ARC and every town area's stage list, with the
     # box's option (interface/mod_settings/box_appearance.py); both halves or neither
     box_appearance = in_menu and "box_equipment" in menu_options
@@ -373,8 +383,9 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if not with_sidecar:
         notices.append(left_out("the save's extra files", "the game keeps MH4U's plain save",
                                 NEEDS_ROM if player.exheader is None else NOT_AVAILABLE))
-    # MH XX's looks, and the rare materials of its monsters that MH4U lacks: only with its game and Layered Gear
-    prepared = cached_pack(Path(xx_rom), Path(game)) if layered and xx_rom is not None else None
+    # MH XX's looks, and the rare materials of its monsters that MH4U lacks: only with its game and Layered Gear; the
+    # looks the same as an earlier one are left out, with the models only they wore (layered/repeats.py)
+    prepared = pack_without_repeats(cached_pack(Path(xx_rom), Path(game))) if layered and xx_rom is not None else None
     materials = load_materials() if prepared else None
     # the items are defined in every run, Layered Gear on or off and XX's game given or not (their records are
     # committed): a save that got one while Layered Gear was on reads it in any build, never an undefined id's junk
@@ -398,6 +409,7 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                                        RomFS(xx_rom).exists if prepared else None)
     felyne_looks_pack = felyne_looks.convert_looks(RomFS(xx_rom), RomFS(game), felynes) if felynes else None
     felyne_pack.remove_files(output_dir)
+    code_packs.remove_files(output_dir)     # the code packs of an earlier run (written with the executable)
     if felyne_looks_pack:
         felyne_pack.write_files(output_dir, felyne_looks_pack)
         made_from_xx.update({"romfs/" + path: read for path, read in felyne_looks_pack.sources.items()})
@@ -430,13 +442,12 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
     if not (patch_interface_code or single_screen or cheats or select_start or in_menu or layered or exchange or intro
             or jukebox_plan is not None or with_sidecar or added or title_build or probe is not None):
         remove_exefs(output_dir)  # nothing to patch; a patch left by an earlier run would still be applied
+        port_manifest.remove(output_dir)
     else:
         with session.recording(notes):
             patched = added.code if added else code
             if materials:   # the Wyporium's trades of XX's new materials (gameplay/wyporium/trades.py)
                 patched = patch_trades(patched, materials, by_rank=settings.layered_by_rank)
-            # room for the executable's extension on an Old 3DS (docs/how_it_works.md, "The executable")
-            patched = patch_memory_split(patched, resource_to_root_mb())
             book = added.book if added else None    # the new items by name
             item_ids = {book.english[key]: item for key, item in book.ids.items()} if book else None
             if intro:       # the character creation's last call
@@ -493,14 +504,28 @@ def run(game: Path, output_dir: Path, settings: Settings, progress: Callable | N
                 patched = patch_executable(patched, prepared.needs)
             if title_build:     # the installed title's: the game data as `rom:`, its own RomFS first
                 patched = patch_split_romfs(patched)
+            # the packs' loader, its table and the scene gate, once every patch has placed its blocks: only a run with a
+            # pack places them
+            patched = pack_loader.patch_run(patched, notes, probe.layout if probe is not None else None)
+            # the heap sizes at boot, made for the executable's end: last of its patches (docs/how_it_works.md, "The
+            # executable"); a probe's diagnostics after it come out of the root heap's margin
+            patched = patch_memory_boot(patched, extensible=player.exheader is not None)
             if probe is not None:
                 patched = probe.patch(patched)
+            else:
+                check_rows_current(patched, extensible=player.exheader is not None)
         # The patches carried onto the player's own executable, and the whole code.bin written with his game's
         # exheader (extended when a block is in the extension)
         built = player.carry(patched, notes, probe.layout if probe is not None else None)
         result.executable_path = write_exefs(output_dir, player.original, built.code,
                                              title_exheader(player.exheader) if title_build else player.exheader)
+        if port:
+            port_manifest.write(output_dir, built.code, player.original, player.version.key, images=built.packs)
+        else:
+            port_manifest.remove(output_dir)    # an earlier run's: it names that run's code
         result.game_version = player.version.key
+        result.packs = built.packs
+        result.pack_paths = code_packs.write_files(output_dir, built.packs)    # read from `rom:` (`mod:` in a title)
     result.settings_path = output_dir / f"settings_{settings.seed}.json"
     save_run(result.settings_path, settings, record or RunRecord())
     return result

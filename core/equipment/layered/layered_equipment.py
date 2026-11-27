@@ -4,12 +4,12 @@ local hunter then wears them, the selector shows them on the Smithy's preview hu
 
 The Smithy's menu is one of the lobby's facility menus (lyt\\lobby\\ui401, drawn by FUN_00a528e0 from per-menu
 tables in .rodata). The patch adds the line to the Smithy's three menus in those tables, sends its choice to
-the block layered_selector (equipment/layered/layered_selector.c), and gives the facility menu a menu 18 whose lines
-the block fills. The look lists are the data block layered_data: MH4U's, and MH
-Generations' when its pack is in the run (equipment/mhgen/looks.py; a "Generations" line on the selector's root). The
-messages are added to E_makeshop by core/equipment/layered/texts.py, at the indices used here. The Felynes' looks
-(felyne_looks.py, felyne_looks.c) add a line to the selector and their own hooks (FELYNE_CALLS). Update's executable
-only.
+the block layered_selector (equipment/layered/layered_selector.c; its stubs call the town block layered_town,
+layered_menu.c), and gives the facility menu a menu 18 whose lines the block fills (docs/equipment/
+layered_equipment.md). The look lists are the data block layered_data: MH4U's, and MH Generations' when its pack is in
+the run (equipment/mhgen/looks.py; a "Generations" line on the selector's root). The messages are added to E_makeshop
+by core/equipment/layered/texts.py, at the indices used here. The Felynes' looks (felyne_looks.py, felyne_looks.c)
+add a line to the selector and their own hooks (FELYNE_CALLS). Update's executable only.
 """
 
 import struct
@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from core.equipment.layered.felyne_looks import MESSAGES, NO_LOOKS, FelyneLooks, felyne_data
 from core.equipment.layered.layered_rules import Relics, layered_rules, relic_trim
 from core.equipment.layered.looks import NO_ARMOR as NO_ARMOR      # layered_state's "no model" (tests read it here)
-from core.equipment.layered.looks import STATE_PARTS, STATE_WEAPONS, Looks, load_looks
+from core.equipment.layered.looks import NOTHING_KEY, STATE_PARTS, STATE_WEAPONS, Looks, load_looks
 from core.equipment.layered.menu_layout import forge_screen_data
 from core.equipment.layered.prices import load_prices, shown_ranks
 from core.equipment.layered.texts import (
@@ -288,7 +288,9 @@ CATALOG = "II14I14H2H"
 HEADER = struct.Struct("<I" + 2 * CATALOG + "4H14BH38B19BBH")
 SET_RECORD = struct.Struct("<3H2B")        # male, female, name, parts (layered_state order), flags (below)
 PARTS_RECORD = struct.Struct("<10H")      # an XX set's (male, female) per part
-WEAPON_RECORD = struct.Struct("<3HBx")    # model, name, weapon id (0: it has none), rank (1-3)
+# model, name, weapon id (0: it has none), rank (1-3), the model the screens' preview wears instead (0: the look's own;
+# XX's weapons with parts shown only in the craft display, mhgen.looks GenLooks.preview_models)
+WEAPON_RECORD = struct.Struct("<3H2B")
 # A set's own colour per part (layered_state order), male then female: an entry of the palette (RGB, 3 bytes each),
 # NO_COLOUR when not known (the real piece's colour shows). MH4U's: the default dye (the armor record's ARMOR_DYE in
 # the game's DYE_TABLE) of the look's piece of that part and gender; XX's: its series' (mhgen.looks GenSet.colours).
@@ -448,6 +450,25 @@ def _wire_model(model: int) -> None:
                              "equipment/layered/layered_online.c")
 
 
+def check_part_models(looks: Looks, gen: "GenLooks | None" = None) -> None:
+    """No two looks of one catalog wear the same models on a part, and none but Nothing wears NO_ARMOR: the try-on's eye
+    tells the look tried on a part by its model and its catalog (layered_forge.c tried_by; docs/equipment/
+    layered_equipment.md, "The try-on mark"). A look of MH4U and one of XX may share them."""
+    catalogs = [[(look.key, {part: (look.male, look.female) for part in look.parts}) for look in looks.armor]]
+    if gen is not None:
+        catalogs.append([(s.look.key, dict(s.models)) for s in gen.sets])
+    for catalog in catalogs:
+        wearer: dict[tuple, str] = {}
+        for key, models in catalog:
+            for part, pair in models.items():
+                if NO_ARMOR in pair and key != NOTHING_KEY:
+                    raise CodeSpaceError(f"look {key} wears no model on its {part}: only Nothing does")
+                if (part, tuple(pair)) in wearer:
+                    raise CodeSpaceError(f"looks {wearer[part, tuple(pair)]} and {key} of one catalog wear the same "
+                                         f"models {tuple(pair)} on the {part}: the try-on's eye cannot tell them apart")
+                wearer[part, tuple(pair)] = key
+
+
 def _rank(look, shown: Mapping[str, int]) -> int:
     """A look's rank for the records (the screens' filter and rank gate): 1 low, 2 high, 3 G; `shown` moves a look up
     (prices.shown_ranks: what it asks first drops at a higher rank)."""
@@ -479,13 +500,14 @@ def _mh4u_records(looks: Looks, relics: Relics, shown: Mapping[str, int]) -> tup
         for look in looks.weapons[key]:
             name = CUSTOM_NAME | next(custom) if look.weapon < 0 or look.number else look.weapon
             _wire_model(look.model)
-            records += WEAPON_RECORD.pack(look.model, name, max(look.weapon, 0), _rank(look, shown))
+            records += WEAPON_RECORD.pack(look.model, name, max(look.weapon, 0), _rank(look, shown), 0)
         weapons.append(bytes(records))
     return sets, weapons
 
 
 def _gen_records(looks: Looks, gen: "GenLooks", shown: Mapping[str, int]) -> tuple[bytes, bytes, list[bytes]]:
-    """XX's sets (named from gen_set_base on), their models per part, and their weapons, named after the sets."""
+    """XX's sets (named from gen_set_base on), their models per part, and their weapons, named after the sets, each
+    with the model the screens' preview wears for it when that is another (GenLooks.preview_models)."""
     sets, parts = bytearray(), bytearray()
     base = gen_set_base(looks)
     for index, s in enumerate(gen.sets):
@@ -498,7 +520,8 @@ def _gen_records(looks: Looks, gen: "GenLooks", shown: Mapping[str, int]) -> tup
         records = bytearray()
         for look in gen.weapons[key]:
             _wire_model(look.model)
-            records += WEAPON_RECORD.pack(look.model, CUSTOM_NAME | message, 0, _rank(look, shown))
+            preview = gen.preview_models.get((key, look.model), 0)   # a byte, as every weapon model (WEAPON_IDS)
+            records += WEAPON_RECORD.pack(look.model, CUSTOM_NAME | message, 0, _rank(look, shown), preview)
             message += 1
         weapons.append(bytes(records))
     return bytes(sets), bytes(parts), weapons
@@ -512,6 +535,7 @@ def layered_data(code: bytes, looks: Looks | None = None, gen: "GenLooks | None"
     cut down (default: relic_trim of the price table); `prices`: the price table, whose records may move a look up a
     rank (default: generated/layered_prices.json)."""
     looks = looks or load_looks()
+    check_part_models(looks, gen)
     prices = prices if prices is not None else load_prices()
     relics = relics or relic_trim(looks, gen, prices)
     shown = shown_ranks(prices)
@@ -570,6 +594,7 @@ def patch_layered_equipment(code: bytes, layout: Layout | None = None, looks: Lo
                              "raise its size in game/executable/blocks.py")
     out = bytearray(code)
     layout.place(out, "layered_selector")
+    layout.place(out, "layered_town")
     out[layout.symbol("layered_selector", SWITCH_LABEL) - BASE_ADDRESS] = NO_SWITCH if switch is None else switch
     layout.place(out, "layered_data", data + bytes(size - len(data)))
     layout.place(out, "felyne_looks_data", felyne_data(felynes, FELYNE_MESSAGES))
