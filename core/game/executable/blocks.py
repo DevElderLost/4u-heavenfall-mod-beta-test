@@ -315,6 +315,10 @@ ACTION_CANCEL_DATA_SIZE = 8
 # the other cheats, after the item wheel
 DAMAGE_MULTIPLIERS = "cheat_damage"
 DAMAGE_MULTIPLIERS_DATA_SIZE = 4
+# The cheat Charge Blade Guard Point (cheats/guard_point/guard_point.py): packed last, so that it
+# moves no other block
+GUARD_POINT = "cheat_guard_point"
+GUARD_POINT_DATA_SIZE = 4
 # Heavenfall Beta's sidecars (save/beta_sidecar.py): the four sites' stubs and
 # the C with the extras core; its state (struct state in beta_sidecar.c: the slots, the request, the log) and its two
 # card images are in the extension's variables, after every variable of the full mod (a full mod's file stops before
@@ -477,7 +481,7 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
                    MOD_SETTINGS, SPLIT_ROMFS, ASPECT_RATIO, WEAPON_TREE, NEW_MAP, BOLTREAVER_PULL, MISTY_FOG_DEBUG,
                    RADIAL_MENU, QUEST_TIMERS, MAP_SKILLS, ACTION_CANCEL, DAMAGE_MULTIPLIERS, JUKEBOX, BETA_SIDECAR,
                    TRIO_DIAG,
-                   SYNC_DIAG, SOUND_LATCH, MEMORY_DIAG)
+                   SYNC_DIAG, SOUND_LATCH, MEMORY_DIAG, GUARD_POINT)
     specs = (
     # Makes the extension executable at the game's entry; placed with the first block in "ext"
     # (code_space.Layout.extend).
@@ -1113,6 +1117,13 @@ def _declared() -> tuple[tuple[str, ...], tuple[BlockSpec, ...]]:
               region="ext", scene=RESIDENT, resident="the hunter's health and a hit on a monster (town and quest)"),
     BlockSpec("damage_multipliers_data", DAMAGE_MULTIPLIERS, size=DAMAGE_MULTIPLIERS_DATA_SIZE, region="ext",
               scene=RESIDENT, resident="the hunter's health and a hit on a monster (town and quest)"),
+    # Charge Blade Guard Point: the action start's stub, the C and the row's option (guard_point.py guard_point_data)
+    BlockSpec("guard_point_stub", GUARD_POINT, "cheats/guard_point/guard_point_stub.s", region="ext",
+              scene=RESIDENT, resident="the hunter's action start (town and quest)"),
+    BlockSpec("guard_point", GUARD_POINT, "cheats/guard_point/guard_point.c", region="ext",
+              scene=RESIDENT, resident="the hunter's action start (town and quest)"),
+    BlockSpec("guard_point_data", GUARD_POINT, size=GUARD_POINT_DATA_SIZE, region="ext",
+              scene=RESIDENT, resident="the hunter's action start (town and quest)"),
     # The jukebox, two blocks: `jukebox_save`,
     # resident, holds the card's store and load hooks (jukebox_save_stub.s, jukebox_save.c: FUN_002adedc, the card
     # builder, runs in the title, the town and a quest) and what they reach (jukebox_core.c: the defaults, the owner,
@@ -2892,6 +2903,11 @@ GAME_SYMBOLS |= {
     "hunter_update_check": 0xB18618,    # FUN_00b18618(hunter): the update's first check before the action's frame
                                         # (0xB14960); non-zero when it started an action
     "hunter_update_check_more": 0xB0D784,   # FUN_00b0d784(hunter): its second (0xB1496C), when the first started none
+}
+
+# The cheat Charge Blade Guard Point (cheats/guard_point/guard_point_stub.s): the action's start its hook goes on to
+GAME_SYMBOLS |= {
+    "hunter_start_action_body": 0xB1C6F4,   # FUN_00b1c6f0(hunter, group, number, flags), past its first word
 }
 
 # The damage multipliers (cheats/damage_multipliers/damage_multipliers_stub.s): the call their dealt hook replaces and

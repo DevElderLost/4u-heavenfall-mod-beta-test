@@ -77,6 +77,8 @@ OPTION_IDS = {
     # More of the Cheats group: the extra aspect ratio (cheats/aspect_ratio.c) and the damage multipliers
     # (cheats/damage_multipliers/)
     "cheat_aspect_18_9": 41, "cheat_damage_dealt": 42, "cheat_damage_taken": 43,
+    # ... and the Charge Blade's guard point (cheats/guard_point/)
+    "cheat_cb_guard_point": 44,
 }
 # The rows of a feature the installer chooses, which mean nothing without it: the row, the feature's Settings field
 # (or property)
@@ -358,11 +360,13 @@ def _cheat_supports() -> dict[str, Any]:
     from core.cheats.damage_multipliers.damage_multipliers import (
         CHEATS as DAMAGE_MULTIPLIERS, supports_damage_multipliers,
     )
+    from core.cheats.guard_point.guard_point import CHEATS as GUARD_POINT, supports_guard_point
     from core.cheats.map_skills.map_skills import CHEATS as MAP_SKILLS, supports_map_skills
     from core.cheats.quest_timers.quest_timers import CHEATS as QUEST_TIMERS, supports_quest_timers
     return {**dict.fromkeys((FLEX_OPTION, WHETSTONE_OPTION), supports_action_cancel),
             **dict.fromkeys(MAP_SKILLS, supports_map_skills), **dict.fromkeys(QUEST_TIMERS, supports_quest_timers),
             **dict.fromkeys(DAMAGE_MULTIPLIERS, supports_damage_multipliers),
+            **dict.fromkeys(GUARD_POINT, supports_guard_point),
             ASPECT_ROW: lambda code: supports_aspect_ratio(code, menu=False)}
 
 
@@ -462,11 +466,12 @@ def patch_cheats_options(code: bytes, available: list[str], layout: Layout) -> b
     no hook here: the aspect ratio's code reads it (cheats/aspect_ratio.py CHEAT_ROW)."""
     from core.cheats.action_cancel.action_cancel import FLEX_OPTION, NO_OPTION, WHETSTONE_OPTION, patch_action_cancel
     from core.cheats.damage_multipliers.damage_multipliers import patch_damage_multipliers
+    from core.cheats.guard_point.guard_point import patch_guard_point
     from core.cheats.map_skills.map_skills import patch_map_skills
     from core.cheats.quest_timers.quest_timers import patch_quest_timers
     chosen = {key: OPTION_IDS[key] for key in available if key in OPTION_IDS}
     out = patch_map_skills(patch_quest_timers(code, chosen, layout), chosen, layout)
-    out = patch_damage_multipliers(out, chosen, layout)
+    out = patch_guard_point(patch_damage_multipliers(out, chosen, layout), chosen, layout)
     if FLEX_OPTION in chosen or WHETSTONE_OPTION in chosen:
         out = patch_action_cancel(out, layout, (chosen.get(FLEX_OPTION, NO_OPTION),
                                                 chosen.get(WHETSTONE_OPTION, NO_OPTION)))

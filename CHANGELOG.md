@@ -17,6 +17,7 @@ What Heavenfall Beta gives you. The program's own changes are under "The program
 ### Cheats
 - Cheats can multiply the damage your hits deal to monsters, from 1.1x to 10x.
 - Cheats can cut the damage your hunter takes, down to 0.05x.
+- Cheats can give the Charge Blade's morph from guarding a guard point, as after an attack.
 - With other aspect ratios allowed, cheats can fit the game to an 18:9 picture (emulator only).
 
 ### Fixes

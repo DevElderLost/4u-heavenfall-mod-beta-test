@@ -1,10 +1,10 @@
 """The console release's shared file (.hfpack) and the console sets' source stamp.
 
-The shared file holds the files every patch set of a release has the same bytes of, by RomFS path: today the Jukebox's
-extra songs. Each set copies them from it (source kind 4, format 3) instead of carrying them as literal bytes, and the
-3DS app downloads it once and keeps it on the SD card. One file for both regions, with and without MH XX and the cheats.
-It is made from the checkout's own songs, the same bytes on the PC (tools/release/build_console_patches.py) and in the
-release workflow (tools/release/console_sets.py), so it is never kept in git.
+The shared file holds the files every patch set of a release has the same bytes of, by RomFS path, each named by its
+catalogue number. Each set copies them from it (source kind 4, format 3) instead of carrying them as literal bytes, and
+the 3DS app downloads it once and keeps it on the SD card. One file for both regions, with and without MH XX and the
+cheats. It is made from the checkout's own files, the same bytes on the PC (tools/release/build_console_patches.py) and
+in the release workflow (tools/release/console_sets.py), so it is never kept in git.
 
 Little-endian:
 
@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import struct
 import subprocess
 from dataclasses import dataclass
@@ -35,8 +34,8 @@ HEADER = 0x20
 RECORD = 0x38                     # an index record before its name
 SUFFIX = "-shared.hfpack"         # the release file: the app's CIA name without ".cia", then this
 CATALOGUE = "core/game/data/curated/jukebox.json"
-SONGS_FOLDER = "sound/bgm/jukebox"     # core/music/jukebox/queue.py, SHIPPED_FOLDER
-SONGS_SOURCE = "extra"                 # the catalogue's tracks the mod ships from the checkout and every set shares
+SHARED_FOLDER = "sound/bgm/jukebox"    # core/music/jukebox/queue.py, SHIPPED_FOLDER
+SHARED_SOURCE = "extra"                # the catalogue's entries the mod ships from the checkout and every set shares
 STAMP_FOLDER = "core/"                 # the exported files the source stamp covers
 
 
@@ -110,17 +109,18 @@ def shared_name(app_cia: str) -> str:
     return app_cia.removesuffix(".cia") + SUFFIX
 
 
-def song_name(path: str) -> str:
-    """The RomFS path a shipped song gets (core/music/jukebox/queue.py, shipped_name, which a test keeps equal)."""
-    stem = re.split(r"[\\/]", path)[-1].removesuffix(".mca")
-    return f"{SONGS_FOLDER}/{re.sub(r'[^A-Za-z0-9_-]', '_', stem)}.mca"
+def entry_name(number: int) -> str:
+    """The RomFS path the mod ships the catalogue's entry `number` at (core/music/jukebox/build.py, shipped_file, which
+    a test keeps equal)."""
+    return f"{SHARED_FOLDER}/t{number}.mca"
 
 
-def song_paths(read) -> list[str]:
-    """The checkout paths of the songs every set shares: the catalogue's tracks of source `extra` that are not
-    retired. `read(rel)`: a checkout file's bytes."""
+def shared_entries(read) -> list[tuple[int, str]]:
+    """(number, checkout path) of the catalogue's entries every set shares: source SHARED_SOURCE, not retired.
+    `read(rel)`: a checkout file's bytes."""
     catalogue = json.loads(read(CATALOGUE).decode("utf-8"))
-    return [t["path"] for t in catalogue["tracks"] if t.get("source") == SONGS_SOURCE and not t.get("retired")]
+    return [(t["id"], t["path"]) for t in catalogue["tracks"]
+            if t.get("source") == SHARED_SOURCE and not t.get("retired")]
 
 
 def shared_files(root: Path | None = None, read=None) -> dict[str, bytes]:
@@ -128,10 +128,10 @@ def shared_files(root: Path | None = None, read=None) -> dict[str, bytes]:
     bytes: the export gives the bytes it writes)."""
     read = read or (lambda rel: (Path(root) / rel).read_bytes())
     files = {}
-    for path in song_paths(read):
-        name = song_name(path)
+    for number, path in shared_entries(read):
+        name = entry_name(number)
         if name in files:
-            raise SharedFileError(f"two songs ship as {name}")
+            raise SharedFileError(f"two entries of the catalogue are both {name}")
         files[name] = read(path)
     return files
 

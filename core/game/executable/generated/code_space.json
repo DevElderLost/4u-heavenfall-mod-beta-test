@@ -12,8 +12,8 @@
    "start": "0x111e000",
    "end": "0x11a4000",
    "kind": "code",
-   "used": 516372,
-   "free": 32492
+   "used": 516552,
+   "free": 32312
   },
   "bss_tail": {
    "start": "0x111d128",
@@ -6860,6 +6860,55 @@
     "beta_sidecar_split_card": "arm",
     "beta_sidecar_split_user": "arm"
    }
+  },
+  "guard_point": {
+   "region": "ext",
+   "address": "0x119c114",
+   "size": 152,
+   "code": "7110efe6040051e3f0412de90240a0e11d00001a7260ffe60b0056e31c0056131900001a68309fe50070d3e5ff0057e31500000a0050a0e10700a0e1c798ffeb000050e31000000a0700a0e1bf98ffeb000050e30c00000a303e95e5000053e30900000a3130d3e50e0053e30600001a0500a0e18ba3edeb000050e30200000a0b0056e30640a0031b40a0130400a0e1f081bde8c4c11901",
+   "symbols": {
+    "guard_point_action": 0
+   },
+   "relocs": [
+    [
+     116,
+     "call",
+     "hunter_is_local"
+    ]
+   ],
+   "entries": {
+    "guard_point_action": "arm"
+   }
+  },
+  "guard_point_stub": {
+   "region": "ext",
+   "address": "0x119c1ac",
+   "size": 24,
+   "code": "0f502de9d7ffffeb08008de50f50bde8f05f2de94b01e6ea",
+   "symbols": {
+    "_start": 0,
+    "guard_point_hook": 0
+   },
+   "relocs": [
+    [
+     20,
+     "call",
+     "hunter_start_action_body"
+    ]
+   ],
+   "entries": {
+    "_start": "arm",
+    "guard_point_hook": "arm"
+   }
+  },
+  "guard_point_data": {
+   "region": "ext",
+   "address": "0x119c1c4",
+   "size": 4,
+   "code": "00000000",
+   "symbols": {},
+   "relocs": [],
+   "entries": {}
   },
   "layered_town": {
    "region": "pack_town",

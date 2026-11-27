@@ -4,7 +4,7 @@
     python tools/release/console_sets.py [--kind console|android] [--sets DIR] [--version V]
         --shared-out dist/<app>-3ds-shared.hfpack
 
-Makes the release's shared file (core/install/title/shared_file.py) from this checkout's songs into --shared-out and
+Makes the release's shared file (core/install/title/shared_file.py) from this checkout's files into --shared-out and
 checks every patch set the edition file names for the --kind in --sets: present, a release's set whose whole-set hash
 holds, of this version and of the edition, of the region and MH XX its name says, made from this checkout's
 `core/` files (its source stamp, recomputed from the files git lists) and reading this shared file or none. A console
@@ -98,7 +98,7 @@ def check_set(name: str, blob: bytes, want: tuple[int, bool], app_name: str, ver
         problems.append(f"{name} was made from other code than this tree's core/ (stamp {made_from.hex()[:16]}, the "
                         f"tree's {stamp.hex()[:16]})")
     if named not in (bytes(32), shared):
-        problems.append(f"{name} reads another shared file than the one made from this tree's songs")
+        problems.append(f"{name} reads another shared file than the one made from this tree's files")
     if kind == "android":
         made_update = struct.unpack_from("<Q", blob, UPDATE_AT)[0]
         if update_title is None or made_update != int(update_title, 16):

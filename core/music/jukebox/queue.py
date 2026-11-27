@@ -25,7 +25,7 @@ def jukebox_files(read: Callable[[str], bytes], tracks: list[dict], head: Callab
     """({RomFS path: bytes}, {track id: request index}): the ARCs of `queue` (every language's core_lobby.arc, from
     the copies `read` gives) with a stream and a request for each track, and the .mca of the tracks the mod ships.
     A track is {"id", "path": a track's RomFS path in the game or the mod ('sound/bgm/.../x.mca') or "data": the
-    .mca's bytes and "file": the file it comes from (its stem names the shipped file), "source", "percent": its level
+    .mca's bytes and "file": the name it ships as (its stem names the shipped file), "source", "percent": its level
     (100 = the game's) or "db": its level in dB (absent: the level of request `like`)}; a track with a path may carry
     "entry", its stream entry (strq.stream_entry, header_entry), else `head(path, length)` gives its size and first
     bytes (RomFS.head): the game's files are never read whole. Request `like`

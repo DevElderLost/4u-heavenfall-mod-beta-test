@@ -109,6 +109,13 @@ def shipped_xx_file(track: Track) -> str:
     return f"{track.level}.mca" if track.source == "xx" else f"xx_{Path(track.path).stem}.mca"
 
 
+def shipped_file(track: Track) -> str:
+    """The file name a track the mod ships from the checkout (catalogue.SHIPPED_SOURCES) is shipped as: its id,
+    `t<id>.mca`, never its file's name (the release's shared file names its entries alike:
+    install/title/shared_file.py, entry_name)."""
+    return f"t{track.id}.mca"
+
+
 def xx_song(track: Track, xx_read: Callable[[str], bytes], songs: dict | None = None) -> bytes:
     """An MH XX song in MH4U's layout, checked; `songs` ({RomFS path: bytes}) keeps it for the run's second build."""
     if songs is not None and track.path in songs:
@@ -152,7 +159,7 @@ def queue_track(track: Track, streams: Mapping[str, Mapping], levels: Mapping[st
             return {**out, "percent": levels[key]}
         queues = (catalogue or load()).xx["queues"]
         return {**out, "db": xx_level(xx_read, track.path, queues) + percent_db(levels[key])}
-    return {**base, "data": shipped_bytes(track, root), "file": track.path, "percent": levels[key]}
+    return {**base, "data": shipped_bytes(track, root), "file": shipped_file(track), "percent": levels[key]}
 
 
 def counter_place(single_screen: bool) -> tuple[int, int] | None:
@@ -248,4 +255,4 @@ def remove_files(mod: Path) -> None:
 
 __all__ = ["COUNTER_MENU", "COUNTER_SIDES", "JukeboxBuild", "JukeboxBuildError", "LIKE", "PortTheme", "SIDE_WAY",
            "build_sources", "counter_place", "counter_way", "jukebox_build", "jukebox_tracks", "patch_executable",
-           "queue_track", "remove_files", "romfs_paths", "shipped_xx_file", "supports", "xx_song"]
+           "queue_track", "remove_files", "romfs_paths", "shipped_file", "shipped_xx_file", "supports", "xx_song"]
