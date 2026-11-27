@@ -17,6 +17,27 @@ from core.game.executable.extract import read_exactly, read_ncch
 NONE = 0xFFFFFFFF
 TABLES_KEPT = 4     # the game files whose tables (and file index) a new RomFS of the same file takes instead of reading
 
+# The parsed header and tables of the RomFS of each game file already opened (the build opens the same game several
+# times). Of an encrypted file every open decrypts them again, and the tables are megabytes: without this each
+# `RomFS(game)` of a build costs as much as the first one. Kept by path, size and modification time.
+_TABLES: OrderedDict = OrderedDict()
+_TABLES_LOCK = threading.Lock()
+TABLES_KEPT = 4
+
+
+def clear_caches() -> None:
+    """Forget the tables kept between `RomFS(...)` of the same file."""
+    with _TABLES_LOCK:
+        _TABLES.clear()
+
+
+def _tables_key(path: Path):
+    try:
+        status = os.stat(path)
+    except OSError:
+        return None
+    return os.path.abspath(path), status.st_size, status.st_mtime_ns
+
 
 def _align(value: int, alignment: int) -> int:
     return (value + alignment - 1) // alignment * alignment

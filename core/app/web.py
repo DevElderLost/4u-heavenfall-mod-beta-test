@@ -1,8 +1,9 @@
 """What the web page asks of Python: the options it shows, the check of the player's game (and of MH XX's, optional)
 and the mod as one zip.
 
-The page's worker (web/worker.js) runs this module in the browser, in Pyodide, on the game files the player chose;
-nothing is sent anywhere. tools/release/build_web.py writes `options` into the site, so the page shows them before its
+The page's worker (web/worker.js) runs this module in the browser, in Pyodide, on the game files the player chose
+(decrypted, or encrypted with the key file the player chose: `use_keys`); nothing is sent anywhere.
+tools/release/build_web.py writes `options` into the site, so the page shows them before its
 engine is loaded. Nothing here knows of a browser: the run is the program's own (core/app/pipeline.py), and the module's
 heavy imports are inside the functions that need them.
 """
@@ -44,6 +45,26 @@ def options(language: str) -> list[dict]:
                          "options": [_texts(option, defaults, language) for option in group.options]}
                         for group in section.groups]}
             for section in INSTALL_SECTIONS]
+
+
+def use_keys(location: str | Path | None) -> dict:
+    """The player's key files, for the games that are still encrypted: `location` is a folder holding aes_keys.txt or
+    3dskeys.txt (and maybe seeddb.bin), or None to go back to none. Returns `ok`, and `keys` (the names of the keys
+    found, as the key file spells them) and `seeds` (how many) or, when the file holds no key, `reason`: "empty".
+    The page tells the player, in its own language. Nothing is kept beyond this run of Python."""
+    from core.game.executable import crypto
+    if not location:
+        crypto.use_keys(None)
+        return {"ok": True, "keys": [], "seeds": 0}
+    try:
+        keys = crypto.KeySet.load(Path(location))
+    except OSError:
+        return {"ok": False, "reason": "unreadable"}
+    if not keys:
+        crypto.use_keys(None)
+        return {"ok": False, "reason": "empty"}
+    crypto.use_keys(keys)
+    return {"ok": True, "keys": keys.names(), "seeds": len(keys.seeds), "aes": crypto.backend_name()}
 
 
 def check_game(game: str | Path, language: str) -> dict:

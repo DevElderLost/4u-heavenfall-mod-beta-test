@@ -36,6 +36,10 @@ def main(argv=None) -> int:
     parser.add_argument("--out", type=Path, help="output (mod) folder (required)")
     parser.add_argument("--xx-rom", type=Path,
                         help="MH XX's decrypted game file (optional, never modified): Layered Gear adds XX's looks")
+    parser.add_argument("--keys", type=Path, metavar="FILE",
+                        help="aes_keys.txt or 3dskeys.txt (or the folder with it and seeddb.bin): reads a game file "
+                             "that is still encrypted. Without it the keys are looked for beside the game, in "
+                             "HEAVENFALL_KEYS and in the emulators' sysdata folders")
     parser.add_argument("--layered-equipment", action=argparse.BooleanOptionalAction,
                         help="the Smithy's Layered Gear: looks bought once and worn over what you wear")
     parser.add_argument("--layered-by-rank", action=argparse.BooleanOptionalAction,
@@ -109,6 +113,12 @@ def main(argv=None) -> int:
     if args.port and args.code is None:
         parser.error("--port needs --code (the update the recompiled game runs)")
 
+    if args.keys is not None:
+        from core.game.executable import crypto
+        try:
+            crypto.use_keys(crypto.load_keys(args.keys))
+        except (OSError, ValueError) as error:
+            parser.error(f"--keys: {error}")
     low, high = presets.field_range("cheat_fov")
     if args.cheat_fov is not None and not low <= args.cheat_fov <= high:
         parser.error(f"--cheat-fov must be between {low} and {high}")

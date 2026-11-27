@@ -1,0 +1,60 @@
+# Builds the Android app (android/README.md): the installer with a Jetpack Compose interface, Python run by Chaquopy.
+# The APK is an artifact of the run (Actions > Android app > Run workflow). With the secrets below it is signed with
+# your own key, so each new APK installs over the last one; without them, with the runner's debug key.
+name: Android app
+
+on:
+  push:
+    paths: ["android/**", "core/**", ".github/workflows/android.yml"]
+  pull_request:
+    paths: ["android/**", "core/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HF_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      HF_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      HF_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"      # Chaquopy's build Python must have the app's version (android/app/build.gradle.kts)
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools      # the default also lists "tools", a package Google removed: sdkmanager fails with "Failed to find package 'tools'"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Signing key (optional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/heavenfall.jks"
+            echo "HF_KEYSTORE=$RUNNER_TEMP/heavenfall.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build the APK
+        run: gradle -p android assembleRelease --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HeavenfallBeta-android
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

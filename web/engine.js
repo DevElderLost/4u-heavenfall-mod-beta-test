@@ -3,12 +3,14 @@
 
 export const GAME_FOLDER = "/game";
 export const XX_FOLDER = "/xx";      // MH XX's file, optional
+export const KEYS_FOLDER = "/keys";  // the key files (aes_keys.txt or 3dskeys.txt, seeddb.bin), optional
 const ZIP_PATH = "/tmp/mod.zip";
 
 export class Engine {
   constructor(py, web) {
     this.py = py;
     this.web = web;
+    this.keysMounted = false;
     this.read = { pieces: 0, bytes: 0 };    // what the last build read of the game files
   }
 
@@ -35,6 +37,22 @@ export class Engine {
     return `${folder}/${name}`;
   }
 
+  // The player's key files (File objects; none: no keys) for a game that is still encrypted. They are read in place,
+  // and only on this device. Returns what core/app/web.py (use_keys) said of them.
+  useKeys(files) {
+    const { FS } = this.py;
+    if (this.keysMounted) {
+      FS.unmount(KEYS_FOLDER);
+      this.keysMounted = false;
+    } else if (!FS.analyzePath(KEYS_FOLDER).exists) {
+      FS.mkdirTree(KEYS_FOLDER);
+    }
+    if (files.length) {
+      FS.mount(FS.filesystems.WORKERFS, { files }, KEYS_FOLDER);
+      this.keysMounted = true;
+    }
+    return this.plain(this.web.use_keys(files.length ? KEYS_FOLDER : null));
+  }
   // Each read of a file of `ops`'s file system counted in this.read: a phone's browser pays for each read of the
   // player's file, so their number is in the page's technical details.
   counted(ops) {
